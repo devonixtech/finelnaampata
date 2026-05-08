@@ -155,20 +155,7 @@ export default function BusinessDetailClient({
   const [business, setBusiness] = useState<Business | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
   const [activeTab, setActiveTab] = useState("Overview");
-  const [deviceId, setDeviceId] = useState("");
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      let id = localStorage.getItem("device_id");
-      if (!id) {
-        id =
-          Math.random().toString(36).substring(2, 15) +
-          Math.random().toString(36).substring(2, 15);
-        localStorage.setItem("device_id", id);
-      }
-      setDeviceId(id);
-    }
-  }, []);
   const [comments, setComments] = useState<any[]>([]); // We keep the name 'comments' to minimize changes but it will hold Review objects
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -721,7 +708,6 @@ export default function BusinessDetailClient({
         businessId: business.id,
         rating: reviewRating,
         comment: reviewComment.trim(),
-        device_id: deviceId,
       });
       // Refresh reviews
       const reviewsData = await api.reviews.getByBusiness(business.id);
