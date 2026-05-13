@@ -18,7 +18,7 @@ const sections = [
         title: "1. Acceptance of Terms",
         content: `By accessing or using naampata (the "Platform"), you agree to be bound by these Terms of Service ("Terms") and our Privacy Policy. If you do not agree to these Terms, please do not use the Platform.
 
-These Terms apply to all visitors, users, and vendors who access the Platform. We may update these Terms at any time; continued use of the Platform after changes constitutes your acceptance of the revised Terms.`,
+These Terms apply to all visitors, users, and businesses who access the Platform. We may update these Terms at any time; continued use of the Platform after changes constitutes your acceptance of the revised Terms.`,
     },
     {
         id: "eligibility",
@@ -42,7 +42,7 @@ naampata reserves the right to suspend or terminate accounts that violate these 
     {
         id: "listings",
         title: "4. Business Listings",
-        content: `Vendors who list their businesses on naampata agree that:
+        content: `businesses who list their businesses on naampata agree that:
 
 • All listing information provided is accurate, truthful, and not misleading
 • You hold the rights to any images, text, or other content submitted
@@ -63,12 +63,12 @@ You agree NOT to submit content that:
 • Contains spam, promotional material, or affiliate links
 • Violates any applicable laws or regulations
 
-Vendors may not submit reviews of their own businesses or their competitors. naampata moderates all reviews and may remove content that violates these guidelines.`,
+businesses may not submit reviews of their own businesses or their competitors. naampata moderates all reviews and may remove content that violates these guidelines.`,
     },
     {
         id: "payments",
         title: "6. Payments & Subscriptions",
-        content: `naampata offers both free and paid subscription plans for vendors. By subscribing to a paid plan, you agree to pay all applicable fees as described at the time of purchase. Subscriptions auto-renew unless cancelled before the renewal date.
+        content: `naampata offers both free and paid subscription plans for businesses. By subscribing to a paid plan, you agree to pay all applicable fees as described at the time of purchase. Subscriptions auto-renew unless cancelled before the renewal date.
 
 All payments are processed securely through Stripe. Refunds are provided at our discretion and in accordance with our Refund Policy. naampata reserves the right to change pricing with 30 days' notice.`,
     },

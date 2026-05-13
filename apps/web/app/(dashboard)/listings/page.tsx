@@ -112,6 +112,10 @@ export default function VendorListings() {
         setCurrentPage(1);
     }, [searchQuery, sortOrder, statusFilter]);
 
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentPage]);
+
     const totalPages = Math.ceil(filteredListings.length / PAGE_SIZE);
     const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 

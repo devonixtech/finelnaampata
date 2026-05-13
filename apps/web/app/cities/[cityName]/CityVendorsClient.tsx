@@ -15,7 +15,7 @@ interface CityVendorsClientProps {
 export default function CityVendorsClient({ city }: CityVendorsClientProps) {
     // decode URL segment: "lahore" → "lahore", "New%20Delhi" → "New Delhi"
     let effectiveCity = city || '';
-    
+
     // Handle SPA fallback where the route might be served by a 'template' HTML file
     if ((city === 'template' || city === 'default-city' || city === 'default') && typeof window !== 'undefined') {
         const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -87,11 +87,11 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                         <span className="text-orange-400 text-sm font-black uppercase tracking-widest">Vendor Profiles</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-4">
-                        Vendors in
+                        Business Profiles in
                         <span className="text-orange-400"> {cityName}</span>
                     </h1>
                     <p className="text-white/50 font-medium text-base max-w-lg">
-                        Browse all verified businesses and vendor profiles in {cityName}
+                        Browse all verified business profiles in {cityName}
                     </p>
                 </div>
             </section>

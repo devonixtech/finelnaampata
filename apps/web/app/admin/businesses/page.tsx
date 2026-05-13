@@ -63,6 +63,10 @@ export default function AdminBusinessesPage() {
         return () => clearTimeout(timer);
     }, [page, statusFilter, search, fetchBusinesses]);
 
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [page]);
+
     const handleModerate = async (id: string, status: BusinessStatus) => {
         setActionLoading(id + '-moderate');
         try {

@@ -18,6 +18,7 @@ export default function BusinessListingPage() {
     const [totalResults, setTotalResults] = useState(0);
 
     useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         const fetchBusinesses = async () => {
             try {
                 setLoading(true);

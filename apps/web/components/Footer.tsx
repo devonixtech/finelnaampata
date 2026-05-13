@@ -33,11 +33,11 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* For Vendors Column */}
+          {/* For business Column */}
           <div>
-            <h4 className="text-[#112D4E] font-black uppercase tracking-widest text-xs mb-8">For Vendors</h4>
+            <h4 className="text-[#112D4E] font-black uppercase tracking-widest text-xs mb-8">For businesses</h4>
             <ul className="space-y-4">
-              {['Add Business', 'Vendor Login', 'Pricing Plans'].map((item) => (
+              {['Add Business', 'Business Login', 'Pricing Plans'].map((item) => (
                 <li key={item}>
                   <Link href="#" className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
                     {item}

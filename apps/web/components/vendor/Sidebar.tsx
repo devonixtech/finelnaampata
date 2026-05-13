@@ -94,13 +94,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         src={getImageUrl(user?.avatarUrl)}
                         alt={user?.fullName || 'Vendor'}
                         size="lg"
-                        className="relative z-10 shadow-2xl shadow-indigo-100 transition-all duration-500 group-hover:scale-[1.02] ring-4 ring-white"
+                        className="relative z-10  shadow-indigo-100 transition-all duration-500 group-hover:scale-[1.02] ring-4 ring-white"
                     />
-                    <div className="absolute -bottom-1 -right-1 w-9 h-9 bg-indigo-600 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-xl z-20 group-hover:rotate-12 transition-transform">
-                        <Shield className="w-4 h-4" />
-                    </div>
+
                 </div>
-                
+
                 <div className="text-center w-full">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
                         <h2 className="text-lg font-black text-slate-900 truncate max-w-[180px] tracking-tight">
@@ -108,13 +106,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         </h2>
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     </div>
-                    
+
                     <div className="flex flex-col items-center gap-1.5">
-                        <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-xl">
+                        {/* <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-xl">
                             <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.15em] block">
                                 {user?.role || 'User'} Account
                             </span>
-                        </div>
+                        </div> */}
                         {user?.role === 'vendor' && (
                             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-lg border border-indigo-100/50">
                                 <TrendingUp className="w-3 h-3 text-indigo-600" />
@@ -142,27 +140,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             <div className="flex items-center gap-3.5 relative z-10">
                                 <item.icon className={`w-5 h-5 transition-all duration-500 ${isActive
                                     ? 'text-white'
-                                    : (item as any).iconColor && !isActive 
-                                        ? `${(item as any).iconColor} group-hover:scale-110` 
+                                    : (item as any).iconColor && !isActive
+                                        ? `${(item as any).iconColor} group-hover:scale-110`
                                         : 'text-slate-400 group-hover:text-indigo-500 group-hover:scale-110'
                                     }`} />
                                 <span className={`text-[13px] tracking-tight transition-all ${isActive ? 'font-black' : 'font-bold'}`}>
                                     {item.name}
                                 </span>
                             </div>
-                            
+
                             {item.badge && (
-                                <span className={`flex items-center justify-center px-2.5 min-w-[22px] h-5.5 rounded-lg text-[9px] font-black shadow-sm relative z-10 ${
-                                    isActive 
-                                        ? 'bg-white/20 text-white backdrop-blur-md' 
-                                        : isEnquiries 
-                                            ? 'bg-indigo-600 text-white' 
-                                            : 'bg-[#FF7A30] text-white'
-                                }`}>
+                                <span className={`flex items-center justify-center px-2.5 min-w-[22px] h-5.5 rounded-lg text-[9px] font-black shadow-sm relative z-10 ${isActive
+                                    ? 'bg-white/20 text-white backdrop-blur-md'
+                                    : isEnquiries
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-[#FF7A30] text-white'
+                                    }`}>
                                     {item.badge}
                                 </span>
                             )}
-                            
+
                             {isActive && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-indigo-500 opacity-100" />
                             )}
@@ -197,7 +194,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
 
             {/* ── Sidebar (Combined Desktop & Mobile Logic) ── */}
-            <aside 
+            <aside
                 className={`
                     fixed inset-y-0 left-0 z-[50] w-72 bg-white border-r border-slate-100
                     transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:relative lg:translate-x-0

@@ -364,7 +364,7 @@ export default function GenericDashboard() {
                                         <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 shrink-0">
                                             <Heart className="w-5 h-5 fill-rose-500" />
                                         </div>
-                                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Saved Places</h3>
+                                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Saved Businesses</h3>
                                     </div>
                                     <Link href="/saved" className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
                                         <ChevronRight className="w-5 h-5" />
@@ -386,7 +386,7 @@ export default function GenericDashboard() {
                                         ))
                                     ) : (
                                         <div className="text-center py-10 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                            <p className="text-xs text-slate-400 font-bold italic">No saved places yet</p>
+                                            <p className="text-xs text-slate-400 font-bold italic">No saved businesses yet</p>
                                         </div>
                                     )}
                                 </div>
@@ -550,7 +550,7 @@ export default function GenericDashboard() {
                                     </Link>
                                 </div>
 
-                                 {!affiliateStats?.hasReferrer && (
+                                {!affiliateStats?.hasReferrer && (
                                     <div className="space-y-3">
                                         <div className="flex flex-col sm:flex-row gap-2">
                                             <input

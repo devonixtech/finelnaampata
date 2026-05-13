@@ -299,7 +299,7 @@ export default function AdminVerificationsPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Vendor Account</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 ml-1">Business Account</p>
                                         <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
                                                 <UserIcon className="w-4 h-4 text-slate-400" />

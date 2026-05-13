@@ -44,7 +44,7 @@ const contactInfo = [
 const faqs = [
     {
         q: "How do I list my business on naampata?",
-        a: "Simply click 'Add Business' in the top navigation, create a vendor account, and fill in your business details. The basic listing is completely free.",
+        a: "Simply click 'Add Business' in the top navigation, create a business account, and fill in your business details. The basic listing is completely free.",
     },
     {
         q: "How long does it take to review a listing?",
@@ -52,7 +52,7 @@ const faqs = [
     },
     {
         q: "Can I update my business information?",
-        a: "Yes! Log in to your vendor dashboard at any time to update your business details, photos, offers, and contact information.",
+        a: "Yes! Log in to your business dashboard at any time to update your business details, photos, offers, and contact information.",
     },
     {
         q: "How do I report incorrect information?",
@@ -250,13 +250,12 @@ export default function ContactPage() {
                                     {faqs.map(({ q, a }, i) => {
                                         const isOpen = openFaq === i;
                                         return (
-                                            <div 
-                                                key={i} 
-                                                className={`rounded-2xl border transition-all duration-300 ${
-                                                    isOpen 
-                                                        ? "bg-white border-orange-200 shadow-xl shadow-orange-500/5 ring-4 ring-orange-500/5" 
+                                            <div
+                                                key={i}
+                                                className={`rounded-2xl border transition-all duration-300 ${isOpen
+                                                        ? "bg-white border-orange-200 shadow-xl shadow-orange-500/5 ring-4 ring-orange-500/5"
                                                         : "bg-slate-50/50 border-slate-100 hover:border-slate-200 hover:bg-white"
-                                                }`}
+                                                    }`}
                                             >
                                                 <button
                                                     id={`faq-${i}`}
@@ -266,9 +265,8 @@ export default function ContactPage() {
                                                     <span className={`text-sm font-bold transition-colors pr-6 ${isOpen ? "text-[#FF7A30]" : "text-[#112D4E] group-hover:text-[#FF7A30]/80"}`}>
                                                         {q}
                                                     </span>
-                                                    <div className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                                                        isOpen ? "bg-[#FF7A30] text-white rotate-180" : "bg-white text-slate-400 group-hover:text-[#FF7A30]"
-                                                    }`}>
+                                                    <div className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${isOpen ? "bg-[#FF7A30] text-white rotate-180" : "bg-white text-slate-400 group-hover:text-[#FF7A30]"
+                                                        }`}>
                                                         <ChevronDown className="w-4 h-4" />
                                                     </div>
                                                 </button>

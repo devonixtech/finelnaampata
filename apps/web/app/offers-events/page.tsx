@@ -86,6 +86,7 @@ const OffersEventsContent = () => {
     };
 
     useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         fetchOffers();
     }, [page, type, city, lat, lng]);
 

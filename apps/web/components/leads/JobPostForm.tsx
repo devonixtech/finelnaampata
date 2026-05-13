@@ -76,7 +76,7 @@ export default function JobPostForm({ onSuccess }: JobPostFormProps) {
                     </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Job Posted Successfully!</h3>
-                <p className="text-gray-600 mb-6">Your request has been broadcasted to relevant vendors. You will be notified when they respond.</p>
+                <p className="text-gray-600 mb-6">Your request has been broadcasted to relevant businesses. You will be notified when they respond.</p>
                 <button
                     onClick={() => setSuccess(false)}
                     className="text-primary-600 font-semibold hover:underline"

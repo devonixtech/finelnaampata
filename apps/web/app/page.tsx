@@ -177,6 +177,7 @@ export default function HomePage() {
   // Skip the very first mount since initial data is already loaded above
   useEffect(() => {
     if (isInitialMount.current) return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     const fetchBusinessesPage = async () => {
       try {
         setBusinessesLoading(true);

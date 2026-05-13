@@ -19,7 +19,7 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({ toggleSidebar, unreadNotifications: propUnreadNotifs, unreadMessages: propUnreadMessages }: DashboardHeaderProps) {
     const { user } = useAuth();
     const { unreadChatCount, unreadCount: unreadNotificationCount } = useSocket();
-    
+
     // Use socket counts if available, otherwise fallback to props
     const unreadMessages = propUnreadMessages !== undefined ? propUnreadMessages : unreadChatCount;
     const unreadNotifications = propUnreadNotifs !== undefined ? propUnreadNotifs : unreadNotificationCount;
@@ -61,14 +61,14 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                             <Menu className="w-5 h-5" />
                         </button>
 
-                        <div className="hidden lg:flex items-center gap-6">
+                        {/* <div className="hidden lg:flex items-center gap-6">
                             <div className="flex flex-col">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-1.5 ml-0.5">System Status</p>
                                 <div className="flex items-center gap-2.5 px-3.5 py-1.5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 hover:bg-emerald-50 transition-colors cursor-default">
                                     <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest">Global Network Online</span>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Centered Navigation */}
@@ -78,13 +78,13 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                 Home
                             </Link>
 
-                            {/* Categories Dropdown */}
+
                             <div
                                 className="relative group"
                                 onMouseEnter={() => setActiveDropdown('categories')}
                                 onMouseLeave={() => setActiveDropdown(null)}
                             >
-                                <button 
+                                <button
                                     onClick={() => handleDropdownToggle('categories')}
                                     className="flex items-center gap-1 text-sm font-medium text-[#70757a] hover:bg-gray-100 px-4 py-2 rounded-md transition-colors group"
                                 >
@@ -93,7 +93,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
 
                                 <AnimatePresence>
                                     {activeDropdown === 'categories' && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
@@ -127,13 +127,13 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                 </AnimatePresence>
                             </div>
 
-                            {/* Businesses Dropdown */}
+
                             <div
                                 className="relative group"
                                 onMouseEnter={() => setActiveDropdown('businesses')}
                                 onMouseLeave={() => setActiveDropdown(null)}
                             >
-                                <button 
+                                <button
                                     onClick={() => handleDropdownToggle('businesses')}
                                     className="flex items-center gap-1 text-sm font-medium text-[#70757a] hover:bg-gray-100 px-4 py-2 rounded-md transition-colors group"
                                 >
@@ -141,7 +141,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                 </button>
                                 <AnimatePresence>
                                     {activeDropdown === 'businesses' && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
@@ -183,13 +183,13 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                 </AnimatePresence>
                             </div>
 
-                            {/* Cities Dropdown */}
+
                             <div
                                 className="relative group"
                                 onMouseEnter={() => setActiveDropdown('cities')}
                                 onMouseLeave={() => setActiveDropdown(null)}
                             >
-                                <button 
+                                <button
                                     onClick={() => handleDropdownToggle('cities')}
                                     className="flex items-center gap-1 text-sm font-medium text-[#70757a] hover:bg-gray-100 px-4 py-2 rounded-md transition-colors group"
                                 >
@@ -197,7 +197,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                 </button>
                                 <AnimatePresence>
                                     {activeDropdown === 'cities' && (
-                                        <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, y: 10 }}
@@ -268,7 +268,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
 
                         {/* User Dropdown / Profile */}
                         <div className="relative group/user">
-                            <button 
+                            <button
                                 className="flex items-center gap-3 sm:gap-4 cursor-pointer pl-2 hover:bg-slate-50/50 p-2 rounded-2xl transition-all"
                             >
                                 {/* Text */}
@@ -277,10 +277,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                         {user?.fullName?.split(' ')[0] || 'User'}
                                     </span>
 
-                                    <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                        <span>Verified</span>
-                                        <Shield className="w-2.5 h-2.5 text-indigo-500" />
-                                    </div>
+
                                 </div>
 
                                 {/* Avatar */}
@@ -309,14 +306,14 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                     </div>
                                 </div>
                                 <div className="p-2">
-                                    <Link 
+                                    <Link
                                         href="/settings"
                                         className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 rounded-xl transition-all"
                                     >
                                         <User className="w-4 h-4" />
                                         <span>My Profile</span>
                                     </Link>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             localStorage.removeItem('token');
                                             localStorage.removeItem('user');

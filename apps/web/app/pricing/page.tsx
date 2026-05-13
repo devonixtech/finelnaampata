@@ -78,7 +78,7 @@ const FAQS = [
     },
     {
         q: "Can I list multiple businesses on one account?",
-        a: "No — each business needs its own vendor account. The Basic plan gives unlimited listings under one vendor account, not multiple businesses.",
+        a: "No — each business needs its own business account. The Basic plan gives unlimited listings under one business account, not multiple businesses.",
     },
     {
         q: "How is payment processed?",
