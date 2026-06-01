@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { MailService } from './mail.service';
 import { User } from '../../entities/user.entity';
 import { Affiliate } from '../../entities/affiliate.entity';
 import { AffiliateReferral } from '../../entities/referral.entity';
@@ -32,7 +33,7 @@ import { AffiliateModule } from '../affiliate/affiliate.module';
         }),
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
-    exports: [AuthService, JwtStrategy, PassportModule],
+    providers: [AuthService, JwtStrategy, MailService],
+    exports: [AuthService, JwtStrategy, PassportModule, MailService],
 })
 export class AuthModule { }

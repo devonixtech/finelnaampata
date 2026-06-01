@@ -4,9 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { JobLead } from '../../types/api';
 import BroadcastCard from './BroadcastCard';
-import { Megaphone, RefreshCcw, Send, CheckCircle2, X, DollarSign, Loader2 } from 'lucide-react';
+import { Megaphone, RefreshCcw, Send, CheckCircle2, X, DollarSign, Loader2, Lock } from 'lucide-react';
+import { usePlanFeature } from '../../hooks/usePlanFeature';
+import Link from 'next/link';
 
 export default function BroadcastFeed() {
+    const { hasFeature } = usePlanFeature();
+    const canRespond = hasFeature('canRespondBroadcast');
     const [leads, setLeads] = useState<JobLead[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -44,6 +48,10 @@ export default function BroadcastFeed() {
     const handleRespond = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedLead) return;
+        if (!canRespond) {
+            alert('Responding to broadcast leads requires a paid plan. Upgrade to send proposals.');
+            return;
+        }
 
         setSubmitting(true);
         const priceValue = parseFloat(responsePrice);
@@ -128,6 +136,7 @@ export default function BroadcastFeed() {
                         <BroadcastCard
                             key={lead.id}
                             lead={lead}
+                            canRespond={canRespond}
                             onRespond={setSelectedLead}
                         />
                     ))}
@@ -138,6 +147,20 @@ export default function BroadcastFeed() {
             {selectedLead && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
                     <div className="bg-white rounded-[24px] w-full max-w-lg overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
+                        {!canRespond ? (
+                            <div className="p-10 text-center">
+                                <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <Lock className="w-7 h-7 text-orange-500" />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 mb-2">Paid Feature</h3>
+                                <p className="text-sm text-slate-500 font-medium mb-6">Free plans can view broadcasts but need a paid plan to send proposals.</p>
+                                <Link href="/subscription" className="inline-flex px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-wider">
+                                    Upgrade Plan
+                                </Link>
+                                <button onClick={() => setSelectedLead(null)} className="block w-full mt-4 text-xs font-bold text-slate-400">Close</button>
+                            </div>
+                        ) : (
+                        <>
                         <div className="p-10 pb-0 flex justify-between items-start">
                             <div className="max-w-[80%]">
                                 <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 inline-block">Responding To</span>
@@ -198,6 +221,8 @@ export default function BroadcastFeed() {
                                 )}
                             </button>
                         </form>
+                        </>
+                        )}
                     </div>
                 </div>
             )}

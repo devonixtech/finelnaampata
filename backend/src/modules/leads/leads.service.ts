@@ -10,6 +10,7 @@ import { Lead, LeadStatus } from '../../entities/lead.entity';
 import { Listing } from '../../entities/business.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { User, UserRole } from '../../entities/user.entity';
+import { BusinessCustomerNote } from '../../entities/business-customer-note.entity';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadStatusDto } from './dto/update-lead-status.dto';
 import { GetLeadsDto } from './dto/get-leads.dto';
@@ -30,6 +31,8 @@ export class LeadsService {
         private readonly listingRepository: Repository<Listing>,
         @InjectRepository(Vendor)
         private vendorRepository: Repository<Vendor>,
+        @InjectRepository(BusinessCustomerNote)
+        private notesRepository: Repository<BusinessCustomerNote>,
         @InjectEntityManager()
         private readonly entityManager: EntityManager,
         private notificationsGateway: NotificationsGateway,
@@ -387,5 +390,38 @@ export class LeadsService {
         }
 
         return saved;
+    }
+
+    /**
+     * Add a note to a lead (CRM functionality)
+     */
+    async addNote(
+        leadId: string,
+        noteText: string,
+        userId: string,
+    ): Promise<BusinessCustomerNote> {
+        const lead = await this.findOne(leadId, userId);
+        
+        const note = this.notesRepository.create({
+            leadId: lead.id,
+            businessId: lead.businessId,
+            createdById: userId,
+            note: noteText,
+        });
+
+        return this.notesRepository.save(note);
+    }
+
+    /**
+     * Get all notes for a lead
+     */
+    async getNotes(leadId: string, userId: string): Promise<BusinessCustomerNote[]> {
+        await this.findOne(leadId, userId); // verify permission
+        
+        return this.notesRepository.find({
+            where: { leadId },
+            order: { createdAt: 'DESC' },
+            relations: ['createdBy'],
+        });
     }
 }

@@ -234,6 +234,11 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                     </div>
 
                     <div className="flex items-center gap-4 sm:gap-8">
+                        {user?.role === 'user' && (
+                            <Link href="/upgrade" className="hidden sm:inline-block px-4 py-2 rounded-xl bg-[#FF7A30] text-white font-bold text-xs hover:bg-[#E86920] transition-all whitespace-nowrap">
+                                List My Business
+                            </Link>
+                        )}
 
 
                         <div className="flex items-center gap-2 sm:gap-4">

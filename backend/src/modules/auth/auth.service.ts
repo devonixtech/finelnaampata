@@ -24,6 +24,8 @@ import { JwtPayload, JwtTokens } from '../../common/interfaces/jwt-payload.inter
 import { NotificationsService } from '../notifications/notifications.service';
 import { AffiliateService } from '../affiliate/affiliate.service';
 import { generateReferralCode } from '../../common/utils/referral-code';
+import { MailService } from './mail.service';
+import { normalizeGlobalPhone } from '../../common/utils/phone.util';
 
 @Injectable()
 export class AuthService {
@@ -46,6 +48,7 @@ export class AuthService {
         @InjectRepository(SubscriptionPlan)
         private planRepository: Repository<SubscriptionPlan>,
         private affiliateService: AffiliateService,
+        private mailService: MailService,
     ) { }
 
     /**
@@ -91,66 +94,83 @@ export class AuthService {
      * Register a new user
      */
     async register(registerDto: RegisterDto): Promise<{ user: User; tokens: JwtTokens }> {
-        const { email, password, fullName, phone } = registerDto;
+        try {
+            const { email, password, fullName } = registerDto;
+            const phone = normalizeGlobalPhone(registerDto.phone) || registerDto.phone;
 
-        // Check if user already exists
-        const existingUser = await this.userRepository.findOne({
-            where: { email },
-        });
-
-        if (existingUser) {
-            throw new ConflictException('User with this email already exists');
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create user in database
-        const user = this.userRepository.create({
-            email,
-            password: hashedPassword,
-            fullName,
-            phone,
-            role: (registerDto.role as UserRole) || UserRole.USER,
-            provider: AuthProvider.LOCAL,
-            isEmailVerified: true, // Auto-verify for local auth
-            isActive: true,
-        });
-
-        const savedUser = await this.userRepository.save(user);
-
-        // Auto-create affiliate record for vendors
-        if (savedUser.role === UserRole.VENDOR) {
-            const vendor = this.vendorRepository.create({
-                userId: savedUser.id,
-                isVerified: false,
+            // Check if user already exists
+            const existingUser = await this.userRepository.findOne({
+                where: { email },
             });
-            const savedVendor = await this.vendorRepository.save(vendor);
-            this.logger.log(`Auto-created vendor profile for user ${savedUser.id}`);
 
-            // Auto-assign FREE plan for newly created vendor
-            await this.assignFreePlan(savedVendor.id);
+            if (existingUser) {
+                throw new ConflictException('User with this email already exists');
+            }
 
-            const affiliate = this.affiliateRepository.create({
-                user: savedUser,
-                referralCode: generateReferralCode(),
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Generate a 6-digit OTP code
+            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+            // Create user in database
+            const user = this.userRepository.create({
+                email,
+                password: hashedPassword,
+                fullName,
+                phone,
+                role: UserRole.USER,
+                provider: AuthProvider.LOCAL,
+                isEmailVerified: false, // Verification required
+                verificationOtp: otpCode,
+                otpExpiresAt: otpExpiry,
+                isActive: true,
+                pendingReferralCode: registerDto.referralCode?.trim() || null,
             });
-            await this.affiliateRepository.save(affiliate);
-            this.logger.log(`Auto-created affiliate record for vendor ${savedUser.id}`);
+
+            const savedUser = await this.userRepository.save(user);
+
+            // Send OTP verification email asynchronously
+            this.mailService.sendOtpEmail(savedUser.email, otpCode, savedUser.fullName)
+                .catch(err => this.logger.error(`Failed to send verification email for signup: ${err.message}`));
+
+            // Auto-create affiliate record for vendors
+            if (savedUser.role === UserRole.VENDOR) {
+                const vendor = this.vendorRepository.create({
+                    userId: savedUser.id,
+                    isVerified: false,
+                });
+                const savedVendor = await this.vendorRepository.save(vendor);
+                this.logger.log(`Auto-created vendor profile for user ${savedUser.id}`);
+
+                // Auto-assign FREE plan for newly created vendor
+                await this.assignFreePlan(savedVendor.id);
+
+                const affiliate = this.affiliateRepository.create({
+                    user: savedUser,
+                    referralCode: generateReferralCode(),
+                });
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`Auto-created affiliate record for vendor ${savedUser.id}`);
+            }
+
+            // Generate tokens
+            const tokens = await this.generateTokens(savedUser);
+
+            // Remove sensitive data
+            delete savedUser.password;
+
+            // Handle referral if provided
+            if (registerDto.referralCode && savedUser.role === UserRole.VENDOR) {
+                await this.handleReferral(registerDto.referralCode, savedUser.id);
+            }
+
+            return { user: savedUser, tokens };
+        } catch (e: any) {
+            this.logger.error(`Error in register: ${e.message}`, e.stack);
+            throw e;
         }
-
-        // Generate tokens
-        const tokens = await this.generateTokens(savedUser);
-
-        // Remove sensitive data
-        delete savedUser.password;
-
-        // Handle referral if provided
-        if (registerDto.referralCode && savedUser.role === UserRole.VENDOR) {
-            await this.handleReferral(registerDto.referralCode, savedUser.id);
-        }
-
-        return { user: savedUser, tokens };
     }
 
     /**
@@ -180,7 +200,7 @@ export class AuthService {
         if (!user.password) {
             if (user.provider === AuthProvider.GOOGLE) {
                 throw new UnauthorizedException(
-                    'This account was created with Google. Please sign in using the "Continue with Google" button.',
+                    `This account was created with ${user.provider}. Please sign in using that social login button.`,
                 );
             }
             // Local account with no password set — edge case, treat as invalid.
@@ -192,12 +212,19 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
+        if (user.provider === AuthProvider.LOCAL && !user.isEmailVerified) {
+            throw new UnauthorizedException(
+                'Please verify your email before logging in. Check your inbox or use the resend code option on the verification page.',
+            );
+        }
+
         // Update last login, isOnline and phone if provided (Non-critical updates)
         try {
             user.lastLoginAt = new Date();
             user.isOnline = true;
-            if (loginDto.phone && user.phone !== loginDto.phone) {
-                user.phone = loginDto.phone;
+            const normalizedPhone = normalizeGlobalPhone(loginDto.phone);
+            if (normalizedPhone && user.phone !== normalizedPhone) {
+                user.phone = normalizedPhone;
             }
             await this.userRepository.save(user);
             this.logger.log(`User ${user.email} logged in. isOnline set to true.`);
@@ -497,12 +524,12 @@ export class AuthService {
 
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload as any, {
-                secret: this.configService.get<string>('JWT_SECRET'),
-                expiresIn: this.configService.get<string>('JWT_EXPIRATION') as any,
+                secret: this.configService.get<string>('JWT_SECRET') || 'your_super_secret_jwt_key_that_is_long_enough',
+                expiresIn: (this.configService.get<string>('JWT_EXPIRATION') || '24h') as any,
             }),
             this.jwtService.signAsync(payload as any, {
-                secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-                expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION') as any,
+                secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'your_super_secret_jwt_refresh_key_that_is_long_enough',
+                expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d') as any,
             }),
         ]);
 
@@ -568,5 +595,66 @@ export class AuthService {
         } catch (error) {
             this.logger.error(`[Referral] Failed to process referral handling: ${error.message}`);
         }
+    }
+
+    /**
+     * Verify user email via OTP
+     */
+    async verifyEmail(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        if (!user) {
+            throw new BadRequestException('User not found');
+        }
+
+        if (user.isEmailVerified) {
+            return { success: true, message: 'Email is already verified' };
+        }
+
+        if (!user.verificationOtp || user.verificationOtp !== otp) {
+            throw new BadRequestException('Invalid verification code');
+        }
+
+        if (!user.otpExpiresAt || new Date() > user.otpExpiresAt) {
+            throw new BadRequestException('Verification code has expired');
+        }
+
+        // Mark as verified and clear OTP
+        user.isEmailVerified = true;
+        user.verificationOtp = null;
+        user.otpExpiresAt = null;
+        await this.userRepository.save(user);
+
+        this.logger.log(`✅ User ${user.id} (${user.email}) successfully verified their email.`);
+        return { success: true, message: 'Email verified successfully' };
+    }
+
+    /**
+     * Generate and resend a new OTP verification email
+     */
+    async resendOtp(email: string): Promise<{ success: boolean; message: string }> {
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        if (!user) {
+            throw new BadRequestException('User not found');
+        }
+
+        if (user.isEmailVerified) {
+            return { success: true, message: 'Email is already verified' };
+        }
+
+        // Generate a new 6-digit OTP code
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        user.verificationOtp = otpCode;
+        user.otpExpiresAt = otpExpiry;
+        await this.userRepository.save(user);
+
+        // Send OTP verification email asynchronously
+        this.mailService.sendOtpEmail(user.email, otpCode, user.fullName)
+            .catch(err => this.logger.error(`Failed to send verification email for resend: ${err.message}`));
+
+        return { success: true, message: 'Verification code resent successfully' };
     }
 }

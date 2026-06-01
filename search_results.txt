@@ -1,0 +1,65 @@
+=== System status ===
+
+=== Priority Listing ===
+
+=== Expert Support ===
+
+=== Detailed Analytics ===
+
+=== Unlimited Leads ===
+
+=== Zip Code ===
+
+=== Zip code ===
+
+=== Street Address ===
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\temp_fix.js:27 - <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address / Area</label>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1317 - <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Street Address *</label>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1328 - <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Street Address Line 2 (Optional)</label>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:788 - <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address / Area</label>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:803 - <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address Line 2 (Optional)</label>
+
+=== Facebook ===
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\fix_social.js:45 - ${subIndent}    Icon = Facebook;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\add-listing\page.tsx:35 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:4 - import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award } from 'lucide-react';
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:899 - <option value="facebook">Facebook</option>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:908 - {link.platform === 'facebook' && <Facebook className="w-4 h-4" />}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\settings\page.tsx:6 - Share2, Facebook, Twitter, Instagram, Linkedin,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\settings\page.tsx:237 - { key: 'fb_url', icon: Facebook, color: 'text-blue-600', label: 'Facebook URL' },
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:31 - Facebook,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2109 - Icon = Facebook;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2786 - name: "Facebook",
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:31 - Facebook,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1783 - <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Facebook Page</label>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\offers-events\[offerId]\OfferEventDetailClient.tsx:10 - Phone, Globe, Facebook, Instagram, Twitter, Compass, ChevronRight, Home, ShieldCheck
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\offers-events\[offerId]\OfferEventDetailClient.tsx:414 - <Facebook className="w-5 h-5 text-slate-400 cursor-pointer hover:text-[#1877F2] transition-colors" />
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorProfileCard.tsx:7 - Facebook, Instagram, Twitter, Globe, Linkedin, Youtube,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorProfileCard.tsx:61 - facebook: <Facebook className="w-4 h-4" />,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:15 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+
+=== facebook ===
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\fix_social.js:32 - ${subIndent}    if (url.includes('facebook')) platform = 'facebook';
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\fix_social.js:44 - ${subIndent}if (platform.includes('facebook')) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\add-listing\page.tsx:35 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:201 - socialLinks: [...prev.socialLinks, { platform: 'facebook', url: '' }]
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:899 - <option value="facebook">Facebook</option>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:908 - {link.platform === 'facebook' && <Facebook className="w-4 h-4" />}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2083 - if (url.includes("facebook"))
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2084 - platform = "facebook";
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2108 - if (platform.includes("facebook")) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2793 - url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:212 - facebook: '',
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1786 - value={stepData.socialLinks.facebook}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1787 - onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, facebook: e.target.value}})}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1788 - placeholder="https://facebook.com/..."
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorProfileCard.tsx:61 - facebook: <Facebook className="w-4 h-4" />,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorProfileCard.tsx:71 - facebook: 'hover:bg-blue-600 hover:border-blue-600 hover:text-white',
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:15 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+
+=== facebook.com ===
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\add-listing\page.tsx:35 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2793 - url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1788 - placeholder="https://facebook.com/..."
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:15 - { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+

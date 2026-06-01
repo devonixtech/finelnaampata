@@ -63,7 +63,7 @@ export class Business {
     @Column({
         type: 'varchar',
         length: 20,
-        default: BusinessStatus.PENDING,
+        default: BusinessStatus.APPROVED, // Auto-approve: listings go live immediately
     })
     status: BusinessStatus;
 

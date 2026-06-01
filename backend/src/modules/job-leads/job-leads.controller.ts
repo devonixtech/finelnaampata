@@ -39,7 +39,7 @@ export class JobLeadsController {
         return this.jobLeadsService.getMyLeads(user.id);
     }
 
-    @Get('vendor/inbox')
+    @Get(['vendor/inbox', 'business/inbox'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get relevant job leads for vendor' })
@@ -48,7 +48,7 @@ export class JobLeadsController {
         return this.jobLeadsService.getLeadsForVendor(user.id);
     }
 
-    @Get('vendor/stats')
+    @Get(['vendor/stats', 'business/stats'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get broadcast inbox statistics (new/unresponded)' })

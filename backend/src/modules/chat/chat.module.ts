@@ -1,6 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ChatConversation, ChatMessage, User, Listing, Vendor } from '../../entities';
+import { ChatConversation, ChatMessage, User, Listing, Vendor, CustomerNote } from '../../entities';
+import { Subscription } from '../../entities/subscription.entity';
+import { ActivePlan } from '../../entities/active-plan.entity';
 import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
 import { ChatGateway } from './chat.gateway';
@@ -13,7 +15,7 @@ import { LeadsModule } from '../leads/leads.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([ChatConversation, ChatMessage, User, Listing, Vendor]),
+        TypeOrmModule.forFeature([ChatConversation, ChatMessage, User, Listing, Vendor, CustomerNote, Subscription, ActivePlan]),
         ConfigModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],

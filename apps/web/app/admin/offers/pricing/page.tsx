@@ -102,7 +102,7 @@ export default function AdminOfferPricingPage() {
                             <TrendingUp className="w-10 h-10 text-orange-500" />
                             Offer & Event Pricing
                         </h1>
-                        <p className="text-slate-500 font-bold mt-2 text-lg">Set promotional rates for vendors to feature their content.</p>
+                        <p className="text-slate-500 font-bold mt-2 text-lg">Set promotional rates for businesses to feature their content.</p>
                     </div>
 
                     <button 
@@ -230,8 +230,8 @@ export default function AdminOfferPricingPage() {
                                                 onChange={e => setCurrentPricing({...currentPricing, type: e.target.value})}
                                                 className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-orange-500/10 transition-all appearance-none cursor-pointer"
                                             >
-                                                <option value="offer">Vendor Offer</option>
-                                                <option value="event">Vendor Event</option>
+                                                <option value="offer">Business Offer</option>
+                                                <option value="event">Business Event</option>
                                             </select>
                                         </div>
                                         <div>

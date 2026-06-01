@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, getImageUrl } from '../../../lib/api';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import {
-    Calendar, Tag, MapPin, Loader2, Bookmark, Share2, CheckCircle2,
+    Calendar, Tag, MapPin, Bookmark, Share2, CheckCircle2,
     Phone, Globe, Facebook, Instagram, Twitter, Compass, ChevronRight, Home, ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
@@ -25,13 +25,10 @@ export default function OfferEventDetailClient() {
     const [interactionLoading, setInteractionLoading] = useState(false);
     const [showShareToast, setShowShareToast] = useState(false);
 
-    // Map State & Refs
-    const [mapLoaded, setMapLoaded] = useState(false);
-    const [mapError, setMapError] = useState(false);
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null);
-    const markerRef = useRef<any>(null);
-    const initInProgress = useRef(false);
+    const mapQuery = `${offer?.business?.address || ''} ${offer?.business?.city || ''} ${offer?.business?.state || ''}`.trim();
+    const mapEmbedSrc = mapQuery
+        ? `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`
+        : null;
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -48,7 +45,17 @@ export default function OfferEventDetailClient() {
             }
 
             try {
-                const data = await api.offers.getById(actualId);
+                let data: any = null;
+                try {
+                    data = await api.deals.getById(actualId);
+                    if (data) data = { ...data, type: 'offer' };
+                } catch {
+                    data = null;
+                }
+                if (!data) {
+                    const eventData = await api.events.getById(actualId);
+                    data = { ...eventData, type: 'event' };
+                }
                 setOffer(data);
 
                 // Initial status check for logged-in users
@@ -75,102 +82,6 @@ export default function OfferEventDetailClient() {
         };
         fetchDetails();
     }, [id]);
-
-    // Initialize Map logic
-    const initMap = async () => {
-        if (!mapContainerRef.current || !offer || initInProgress.current) return;
-
-        try {
-            initInProgress.current = true;
-            const lat = parseFloat(String(offer.business.latitude)) || 30.3753;
-            const lng = parseFloat(String(offer.business.longitude)) || 69.3451;
-            const center = { lat, lng };
-
-            console.log('[OfferEventDetail] Initializing map at:', center);
-
-            if (!(window as any).google?.maps?.importLibrary) {
-                console.warn('[OfferEventDetail] Google Maps importLibrary not available yet');
-                initInProgress.current = false;
-                return;
-            }
-
-            const { Map } = await (window as any).google.maps.importLibrary("maps");
-
-            if (!mapRef.current) {
-                mapRef.current = new Map(mapContainerRef.current, {
-                    center,
-                    zoom: 15,
-                    mapTypeId: 'roadmap',
-                    zoomControl: true,
-                    streetViewControl: true,
-                    fullscreenControl: true,
-                    maxZoom: 19,
-                    minZoom: 2,
-                });
-
-                console.log('[OfferEventDetail] Map instance created');
-
-                try {
-                    const { Marker } = await (window as any).google.maps.importLibrary("marker");
-                    markerRef.current = new Marker({
-                        position: center,
-                        map: mapRef.current,
-                        title: offer.business.title,
-                        animation: (window as any).google?.maps?.Animation?.DROP
-                    });
-                    console.log('[OfferEventDetail] Legacy Marker initialized');
-                } catch (markerErr) {
-                    console.warn('[OfferEventDetail] Marker failed:', markerErr);
-                }
-            } else {
-                mapRef.current.setCenter(center);
-                if ((window as any).google?.maps?.event) {
-                    (window as any).google.maps.event.trigger(mapRef.current, 'resize');
-                }
-                if (markerRef.current) {
-                    if (markerRef.current.setPosition) {
-                        markerRef.current.setPosition(center);
-                    } else {
-                        markerRef.current.position = center;
-                    }
-                }
-            }
-        } catch (err) {
-            console.error('[OfferEventDetail] GOOGLE MAP CRITICAL ERROR:', err);
-            setMapError(true);
-        } finally {
-            initInProgress.current = false;
-        }
-    };
-
-    useEffect(() => {
-        if (mapLoaded && offer) {
-            initMap();
-        }
-    }, [mapLoaded, offer]);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout | undefined;
-        if (typeof window !== 'undefined' && (window as any).google?.maps?.importLibrary) {
-            setMapLoaded(true);
-        } else {
-            interval = setInterval(() => {
-                if (typeof window !== 'undefined' && (window as any).google?.maps?.importLibrary) {
-                    setMapLoaded(true);
-                    clearInterval(interval);
-                }
-            }, 1000);
-        }
-
-        (window as any).gm_authFailure = () => {
-            console.error('[OfferEventDetail] Google Maps auth failure - check API Key and Billing');
-            setMapError(true);
-        };
-
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, []);
 
     if (loading) {
         return (
@@ -524,30 +435,20 @@ export default function OfferEventDetailClient() {
                         </div>
 
                         <div className="mt-10 rounded-[2rem] overflow-hidden relative group/map border border-slate-200 shadow-inner h-64 bg-slate-50">
-                            {mapError && (
-                                <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                                    <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 mb-4 shadow-sm">
-                                        <MapPin className="w-6 h-6" />
-                                    </div>
-                                    <h4 className="text-sm font-black text-slate-900 mb-1 tracking-tight">Map Load Error</h4>
-                                    <p className="text-[10px] font-bold text-slate-500 leading-relaxed mb-4 max-w-[200px] mx-auto">
-                                        We're having trouble loading the interactive map for this offer.
-                                    </p>
-                                    <button
-                                        onClick={() => { setMapError(false); initMap(); }}
-                                        className="px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95 shadow-lg shadow-slate-200"
-                                    >
-                                        Retry Loading
-                                    </button>
+                            {mapEmbedSrc ? (
+                                <iframe
+                                    title={`Map for ${offer.business?.title || 'business'}`}
+                                    src={mapEmbedSrc}
+                                    className="w-full h-full"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                />
+                            ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                                    <MapPin className="w-7 h-7 text-slate-400 mb-2" />
+                                    <p className="text-xs font-bold text-slate-500">Map preview unavailable</p>
                                 </div>
                             )}
-                            {!mapLoaded && !mapError && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                                    <Loader2 className="w-8 h-8 text-[#FF7904] animate-spin mb-3" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Map...</p>
-                                </div>
-                            )}
-                            <div ref={mapContainerRef} className="w-full h-full" />
                             <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-center shadow-lg border border-white/20 group-hover:bg-[#FF7904] group-hover:text-white transition-all cursor-pointer"
                                 onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${offer.business?.latitude},${offer.business?.longitude}`, '_blank')}>
                                 Get Directions

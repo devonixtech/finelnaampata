@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { City } from '../../entities/city.entity';
+import { ISO_COUNTRIES } from '../../common/data/iso-countries';
 
 // Comprehensive city dataset organized by country
 const CITY_DATASETS: Record<string, { name: string; state: string; country: string; isPopular: boolean; displayOrder: number; latitude?: number; longitude?: number }[]> = {
@@ -124,15 +125,15 @@ const CITY_DATASETS: Record<string, { name: string; state: string; country: stri
         { name: 'Agra', state: 'Uttar Pradesh', country: 'India', isPopular: false, displayOrder: 25 },
         { name: 'Kochi', state: 'Kerala', country: 'India', isPopular: false, displayOrder: 26 },
     ],
-    'UAE': [
-        { name: 'Dubai', state: 'Dubai', country: 'UAE', isPopular: true, displayOrder: 1 },
-        { name: 'Abu Dhabi', state: 'Abu Dhabi', country: 'UAE', isPopular: true, displayOrder: 2 },
-        { name: 'Sharjah', state: 'Sharjah', country: 'UAE', isPopular: true, displayOrder: 3 },
-        { name: 'Ajman', state: 'Ajman', country: 'UAE', isPopular: false, displayOrder: 4 },
-        { name: 'Al Ain', state: 'Abu Dhabi', country: 'UAE', isPopular: false, displayOrder: 5 },
-        { name: 'Ras Al Khaimah', state: 'Ras Al Khaimah', country: 'UAE', isPopular: false, displayOrder: 6 },
-        { name: 'Fujairah', state: 'Fujairah', country: 'UAE', isPopular: false, displayOrder: 7 },
-        { name: 'Umm Al Quwain', state: 'Umm Al Quwain', country: 'UAE', isPopular: false, displayOrder: 8 },
+    'United Arab Emirates': [
+        { name: 'Dubai', state: 'Dubai', country: 'United Arab Emirates', isPopular: true, displayOrder: 1 },
+        { name: 'Abu Dhabi', state: 'Abu Dhabi', country: 'United Arab Emirates', isPopular: true, displayOrder: 2 },
+        { name: 'Sharjah', state: 'Sharjah', country: 'United Arab Emirates', isPopular: true, displayOrder: 3 },
+        { name: 'Ajman', state: 'Ajman', country: 'United Arab Emirates', isPopular: false, displayOrder: 4 },
+        { name: 'Al Ain', state: 'Abu Dhabi', country: 'United Arab Emirates', isPopular: false, displayOrder: 5 },
+        { name: 'Ras Al Khaimah', state: 'Ras Al Khaimah', country: 'United Arab Emirates', isPopular: false, displayOrder: 6 },
+        { name: 'Fujairah', state: 'Fujairah', country: 'United Arab Emirates', isPopular: false, displayOrder: 7 },
+        { name: 'Umm Al Quwain', state: 'Umm Al Quwain', country: 'United Arab Emirates', isPopular: false, displayOrder: 8 },
     ],
     'Saudi Arabia': [
         { name: 'Riyadh', state: 'Riyadh', country: 'Saudi Arabia', isPopular: true, displayOrder: 1 },
@@ -148,46 +149,46 @@ const CITY_DATASETS: Record<string, { name: string; state: string; country: stri
         { name: 'Najran', state: 'Najran', country: 'Saudi Arabia', isPopular: false, displayOrder: 11 },
         { name: 'Hail', state: 'Hail', country: 'Saudi Arabia', isPopular: false, displayOrder: 12 },
     ],
-    'UK': [
-        { name: 'London', state: 'England', country: 'UK', isPopular: true, displayOrder: 1 },
-        { name: 'Birmingham', state: 'England', country: 'UK', isPopular: true, displayOrder: 2 },
-        { name: 'Manchester', state: 'England', country: 'UK', isPopular: true, displayOrder: 3 },
-        { name: 'Glasgow', state: 'Scotland', country: 'UK', isPopular: true, displayOrder: 4 },
-        { name: 'Leeds', state: 'England', country: 'UK', isPopular: false, displayOrder: 5 },
-        { name: 'Liverpool', state: 'England', country: 'UK', isPopular: false, displayOrder: 6 },
-        { name: 'Bristol', state: 'England', country: 'UK', isPopular: false, displayOrder: 7 },
-        { name: 'Edinburgh', state: 'Scotland', country: 'UK', isPopular: false, displayOrder: 8 },
-        { name: 'Sheffield', state: 'England', country: 'UK', isPopular: false, displayOrder: 9 },
-        { name: 'Bradford', state: 'England', country: 'UK', isPopular: false, displayOrder: 10 },
-        { name: 'Leicester', state: 'England', country: 'UK', isPopular: false, displayOrder: 11 },
-        { name: 'Coventry', state: 'England', country: 'UK', isPopular: false, displayOrder: 12 },
-        { name: 'Cardiff', state: 'Wales', country: 'UK', isPopular: false, displayOrder: 13 },
-        { name: 'Belfast', state: 'Northern Ireland', country: 'UK', isPopular: false, displayOrder: 14 },
-        { name: 'Nottingham', state: 'England', country: 'UK', isPopular: false, displayOrder: 15 },
-        { name: 'Newcastle', state: 'England', country: 'UK', isPopular: false, displayOrder: 16 },
-        { name: 'Southampton', state: 'England', country: 'UK', isPopular: false, displayOrder: 17 },
+    'United Kingdom': [
+        { name: 'London', state: 'England', country: 'United Kingdom', isPopular: true, displayOrder: 1 },
+        { name: 'Birmingham', state: 'England', country: 'United Kingdom', isPopular: true, displayOrder: 2 },
+        { name: 'Manchester', state: 'England', country: 'United Kingdom', isPopular: true, displayOrder: 3 },
+        { name: 'Glasgow', state: 'Scotland', country: 'United Kingdom', isPopular: true, displayOrder: 4 },
+        { name: 'Leeds', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 5 },
+        { name: 'Liverpool', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 6 },
+        { name: 'Bristol', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 7 },
+        { name: 'Edinburgh', state: 'Scotland', country: 'United Kingdom', isPopular: false, displayOrder: 8 },
+        { name: 'Sheffield', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 9 },
+        { name: 'Bradford', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 10 },
+        { name: 'Leicester', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 11 },
+        { name: 'Coventry', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 12 },
+        { name: 'Cardiff', state: 'Wales', country: 'United Kingdom', isPopular: false, displayOrder: 13 },
+        { name: 'Belfast', state: 'Northern Ireland', country: 'United Kingdom', isPopular: false, displayOrder: 14 },
+        { name: 'Nottingham', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 15 },
+        { name: 'Newcastle', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 16 },
+        { name: 'Southampton', state: 'England', country: 'United Kingdom', isPopular: false, displayOrder: 17 },
     ],
-    'USA': [
-        { name: 'New York', state: 'New York', country: 'USA', isPopular: true, displayOrder: 1 },
-        { name: 'Los Angeles', state: 'California', country: 'USA', isPopular: true, displayOrder: 2 },
-        { name: 'Chicago', state: 'Illinois', country: 'USA', isPopular: true, displayOrder: 3 },
-        { name: 'Houston', state: 'Texas', country: 'USA', isPopular: true, displayOrder: 4 },
-        { name: 'Phoenix', state: 'Arizona', country: 'USA', isPopular: false, displayOrder: 5 },
-        { name: 'Philadelphia', state: 'Pennsylvania', country: 'USA', isPopular: false, displayOrder: 6 },
-        { name: 'San Antonio', state: 'Texas', country: 'USA', isPopular: false, displayOrder: 7 },
-        { name: 'San Diego', state: 'California', country: 'USA', isPopular: false, displayOrder: 8 },
-        { name: 'Dallas', state: 'Texas', country: 'USA', isPopular: false, displayOrder: 9 },
-        { name: 'San Jose', state: 'California', country: 'USA', isPopular: false, displayOrder: 10 },
-        { name: 'Austin', state: 'Texas', country: 'USA', isPopular: false, displayOrder: 11 },
-        { name: 'Jacksonville', state: 'Florida', country: 'USA', isPopular: false, displayOrder: 12 },
-        { name: 'San Francisco', state: 'California', country: 'USA', isPopular: false, displayOrder: 13 },
-        { name: 'Seattle', state: 'Washington', country: 'USA', isPopular: false, displayOrder: 14 },
-        { name: 'Denver', state: 'Colorado', country: 'USA', isPopular: false, displayOrder: 15 },
-        { name: 'Boston', state: 'Massachusetts', country: 'USA', isPopular: false, displayOrder: 16 },
-        { name: 'Miami', state: 'Florida', country: 'USA', isPopular: false, displayOrder: 17 },
-        { name: 'Las Vegas', state: 'Nevada', country: 'USA', isPopular: false, displayOrder: 18 },
-        { name: 'Atlanta', state: 'Georgia', country: 'USA', isPopular: false, displayOrder: 19 },
-        { name: 'Washington DC', state: 'DC', country: 'USA', isPopular: false, displayOrder: 20 },
+    'United States': [
+        { name: 'New York', state: 'New York', country: 'United States', isPopular: true, displayOrder: 1 },
+        { name: 'Los Angeles', state: 'California', country: 'United States', isPopular: true, displayOrder: 2 },
+        { name: 'Chicago', state: 'Illinois', country: 'United States', isPopular: true, displayOrder: 3 },
+        { name: 'Houston', state: 'Texas', country: 'United States', isPopular: true, displayOrder: 4 },
+        { name: 'Phoenix', state: 'Arizona', country: 'United States', isPopular: false, displayOrder: 5 },
+        { name: 'Philadelphia', state: 'Pennsylvania', country: 'United States', isPopular: false, displayOrder: 6 },
+        { name: 'San Antonio', state: 'Texas', country: 'United States', isPopular: false, displayOrder: 7 },
+        { name: 'San Diego', state: 'California', country: 'United States', isPopular: false, displayOrder: 8 },
+        { name: 'Dallas', state: 'Texas', country: 'United States', isPopular: false, displayOrder: 9 },
+        { name: 'San Jose', state: 'California', country: 'United States', isPopular: false, displayOrder: 10 },
+        { name: 'Austin', state: 'Texas', country: 'United States', isPopular: false, displayOrder: 11 },
+        { name: 'Jacksonville', state: 'Florida', country: 'United States', isPopular: false, displayOrder: 12 },
+        { name: 'San Francisco', state: 'California', country: 'United States', isPopular: false, displayOrder: 13 },
+        { name: 'Seattle', state: 'Washington', country: 'United States', isPopular: false, displayOrder: 14 },
+        { name: 'Denver', state: 'Colorado', country: 'United States', isPopular: false, displayOrder: 15 },
+        { name: 'Boston', state: 'Massachusetts', country: 'United States', isPopular: false, displayOrder: 16 },
+        { name: 'Miami', state: 'Florida', country: 'United States', isPopular: false, displayOrder: 17 },
+        { name: 'Las Vegas', state: 'Nevada', country: 'United States', isPopular: false, displayOrder: 18 },
+        { name: 'Atlanta', state: 'Georgia', country: 'United States', isPopular: false, displayOrder: 19 },
+        { name: 'Washington DC', state: 'DC', country: 'United States', isPopular: false, displayOrder: 20 },
     ],
     'Canada': [
         { name: 'Toronto', state: 'Ontario', country: 'Canada', isPopular: true, displayOrder: 1 },
@@ -225,14 +226,86 @@ const CITY_DATASETS: Record<string, { name: string; state: string; country: stri
 
 @Injectable()
 export class CitiesService {
+    private readonly logger = new Logger(CitiesService.name);
+
     constructor(
         @InjectRepository(City)
         private readonly cityRepository: Repository<City>,
     ) { }
 
-    async findAll() {
-        return this.cityRepository.find({
-            order: { displayOrder: 'ASC', name: 'ASC' },
+    private async importCitiesFromCountriesNow(country: string): Promise<number> {
+        try {
+            const response = await fetch('https://countriesnow.space/api/v0.1/countries/cities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country }),
+            });
+            if (!response.ok) return 0;
+
+            const payload = await response.json();
+            const cityNames: string[] = payload?.data || [];
+            if (!Array.isArray(cityNames) || cityNames.length === 0) return 0;
+
+            const { generateSlug } = await import('../../common/utils/slug.util');
+            let imported = 0;
+
+            for (const name of cityNames) {
+                const trimmed = String(name || '').trim();
+                if (!trimmed) continue;
+
+                const slug = generateSlug(`${trimmed}-${country}`);
+                const existing = await this.cityRepository.findOne({
+                    where: [{ slug }, { name: trimmed, country }],
+                });
+
+                if (existing) continue;
+
+                await this.cityRepository.save(
+                    this.cityRepository.create({
+                        name: trimmed,
+                        country,
+                        state: '',
+                        slug,
+                        isPopular: false,
+                        displayOrder: 0,
+                    }),
+                );
+                imported++;
+            }
+
+            await this.removeDuplicates();
+            return imported;
+        } catch (error: any) {
+            this.logger.warn(`countriesnow import failed for ${country}: ${error.message}`);
+            return 0;
+        }
+    }
+
+    async findAll(country?: string) {
+        const countryFilter = country?.trim();
+        const qb = this.cityRepository.createQueryBuilder('city');
+        if (countryFilter) {
+            qb.where('LOWER(city.country) = LOWER(:country)', { country: countryFilter });
+        }
+
+        let cities = await qb.orderBy('city.name', 'ASC').getMany();
+
+        if (countryFilter && cities.length < 10) {
+            const imported = await this.importCitiesFromCountriesNow(countryFilter);
+            if (imported > 0) {
+                const retryQb = this.cityRepository.createQueryBuilder('city');
+                retryQb.where('LOWER(city.country) = LOWER(:country)', { country: countryFilter });
+                cities = await retryQb.orderBy('city.name', 'ASC').getMany();
+            }
+        }
+
+        // Deduplicate by name and country
+        const seen = new Set();
+        return cities.filter(c => {
+            const key = `${c.name}-${c.country}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
         });
     }
 
@@ -338,7 +411,13 @@ export class CitiesService {
 
         for (const cityData of dataset) {
             const slug = generateSlug(cityData.name + '-' + cityData.country);
-            const existing = await this.cityRepository.findOne({ where: { slug } });
+            // Search by slug OR by name and country
+            const existing = await this.cityRepository.findOne({
+                where: [
+                    { slug },
+                    { name: cityData.name, country: cityData.country }
+                ]
+            });
             
             if (existing) {
                 // Update existing city with new data (coordinates, etc)
@@ -352,7 +431,57 @@ export class CitiesService {
             }
         }
 
+        // Clean up duplicates
+        await this.removeDuplicates();
+
         return { count: imported, total: dataset.length };
+    }
+
+    /**
+     * Finds and deletes duplicate city name + country combinations.
+     */
+    async removeDuplicates() {
+        const duplicates = await this.cityRepository
+            .createQueryBuilder('city')
+            .select('city.name', 'name')
+            .addSelect('city.country', 'country')
+            .groupBy('city.name')
+            .addGroupBy('city.country')
+            .having('COUNT(city.id) > 1')
+            .getRawMany();
+
+        let removedCount = 0;
+        for (const dup of duplicates) {
+            const cities = await this.cityRepository.find({
+                where: { name: dup.name, country: dup.country },
+                order: { createdAt: 'ASC' }
+            });
+
+            const toDelete = cities.slice(1);
+            if (toDelete.length > 0) {
+                await this.cityRepository.remove(toDelete);
+                removedCount += toDelete.length;
+            }
+        }
+        return { removedCount };
+    }
+
+    /**
+     * Returns all ISO country names (global list), merged with any DB-only country names.
+     */
+    async getCountries() {
+        const isoNames = ISO_COUNTRIES.map((c) => c.name);
+        const rows = await this.cityRepository
+            .createQueryBuilder('city')
+            .select('city.country', 'country')
+            .where('city.country IS NOT NULL')
+            .andWhere("TRIM(city.country) <> ''")
+            .groupBy('city.country')
+            .orderBy('city.country', 'ASC')
+            .getRawMany();
+
+        const fromDb = rows.map((r: { country: string }) => r.country).filter(Boolean);
+        return Array.from(new Set([...isoNames, ...fromDb])).sort((a, b) => a.localeCompare(b));
     }
 
     /**

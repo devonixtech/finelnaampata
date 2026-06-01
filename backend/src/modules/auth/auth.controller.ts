@@ -13,6 +13,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -32,6 +34,26 @@ export class AuthController {
     @ApiResponse({ status: 409, description: 'User already exists' })
     async register(@Body() registerDto: RegisterDto) {
         return this.authService.register(registerDto);
+    }
+
+    @Public()
+    @Post('verify-email')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Verify user email with OTP code' })
+    @ApiResponse({ status: 200, description: 'Email successfully verified' })
+    @ApiResponse({ status: 400, description: 'Invalid or expired OTP' })
+    async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+        return this.authService.verifyEmail(verifyEmailDto.email, verifyEmailDto.otp);
+    }
+
+    @Public()
+    @Post('resend-otp')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Resend OTP verification code to user email' })
+    @ApiResponse({ status: 200, description: 'OTP code resent successfully' })
+    @ApiResponse({ status: 400, description: 'User not found or already verified' })
+    async resendOtp(@Body() resendOtpDto: ResendOtpDto) {
+        return this.authService.resendOtp(resendOtpDto.email);
     }
 
     @Public()
@@ -64,6 +86,7 @@ export class AuthController {
     async googleLogin(@Body() googleAuthDto: GoogleAuthDto) {
         return this.authService.googleLogin(googleAuthDto);
     }
+
 
     @Post('ping')
     @UseGuards(JwtAuthGuard)

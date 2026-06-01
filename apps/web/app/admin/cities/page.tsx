@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Plus, Search, RefreshCw, Loader2, Trash2, Edit2,
     MapPin, Globe, Building2, Star, XCircle,
@@ -44,10 +44,13 @@ export default function AdminCitiesPage() {
     const [selectedBulkCountry, setSelectedBulkCountry] = useState('Pakistan');
     const [isBulkImporting, setIsBulkImporting] = useState(false);
 
-    // Google Places Autocomplete
-    const autocompleteInputRef = useRef<HTMLInputElement>(null);
-    const [selectedPlace, setSelectedPlace] = useState<any>(null);
-    const [googleImportData, setGoogleImportData] = useState({ isPopular: false, displayOrder: 0 });
+    const [quickImportData, setQuickImportData] = useState({
+        name: '',
+        state: '',
+        country: 'Pakistan',
+        isPopular: false,
+        displayOrder: 0,
+    });
 
     // Create / Edit form
     const [formData, setFormData] = useState({
@@ -80,48 +83,24 @@ export default function AdminCitiesPage() {
         api.cities.getSupportedCountries().then(setSupportedCountries).catch(() => {});
     }, []);
 
-    // Google Places Autocomplete init
-    useEffect(() => {
-        if (isGoogleImportOpen && typeof window !== 'undefined' && (window as any).google) {
-            const timer = setTimeout(() => {
-                if (!autocompleteInputRef.current) return;
-                const autocomplete = new (window as any).google.maps.places.Autocomplete(autocompleteInputRef.current, {
-                    types: ['(cities)'],
-                });
-                autocomplete.addListener('place_changed', () => {
-                    const place = autocomplete.getPlace();
-                    if (place.address_components) setSelectedPlace(place);
-                });
-            }, 100);
-            return () => clearTimeout(timer);
-        }
-    }, [isGoogleImportOpen]);
-
     // ---- Handlers ----
 
     const handleGoogleImport = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedPlace) return;
+        if (!quickImportData.name.trim()) return;
         setActionLoading('google-import');
         try {
-            const components = selectedPlace.address_components;
-            const cityName = components.find((c: any) => c.types.includes('locality'))?.long_name
-                || components.find((c: any) => c.types.includes('administrative_area_level_2'))?.long_name;
-            const state = components.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name;
-            const country = components.find((c: any) => c.types.includes('country'))?.long_name;
-            if (!cityName) throw new Error('Could not determine city name from selection.');
             await api.cities.adminCreate({
-                name: cityName,
-                state: state || '',
-                country: country || 'Pakistan',
-                isPopular: googleImportData.isPopular,
-                displayOrder: googleImportData.displayOrder,
-                heroImageUrl: selectedPlace.photos?.[0]?.getUrl() || '',
+                name: quickImportData.name.trim(),
+                state: quickImportData.state.trim(),
+                country: quickImportData.country.trim() || 'Pakistan',
+                isPopular: quickImportData.isPopular,
+                displayOrder: quickImportData.displayOrder,
+                heroImageUrl: '',
             });
             await fetchCities();
             setIsGoogleImportOpen(false);
-            setSelectedPlace(null);
-            setGoogleImportData({ isPopular: false, displayOrder: 0 });
+            setQuickImportData({ name: '', state: '', country: 'Pakistan', isPopular: false, displayOrder: 0 });
         } catch (err: any) {
             alert(err.message || 'Failed to import city');
         } finally {
@@ -549,23 +528,24 @@ export default function AdminCitiesPage() {
                                         <MapIcon className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Import from Google</h2>
-                                        <p className="text-sm text-slate-400 font-medium">Search and import any city worldwide</p>
+                                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Quick City Import</h2>
+                                        <p className="text-sm text-slate-400 font-medium">Add city metadata without map dependency</p>
                                     </div>
                                 </div>
-                                <button onClick={() => { setIsGoogleImportOpen(false); setSelectedPlace(null); }} className="text-slate-400 hover:text-slate-900 transition-colors">
+                                <button onClick={() => { setIsGoogleImportOpen(false); setQuickImportData({ name: '', state: '', country: 'Pakistan', isPopular: false, displayOrder: 0 }); }} className="text-slate-400 hover:text-slate-900 transition-colors">
                                     <XCircle className="w-8 h-8" />
                                 </button>
                             </div>
 
                             <form onSubmit={handleGoogleImport} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Search City (powered by Google)</label>
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">City Name</label>
                                     <div className="relative">
                                         <input
-                                            ref={autocompleteInputRef}
                                             required
                                             type="text"
+                                            value={quickImportData.name}
+                                            onChange={(e) => setQuickImportData(prev => ({ ...prev, name: e.target.value }))}
                                             placeholder="Enter city name..."
                                             className="w-full h-16 pl-14 pr-6 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all text-base"
                                         />
@@ -573,36 +553,42 @@ export default function AdminCitiesPage() {
                                             <Search className="w-5 h-5 text-slate-400" />
                                         </div>
                                     </div>
-                                    {selectedPlace && (
-                                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                            <div>
-                                                <p className="text-sm font-black text-emerald-900">City Selected</p>
-                                                <p className="text-xs font-bold text-emerald-600">{selectedPlace.formatted_address}</p>
-                                            </div>
-                                        </div>
-                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">State / Province</label>
+                                        <input type="text" value={quickImportData.state}
+                                            onChange={e => setQuickImportData(prev => ({ ...prev, state: e.target.value }))}
+                                            className="w-full h-14 px-5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Country</label>
+                                        <input type="text" value={quickImportData.country}
+                                            onChange={e => setQuickImportData(prev => ({ ...prev, country: e.target.value }))}
+                                            className="w-full h-14 px-5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all" />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Display Order</label>
-                                        <input type="number" value={googleImportData.displayOrder}
-                                            onChange={e => setGoogleImportData({ ...googleImportData, displayOrder: Number(e.target.value) })}
+                                        <input type="number" value={quickImportData.displayOrder}
+                                            onChange={e => setQuickImportData(prev => ({ ...prev, displayOrder: Number(e.target.value) }))}
                                             className="w-full h-14 px-5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 font-bold transition-all" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Promote</label>
                                         <button type="button"
-                                            onClick={() => setGoogleImportData({ ...googleImportData, isPopular: !googleImportData.isPopular })}
-                                            className={`w-full h-14 px-5 rounded-2xl border flex items-center justify-center gap-2 font-bold transition-all ${googleImportData.isPopular ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                                            <Star className={`w-4 h-4 ${googleImportData.isPopular ? 'fill-current' : ''}`} />
-                                            {googleImportData.isPopular ? 'Popular' : 'Mark Popular'}
+                                            onClick={() => setQuickImportData(prev => ({ ...prev, isPopular: !prev.isPopular }))}
+                                            className={`w-full h-14 px-5 rounded-2xl border flex items-center justify-center gap-2 font-bold transition-all ${quickImportData.isPopular ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                            <Star className={`w-4 h-4 ${quickImportData.isPopular ? 'fill-current' : ''}`} />
+                                            {quickImportData.isPopular ? 'Popular' : 'Mark Popular'}
                                         </button>
                                     </div>
                                 </div>
 
-                                <button type="submit" disabled={!selectedPlace || !!actionLoading}
+                                <button type="submit" disabled={!quickImportData.name.trim() || !!actionLoading}
                                     className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-slate-900/10">
                                     {actionLoading === 'google-import' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
                                     Import City to Database

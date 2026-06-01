@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import StatsGrid from '../../../components/vendor/StatsGrid';
 import PerformanceChart from '../../../components/vendor/PerformanceChart';
@@ -13,7 +13,7 @@ import { ListingImage } from '../../../components/ListingImage';
 import { Business } from '../../../types/api';
 import { motion } from 'framer-motion';
 import VendorHotDemandWidget from '../../../components/vendor/VendorHotDemandWidget';
-import VendorLeadsInbox from '../../../components/leads/VendorLeadsInbox';
+import BusinessLeadsInbox from '../../../components/leads/VendorLeadsInbox';
 import MyJobLeads from '../../../components/leads/MyJobLeads';
 import MyInquiries from '../../../components/leads/MyInquiries';
 import { chatApi } from '../../../services/chat.service';
@@ -41,10 +41,43 @@ export default function GenericDashboard() {
     const [isApplying, setIsApplying] = useState(false);
     const [applyStatus, setApplyStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [conversations, setConversations] = useState<any[]>([]);
+    const [setupStatus, setSetupStatus] = useState<{ isCompleted: boolean; answers: Record<string, string[]> } | null>(null);
     const { socket } = useChatSocket();
 
     const isVendor = user?.role === 'vendor';
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const profileCompletion = useMemo(() => {
+        if (!isVendor || !setupStatus) return null;
+        const answers = setupStatus.answers || {};
+        const requiredChecks = [
+            Boolean(user?.vendor?.businessName),
+            Boolean(user?.vendor?.businessPhone),
+            Boolean(user?.vendor?.businessAddress),
+            Boolean(answers['country']?.[0]),
+            Boolean(answers['city']?.[0]),
+            Boolean(answers['manualPinConfirmed']?.[0] === 'true'),
+            Boolean(answers['legalConsentAccepted']?.[0] === 'true'),
+        ];
+        const optionalChecks = [
+            Boolean(answers['Website & Social Media']?.length),
+            Boolean(answers['Amenities & Facilities']?.length),
+            Boolean(answers['Industry Sub-Type']?.length),
+            Boolean(answers['Keywords']?.length),
+            Boolean(answers['FAQs']?.length),
+            Boolean(answers['Business Opportunities & Expansion']?.length),
+        ];
+        const completed = [...requiredChecks, ...optionalChecks].filter(Boolean).length;
+        const total = requiredChecks.length + optionalChecks.length;
+        const percent = Math.round((completed / Math.max(total, 1)) * 100);
+        const missing = [
+            !answers['manualPinConfirmed']?.[0] ? 'Map Confirmation' : null,
+            !answers['legalConsentAccepted']?.[0] ? 'Legal Consent' : null,
+            !answers['Website & Social Media']?.length ? 'Website & Social Media' : null,
+            !answers['Amenities & Facilities']?.length ? 'Amenities & Facilities' : null,
+            !answers['Keywords']?.length ? 'Keywords' : null,
+        ].filter(Boolean) as string[];
+        return { percent, missing };
+    }, [isVendor, setupStatus, user?.vendor?.businessAddress, user?.vendor?.businessName, user?.vendor?.businessPhone]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -61,17 +94,17 @@ export default function GenericDashboard() {
                 setFollowedBusinesses(followsData.data || []);
 
                 if (isVendor || isAdmin) {
-                    const [statsData, vendorProfile, affiliateData] = await Promise.all([
-                        api.vendors.getStats(),
-                        api.vendors.getProfile(),
+                    const [statsData, businessProfile, affiliateData] = await Promise.all([
+                        api.businessProfiles.getStats(),
+                        api.businessProfiles.getProfile(),
                         api.affiliate.getStats().catch(() => null)
                     ]);
                     setStats(statsData);
                     setAffiliateStats(affiliateData);
 
-                    if (vendorProfile?.id) {
+                    if (businessProfile?.id) {
                         const [reviewsData, leadsData] = await Promise.all([
-                            api.reviews.findAll({ vendorId: vendorProfile.id, limit: 5 }),
+                            api.reviews.findAll({ vendorId: businessProfile.id, limit: 5 }),
                             api.leads.getForVendor({ limit: 5 }),
                         ]);
                         setRecentReviews(reviewsData.data || []);
@@ -81,6 +114,8 @@ export default function GenericDashboard() {
 
                     const demandData = await api.demand.getNearby();
                     setDemandInsights(demandData || []);
+                    const statusData = await api.businessSetup.getStatus().catch(() => null);
+                    setSetupStatus(statusData);
                 } else {
                     const [reviewsData, notifsData] = await Promise.all([
                         api.reviews.findAll({ userId: user.id, limit: 5 }),
@@ -149,9 +184,8 @@ export default function GenericDashboard() {
 
     const { unreadChatCount, newEnquiryCount } = useSocket();
 
-    const vendorStats = [
+    const businessStats = [
         { label: 'Total Listings', value: stats?.businessCount || '0', icon: ListTree, color: 'bg-gradient-to-br text-white from-blue-600 to-indigo-700', shadow: 'shadow-blue-500/10', onClick: () => router.push('/listings'), show: hasFeature('showListings') },
-        { label: 'Pending Approval', value: stats?.pendingCount || '0', icon: Clock, color: 'bg-gradient-to-br from-amber-400 to-orange-600', shadow: 'shadow-amber-500/10', onClick: () => router.push('/pending-listings'), show: hasFeature('showListings') },
         { label: 'Total Views', value: stats?.totalViews || '0', icon: TrendingUp, color: 'bg-gradient-to-br from-emerald-500 to-teal-700', shadow: 'shadow-emerald-500/10', show: hasFeature('showAnalytics') },
         { label: 'Live Chat', value: String(unreadChatCount), icon: MessageSquare, color: 'bg-gradient-to-br from-indigo-500 to-blue-700', shadow: 'shadow-indigo-500/10', onClick: () => router.push('/chat'), show: hasFeature('showChat') },
         { label: 'New Leads', value: String(newEnquiryCount), icon: Zap, color: 'bg-gradient-to-br from-orange-400 to-red-600', shadow: 'shadow-orange-500/10', onClick: () => router.push('/messages'), show: hasFeature('showLeads') },
@@ -286,7 +320,33 @@ export default function GenericDashboard() {
             )}
 
             {/* Stats Grid */}
-            <StatsGrid stats={isVendor || isAdmin ? vendorStats : userStats} />
+            {isVendor && profileCompletion && (
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm"
+                >
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Profile Completion</p>
+                        <span className="text-sm font-black text-blue-700">{profileCompletion.percent}%</span>
+                    </div>
+                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-4">
+                        <div className="h-full bg-blue-600" style={{ width: `${profileCompletion.percent}%` }} />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {profileCompletion.missing.slice(0, 4).map((item) => (
+                            <Link
+                                key={item}
+                                href="/business-setup"
+                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-50 text-amber-700 border border-amber-200"
+                            >
+                                Complete {item}
+                            </Link>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+            <StatsGrid stats={isVendor || isAdmin ? businessStats : userStats} />
 
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                 {/* Main Column */}
@@ -295,19 +355,19 @@ export default function GenericDashboard() {
                     {(isVendor || isAdmin) ? (
                         hasFeature('showLeads') && (
                             <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-slate-100 shadow-sm overflow-hidden">
-                                <VendorLeadsInbox />
+                                <BusinessLeadsInbox />
                             </div>
                         )
                     ) : (
                         <div className="space-y-6 lg:space-y-8">
-                            {!isVendor && !isAdmin && user?.role !== 'user' && (
+                            {!isVendor && !isAdmin && user?.role === 'user' && (
                                 <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl relative overflow-hidden group border border-slate-800">
                                     <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none transition-all group-hover:bg-blue-600/20" />
                                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                                         <div className="text-center md:text-left">
                                             <div className="flex items-center justify-center md:justify-start gap-2 text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4">
                                                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
-                                                Vendor Opportunities
+                                                Business Opportunities
                                             </div>
                                             <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 tracking-tight">Own a Business?</h3>
                                             <p className="text-slate-400 font-medium max-w-md text-sm lg:text-base leading-relaxed">
@@ -319,7 +379,7 @@ export default function GenericDashboard() {
                                             className="group flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-2xl shadow-blue-600/20 whitespace-nowrap active:scale-95 w-full md:w-auto"
                                         >
                                             <Zap className="w-5 h-5 text-white animate-pulse" />
-                                            Become a Vendor
+                                            Create Business Profile
                                         </Link>
                                     </div>
                                 </div>
@@ -594,7 +654,7 @@ export default function GenericDashboard() {
                                                 <Gift className="w-4 h-4" />
                                             </div>
                                             <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                                                Invite vendors and get <span className="text-white font-black">1 month free</span> extension for each signup!
+                                                Invite businesses and get <span className="text-white font-black">1 month free</span> extension for each signup!
                                             </p>
                                         </div>
                                     </div>

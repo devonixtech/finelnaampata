@@ -7,6 +7,8 @@ import CategorySearchSelect from '../CategorySearchSelect';
 import CitySearchSelect from '../CitySearchSelect';
 import { MapPin, Megaphone, Loader2, Navigation, ChevronRight, ChevronLeft, CheckCircle2, Sparkles, Target, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { detectLocationForUi, sortAndDedupeCities } from '../../lib/location-detect';
+import { useAuth } from '../../context/AuthContext';
 
 interface BroadcastRequestFormProps {
     onSuccess?: () => void;
@@ -38,6 +40,8 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
         latitude: null as number | null,
         longitude: null as number | null,
     });
+    const [vendorCategories, setVendorCategories] = useState<string[]>([]);
+    const { user } = useAuth();
 
     useEffect(() => {
         const loadSearchData = async () => {
@@ -47,37 +51,45 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                     api.cities.getAll()
                 ]);
                 setCategories(catsData || []);
-                setCities(citiesData || []);
+                setCities(sortAndDedupeCities(citiesData || []));
+                
+                if (user?.role === 'vendor' || user?.role === 'admin' || user?.role === 'superadmin') {
+                    const vendorListings = await api.listings.getMyListings({ limit: 100 });
+                    if (vendorListings?.data) {
+                        const vendorCatIds = vendorListings.data.flatMap((b: any) => {
+                            const ids = [b.categoryId];
+                            if (b.subcategories) {
+                                ids.push(...b.subcategories.map((sc: any) => sc.id));
+                            }
+                            return ids;
+                        });
+                        setVendorCategories([...new Set(vendorCatIds)]);
+                    }
+                }
             } catch (err) {
                 console.error('Failed to load form data', err);
             }
         };
         loadSearchData();
-    }, []);
+    }, [user]);
 
-    const detectLocation = () => {
-        if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser');
-            return;
-        }
-
+    const detectLocation = async () => {
         setGettingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setFormData(prev => ({
-                    ...prev,
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                }));
-                setGettingLocation(false);
-            },
-            (err) => {
-                console.error('Geolocation error:', err);
-                setError('Could not detect location. Please select your city manually.');
-                setGettingLocation(false);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
+        setError(null);
+        try {
+            const coords = await detectLocationForUi();
+            if (!coords) return;
+            setFormData(prev => ({
+                ...prev,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+            }));
+        } catch (err) {
+            console.error('Geolocation error:', err);
+            setError('Could not detect location. Please select your city manually.');
+        } finally {
+            setGettingLocation(false);
+        }
     };
 
     const handleSubmit = async () => {
@@ -112,6 +124,10 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
     const nextStep = () => {
         if (step === 0 && !formData.categoryId) {
             setError('Please select a category');
+            return;
+        }
+        if (step === 0 && vendorCategories.includes(formData.categoryId)) {
+            setError('You cannot broadcast a requirement in a category you are already listed in.');
             return;
         }
         if (step === 1 && !formData.title) {
@@ -306,6 +322,14 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                 <div className="text-center mb-8">
                                     <h2 className="text-3xl font-black text-slate-900 tracking-tight">Review Signal</h2>
                                     <p className="text-slate-400 font-bold">Confirm your details before broadcasting</p>
+                                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 mt-4 text-left max-w-md mx-auto">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">Broadcast Guidelines</h4>
+                                        <ul className="text-xs text-slate-600 font-medium space-y-1 list-disc list-inside">
+                                            <li>Your request will be sent to verified professionals in your area.</li>
+                                            <li>You will receive proposals directly in your inbox.</li>
+                                            <li>Please ensure your budget and requirements are clear.</li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <div className="bg-slate-900 rounded-[20px] p-10 text-white shadow-2xl relative overflow-hidden group">
                                     <Megaphone className="absolute -right-8 -bottom-8 w-48 h-48 text-white/5 rotate-12 group-hover:scale-110 transition-transform duration-700" />

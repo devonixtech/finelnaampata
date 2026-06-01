@@ -10,11 +10,13 @@ import { ListingImage } from '../../../components/ListingImage';
 import { Business } from '../../../types/api';
 import { useRouter } from 'next/navigation';
 import { FeatureGate } from '../../../components/vendor/FeatureGate';
+import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { motion, AnimatePresence } from 'framer-motion';
+
 
 const PAGE_SIZE = 9;
 
-export default function VendorListings() {
+export default function BusinessListings() {
     const router = useRouter();
     const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,11 +31,23 @@ export default function VendorListings() {
     const isVendor = user?.role === 'vendor';
     const activeSub = user?.vendor?.subscriptions?.find((sub: any) => sub.status === 'active');
     const features = activeSub?.plan?.dashboardFeatures || {};
+    const { hasFeature, getFeatureValue } = usePlanFeature();
+    const canCreateAlbums = hasFeature('canCreateAlbums');
+    const hasKeywords = getFeatureValue('maxKeywords') > 0;
+    const isFree = !activeSub || activeSub?.plan?.name?.toLowerCase() === 'free';
 
     // Keywords Modal State
-    const [keywordsModal, setKeywordsModal] = useState<{ id: string, title: string, keywords: string[], limit: number } | null>(null);
+    const [keywordsModal, setKeywordsModal] = useState<{ id: string, title: string, keywords: string[] } | null>(null);
     const [newKeyword, setNewKeyword] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [albumsModal, setAlbumsModal] = useState<{
+        listingId: string;
+        title: string;
+        albums: any[];
+        newAlbumName: string;
+    } | null>(null);
+    const [albumDrafts, setAlbumDrafts] = useState<Record<string, { name: string; url: string; caption: string }>>({});
+    const [albumsError, setAlbumsError] = useState<string | null>(null);
 
     const fetchListings = async () => {
         try {
@@ -66,9 +80,171 @@ export default function VendorListings() {
             setListings(prev => prev.map(b => b.id === id ? { ...b, searchKeywords: keywords } : b));
             setKeywordsModal(null);
             setNewKeyword('');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating keywords:', error);
-            alert('Failed to save keywords. Please try again.');
+            alert(error?.message || 'Failed to save keywords. Please try again.');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const openAlbumsManager = async (biz: Business) => {
+        try {
+            setActionLoading('albums-load');
+            setAlbumsError(null);
+            const albums = await api.listings.getAlbums(biz.id);
+            const draftSeed: Record<string, { name: string; url: string; caption: string }> = {};
+            (Array.isArray(albums) ? albums : []).forEach((album: any) => {
+                draftSeed[album.id] = { name: album.name || '', url: '', caption: '' };
+            });
+            setAlbumDrafts(draftSeed);
+            setAlbumsModal({
+                listingId: biz.id,
+                title: biz.title,
+                albums: Array.isArray(albums) ? albums : [],
+                newAlbumName: '',
+            });
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to load albums');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const reloadAlbums = async (listingId: string) => {
+        const albums = await api.listings.getAlbums(listingId);
+        const draftSeed: Record<string, { name: string; url: string; caption: string }> = {};
+        (Array.isArray(albums) ? albums : []).forEach((album: any) => {
+            draftSeed[album.id] = {
+                name: albumDrafts[album.id]?.name ?? album.name ?? '',
+                url: '',
+                caption: '',
+            };
+        });
+        setAlbumDrafts(draftSeed);
+        setAlbumsModal((prev) => prev ? { ...prev, albums: Array.isArray(albums) ? albums : [] } : prev);
+    };
+
+    const createAlbum = async () => {
+        if (!albumsModal || !albumsModal.newAlbumName.trim()) return;
+        try {
+            setActionLoading('albums-create');
+            setAlbumsError(null);
+            const albums = await api.listings.createAlbum(albumsModal.listingId, albumsModal.newAlbumName.trim());
+            setAlbumsModal({
+                ...albumsModal,
+                albums: Array.isArray(albums) ? albums : [],
+                newAlbumName: '',
+            });
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to create album');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const renameAlbum = async (albumId: string, name: string) => {
+        if (!albumsModal) return;
+        try {
+            setActionLoading(`album-rename-${albumId}`);
+            setAlbumsError(null);
+            await api.listings.renameAlbum(albumsModal.listingId, albumId, name);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to rename album');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const deleteAlbum = async (albumId: string) => {
+        if (!albumsModal) return;
+        try {
+            setActionLoading(`album-delete-${albumId}`);
+            setAlbumsError(null);
+            await api.listings.deleteAlbum(albumsModal.listingId, albumId);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to delete album');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const addAlbumImage = async (album: any, url: string, caption: string) => {
+        if (!albumsModal || !url.trim()) return;
+        const images = Array.isArray(album.images) ? [...album.images] : [];
+        images.push({
+            id: crypto.randomUUID(),
+            url: url.trim(),
+            caption: caption.trim(),
+            sortOrder: images.length,
+        });
+        try {
+            setActionLoading(`album-image-${album.id}`);
+            setAlbumsError(null);
+            await api.listings.upsertAlbumImages(albumsModal.listingId, album.id, images);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to add album image');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const removeAlbumImage = async (album: any, imageId: string) => {
+        if (!albumsModal) return;
+        const images = (Array.isArray(album.images) ? album.images : [])
+            .filter((img: any) => img.id !== imageId)
+            .map((img: any, idx: number) => ({ ...img, sortOrder: idx }));
+        try {
+            setActionLoading(`album-image-${album.id}`);
+            setAlbumsError(null);
+            await api.listings.upsertAlbumImages(albumsModal.listingId, album.id, images);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to remove album image');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const moveAlbumImage = async (album: any, imageId: string, direction: 'up' | 'down') => {
+        if (!albumsModal) return;
+        const original = Array.isArray(album.images) ? [...album.images] : [];
+        const index = original.findIndex((img: any) => img.id === imageId);
+        if (index < 0) return;
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= original.length) return;
+        const [moved] = original.splice(index, 1);
+        original.splice(targetIndex, 0, moved);
+        const reordered = original.map((img: any, idx: number) => ({ ...img, sortOrder: idx }));
+        try {
+            setActionLoading(`album-image-${album.id}`);
+            setAlbumsError(null);
+            await api.listings.upsertAlbumImages(albumsModal.listingId, album.id, reordered);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to reorder album images');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const updateAlbumImageCaption = async (album: any, imageId: string, caption: string) => {
+        if (!albumsModal) return;
+        const images = (Array.isArray(album.images) ? [...album.images] : []).map((img: any, idx: number) => ({
+            ...img,
+            caption: img.id === imageId ? caption : img.caption,
+            sortOrder: idx,
+        }));
+        try {
+            setActionLoading(`album-image-${album.id}`);
+            setAlbumsError(null);
+            await api.listings.upsertAlbumImages(albumsModal.listingId, album.id, images);
+            await reloadAlbums(albumsModal.listingId);
+        } catch (error: any) {
+            setAlbumsError(error?.message || 'Failed to update image caption');
         } finally {
             setActionLoading(null);
         }
@@ -120,7 +296,7 @@ export default function VendorListings() {
     const paginatedListings = filteredListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     return (
-        <FeatureGate feature="showListings" title="My Business Listings" description="Manage all your verified business listings from one central dashboard. Track their status and performance with ease.">
+        <FeatureGate feature="showListings" title="My Business Listings" description="Manage all your business listings from one central dashboard. Track their status and performance with ease.">
             <div className="space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -290,7 +466,6 @@ export default function VendorListings() {
                                         </div>
                                         <button
                                             onClick={() => {
-                                                const limit = activeSub?.plan?.dashboardFeatures?.maxKeywords || 15;
                                                 const currentKeywords = biz.searchKeywords ||
                                                     (biz.metaKeywords ? biz.metaKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
 
@@ -298,12 +473,17 @@ export default function VendorListings() {
                                                     id: biz.id,
                                                     title: biz.title,
                                                     keywords: currentKeywords,
-                                                    limit
                                                 });
                                             }}
                                             className="w-full flex items-center justify-center gap-2 py-4 bg-blue-50 text-blue-600 border border-blue-100 rounded-2xl font-black text-xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all active:scale-95"
                                         >
                                             <Hash className="w-4 h-4" /> Manage Search Keywords
+                                        </button>
+                                        <button
+                                            onClick={() => openAlbumsManager(biz)}
+                                            className="w-full flex items-center justify-center gap-2 py-4 bg-amber-50 text-amber-700 border border-amber-100 rounded-2xl font-black text-xs hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all active:scale-95"
+                                        >
+                                            <Plus className="w-4 h-4" /> Manage Albums
                                         </button>
                                     </div>
                                 </div>
@@ -358,6 +538,19 @@ export default function VendorListings() {
                                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                                 className="bg-white rounded-[2rem] p-10 max-w-lg w-full shadow-2xl relative overflow-hidden text-left"
                             >
+                                {hasKeywords ? null : (
+                                    <div className="absolute inset-0 z-10 backdrop-blur-md bg-white/95 flex flex-col items-center justify-center p-8 text-center rounded-[2rem]">
+                                        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/20">
+                                            <Lock className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h4 className="text-2xl font-black text-slate-900 mb-3">Premium Feature</h4>
+                                        <p className="text-sm font-bold text-slate-600 mb-8 max-w-xs leading-relaxed">Upgrade your plan to unlock Search Keywords and improve your listing's visibility.</p>
+                                        <div className="flex items-center gap-3 w-full max-w-xs">
+                                            <button onClick={() => setKeywordsModal(null)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">Close</button>
+                                            <Link href="/subscription" className="flex-[2] py-3.5 bg-slate-900 hover:bg-black text-white font-black text-sm rounded-xl transition-all shadow-xl shadow-slate-900/20 text-center">Upgrade Plan</Link>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="absolute top-0 left-0 w-full h-2 bg-blue-500" />
                                 <div className="flex items-center gap-4 mb-8">
                                     <div className="w-16 h-16 bg-blue-50 rounded-3xl flex items-center justify-center">
@@ -365,7 +558,7 @@ export default function VendorListings() {
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="text-xl font-black text-slate-900 truncate">Search Keywords</h3>
-                                        <p className="text-slate-400 font-medium text-sm truncate">Limit: {keywordsModal.keywords.length} / {keywordsModal.limit}</p>
+                                        <p className="text-slate-400 font-medium text-sm truncate">Plan limits are enforced on save.</p>
                                     </div>
                                 </div>
 
@@ -376,7 +569,7 @@ export default function VendorListings() {
                                             value={newKeyword}
                                             onChange={(e) => setNewKeyword(e.target.value)}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && newKeyword.trim() && keywordsModal.keywords.length < keywordsModal.limit) {
+                                                if (e.key === 'Enter' && newKeyword.trim()) {
                                                     const kw = newKeyword.trim().toLowerCase();
                                                     if (!keywordsModal.keywords.includes(kw)) {
                                                         setKeywordsModal({ ...keywordsModal, keywords: [...keywordsModal.keywords, kw] });
@@ -384,13 +577,12 @@ export default function VendorListings() {
                                                     setNewKeyword('');
                                                 }
                                             }}
-                                            disabled={keywordsModal.keywords.length >= keywordsModal.limit}
-                                            placeholder={keywordsModal.keywords.length >= keywordsModal.limit ? "Limit reached" : "Add keyword and press Enter..."}
+                                            placeholder="Add keyword and press Enter..."
                                             className="flex-1 px-5 py-3.5 rounded-2xl border border-slate-100 bg-slate-50 text-slate-900 font-bold focus:outline-none focus:ring-4 focus:ring-blue-50 placeholder:text-slate-300 text-sm"
                                         />
                                         <button
                                             onClick={() => {
-                                                if (newKeyword.trim() && keywordsModal.keywords.length < keywordsModal.limit) {
+                                                if (newKeyword.trim()) {
                                                     const kw = newKeyword.trim().toLowerCase();
                                                     if (!keywordsModal.keywords.includes(kw)) {
                                                         setKeywordsModal({ ...keywordsModal, keywords: [...keywordsModal.keywords, kw] });
@@ -398,7 +590,7 @@ export default function VendorListings() {
                                                     setNewKeyword('');
                                                 }
                                             }}
-                                            disabled={!newKeyword.trim() || keywordsModal.keywords.length >= keywordsModal.limit}
+                                            disabled={!newKeyword.trim()}
                                             className="p-3.5 bg-blue-500 text-white rounded-2xl disabled:opacity-50"
                                         >
                                             <CheckCircle2 className="w-5 h-5" />
@@ -435,6 +627,168 @@ export default function VendorListings() {
                                     >
                                         {actionLoading?.includes('keywords') ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Save Keywords'}
                                     </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {albumsModal && (
+                        <div className="fixed inset-0 z-[101] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="bg-white rounded-[2rem] p-8 max-w-3xl w-full shadow-2xl relative overflow-hidden text-left max-h-[90vh] overflow-y-auto"
+                            >
+                                {canCreateAlbums ? null : (
+                                    <div className="absolute inset-0 z-10 backdrop-blur-md bg-white/95 flex flex-col items-center justify-center p-8 text-center rounded-[2rem]">
+                                        <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mb-6 shadow-xl shadow-amber-500/20">
+                                            <Lock className="w-8 h-8 text-white" />
+                                        </div>
+                                        <h4 className="text-2xl font-black text-slate-900 mb-3">Premium Feature</h4>
+                                        <p className="text-sm font-bold text-slate-600 mb-8 max-w-xs leading-relaxed">Upgrade your plan to manage Albums and showcase your business visually.</p>
+                                        <div className="flex items-center gap-3 w-full max-w-xs">
+                                            <button onClick={() => setAlbumsModal(null)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-sm rounded-xl transition-all">Close</button>
+                                            <Link href="/subscription" className="flex-[2] py-3.5 bg-slate-900 hover:bg-black text-white font-black text-sm rounded-xl transition-all shadow-xl shadow-slate-900/20 text-center">Upgrade Plan</Link>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-900">Albums</h3>
+                                        <p className="text-sm font-bold text-slate-400">{albumsModal.title}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setAlbumsModal(null)}
+                                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center"
+                                    >
+                                        <X className="w-4 h-4 text-slate-600" />
+                                    </button>
+                                </div>
+                                {albumsError && (
+                                    <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                                        <p className="text-xs font-bold text-red-700">{albumsError}</p>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2 mb-6">
+                                    <input
+                                        value={albumsModal.newAlbumName}
+                                        onChange={(e) => setAlbumsModal({ ...albumsModal, newAlbumName: e.target.value })}
+                                        placeholder="New album name"
+                                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold"
+                                    />
+                                    <button
+                                        onClick={createAlbum}
+                                        disabled={actionLoading === 'albums-create'}
+                                        className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-black disabled:opacity-50"
+                                    >
+                                        {actionLoading === 'albums-create' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {albumsModal.albums.map((album: any) => {
+                                        const draft = albumDrafts[album.id] || { name: album.name || '', url: '', caption: '' };
+                                        return (
+                                            <div key={album.id} className="border border-slate-200 rounded-2xl p-4">
+                                                <div className="flex gap-2 mb-4">
+                                                    <input
+                                                        value={draft.name}
+                                                        onChange={(e) => setAlbumDrafts((prev) => ({ ...prev, [album.id]: { ...draft, name: e.target.value } }))}
+                                                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold"
+                                                    />
+                                                    <button
+                                                        onClick={() => renameAlbum(album.id, draft.name)}
+                                                        disabled={actionLoading === `album-rename-${album.id}`}
+                                                        className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteAlbum(album.id)}
+                                                        disabled={actionLoading === `album-delete-${album.id}`}
+                                                        className="px-4 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-black border border-red-100"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                                                    <input
+                                                        value={draft.url}
+                                                        onChange={(e) => setAlbumDrafts((prev) => ({ ...prev, [album.id]: { ...draft, url: e.target.value } }))}
+                                                        placeholder="Image URL"
+                                                        className="sm:col-span-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold"
+                                                    />
+                                                    <input
+                                                        value={draft.caption}
+                                                        onChange={(e) => setAlbumDrafts((prev) => ({ ...prev, [album.id]: { ...draft, caption: e.target.value } }))}
+                                                        placeholder="Caption"
+                                                        className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        await addAlbumImage(album, draft.url, draft.caption);
+                                                        setAlbumDrafts((prev) => ({ ...prev, [album.id]: { ...draft, url: '', caption: '' } }));
+                                                    }}
+                                                    disabled={actionLoading === `album-image-${album.id}` || !draft.url.trim()}
+                                                    className="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-black border border-blue-100 disabled:opacity-50"
+                                                >
+                                                    Add Image
+                                                </button>
+
+                                                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                    {(album.images || []).map((img: any) => (
+                                                        <div key={img.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                                                            <img src={img.url} alt={img.caption || 'album'} className="w-full h-20 object-cover" />
+                                                        <div className="p-2">
+                                                                <input
+                                                                    defaultValue={img.caption || ''}
+                                                                    onBlur={(e) => {
+                                                                        const next = e.target.value.trim();
+                                                                        if (next !== (img.caption || '')) {
+                                                                            updateAlbumImageCaption(album, img.id, next);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full text-[10px] font-bold text-slate-600 border border-slate-200 rounded px-1.5 py-1"
+                                                                    placeholder="Caption"
+                                                                />
+                                                                <div className="mt-1.5 flex items-center justify-between">
+                                                                    <div className="flex gap-1">
+                                                                        <button
+                                                                            onClick={() => moveAlbumImage(album, img.id, 'up')}
+                                                                            className="text-[9px] font-black text-slate-500"
+                                                                        >
+                                                                            Up
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => moveAlbumImage(album, img.id, 'down')}
+                                                                            className="text-[9px] font-black text-slate-500"
+                                                                        >
+                                                                            Down
+                                                                        </button>
+                                                                    </div>
+                                                                <button
+                                                                    onClick={() => removeAlbumImage(album, img.id)}
+                                                                    className="mt-2 text-[10px] font-black text-red-600"
+                                                                >
+                                                                    Remove
+                                                                </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {albumsModal.albums.length === 0 && (
+                                        <p className="text-sm font-bold text-slate-400 text-center py-6">No albums yet.</p>
+                                    )}
                                 </div>
                             </motion.div>
                         </div>

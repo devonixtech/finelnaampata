@@ -105,6 +105,8 @@ export default function ReportsPage() {
     };
 
     const formatCount = (amount: number) => amount.toString();
+    const totalBusinesses = stats?.totalVendors?.toString() || '0';
+    const businessesGraphData = stats?.vendorsGraphData;
 
     const mappedStats = [
         {
@@ -122,8 +124,8 @@ export default function ReportsPage() {
             shadow: 'shadow-emerald-500/20'
         },
         {
-            label: 'Total Vendors',
-            value: stats?.totalVendors?.toString() || '0',
+            label: 'Total Businesses',
+            value: totalBusinesses,
             icon: Users,
             color: 'bg-gradient-to-br from-[#FFAA33] to-[#FF8811]',
             shadow: 'shadow-orange-500/20'
@@ -182,10 +184,10 @@ export default function ReportsPage() {
                     bgClass="bg-emerald-100"
                 />
 
-                {/* Vendors Trend */}
+                {/* Businesses Trend */}
                 <SimpleBarChart 
-                    data={stats?.vendorsGraphData} 
-                    title="New Vendors" 
+                    data={businessesGraphData} 
+                    title="New Businesses" 
                     dataKey="count" 
                     formatValue={formatCount}
                     colorClass="bg-gradient-to-t from-orange-500 to-orange-400"

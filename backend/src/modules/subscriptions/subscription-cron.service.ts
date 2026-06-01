@@ -12,6 +12,8 @@ import { Listing } from '../../entities/business.entity';
 import { PricingPlanType } from '../../entities/pricing-plan.entity';
 import { OfferEvent, OfferStatus } from '../../entities/offer-event.entity';
 import { OffersService } from '../offers/offers.service';
+import { DealsService } from '../deals/deals.service';
+import { EventsService } from '../events/events.service';
 import { PromotionsService } from '../promotions/promotions.service';
 
 @Injectable()
@@ -32,6 +34,8 @@ export class SubscriptionCronService {
         @InjectRepository(OfferEvent)
         private offerEventRepo: Repository<OfferEvent>,
         private offersService: OffersService,
+        private dealsService: DealsService,
+        private eventsService: EventsService,
         private promotionsService: PromotionsService,
         private notificationsService: NotificationsService,
         private pushService: PushService,
@@ -127,7 +131,13 @@ export class SubscriptionCronService {
             // 3. General cleanup for stale offers/promotions
             try {
                 const staleAffected = await this.offersService.expireStaleOffers();
-                if (staleAffected > 0) this.logger.log(`[Cron] Cleaned up ${staleAffected} stale items`);
+                if (staleAffected > 0) this.logger.log(`[Cron] Cleaned up ${staleAffected} stale legacy items`);
+
+                const staleDeals = await this.dealsService.expireStaleDeals();
+                if (staleDeals > 0) this.logger.log(`[Cron] Cleaned up ${staleDeals} stale deals`);
+
+                const staleEvents = await this.eventsService.expireStaleEvents();
+                if (staleEvents > 0) this.logger.log(`[Cron] Cleaned up ${staleEvents} stale events`);
                 
                 const promoAffected = await this.promotionsService.handleExpirations();
                 if (promoAffected > 0) this.logger.log(`[Cron] Expired ${promoAffected} custom promotion bookings`);

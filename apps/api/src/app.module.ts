@@ -11,6 +11,7 @@ import { CitiesModule } from './modules/cities/cities.module';
 import { DemandModule } from './modules/demand/demand.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { TrustModule } from './modules/trust/trust.module';
+import { LocationModule } from './modules/location/location.module';
 import { NotificationsGateway } from './gateways/notifications.gateway';
 
 @Module({
@@ -63,6 +64,7 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
     DemandModule,
     ReviewsModule,
     TrustModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsGateway],

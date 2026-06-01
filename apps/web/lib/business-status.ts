@@ -2,9 +2,9 @@ export type BusinessStatusType = 'ONLINE' | 'OFFLINE';
 export type BusinessOpenStatusType = 'OPEN' | 'CLOSED' | 'UNKNOWN';
 
 /**
- * Returns simple Online/Offline status based purely on vendor login state.
- * - Online  = vendor is currently logged in (isOnline === true)
- * - Offline = vendor is not logged in
+ * Returns simple Online/Offline status based purely on business account login state.
+ * - Online  = business account is currently logged in (isOnline === true)
+ * - Offline = business account is not logged in
  */
 export function getVendorOnlineStatus(
     isOnline: boolean = false

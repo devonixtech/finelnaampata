@@ -182,7 +182,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 // ─── Main Page ──────────────────────────────────────────────────────────
 const LIMIT = 15;
 
-export default function VendorEnquiriesPage() {
+export default function BusinessEnquiriesPage() {
     const { user } = useAuth();
     const { refreshCounts } = useSocket();
     const [enquiries, setEnquiries] = useState<Enquiry[]>([]);

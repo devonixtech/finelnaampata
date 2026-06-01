@@ -1,0 +1,51 @@
+
+
+NAAMPATA
+Subscription Plans
+Free Plan — Paid Plan — Add-Ons
+Full Feature Specification — Developer & Admin Reference
+
+NOTE
+Meaning
+Not Included Features In Free Plan During Listing
+Visible, editable, saved and locked at backend. Shows upgrade prompt.
+Deals/Offers 
+Events
+Add-On (separate fee). Requires a separate payment on top of subscription
+
+
+
+
+Plan Overview
+NAAMPATA has two business tiers: Free Plan and Paid Plan. Monthly and yearly. All prices are admin-configured — never hardcoded. Pricing can be changed from the admin panel at any time without a code deployment.
+
+FREE PLAN
+£0 / month
+Free
+✓  Create a business listing
+✓  1 business category
+✓  Logo + Cover + 3 gallery photos
+✓  Click-to-call & email button
+✓  Open/Closed badge & map
+✓  Receive broadcast / job leads
+✓  Receive reviews
+✓  Affiliate programme access
+
+PAID PLAN
+[Admin-configured price]
+Monthly or Yearly. Cancel anytime.
+✓  Everything in Free Plan
+✓  Up to 3 business subcategories
+✓  Unlimited photos
+✓  Album Creation
+✓  In-app chat with customers
+✓  WhatsApp integration
+✓  10 search keywords
+✓  Social media links
+✓  Analytics dashboard
+✓  Reply to reviews
+✓  FAQs on profile (up to 10)
+✓  Up to 5 named phone numbers
+✓  Respond to broadcast leads
+✓  Customer Notes
+Deals & Events — separate add-on fee

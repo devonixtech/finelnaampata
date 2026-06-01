@@ -14,10 +14,13 @@ import {
     ValidateNested,
     IsEnum,
     IsInt,
+    IsObject,
+    IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DayOfWeek } from '../../../entities/business-hours.entity';
+import { IsGlobalPhone } from '../../../common/validators/is-global-phone.validator';
 
 export class BusinessHoursDto {
     @ApiProperty({ enum: DayOfWeek })
@@ -49,6 +52,19 @@ export class FaqDto {
     answer: string;
 }
 
+export class NamedPhoneDto {
+    @ApiProperty({ example: 'Sales' })
+    @IsString()
+    @MinLength(1)
+    @MaxLength(50)
+    label: string;
+
+    @ApiProperty({ example: '+923001234567' })
+    @IsString()
+    @IsGlobalPhone({ message: 'Named phone must be a valid E.164 number with country code, e.g. +923001234567' })
+    number: string;
+}
+
 export class CreateBusinessDto {
     @ApiProperty({ example: 'Best Restaurant' })
     @IsString()
@@ -66,6 +82,12 @@ export class CreateBusinessDto {
     @IsString()
     @MaxLength(100)
     suggestedCategoryName?: string;
+
+    @ApiPropertyOptional({ description: 'Array of subcategory UUIDs', type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsUUID('4', { each: true })
+    subCategoryIds?: string[];
 
     @ApiProperty({ example: 'A wonderful dining experience...' })
     @IsString()
@@ -85,14 +107,21 @@ export class CreateBusinessDto {
 
     @ApiProperty({ example: '+1234567890' })
     @IsString()
-    @Matches(/^\+?[0-9\-\s()]{7,20}$/, { message: 'Invalid phone number' })
+    @IsGlobalPhone({ message: 'Phone number must be a valid E.164 number with country code, e.g. +923001234567' })
     phone: string;
 
     @ApiPropertyOptional({ example: '+1234567890' })
     @IsOptional()
     @IsString()
-    @Matches(/^\+?[0-9\-\s()]{7,20}$/, { message: 'Invalid WhatsApp number' })
+    @IsGlobalPhone({ message: 'WhatsApp number must be a valid E.164 number with country code, e.g. +923001234567' })
     whatsapp?: string;
+
+    @ApiPropertyOptional({ type: [NamedPhoneDto], description: 'Up to 5 named phone numbers for paid plans' })
+    @IsOptional()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => NamedPhoneDto)
+    namedPhoneNumbers?: NamedPhoneDto[];
 
     @ApiPropertyOptional({ example: 'https://restaurant.com' })
     @IsOptional()
@@ -103,6 +132,12 @@ export class CreateBusinessDto {
     @IsString()
     @MinLength(5)
     address: string;
+
+    @ApiPropertyOptional({ example: 'Suite 4B / Floor 2' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(255)
+    addressLine2?: string;
 
     @ApiProperty({ example: 'New York' })
     @IsString()
@@ -122,10 +157,11 @@ export class CreateBusinessDto {
     @MaxLength(100)
     country?: string = 'Pakistan';
 
-    @ApiProperty({ example: '10001' })
+    @ApiPropertyOptional({ example: '10001' })
+    @IsOptional()
     @IsString()
-    @MaxLength(10)
-    pincode: string;
+    @MaxLength(20)
+    pincode?: string;
 
     @ApiProperty({ example: 40.7128, description: 'Latitude' })
     @IsNumber()
@@ -154,6 +190,11 @@ export class CreateBusinessDto {
     @IsArray()
     @IsUrl({}, { each: true })
     images?: string[];
+
+    @ApiPropertyOptional({ type: Object, example: { 'https://example.com/img1.jpg': 'Front view' } })
+    @IsOptional()
+    @IsObject()
+    imageCaptions?: Record<string, string>;
 
     @ApiPropertyOptional({ type: [String] })
     @IsOptional()
@@ -249,4 +290,34 @@ export class CreateBusinessDto {
     @ValidateNested({ each: true })
     @Type(() => FaqDto)
     faqs?: FaqDto[];
+
+    @ApiPropertyOptional({ type: 'boolean', description: 'Legal consent checkbox state' })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentAccepted?: boolean;
+
+    @ApiPropertyOptional({ example: '2026-05-24T15:32:10.000Z' })
+    @IsOptional()
+    @IsString()
+    legalConsentAcceptedAt?: string;
+
+    @ApiPropertyOptional({ example: 'web-session-abc123' })
+    @IsOptional()
+    @IsString()
+    legalConsentSessionId?: string;
+
+    @ApiPropertyOptional({ example: 'device-xyz789' })
+    @IsOptional()
+    @IsString()
+    legalConsentDeviceId?: string;
+
+    @ApiPropertyOptional({ example: 'v1' })
+    @IsOptional()
+    @IsString()
+    termsVersion?: string;
+
+    @ApiPropertyOptional({ example: 'v1' })
+    @IsOptional()
+    @IsString()
+    privacyVersion?: string;
 }

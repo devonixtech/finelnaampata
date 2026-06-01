@@ -79,6 +79,7 @@ export class SearchService implements OnModuleInit {
                     mappings: {
                         properties: {
                             id: { type: 'keyword' },
+                            name: { type: 'text', analyzer: 'standard' },
                             title: { type: 'text', analyzer: 'standard' },
                             slug: { type: 'keyword' },
                             description: { type: 'text' },
@@ -89,13 +90,24 @@ export class SearchService implements OnModuleInit {
                             logoUrl: { type: 'keyword' },
                             coverImageUrl: { type: 'keyword' },
                             location: { type: 'geo_point' },
+                            lat_lng: { type: 'geo_point' },
                             rating: { type: 'float' },
                             isFeatured: { type: 'boolean' },
                             isVerified: { type: 'boolean' },
                             status: { type: 'keyword' },
+                            is_active: { type: 'boolean' },
                             search_keywords: { type: 'text', analyzer: 'standard' },
                             meta_keywords: { type: 'text', analyzer: 'standard' },
                             followersCount: { type: 'integer' },
+                            businessType: { type: 'keyword' },
+                            coreBusinessNature: { type: 'keyword' },
+                            operationalStructure: { type: 'keyword' },
+                            targetMarket: { type: 'keyword' },
+                            industrySubType: { type: 'keyword' },
+                            amenities: { type: 'keyword' },
+                            languagesSpoken: { type: 'keyword' },
+                            acceptedPaymentMethods: { type: 'keyword' },
+                            certifications: { type: 'keyword' },
                             createdAt: { type: 'date' },
                             updatedAt: { type: 'date' },
                         },
@@ -115,6 +127,7 @@ export class SearchService implements OnModuleInit {
             id: business.id,
             body: {
                 id: business.id,
+                name: business.title,
                 title: business.title,
                 slug: business.slug,
                 description: business.description,
@@ -128,6 +141,10 @@ export class SearchService implements OnModuleInit {
                     lat: business.latitude,
                     lon: business.longitude,
                 },
+                lat_lng: {
+                    lat: business.latitude,
+                    lon: business.longitude,
+                },
                 rating: Number(business.averageRating) || 0,
                 status: business.status,
                 is_active: business.status === BusinessStatus.APPROVED,
@@ -136,6 +153,15 @@ export class SearchService implements OnModuleInit {
                 search_keywords: business.searchKeywords || [],
                 meta_keywords: business.metaKeywords || '',
                 followersCount: business.followersCount || 0,
+                businessType: business.businessType || [],
+                coreBusinessNature: business.coreBusinessNature || [],
+                operationalStructure: business.operationalStructure || null,
+                targetMarket: business.targetMarket || [],
+                industrySubType: business.industrySubType || [],
+                amenities: business.facilities || [],
+                languagesSpoken: business.businessLanguages || [],
+                acceptedPaymentMethods: business.paymentMethods || [],
+                certifications: [],
                 createdAt: business.createdAt,
                 updatedAt: business.updatedAt,
             },
@@ -451,6 +477,18 @@ export class SearchService implements OnModuleInit {
             sort.push({ _score: { order: "desc" } });
         }
 
+        const limit = searchDto.limit || 50;
+        const page = searchDto.page || 1;
+        const searchAfterRaw = (searchDto as any).searchAfter as string | undefined;
+        let searchAfter: any[] | undefined;
+        if (searchAfterRaw) {
+            try {
+                searchAfter = JSON.parse(Buffer.from(searchAfterRaw, 'base64').toString('utf8'));
+            } catch {
+                searchAfter = undefined;
+            }
+        }
+
         const response = await this.elasticsearchService.search({
             index: this.INDEX_NAME,
             body: {
@@ -467,17 +505,25 @@ export class SearchService implements OnModuleInit {
                         boost_mode: 'multiply',
                     },
                 },
-                sort: sort.length > 0 ? sort : undefined,
-                size: searchDto.limit || 50,
-                from: ((searchDto.page || 1) - 1) * (searchDto.limit || 50),
+                sort: sort.length > 0 ? sort : [{ _score: { order: 'desc' } }, { id: { order: 'asc' } }],
+                size: limit,
+                search_after: searchAfter,
             },
         });
 
-        results = response.hits.hits.map((hit: any) => ({
+        const hits = response.hits.hits || [];
+        results = hits.map((hit: any) => ({
             ...hit._source,
             score: hit._score,
             distance: hit.sort && sortBy === SearchSortBy.DISTANCE ? hit.sort[0] : undefined
         }));
+        const lastSort = hits.length ? hits[hits.length - 1].sort : null;
+        const nextSearchAfter = lastSort ? Buffer.from(JSON.stringify(lastSort), 'utf8').toString('base64') : null;
+        (results as any).__pagination = {
+            page,
+            limit,
+            nextSearchAfter,
+        };
         } // end of else block
 
         // Log search for demand insights

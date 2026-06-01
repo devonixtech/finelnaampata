@@ -82,7 +82,7 @@ function SuccessContent() {
 
     useEffect(() => {
         if (step === 'success' && countdown <= 0) {
-            router.push('/offers');
+            router.push('/deals');
         }
     }, [countdown, step, router]);
 
@@ -228,7 +228,7 @@ function SuccessContent() {
                                 </div>
 
                                 <div className="flex gap-4">
-                                    <Link href="/offers"
+                                    <Link href="/deals"
                                         className="flex-1 group flex items-center justify-center gap-3 px-8 py-5 bg-slate-900 hover:bg-orange-600 text-white rounded-[1.5rem] font-black transition-all shadow-xl shadow-slate-900/10 active:scale-95">
                                         Manage Offers <ArrowRight className="w-5 h-5 group-hover:translate-x-1" />
                                     </Link>

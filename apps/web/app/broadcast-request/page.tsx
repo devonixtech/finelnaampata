@@ -38,7 +38,7 @@
 //                                 <span className="text-blue-600">Requirements.</span>
 //                             </h1>
 //                             <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-xl">
-//                                 Reach out to hundreds of verified local experts instantly. Describe your needs and receive tailored responses in minutes.
+//                                 Reach out to hundreds of trusted local experts instantly. Describe your needs and receive tailored responses in minutes.
 //                             </p>
 //                         </div>
 
@@ -143,7 +143,7 @@ export default function BroadcastsPage() {
 
                             {/* Description */}
                             <p className="text-[15px] sm:text-base text-slate-500 leading-7 font-medium mb-10">
-                                Connect with verified local businesses instantly.
+                                Connect with local businesses instantly.
                                 Share your requirements and receive tailored responses
                                 from trusted experts near you.
                             </p>

@@ -40,6 +40,7 @@ export default function AdminDemandDashboard() {
     const insights = (data as any)?.insights || [];
     const topCities = (data as any)?.topCities || [];
     const aiSummary = (data as any)?.aiSummary || '';
+    const totalBusinesses = (data as any)?.stats?.totalVendors || 0;
 
     // Derived metrics
     const hotKeywords = useMemo(() =>
@@ -115,8 +116,8 @@ export default function AdminDemandDashboard() {
 
                 <div className="bg-white p-8 rounded-[32px] border border-black shadow-slate-200/20 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full -z-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 relative z-10">Platform Vendors</p>
-                    <h4 className="text-4xl font-black text-red-600 relative z-10">{(data as any)?.stats?.totalVendors || 0}</h4>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 relative z-10">Platform Businesses</p>
+                    <h4 className="text-4xl font-black text-red-600 relative z-10">{totalBusinesses}</h4>
                 </div>
             </div>
 

@@ -103,7 +103,7 @@ export default function AdminReferralsPage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-2">Referral History</h1>
-                    <p className="text-slate-400 font-bold tracking-tight">Status of referrers and referred vendors</p>
+                    <p className="text-slate-400 font-bold tracking-tight">Status of referrers and referred businesses</p>
                 </div>
                 
                 <div className="flex items-center gap-3">

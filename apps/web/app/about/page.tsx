@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const stats = [
     { label: "Businesses Listed", value: "10,000+", icon: Building2, color: "text-primary bg-primary/10" },
-    { label: "Verified Users", value: "50,000+", icon: Users, color: "text-blue-600 bg-blue-50" },
+    { label: "Active Users", value: "50,000+", icon: Users, color: "text-blue-600 bg-blue-50" },
     { label: "Active Cities", value: "200+", icon: Globe, color: "text-emerald-600 bg-emerald-50" },
     { label: "Trust Reviews", value: "120,000+", icon: Star, color: "text-amber-500 bg-amber-50" },
 ];
@@ -30,7 +30,7 @@ const values = [
     {
         icon: Shield,
         title: "Trust & Transparency",
-        desc: "Verified listings, honest reviews, and clear pricing. We hold ourselves and every business on our platform to the highest standards.",
+        desc: "Trusted listings, honest reviews, and clear pricing. We hold ourselves and every business on our platform to high standards.",
         color: "text-indigo-500 bg-indigo-50",
     },
     {
@@ -139,7 +139,7 @@ export default function AboutPage() {
                                 <span className="text-slate-400">Economies.</span>
                             </h2>
                             <p className="text-lg text-slate-500 font-bold leading-relaxed mb-10">
-                                We give local businesses a powerful digital presence — complete with verified profiles, customer reviews, real-time chat, and targeted offers — so that when someone searches for a service nearby, the best match is right at their fingertips.
+                                We give local businesses a powerful digital presence — complete with rich profiles, customer reviews, real-time chat, and targeted offers — so that when someone searches for a service nearby, the best match is right at their fingertips.
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 {[
@@ -207,7 +207,7 @@ export default function AboutPage() {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-6 justify-center">
                             <Link
-                                href="/register?role=vendor"
+                                href="/register"
                                 className="inline-flex items-center gap-4 px-12 py-8 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-[24px] hover:shadow-2xl hover:shadow-primary/40 transition-all active:scale-95 group"
                             >
                                 List Your Business 

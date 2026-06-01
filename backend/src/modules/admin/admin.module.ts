@@ -24,6 +24,7 @@ import { Category } from '../../entities/category.entity';
 import { City } from '../../entities/city.entity';
 import { VendorAttribute } from '../../entities/vendor-attribute.entity';
 import { BusinessQuestion } from '../../entities/business-question.entity';
+import { LocationModule } from '../location/location.module';
 
 @Module({
     imports: [
@@ -49,6 +50,7 @@ import { BusinessQuestion } from '../../entities/business-question.entity';
             BusinessQuestion,
         ]),
         SearchModule,
+        LocationModule,
     ],
     controllers: [AdminController, AdminSearchController],
     providers: [AdminService],

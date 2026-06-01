@@ -13,12 +13,19 @@ export interface DashboardFeatures {
     showAnalytics: boolean;
     showChat: boolean;
     showBroadcast: boolean;
+    canRespondBroadcast?: boolean;
+    canReplyReviews?: boolean;
     showDemand: boolean;
+    showCustomerNotes?: boolean;
     canAddListing: boolean;
     maxListings?: number;
     maxKeywords?: number;
     maxOffers?: number;
     maxEvents?: number;
+    maxFaqs?: number;
+    maxSubCategories?: number;
+    canCreateAlbums?: boolean;
+    isFeatured?: boolean;
     [key: string]: any;
 }
 
@@ -35,16 +42,24 @@ export const usePlanFeature = () => {
         showSaved: false,
         showFollowing: false,
         showQueries: false,
-        showLeads: false,
+        showLeads: true,
         showOffers: true,
         showReviews: true,
         showAnalytics: false,
+        showCustomerNotes: false,
         showChat: false,
-        showBroadcast: false,
+        showBroadcast: true,
+        canRespondBroadcast: false,
+        canReplyReviews: false,
         showDemand: false,
         canAddListing: true,
         maxListings: 1,
         maxOffers: 1,
+        maxKeywords: 0,
+        maxFaqs: 0,
+        maxSubCategories: 0,
+        canCreateAlbums: false,
+        isFeatured: false,
     };
 
     const features: DashboardFeatures = activeSub?.plan?.dashboardFeatures || defaultFeatures;

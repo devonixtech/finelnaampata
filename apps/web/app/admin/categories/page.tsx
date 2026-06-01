@@ -207,7 +207,7 @@ export default function AdminCategoriesPage() {
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Category Management</h1>
                     <p className="text-slate-400 font-medium mt-1">
-                        Control the business categories accessible to vendors and users.
+                        Control the business categories accessible to businesses and users.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

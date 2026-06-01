@@ -91,7 +91,7 @@ export default function CitiesPage() {
                         <span className="text-orange-400">In Your City</span>
                     </h1>
                     <p className="text-white/60 font-medium text-base mb-8">
-                        Click on any city to explore all verified local businesses
+                        Click on any city to explore local businesses
                     </p>
 
                     {/* Search bar */}

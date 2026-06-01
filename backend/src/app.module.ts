@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { APP_GUARD } from '@nestjs/core';
@@ -23,6 +24,8 @@ import { CitiesModule } from './modules/cities/cities.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { HealthModule } from './modules/health/health.module';
 import { OffersModule } from './modules/offers/offers.module';
+import { DealsModule } from './modules/deals/deals.module';
+import { EventsModule } from './modules/events/events.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { DemandModule } from './modules/demand/demand.module';
 import { FollowsModule } from './modules/follows/follows.module';
@@ -33,6 +36,8 @@ import { PromotionsModule } from './modules/promotions/promotions.module';
 import { BusinessSetupModule } from './modules/business-setup/business-setup.module';
 import { QaModule } from './modules/qa/qa.module';
 import { SearchAnalyticsModule } from './modules/search-analytics/search-analytics.module';
+import { AddressConfigModule } from './modules/address/address-config.module';
+import { LocationModule } from './modules/location/location.module';
 
 import { typeOrmConfig } from './config/typeorm.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -101,6 +106,20 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
             ],
         }),
 
+        // BACKGROUND JOBS (BULLMQ)
+        ...(process.env.REDIS_ENABLED === 'true' ? [
+            BullModule.forRootAsync({
+                imports: [ConfigModule],
+                inject: [ConfigService],
+                useFactory: async (configService: ConfigService) => ({
+                    connection: {
+                        host: configService.get('REDIS_HOST') || 'localhost',
+                        port: parseInt(configService.get('REDIS_PORT') || '6379'),
+                    },
+                }),
+            })
+        ] : []),
+
         // FEATURE MODULES
         AuthModule,
         UsersModule,
@@ -117,6 +136,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
         CloudinaryModule,
         HealthModule,
         OffersModule,
+        DealsModule,
+        EventsModule,
         CommentsModule,
         DemandModule,
         FollowsModule,
@@ -127,6 +148,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
         BusinessSetupModule,
         QaModule,
         SearchAnalyticsModule,
+        AddressConfigModule,
+        LocationModule,
     ],
 
 
@@ -142,3 +165,7 @@ export class AppModule {
         console.log('--- DEBUG: APP MODULE INITIALIZED ---');
     }
 }
+
+
+
+

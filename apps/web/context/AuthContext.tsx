@@ -5,10 +5,34 @@ import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '696583631101-3td2apbr7d2tlbne4o6tmc0crg84u1nv.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
 // Ping interval: mark user as online every 90 seconds
 const PING_INTERVAL_MS = 90_000;
+
+export function setCookie(name: string, value: string, days: number) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+export function getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+export function deleteCookie(name: string) {
+    if (typeof document !== 'undefined') {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Lax`;
+    }
+}
 
 interface AuthContextType {
     user: any | null;
@@ -19,6 +43,8 @@ interface AuthContextType {
     logout: () => void;
     updateUser: (userData: any) => void;
     syncProfile: () => Promise<void>;
+    verifyEmail: (otp: string) => Promise<void>;
+    resendOtp: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Captures URL referral code globally and sets it in a 10-day cookie
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const ref = params.get('ref');
+            if (ref) {
+                setCookie('referralCode', ref, 10);
+                console.log('[AuthContext] Stored referral code in 10-day cookie:', ref);
+            }
+        }
+    }, []);
 
     // --- Heartbeat: mark user as online in DB ---
     const startPing = () => {
@@ -136,16 +174,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const redirectUser = (user: any, isSignup: boolean = false) => {
         if (user.role === 'admin' || user.role === 'superadmin') {
             router.push('/admin');
-        } else if (user.role === 'vendor') {
-            if (isSignup) {
-                router.push('/business-setup');
-            } else {
-                router.push('/dashboard');
-            }
-        } else {
-            // Both vendors and regular users land on the unified dashboard
-            router.push('/dashboard');
+            return;
         }
+        if (isSignup && !user.isEmailVerified && user.provider !== 'google') {
+            router.push('/verify-email');
+            return;
+        }
+        router.push('/dashboard');
     };
 
     const login = async (credentials: any) => {
@@ -172,9 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Sync profile to ensure full data (relations like subscriptions)
         await syncProfile();
         
-        // If they chose a role (sign-up context), redirect to business-setup
-        const isSignUp = !!role;
-        redirectUser(response.user, isSignUp);
+        redirectUser(response.user, true);
     };
 
     const register = async (userData: any) => {
@@ -194,9 +227,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    const verifyEmail = async (otp: string) => {
+        if (!user?.email) throw new Error('No user email found.');
+        await api.auth.verifyEmail(user.email, otp);
+        // Mark user as verified in local state
+        const updated = { ...user, isEmailVerified: true };
+        setUser(updated);
+        localStorage.setItem('user', JSON.stringify(updated));
+        router.push('/dashboard');
+    };
+
+    const resendOtp = async () => {
+        if (!user?.email) throw new Error('No user email found.');
+        await api.auth.resendOtp(user.email);
+    };
+
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser, syncProfile }}>
+            <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser, syncProfile, verifyEmail, resendOtp }}>
                 {children}
             </AuthContext.Provider>
         </GoogleOAuthProvider>

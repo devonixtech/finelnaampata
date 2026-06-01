@@ -240,7 +240,7 @@ export default function AffiliateDashboard() {
                                                         <Users className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'New Vendor'}</h4>
+                                                        <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'New Business'}</h4>
                                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                                             {new Date(ref.createdAt).toLocaleDateString()} • {ref.status}
                                                         </p>

@@ -34,11 +34,10 @@ export class CreateVendorDto {
     @MinLength(8)
     businessPhone: string;
 
-    @ApiPropertyOptional({ example: '123 Business Rd, Office 4B' })
-    @IsOptional()
-    @Transform(trimToUndefined)
+    @ApiProperty({ example: '123 Business Rd, Office 4B' })
     @IsString()
-    businessAddress?: string;
+    @MinLength(5)
+    businessAddress: string;
 
     @ApiPropertyOptional({ example: 'GSTIN123456789' })
     @IsOptional()
@@ -87,11 +86,10 @@ export class UpdateVendorDto {
     @IsString()
     businessPhone?: string;
 
-    @ApiPropertyOptional({ example: 'New Address' })
-    @IsOptional()
-    @Transform(trimToUndefined)
+    @ApiProperty({ example: 'New Address' })
     @IsString()
-    businessAddress?: string;
+    @MinLength(5)
+    businessAddress: string;
 
     @ApiPropertyOptional({ example: 'GSTIN123456789' })
     @IsOptional()
@@ -164,8 +162,8 @@ export class VendorProfileDto {
     @ApiProperty()
     businessPhone: string;
 
-    @ApiPropertyOptional()
-    businessAddress?: string;
+    @ApiProperty()
+    businessAddress: string;
 
     @ApiProperty()
     isVerified: boolean;
@@ -237,8 +235,8 @@ export class PublicVendorProfileDto {
     @ApiPropertyOptional()
     businessPhone?: string;
 
-    @ApiPropertyOptional()
-    businessAddress?: string;
+    @ApiProperty()
+    businessAddress: string;
 
     @ApiProperty()
     isVerified: boolean;

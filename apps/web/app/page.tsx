@@ -74,7 +74,7 @@ export default function HomePage() {
   const highlights = [
     {
       icon: <ShieldCheck className="w-5 h-5 text-orange-500" />,
-      title: "Verified Businesses",
+      title: "Trusted Businesses",
       desc: "Trusted and reliable listings",
     },
     {
@@ -124,6 +124,7 @@ export default function HomePage() {
     arrows: false,
     pauseOnHover: false,
   };
+
   // Initial data load — runs once on mount for all static page data
   useEffect(() => {
     const loadInitialData = async () => {
@@ -135,8 +136,10 @@ export default function HomePage() {
           api.cities.getPopular(),
           api.categories.getAll(),
           api.cities.getAll(),
-          // Only show 'homepage' boosted offers on the landing page
-          api.offers.search({ limit: 20, placement: "homepage" }),
+          Promise.allSettled([
+            api.deals.search({ limit: 10 }),
+            api.events.search({ limit: 10 }),
+          ]),
           api.reviews.getPopular(15),
         ]);
 
@@ -148,7 +151,9 @@ export default function HomePage() {
         const cities = getValue(results[2], []);
         const allCats = getValue(results[3], []);
         const allCities = getValue(results[4], []);
-        const offersData = getValue(results[5], { data: [] });
+        const offerBundles = getValue(results[5], []);
+        const dealsData = offerBundles[0]?.status === 'fulfilled' ? offerBundles[0].value : { data: [] };
+        const eventsData = offerBundles[1]?.status === 'fulfilled' ? offerBundles[1].value : { data: [] };
         const reviewsData = getValue(results[6], { data: [] });
 
         setCategories(cats || []);
@@ -160,7 +165,12 @@ export default function HomePage() {
         setCategoriesList(allCats || []);
         setCitiesList(allCities || []);
         setStatsComments(reviewsData?.data || []);
-        setLatestOffers(offersData?.data || []);
+        setLatestOffers(
+          [...(dealsData?.data || []).map((d: any) => ({ ...d, type: 'offer' as const })),
+           ...(eventsData?.data || []).map((e: any) => ({ ...e, type: 'event' as const }))]
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+            .slice(0, 20),
+        );
       } catch (err) {
         console.error("CRITICAL: Unexpected error in loadInitialData:", err);
       } finally {
@@ -254,44 +264,11 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-detect location on load
+  // Do not auto-request user location on app launch.
+  // User can select city manually via the location picker.
   useEffect(() => {
-    if (mapReady && !selectedCity && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          if (
-            (window as any).google &&
-            (window as any).google.maps &&
-            (window as any).google.maps.Geocoder
-          ) {
-            const geocoder = new (window as any).google.maps.Geocoder();
-            geocoder.geocode(
-              { location: { lat: latitude, lng: longitude } },
-              (results: any, status: any) => {
-                if (status === "OK" && results[0]) {
-                  let detectedCity = "";
-                  results[0].address_components?.forEach((component: any) => {
-                    if (component.types.includes("locality"))
-                      detectedCity = component.long_name;
-                    else if (
-                      component.types.includes("administrative_area_level_2") &&
-                      !detectedCity
-                    )
-                      detectedCity = component.long_name;
-                  });
-                  if (detectedCity) setSelectedCity(detectedCity);
-                }
-              },
-            );
-          }
-        },
-        (err) => console.log("Geolocation prompt rejected or failed:", err),
-        { timeout: 5000 },
-      );
-    }
-  }, [mapReady]);
+    return;
+  }, [mapReady, selectedCity]);
 
   if (loading) {
     return (
@@ -617,7 +594,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl font-bold text-[#202124] mb-3">Search & Find</h3>
               <p className="text-[#70757a] text-sm leading-relaxed">
-                Choose the service you need from our verified categories.
+                Choose the service you need from our trusted categories.
               </p>
             </div>
             <div className="flex flex-col items-center text-center">
@@ -673,7 +650,7 @@ export default function HomePage() {
             ) : (
               <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-slate-100">
                 <p className="text-slate-500 font-bold">
-                  More offers and events coming soon from our trusted vendors.
+                  More offers and events coming soon from our trusted businesses.
                 </p>
               </div>
             )}
@@ -810,7 +787,7 @@ export default function HomePage() {
                 id: rev.id,
                 name: rev.user?.fullName || "Aman U.",
                 location: rev.user?.branch || rev.user?.city || "",
-                role: "Verified Local",
+                role: "Local Resident",
                 text: rev.comment,
                 rating: rev.rating || 5,
                 img: rev.user?.avatarUrl || null,
@@ -940,7 +917,7 @@ export default function HomePage() {
             </div>
             <div className="shrink-0 w-full md:w-auto">
               <Link
-                href="/register?role=vendor"
+                href="/register"
                 className="bg-[#FF7A30] hover:bg-[#E86920] text-white px-10 py-5 rounded-[16px] font-black text-lg transition-all shadow-[0_10px_30px_rgba(255,122,48,0.3)] active:scale-95 whitespace-nowrap block text-center"
               >
                 Add Your Business

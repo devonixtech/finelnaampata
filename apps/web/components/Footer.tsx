@@ -37,10 +37,14 @@ export default function Footer() {
           <div>
             <h4 className="text-[#112D4E] font-black uppercase tracking-widest text-xs mb-8">For businesses</h4>
             <ul className="space-y-4">
-              {['Add Business', 'Business Login', 'Pricing Plans'].map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
-                    {item}
+              {[
+                { label: 'List My Business', href: '/register' },
+                { label: 'Business Login', href: '/login' },
+                { label: 'Pricing Plans', href: '/pricing' }
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -51,10 +55,15 @@ export default function Footer() {
           <div>
             <h4 className="text-[#112D4E] font-black uppercase tracking-widest text-xs mb-8">Company</h4>
             <ul className="space-y-4">
-              {['About Us', 'Contact', 'Terms of Service', 'Privacy Policy'].map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
-                    {item}
+              {[
+                { label: 'About Us', href: '/about' },
+                { label: 'Contact', href: '/contact' },
+                { label: 'Terms of Service', href: '/terms' },
+                { label: 'Privacy Policy', href: '/privacy' }
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -68,9 +77,9 @@ export default function Footer() {
             &copy; {currentYear} naampata. All rights reserved.
           </p>
           <div className="flex gap-8 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            <Link href="#" className="hover:text-orange-500 transition-colors">Twitter</Link>
-            <Link href="#" className="hover:text-orange-500 transition-colors">Linkedin</Link>
-            <Link href="#" className="hover:text-orange-500 transition-colors">Instagram</Link>
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Twitter</a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Linkedin</a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Instagram</a>
           </div>
         </div>
       </div>

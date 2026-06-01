@@ -12,6 +12,8 @@ import { Listing } from '../../entities/business.entity';
 import { Subscription } from '../../entities/subscription.entity';
 import { CreateVendorDto, UpdateVendorDto } from './dto/vendor.dto';
 import { OfferEvent, OfferType, OfferStatus } from '../../entities/offer-event.entity';
+import { Deal } from '../../entities/deal.entity';
+import { Event } from '../../entities/event.entity';
 import { Lead } from '../../entities/lead.entity';
 import { SearchLog } from '../../entities/search-log.entity';
 import { Category } from '../../entities/category.entity';
@@ -28,6 +30,10 @@ export class VendorsService {
         private listingRepository: Repository<Listing>,
         @InjectRepository(OfferEvent)
         private offerEventRepository: Repository<OfferEvent>,
+        @InjectRepository(Deal)
+        private dealRepository: Repository<Deal>,
+        @InjectRepository(Event)
+        private eventRepository: Repository<Event>,
         @InjectEntityManager()
         private readonly entityManager: EntityManager,
     ) { }
@@ -341,19 +347,24 @@ export class VendorsService {
         const totalViews = listings.reduce((acc, l) => acc + Number(l.totalViews || 0), 0);
         const categories = [...new Set(listings.map(l => l.category?.name).filter(Boolean))];
 
-        // Fetch Offers and Events
+        // Fetch Deals and Events
         const now = new Date();
-        const allOffersEvents = await this.offerEventRepository.createQueryBuilder('oe')
-            .where('oe.vendorId = :vendorId', { vendorId: vendor.id })
-            .andWhere('oe.isActive = :isActive', { isActive: true })
-            .andWhere('oe.status != :expired', { expired: OfferStatus.EXPIRED })
-            .andWhere('(oe.expiryDate IS NULL OR oe.expiryDate > :now)', { now })
-            .andWhere('(oe.endDate IS NULL OR oe.endDate > :now)', { now })
-            .orderBy('oe.createdAt', 'DESC')
+        const offers = await this.dealRepository.createQueryBuilder('d')
+            .where('d.vendorId = :vendorId', { vendorId: vendor.id })
+            .andWhere('d.isActive = :isActive', { isActive: true })
+            .andWhere('d.status != :expired', { expired: 'expired' })
+            .andWhere('(d.expiryDate IS NULL OR d.expiryDate > :now)', { now })
+            .andWhere('(d.endDate IS NULL OR d.endDate > :now)', { now })
+            .orderBy('d.createdAt', 'DESC')
             .getMany();
 
-        const offers = allOffersEvents.filter(oe => oe.type === OfferType.OFFER);
-        const events = allOffersEvents.filter(oe => oe.type === OfferType.EVENT);
+        const events = await this.eventRepository.createQueryBuilder('e')
+            .where('e.vendorId = :vendorId', { vendorId: vendor.id })
+            .andWhere('e.isActive = :isActive', { isActive: true })
+            .andWhere('e.status != :expired', { expired: 'expired' })
+            .andWhere('(e.endDate IS NULL OR e.endDate > :now)', { now })
+            .orderBy('e.createdAt', 'DESC')
+            .getMany();
 
         return {
             id: vendor.id,

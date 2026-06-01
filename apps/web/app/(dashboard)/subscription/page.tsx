@@ -222,7 +222,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
     plan: Plan;
     isActive: boolean;         // This plan IS the currently active plan
     status?: string;           // Status of the active subscription
-    hasActivePaidPlan: boolean; // Vendor currently has any paid (non-free) active plan
+    hasActivePaidPlan: boolean; // Business currently has any paid (non-free) active plan
     onSelect: () => void;
     loading: boolean;
 }) {
@@ -317,7 +317,11 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
                     )}
                 </div>
                 {!isFree && (
-                    <p className="text-xs text-slate-400 font-bold mt-1">Billed monthly · Each recharge extends by 30 days</p>
+                    <p className="text-xs text-slate-400 font-bold mt-1">
+                        {plan.billingCycle?.toLowerCase() === 'yearly'
+                            ? 'Billed yearly · Each recharge extends by 1 year'
+                            : 'Billed monthly · Each recharge extends by 1 month'}
+                    </p>
                 )}
                 <p className="text-slate-500 font-bold text-sm mt-2 leading-relaxed">{plan.description || 'Grow your business visibility'}</p>
             </div>
@@ -337,7 +341,9 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
                         showFollowing: 'Following',
                         showQueries:   'Queries',
                         showChat:      'Live Chat',
-                        showBroadcast: 'Broadcast Feed',
+                        showBroadcast: 'Broadcast Feed (view)',
+                        canRespondBroadcast: 'Respond to Broadcast Leads',
+                        canReplyReviews: 'Reply to Customer Reviews',
                         showDemand:    'Hot Demand Insights',
                     };
                     const label = labels[key] || key.replace('show', '').replace(/([A-Z])/g, ' $1').trim();
@@ -374,7 +380,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
 
 
 /* ─── Main Page ─────────────────────────────────────────────────────────── */
-export default function VendorSubscriptionPage() {
+export default function BusinessSubscriptionPage() {
     const { user, loading: authLoading, syncProfile } = useAuth();
     const router = useRouter();
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -386,8 +392,9 @@ export default function VendorSubscriptionPage() {
     const [tab, setTab] = useState<'plan' | 'invoices'>('plan');
     const [successMsg, setSuccessMsg] = useState('');
     const [agreed, setAgreed] = useState(false);
+    const [billingCycleFilter, setBillingCycleFilter] = useState<'Monthly' | 'Yearly'>('Monthly');
 
-    // Safety-net guard: only vendors can access this page
+    // Safety-net guard: only businesses can access this page
     // Wait for auth to finish loading before checking role to avoid premature redirects
     useEffect(() => {
         if (authLoading) return; // Don't redirect while auth is still initializing
@@ -402,7 +409,7 @@ export default function VendorSubscriptionPage() {
         setLoadingPage(true);
         try {
             const [p, s, inv] = await Promise.all([
-                api.subscriptions.getPlans(),
+                api.subscriptions.getPricingPlans('subscription'),
                 api.subscriptions.getActive().catch(() => null),
                 api.subscriptions.getMyInvoices().catch(() => []),
             ]);
@@ -469,9 +476,11 @@ export default function VendorSubscriptionPage() {
 
         const isRecharge = activeSub?.plan?.id === plan.id;
 
+        const cycleLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? 'year' : 'month';
+        const extensionLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? '1 year' : '1 month';
         const confirmMsg = isRecharge
-            ? `Recharge your ${plan.name} plan for another 30 days?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()} via Stripe.`
-            : `Activate the ${plan.name} plan?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()}/month via Stripe.`;
+            ? `Recharge your ${plan.name} plan for another ${extensionLabel}?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()} via Stripe.`
+            : `Activate the ${plan.name} plan?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()}/${cycleLabel} via Stripe.`;
 
         if (!confirm(confirmMsg)) return;
 
@@ -600,7 +609,7 @@ export default function VendorSubscriptionPage() {
                         <div className="flex items-center gap-3">
                             <div className={`text-center px-5 py-3 rounded-xl ${isExpiringSoon ? 'bg-red-100' : 'bg-white/10'}`}>
                                 <p className={`text-xs font-black uppercase tracking-wider ${isExpiringSoon ? 'text-red-400' : 'text-slate-400'}`}>Amount</p>
-                                <p className={`text-lg font-black ${isExpiringSoon ? 'text-red-700' : 'text-white'}`}>{Number(activeSub.amount) === 0 ? 'Free' : `PKR ${Number(activeSub.amount).toLocaleString()}`}</p>
+                                <p className={`text-lg font-black ${isExpiringSoon ? 'text-red-700' : 'text-white'}`}>{(Number(activeSub.amount) === 0 && activeSub.plan?.planType === 'free') ? 'Free' : `PKR ${Number(activeSub.amount).toLocaleString()}`}</p>
                             </div>
                             {isExpiringSoon && (
                                 <button
@@ -644,8 +653,26 @@ export default function VendorSubscriptionPage() {
                             <div className="text-center py-20 text-slate-400 font-bold">No plans available yet. Please check back later.</div>
                         ) : (
                             <>
+                                <div className="flex justify-center mb-10">
+                                    <div className="bg-slate-100 p-1 rounded-2xl flex items-center shadow-inner">
+                                        <button 
+                                            onClick={() => setBillingCycleFilter('Monthly')}
+                                            className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${billingCycleFilter === 'Monthly' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            Monthly Plans
+                                        </button>
+                                        <button 
+                                            onClick={() => setBillingCycleFilter('Yearly')}
+                                            className={`px-8 py-2.5 rounded-xl font-black text-sm transition-all ${billingCycleFilter === 'Yearly' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                                        >
+                                            Yearly Plans
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                                    {plans.map(plan => (
+                                    {plans
+                                        .filter(plan => plan.planType === 'free' || plan.billingCycle?.toLowerCase() === billingCycleFilter.toLowerCase())
+                                        .map(plan => (
                                         <PlanCard
                                             key={plan.id}
                                             plan={plan}

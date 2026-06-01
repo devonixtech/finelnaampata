@@ -37,7 +37,7 @@ export default function SavedPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest">Loading your saved listings...</p>
+                <p className="text-slate-400 font-bold uppercase tracking-widest">Loading your saved businesses...</p>
             </div>
         );
     }
@@ -58,11 +58,11 @@ export default function SavedPage() {
     }
 
     return (
-        <FeatureGate feature="showSaved" title="Unlock Saved Listings" description="Create your personal collection of favorite businesses and partners for quick access. Save time with a curated dashboard.">
+        <FeatureGate feature="showSaved" title="Unlock Saved Businesses" description="Create your personal collection of favorite businesses and partners for quick access. Save time with a curated dashboard.">
             <div className="space-y-12 pb-20">
                 <div>
                     <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight flex items-center gap-4">
-                        Saved Listings <Heart className="w-8 h-8 text-rose-500 fill-rose-500" />
+                        Saved Businesses <Heart className="w-8 h-8 text-rose-500 fill-rose-500" />
                     </h1>
                     <p className="text-slate-400 font-bold tracking-tight text-lg">Your curated collection of businesses and partners.</p>
                 </div>

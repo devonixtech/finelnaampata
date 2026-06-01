@@ -5,9 +5,10 @@ import { TrendingUp, Activity, MapPin, Loader2, BarChart2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../lib/api';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
+import { detectLocationForUi } from '../../../lib/location-detect';
 import { FeatureGate } from '../../../components/vendor/FeatureGate';
 
-export default function VendorDemandPage() {
+export default function BusinessDemandPage() {
     const { user } = useAuth();
     const [insights, setInsights] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -15,31 +16,25 @@ export default function VendorDemandPage() {
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
     useEffect(() => {
-        // Try to get actual location, fallback to a default if blocked or failing
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const coords = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-                    setLocation(coords);
-                    fetchDemand(coords.lat, coords.lng);
-                },
-                (err) => {
-                    console.error("Geolocation error:", err);
-                    // Default to some coordinates for demo if user blocks location
-                    const defaultCoords = { lat: 40.7128, lng: -74.0060 }; // NYC
-                    setLocation(defaultCoords);
-                    fetchDemand(defaultCoords.lat, defaultCoords.lng);
+        const loadLocation = async () => {
+            try {
+                const coords = await detectLocationForUi();
+                if (coords) {
+                    const resolved = { lat: coords.latitude, lng: coords.longitude };
+                    setLocation(resolved);
+                    fetchDemand(resolved.lat, resolved.lng);
+                    return;
                 }
-            );
-        } else {
-            // Default coordinates
-            const defaultCoords = { lat: 40.7128, lng: -74.0060 };
-            setLocation(defaultCoords);
-            fetchDemand(defaultCoords.lat, defaultCoords.lng);
-        }
+            } catch (err) {
+                console.error('Geolocation error:', err);
+            }
+            {
+                const defaultCoords = { lat: 30.3753, lng: 69.3451 };
+                setLocation(defaultCoords);
+                fetchDemand(defaultCoords.lat, defaultCoords.lng);
+            }
+        };
+        loadLocation();
     }, []);
 
     const fetchDemand = async (lat: number, lng: number) => {

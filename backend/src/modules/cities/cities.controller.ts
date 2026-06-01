@@ -18,8 +18,8 @@ export class CitiesController {
     @Get()
     @ApiOperation({ summary: 'Get all cities' })
     @ApiResponse({ status: 200, description: 'Return all cities' })
-    findAll() {
-        return this.citiesService.findAll();
+    findAll(@Query('country') country?: string) {
+        return this.citiesService.findAll(country);
     }
 
     @Public()
@@ -36,6 +36,14 @@ export class CitiesController {
     @ApiOperation({ summary: 'Get list of countries available for bulk import' })
     getSupportedCountries() {
         return this.citiesService.getSupportedCountries();
+    }
+
+    @Public()
+    @Get('countries')
+    @ApiOperation({ summary: 'Get distinct countries from city records' })
+    @ApiResponse({ status: 200, description: 'Return available countries' })
+    getCountries() {
+        return this.citiesService.getCountries();
     }
 
     // --- Admin Endpoints ---

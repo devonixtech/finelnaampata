@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { 
     Check, 
     ChevronRight, 
     ChevronLeft, 
-    Store, 
-    CreditCard, 
-    Zap, 
     ShieldCheck, 
     Loader2, 
     Building2,
@@ -17,142 +15,398 @@ import {
     TextQuote,
     Mail,
     Map,
-    Globe
+    Globe,
+    Lock,
+    Sparkles,
+    Trash2,
+    Plus,
+    Upload,
+    X,
+    Clock,
+    DollarSign,
+    Layers,
+    Smile,
+    MessageSquare,
+    Laptop,
+    Instagram,
+    Facebook,
+    Youtube,
+    Linkedin,
+    Twitter
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { City } from '../../types/api';
+import { City, Category } from '../../types/api';
+import CategorySearchSelect from '../../components/CategorySearchSelect';
 
-interface Question {
-    id: string;
-    category: string;
-    question: string;
-    options: string[];
-}
+import { DEFAULT_DIAL_CODES } from '../../lib/phone-codes';
+import { sortAndDedupeCities, tryDetectDeviceLocation, reverseGeocodeFromCoords, getBrowserTimezone } from '../../lib/location-detect';
+import AddressPlacesAutocomplete from '../../components/AddressPlacesAutocomplete';
+import { PhoneNumberUtil } from 'google-libphonenumber';
+
+const DraggablePinMap = dynamic(() => import('../../components/DraggablePinMap'), { ssr: false });
+
+const DIAL_CODES = DEFAULT_DIAL_CODES;
+
+const BUSINESS_LANGUAGE_OPTIONS = [
+    'English', 'Urdu', 'Arabic', 'Hindi', 'Punjabi', 'Pashto', 'Sindhi', 'Balochi', 'Other'
+];
+
+const EMPLOYEE_SIZE_OPTIONS = [
+    'Just Me (Solo)', '2 – 5', '6 – 10', '11 – 25', '26 – 50', '51 – 100', '101 – 250', '251 – 500', '501 – 1,000', '1,000+', 'Prefer not to say'
+];
+
+const AMENITIES_SECTIONS = {
+    locationAccess: {
+        title: 'Location & Access',
+        options: ['Physical Location', 'Online Business', 'Mobile / Home Service', 'Delivery Available', 'Online Consultation', 'Emergency Service', '24/7 Open', 'Appointment Only']
+    },
+    facilities: {
+        title: 'Facilities at Location',
+        options: ['Free Wi-Fi', 'Parking Available', 'Air Conditioned', 'Waiting Area', 'Wheelchair Accessible', 'Elevator / Lift', 'Kids Area', 'Pet Friendly', 'Washroom / Toilet', 'Prayer Area', 'CCTV / Security', 'Generator / Backup Power', 'Family Seating', 'EV Charging', 'Locker / Storage']
+    },
+    staff: {
+        title: 'Staff Available',
+        options: ['Female Staff Available', 'Male Staff Available', 'Bilingual Staff', 'Sign Language Support', 'Trained / Certified Staff', 'Uniformed Staff', 'Dedicated Customer Support']
+    },
+    payments: {
+        title: 'Payment Methods Accepted',
+        options: ['Cash Accepted', 'Card Accepted', 'Bank Transfer', 'Mobile Wallet', 'Advance Payment Required', 'Cryptocurrency', 'Instalment / Buy Now Pay Later', 'Online Payment']
+    }
+};
+
+const SPECIALISED_SECTORS = {
+    industrial: {
+        title: 'Industrial, Manufacturing & B2B',
+        options: ['Factory', 'Manufacturing Unit', 'Industrial Supplier', 'Packaging Company', 'Printing Press', 'Textile Mill', 'Garment Factory', 'Warehouse', 'Cold Storage', 'Wholesale Market / Mandi', 'Export House', 'Import Clearance Agent']
+    },
+    agriculture: {
+        title: 'Agriculture, Farming & Rural',
+        options: ['Seed Store', 'Fertilizer Store', 'Pesticide Shop', 'Dairy Farm', 'Poultry Farm', 'Cattle Farm', 'Tractor Dealer', 'Agricultural Equipment', 'Grain Market', 'Livestock Market', 'Irrigation Supplies', 'Organic Farm']
+    }
+};
+
+const PremiumFeatureBanner = () => (
+    <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 p-3 rounded-xl flex items-start gap-3 mb-4">
+        <Lock className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+        <div>
+            <p className="text-sm font-bold text-orange-900">Premium Feature</p>
+            <p className="text-xs text-orange-700 font-medium mt-0.5">This section is available on Paid Plans. You can fill it out now, and it will be unlocked when you upgrade.</p>
+        </div>
+    </div>
+);
+
+const OPERATIONAL_STRUCTURE_SECTIONS = {
+    producer: {
+        title: 'Producer',
+        options: ['Manufacturer', 'Assembler', 'Fabricator', 'Farmer / Agricultural Producer', 'Extractor / Mining', 'OEM (Original Equipment Manufacturer)', 'Private Label Producer', 'Garment / Textile Factory']
+    },
+    sales: {
+        title: 'Sales & Distribution',
+        options: ['Retailer', 'Wholesaler', 'Distributor', 'Importer', 'Exporter', 'Dealer / Authorised Seller', 'Reseller', 'Franchise']
+    },
+    intermediary: {
+        title: 'Intermediary',
+        options: ['Broker', 'Agent / Representative', 'Auctioneer', 'Commission-Based Facilitator', 'Marketplace Operator', 'Franchisee']
+    },
+    service: {
+        title: 'Service Function',
+        options: ['Consulting / Advisory', 'Installation', 'Repair & Maintenance', 'Design', 'Training / Education', 'Technical Support', 'Operations Management', 'Cleaning / Hygiene', 'Security Services', 'Logistics / Transport', 'Healthcare / Medical', 'Legal / Compliance']
+    },
+    org: {
+        title: 'Organisational Structure',
+        options: ['Individual / Freelancer', 'Partnership', 'Private Company', 'Public Company', 'Government Entity', 'Nonprofit / NGO', 'Cooperative', 'Other']
+    }
+};
 
 export default function BusinessSetupWizard() {
     const { user, syncProfile } = useAuth();
     const router = useRouter();
-    
-    const [questions, setQuestions] = useState<Question[]>([]);
+
+    const [categories, setCategories] = useState<Category[]>([]);
     const [allCities, setAllCities] = useState<City[]>([]);
     const [filteredCities, setFilteredCities] = useState<City[]>([]);
     const [countries, setCountries] = useState<string[]>([]);
+    const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
+    const [setupQuestions, setSetupQuestions] = useState<Array<{ id: string; category: string; question: string; options: string[] }>>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0); 
-    const [answers, setAnswers] = useState<Record<string, string[]>>({});
+    const [currentStep, setCurrentStep] = useState(0);
     const [completed, setCompleted] = useState(false);
     
-    // Explicit order for steps 2, 3 and 4
-    const categoriesSortOrder = ['Business Features', 'Payment Methods', 'Service Mode'];
-    
-    const categories = Array.from(new Set(questions.map(q => q.category)))
-        .sort((a, b) => {
-            const indexA = categoriesSortOrder.indexOf(a);
-            const indexB = categoriesSortOrder.indexOf(b);
-            // If both in list, sort by list order
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            // If only one in list, it comes first
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            // Otherwise alphabetical
-            return a.localeCompare(b);
-        });
+    // Auto-detect and duplicates states
+    const [geoDetecting, setGeoDetecting] = useState(false);
+    const [mapSearchQuery, setMapSearchQuery] = useState('');
+    const [mapSearchResults, setMapSearchResults] = useState<Array<{ placeId: string; description: string }>>([]);
+    const [mapSearchLoading, setMapSearchLoading] = useState(false);
+    const [mapSearchError, setMapSearchError] = useState('');
 
-    const totalSteps = categories.length + 1;
-
-    const defaultQuestions: Question[] = [
-        {
-            id: 'feat-1',
-            category: 'Business Features',
-            question: 'What amenities or features does your business offer?',
-            options: ['WiFi Available', 'Parking Space', 'Air Conditioned', 'Wheelchair Accessible', 'Waiting Area', 'Contactless Delivery']
-        },
-        {
-            id: 'pay-1',
-            category: 'Payment Methods',
-            question: 'Which payment methods do you accept?',
-            options: ['Cash', 'UPI / QR Code', 'Credit/Debit Card', 'Net Banking', 'Digital Wallets']
-        },
-        {
-            id: 'srv-1',
-            category: 'Service Mode',
-            question: 'How do you provide your services?',
-            options: ['Home Service', 'In-store / Studio', 'Online / Virtual', 'Emergency Services']
-        }
-    ];
-
-    // Basic Info State
-    const [basicInfo, setBasicInfo] = useState({
+    // Dynamic states for 21 steps
+    const [stepData, setStepData] = useState({
+        // Step 1: Business Name & Tagline
         businessName: '',
-        businessEmail: '',
-        businessPhone: '',
-        businessAddress: '',
-        country: 'Pakistan', 
+        businessTagline: '',
+        contactPersonTitle: '',
+        contactPersonName: '',
+
+        // Step 2: Business Type (Presence)
+        businessType: [] as string[],
+
+        // Step 3: Core Business Nature
+        coreNature: [] as string[],
+
+        // Step 4: Operational Structure
+        operationalStructure: [] as string[],
+
+        // Step 5: Business Category
+        primaryCategory: '',
+        subcategory1: '',
+        subcategory2: '',
+        subcategory3: '',
+        customCategoryTag: '',
+
+        // Step 6: Target Market
+        targetMarket: [] as string[],
+
+        // Step 7: What Your Business Offers
+        offers: [] as string[],
+
+        // Step 8: Business Address
+        country: '',
         city: '',
         state: '',
-        bio: ''
+        address: '',
+        addressLine2: '',
+        zipCode: '',
+
+        // Step 9: Map Pin
+        latitude: '',
+        longitude: '',
+        mapConfirmed: false,
+
+        // Step 10: Contact Details
+        phoneCode: '+92',
+        phoneNumber: '',
+        whatsappCode: '+92',
+        whatsappNumber: '',
+        whatsappSameAsPhone: false,
+        businessEmail: '',
+        namedPhoneNumbers: [] as Array<{ label: string; personName: string; title: string; number: string }>,
+
+        // Step 11: Business Hours
+        open247: false,
+        timezone: getBrowserTimezone(),
+        hours: {} as Record<string, { isOpen: boolean; openTime: string; closeTime: string }>,
+
+        // Step 12: Business Description
+        bio: '',
+        languages: [] as string[],
+
+        // Step 13: Year Established & Team
+        yearEstablished: '',
+        employeeSize: '',
+        hasMultipleBranches: false,
+
+        // Step 14: Website & Social Media
+        website: '',
+        socialLinks: {
+            facebook: '',
+            instagram: '',
+            youtube: '',
+            linkedin: '',
+            tiktok: '',
+            twitter: '',
+            pinterest: '',
+            snapchat: '',
+            customLabel: '',
+            customUrl: ''
+        },
+
+        // Step 15: Amenities & Facilities
+        amenities: [] as string[],
+
+        // Step 16: Specialised Sectors
+        specialisedSectors: [] as string[],
+
+        // Step 17: Keywords
+        keywords: [] as string[],
+
+        // Step 18: FAQs
+        faqs: [] as Array<{ question: string; answer: string }>,
+
+        // Step 19: Business Opportunities
+        franchiseOpportunity: 'No',
+        franchiseAreas: [] as string[],
+        franchiseInvestment: '',
+        franchiseSupport: [] as string[],
+        franchiseMinSpace: '',
+        dealersResellers: 'No',
+        importerExporter: 'No',
+        areasServed: [] as string[],
+
+        // Step 20: Logo & Cover Image
+        logoUrl: '',
+        coverImageUrl: '',
+        galleryUrls: [] as string[],
+        imageCaptions: {} as Record<string, string>,
+
+        // Step 21: Legal Consent
+        termsAccepted: false,
+        privacyAccepted: false,
+        moderationAccepted: false,
+        accuracyConfirmed: false,
+        publicLocationConsent: false,
+        marketingUpdatesConsent: false
+    });
+    const [addressConfig, setAddressConfig] = useState<any>(null);
+
+    const [consentMeta, setConsentMeta] = useState({
+        sessionId: '',
+        deviceId: '',
+        ipAddress: '127.0.0.1' // fallback, backend overrides
     });
 
+    // Load initial configuration
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                if (user && user.role !== 'vendor') {
+                if (!user) {
+                    router.push('/login');
+                    return;
+                }
+                if (!user.isEmailVerified && user.provider !== 'google') {
+                    router.push('/verify-email');
+                    return;
+                }
+                if (user.role !== 'vendor') {
                     router.push('/');
                     return;
                 }
 
-                // Initial fetch: Status, Profile, Questions, Cities, Countries
-                const [status, profile, qData, cData, countryData] = await Promise.all([
+                const [status, profile, cats, citiesData, countriesData, questionsData] = await Promise.all([
                     api.businessSetup.getStatus(),
-                    api.vendors.getProfile(),
-                    api.businessSetup.getQuestions(),
+                    api.businessProfiles.getProfile(),
+                    api.categories.getAll(),
                     api.cities.getAll(),
-                    api.cities.getSupportedCountries()
+                    api.addressConfig.getCountries({ silent: true }).catch(() => []),
+                    api.businessSetup.getQuestions().catch(() => []),
                 ]);
 
-                if (!status || !status.answers) {
-                    console.warn('[BusinessSetup] Status or answers missing, using defaults.');
+                setSetupQuestions(Array.isArray(questionsData) ? questionsData : []);
+
+                const options = ((countriesData || []) as { code: string; name: string }[])
+                    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+                setCountryOptions(options);
+                setCountries(options.map((c) => c.name).filter(Boolean));
+                setAllCities(sortAndDedupeCities(citiesData || []));
+                setCategories(cats || []);
+
+                // Load existing vendor attributes if they exist
+                if (status && status.answers) {
+                    const ans = status.answers;
+
+                    // Parse phone codes
+                    let phCode = '+92';
+                    let phNum = profile?.businessPhone || '';
+                    const sortedCodes = [...DIAL_CODES].sort((a, b) => b.dialCode.length - a.dialCode.length);
+                    const matchPh = sortedCodes.find(d => phNum.startsWith(d.dialCode));
+                    if (matchPh) {
+                        phCode = matchPh.dialCode;
+                        phNum = phNum.slice(matchPh.dialCode.length);
+                    }
+
+                    let waCode = '+92';
+                    let waNum = ans['whatsapp']?.[0] || '';
+                    const matchWa = sortedCodes.find(d => waNum.startsWith(d.dialCode));
+                    if (matchWa) {
+                        waCode = matchWa.dialCode;
+                        waNum = waNum.slice(matchWa.dialCode.length);
+                    }
+
+                    setStepData(prev => ({
+                        ...prev,
+                        businessName: profile?.businessName || '',
+                        businessTagline: ans['businessTagline']?.[0] || '',
+                        contactPersonTitle: ans['contactPersonTitle']?.[0] || '',
+                        contactPersonName: ans['contactPersonName']?.[0] || '',
+
+                        businessType: ans['type-1'] || [],
+                        coreNature: ans['nature-1'] || [],
+                        operationalStructure: ans['ops-1'] || [],
+
+                        primaryCategory: ans['primaryCategory']?.[0] || '',
+                        subcategory1: ans['subcategory1']?.[0] || '',
+                        subcategory2: ans['subcategory2']?.[0] || '',
+                        subcategory3: ans['subcategory3']?.[0] || '',
+                        customCategoryTag: ans['customCategoryTag']?.[0] || '',
+
+                        targetMarket: ans['serve-1'] || [],
+                        offers: ans['businessOffers'] || [],
+
+                        country: ans['country']?.[0] || profile?.country || 'Pakistan',
+                        city: ans['city']?.[0] || profile?.city || '',
+                        state: ans['state']?.[0] || profile?.state || '',
+                        address: profile?.businessAddress || ans['address']?.[0] || '',
+                        addressLine2: ans['businessAddressLine2']?.[0] || '',
+                        zipCode: ans['zipCode']?.[0] || '',
+
+                        latitude: ans['latitude']?.[0] || '',
+                        longitude: ans['longitude']?.[0] || '',
+                        mapConfirmed: ans['manualPinConfirmed']?.[0] === 'true',
+
+                        phoneCode: phCode,
+                        phoneNumber: phNum,
+                        whatsappCode: waCode,
+                        whatsappNumber: waNum,
+                        whatsappSameAsPhone: ans['whatsappSameAsPhone']?.[0] === 'true',
+                        businessEmail: profile?.businessEmail || user?.email || '',
+                        namedPhoneNumbers: ans['namedPhoneNumbers']?.[0]
+                            ? JSON.parse(ans['namedPhoneNumbers'][0]).map((p: { label?: string; personName?: string; title?: string; number?: string }) => ({
+                                label: p.label || '',
+                                personName: p.personName || '',
+                                title: p.title || '',
+                                number: p.number || '',
+                            }))
+                            : [],
+                        timezone: ans['businessTimezone']?.[0] || getBrowserTimezone(),
+
+                        open247: ans['open247']?.[0] === 'true',
+                        hours: ans['businessHours']?.[0] ? JSON.parse(ans['businessHours'][0]) : {},
+
+                        bio: profile?.bio || ans['bio']?.[0] || '',
+                        languages: ans['businessLanguages'] || [],
+
+                        yearEstablished: ans['yearEstablished']?.[0] || '',
+                        employeeSize: ans['employeeSize']?.[0] || '',
+                        hasMultipleBranches: ans['hasMultipleBranches']?.[0] === 'true',
+
+                        website: ans['website']?.[0] || '',
+                        socialLinks: ans['socialLinks']?.[0] ? JSON.parse(ans['socialLinks'][0]) : prev.socialLinks,
+
+                        amenities: ans['amenities-1'] || [],
+                        specialisedSectors: ans['industrySubtypes'] || [],
+                        keywords: ans['metaKeywords'] || [],
+                        faqs: ans['faqs']?.[0] ? JSON.parse(ans['faqs'][0]) : [],
+
+                        franchiseOpportunity: ans['franchiseOpportunity']?.[0] || 'No',
+                        franchiseAreas: ans['franchiseAreas'] || [],
+                        franchiseInvestment: ans['franchiseInvestment']?.[0] || '',
+                        franchiseSupport: ans['franchiseSupport'] || [],
+                        franchiseMinSpace: ans['franchiseMinSpace']?.[0] || '',
+                        dealersResellers: ans['dealersResellers']?.[0] || 'No',
+                        importerExporter: ans['importerExporter']?.[0] || 'No',
+                        areasServed: ans['areasServed'] || [],
+
+                        logoUrl: ans['logoUrl']?.[0] || '',
+                        coverImageUrl: ans['coverImageUrl']?.[0] || '',
+                        galleryUrls: ans['galleryUrls'] || [],
+                        imageCaptions: ans['imageCaptions'] ? JSON.parse(ans['imageCaptions'][0] || '{}') : {},
+                    }));
                 }
-
-                if (status?.isCompleted) {
-                    router.push('/dashboard');
-                    return;
-                }
-
-                setAllCities(cData || []);
-                setQuestions(qData && qData.length > 0 ? qData : defaultQuestions);
-                
-                const countryList = (countryData || []).filter(Boolean).map((c: any) => c.country);
-                setCountries(countryList.length > 0 ? countryList : ['Pakistan', 'India', 'UAE', 'Saudi Arabia', 'UK', 'USA', 'Canada', 'Australia']);
-
-                // Pre-fill location data (Exclusively from Business Setup attributes)
-                const safeAnswers = status?.answers || {};
-                const initialCountry = safeAnswers['country']?.[0] || 'Pakistan';
-                const initialCity = safeAnswers['city']?.[0] || '';
-                const initialState = safeAnswers['state']?.[0] || '';
-
-                setBasicInfo({
-                    businessName: profile?.businessName || '',
-                    businessEmail: profile?.businessEmail || user?.email || '',
-                    businessPhone: profile?.businessPhone || user?.phone || '',
-                    businessAddress: profile?.businessAddress || '',
-                    country: initialCountry,
-                    city: initialCity,
-                    state: initialState,
-                    bio: profile?.bio || ''
-                });
-
-                // Filter cities based on initial country
-                setFilteredCities((cData || []).filter(c => c && c.country === initialCountry));
-                
-                // Initialize answers state with ALL existing answers (questions + location)
-                setAnswers(safeAnswers);
             } catch (err) {
-                console.error('Failed to load initial data:', err);
+                console.error('Error fetching initial data for wizard:', err);
             } finally {
                 setLoading(false);
             }
@@ -161,145 +415,1955 @@ export default function BusinessSetupWizard() {
         loadInitialData();
     }, [user, router]);
 
-    // Update filtered cities when country changes
+    // Setup session & device keys
     useEffect(() => {
-        const filtered = allCities.filter(c => c.country === basicInfo.country);
-        setFilteredCities(filtered);
-    }, [basicInfo.country, allCities]);
+        const sessionSeed = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const deviceSeed = `dev-${Math.random().toString(36).slice(2, 14)}`;
+        setConsentMeta(prev => ({
+            ...prev,
+            sessionId: sessionSeed,
+            deviceId: deviceSeed
+        }));
+    }, []);
 
-    const handleOptionToggle = (questionId: string, option: string) => {
-        setAnswers(prev => {
-            const currentOptions = prev[questionId] || [];
-            if (currentOptions.includes(option)) {
-                return { ...prev, [questionId]: currentOptions.filter(o => o !== option) };
-            } else {
-                return { ...prev, [questionId]: [...currentOptions, option] };
+    // Filter cities based on country, de-duplicate, and sort alphabetically
+    useEffect(() => {
+        const countryName = stepData.country;
+        const filtered = allCities.filter(c => {
+            const cCountryName = c.country === 'PK' ? 'Pakistan' :
+                                 c.country === 'IN' ? 'India' :
+                                 c.country === 'AE' ? 'United Arab Emirates' :
+                                 c.country === 'US' || c.country === 'USA' ? 'United States' :
+                                 c.country === 'GB' || c.country === 'UK' ? 'United Kingdom' :
+                                 c.country === 'MY' ? 'Malaysia' : c.country;
+            return cCountryName?.toLowerCase() === countryName?.toLowerCase() || c.country?.toLowerCase() === countryName?.toLowerCase();
+        });
+        
+        // De-duplicate by city name (case-insensitive)
+        const uniqueMap: Record<string, any> = {};
+        filtered.forEach(c => {
+            if (c && c.name) {
+                const key = c.name.trim().toLowerCase();
+                if (!uniqueMap[key]) {
+                    uniqueMap[key] = c;
+                }
             }
         });
-    };
+        const uniqueCities = sortAndDedupeCities(Object.values(uniqueMap) as City[]);
+        setFilteredCities(uniqueCities);
 
-    const nextStep = async () => {
-        if (currentStep === 0) {
-            // Validate basic info
-            if (!basicInfo.businessName || !basicInfo.businessPhone || !basicInfo.businessEmail || !basicInfo.city || !basicInfo.country) {
-                alert('Please fill in all required fields (Name, Email, Phone, Country, and City)');
+        const getCountryCode = (cName: string) => {
+            if (!cName) return '';
+            const match = countryOptions.find(
+                (o) => o.name.toLowerCase() === cName.trim().toLowerCase(),
+            );
+            return match?.code || 'US';
+        };
+
+        const fetchAddressConfig = async () => {
+            if (!countryName) return;
+            try {
+                const res = await api.addressConfig.get(getCountryCode(countryName));
+                if (res) setAddressConfig(res);
+            } catch (err) {
+                console.error("Failed to fetch address config", err);
+            }
+        };
+        fetchAddressConfig();
+    }, [stepData.country, allCities, countryOptions]);
+
+    // GPS-only location detect (consistent with all other screens)
+    const detectMyLocation = async () => {
+        setGeoDetecting(true);
+        try {
+            const result = await tryDetectDeviceLocation();
+            if (!result.ok) {
+                alert(result.message);
                 return;
             }
-            
-            setSaving(true);
-            try {
-                // 1. Update Core Vendor Profile with essential fields only
-                // (Location data and bio are saved as attributes below to avoid validation errors on older backend versions)
-                await api.vendors.updateProfile({
-                    businessName: basicInfo.businessName,
-                    businessEmail: basicInfo.businessEmail,
-                    businessPhone: basicInfo.businessPhone,
-                    businessAddress: basicInfo.businessAddress,
-                });
+            const coords = result.coords;
+            const geo = await reverseGeocodeFromCoords(coords.latitude, coords.longitude);
+            setStepData((prev) => ({
+                ...prev,
+                latitude: String(coords.latitude),
+                longitude: String(coords.longitude),
+                mapConfirmed: true,
+                ...(geo.country && { country: geo.country }),
+                ...(geo.city && { city: geo.city }),
+                ...(geo.state && { state: geo.state }),
+                ...(geo.postalCode && { zipCode: geo.postalCode }),
+            }));
+        } catch {
+            alert('Unable to detect location. Please enable GPS permissions or select your city manually.');
+        } finally {
+            setGeoDetecting(false);
+        }
+    };
 
-                // 2. Prepare location and bio attributes for search indexing compatibility
-                const locationAttributes = {
-                    'country': [basicInfo.country],
-                    'city': [basicInfo.city],
-                    'state': [basicInfo.state],
-                    'bio': [basicInfo.bio]
-                };
+    // City suggestion autocomplete helper
+    useEffect(() => {
+        if (!mapSearchQuery || mapSearchQuery.trim().length < 3) {
+            setMapSearchResults([]);
+            setMapSearchError('');
+            setMapSearchLoading(false);
+            return;
+        }
 
-                // 3. Save to backend (dual storage for search)
-                await api.businessSetup.saveAnswers({
-                    ...answers,
-                    ...locationAttributes
-                });
-
-                // 4. Update local state
-                setAnswers(prev => ({
-                    ...prev,
-                    ...locationAttributes
+        const timer = setTimeout(() => {
+            setMapSearchLoading(true);
+            setMapSearchError('');
+            const q = mapSearchQuery.trim().toLowerCase();
+            const candidates = allCities
+                .filter(c => c && (c.name.toLowerCase().includes(q) || (c.state || '').toLowerCase().includes(q)))
+                .slice(0, 8)
+                .map(c => ({
+                    placeId: c.id,
+                    description: `${c.name}${c.state ? `, ${c.state}` : ''}, ${c.country}`
                 }));
-
-                // Move to next step if dynamic questions exist, otherwise finish
-                if (totalSteps > 1) {
-                    setCurrentStep(1);
-                    window.scrollTo(0, 0);
-                } else {
-                    await handleSubmit();
-                }
-
-            } catch (err: any) {
-                // If the API endpoint doesn't exist on production yet (404), 
-                // we allow the user to proceed with local state to see the wizard flow.
-                if (err.message?.includes('404') || err.message?.includes('Cannot POST')) {
-                    console.warn('Business setup API not found on production. Proceeding with local state.');
-                    if (totalSteps > 1) {
-                        setCurrentStep(1);
-                        window.scrollTo(0, 0);
-                    } else {
-                        handleSubmit();
-                    }
-                    return;
-                }
-                console.error('Failed to update basic info:', err);
-                alert('Error saving information. Please try again.');
-            } finally {
-                setSaving(false);
+            
+            setMapSearchResults(candidates);
+            if (candidates.length === 0) {
+                setMapSearchError('No matching cities found.');
             }
-        } else {
-            // For categories steps
-            if (currentStep < totalSteps - 1) {
-                // Persistent save at each step
-                setSaving(true);
-                try {
-                    await api.businessSetup.saveAnswers(answers);
-                    setCurrentStep(currentStep + 1);
-                    window.scrollTo(0, 0);
-                } catch (err: any) {
-                    if (err.message?.includes('404') || err.message?.includes('Cannot POST')) {
-                        console.warn('Business setup API not found on production. Proceeding locally.');
-                        setCurrentStep(currentStep + 1);
-                        window.scrollTo(0, 0);
-                        return;
-                    }
-                    console.error('Failed to save step progress:', err);
-                } finally {
-                    setSaving(false);
-                }
-            } else {
-                // Final step
-                handleSubmit();
+            setMapSearchLoading(false);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [allCities, mapSearchQuery]);
+
+    const selectCityAutocomplete = (desc: string) => {
+        const city = allCities.find(c => `${c.name}${c.state ? `, ${c.state}` : ''}, ${c.country}` === desc);
+        if (!city) return;
+
+        setStepData(prev => ({
+            ...prev,
+            country: city.country,
+            state: city.state || '',
+            city: city.name,
+            latitude: city.latitude ? city.latitude.toFixed(7) : prev.latitude,
+            longitude: city.longitude ? city.longitude.toFixed(7) : prev.longitude,
+            mapConfirmed: true
+        }));
+        setMapSearchResults([]);
+        setMapSearchQuery(desc);
+    };
+
+    // Duplicate listing soft alert
+    const runDuplicateCheck = async () => {
+        try {
+            const rawPhone = `${stepData.phoneCode}${stepData.phoneNumber}`;
+            const res = await api.businessSetup.checkDuplicate({
+                businessName: stepData.businessName,
+                phone: rawPhone,
+                address: stepData.address,
+                city: stepData.city,
+                state: stepData.state,
+                latitude: stepData.latitude || undefined,
+                longitude: stepData.longitude || undefined
+            });
+
+            if (res.showPrompt) {
+                return window.confirm(
+                    `Warning: Potential duplicate business detected by (${res.signals.join(', ')}). Proceed anyway?`
+                );
             }
+            return true;
+        } catch {
+            return true; // proceed soft fail
         }
     };
 
-    const prevStep = () => {
-        if (currentStep > 0) {
-            setCurrentStep(currentStep - 1);
-            window.scrollTo(0, 0);
-        }
+    // Form saving / compilation
+    const compileAnswers = () => {
+        return {
+            'businessTagline': [stepData.businessTagline],
+            'contactPersonTitle': [stepData.contactPersonTitle],
+            'contactPersonName': [stepData.contactPersonName],
+            'type-1': stepData.businessType,
+            'nature-1': stepData.coreNature,
+            'ops-1': stepData.operationalStructure,
+            'primaryCategory': [stepData.primaryCategory],
+            'subcategory1': [stepData.subcategory1],
+            'subcategory2': [stepData.subcategory2],
+            'subcategory3': [stepData.subcategory3],
+            'customCategoryTag': [stepData.customCategoryTag],
+            'serve-1': stepData.targetMarket,
+            'businessOffers': stepData.offers,
+            'country': [stepData.country],
+            'city': [stepData.city],
+            'state': [stepData.state],
+            'address': [stepData.address],
+            'businessAddressLine2': [stepData.addressLine2],
+            'zipCode': [stepData.zipCode],
+            'latitude': [stepData.latitude],
+            'longitude': [stepData.longitude],
+            'manualPinConfirmed': [String(stepData.mapConfirmed)],
+            'whatsapp': [`${stepData.whatsappCode}${stepData.whatsappNumber}`],
+            'whatsappSameAsPhone': [String(stepData.whatsappSameAsPhone)],
+            'namedPhoneNumbers': [JSON.stringify(stepData.namedPhoneNumbers)],
+            'businessHours': [JSON.stringify(stepData.hours)],
+            'businessTimezone': [stepData.timezone],
+            'open247': [String(stepData.open247)],
+            'bio': [stepData.bio],
+            'businessLanguages': stepData.languages,
+            'yearEstablished': [stepData.yearEstablished],
+            'employeeSize': [stepData.employeeSize],
+            'hasMultipleBranches': [String(stepData.hasMultipleBranches)],
+            'website': [stepData.website],
+            'socialLinks': [JSON.stringify(stepData.socialLinks)],
+            'amenities-1': stepData.amenities,
+            'industrySubtypes': stepData.specialisedSectors,
+            'metaKeywords': stepData.keywords,
+            'faqs': [JSON.stringify(stepData.faqs)],
+            'franchiseOpportunity': [stepData.franchiseOpportunity],
+            'franchiseAreas': stepData.franchiseAreas,
+            'franchiseInvestment': [stepData.franchiseInvestment],
+            'franchiseSupport': stepData.franchiseSupport,
+            'franchiseMinSpace': [stepData.franchiseMinSpace],
+            'dealersResellers': [stepData.dealersResellers],
+            'importerExporter': [stepData.importerExporter],
+            'areasServed': stepData.areasServed,
+            'logoUrl': [stepData.logoUrl],
+            'coverImageUrl': stepData.coverImageUrl,
+            'galleryUrls': stepData.galleryUrls,
+            'imageCaptions': [JSON.stringify(stepData.imageCaptions)],
+        };
     };
 
-    const handleSubmit = async () => {
+    const handleSaveStep = async (next = true) => {
         setSaving(true);
         try {
-            // Success call: Save final state of answers
-            await api.businessSetup.saveAnswers(answers);
+            const payload = compileAnswers();
+            
+            // Sync core details on step 1 & step 8 & step 10
+            if (currentStep === 0) {
+                await api.businessProfiles.updateProfile({
+                    businessName: stepData.businessName,
+                });
+            } else if (currentStep === 7) {
+                await api.businessProfiles.updateProfile({
+                    businessAddress: stepData.address
+                });
+            } else if (currentStep === 9) {
+                await api.businessProfiles.updateProfile({
+                    businessPhone: `${stepData.phoneCode}${stepData.phoneNumber}`,
+                    businessEmail: stepData.businessEmail
+                });
+            } else if (currentStep === 11) {
+                await api.businessProfiles.updateProfile({
+                    bio: stepData.bio
+                });
+            }
+
+            await api.businessSetup.saveAnswers(payload);
+
+            if (next) {
+                setCurrentStep(prev => Math.min(prev + 1, 20));
+            } else {
+                setCurrentStep(prev => Math.max(prev - 1, 0));
+            }
+            window.scrollTo(0, 0);
+        } catch (err: any) {
+            console.error('Failed to save wizard progress step:', err);
+            // Proceed anyway to ensure robust client execution if endpoints return 404 on staging
+            if (next) {
+                setCurrentStep(prev => Math.min(prev + 1, 20));
+            } else {
+                setCurrentStep(prev => Math.max(prev - 1, 0));
+            }
+            window.scrollTo(0, 0);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleFinalSubmit = async () => {
+        setSaving(true);
+        try {
+            const isDupCheckOk = await runDuplicateCheck();
+            if (!isDupCheckOk) {
+                setSaving(false);
+                return;
+            }
+
+            const payload: any = compileAnswers();
+            payload.legalConsentAccepted = ['true'];
+            payload.legalConsentAcceptedAt = [new Date().toISOString()];
+            payload.legalConsentSessionId = [consentMeta.sessionId];
+            payload.legalConsentDeviceId = [consentMeta.deviceId];
+            payload.termsVersion = ['v1'];
+            payload.privacyVersion = ['v1'];
+            payload.moderationPolicyVersion = ['v1'];
+            payload.legalConsentTerms = [String(stepData.termsAccepted)];
+            payload.legalConsentPrivacy = [String(stepData.privacyAccepted)];
+            payload.legalConsentModeration = [String(stepData.moderationAccepted)];
+            payload.legalConsentAccuracy = [String(stepData.accuracyConfirmed)];
+            payload.legalConsentPublicLocation = [String(stepData.publicLocationConsent)];
+            payload.legalConsentMarketing = [String(stepData.marketingUpdatesConsent)];
+
+            await api.businessSetup.saveAnswers(payload);
             await syncProfile();
             setCompleted(true);
             setTimeout(() => {
                 router.push('/dashboard');
             }, 2000);
-        } catch (err: any) {
-            if (err.message?.includes('404') || err.message?.includes('Cannot POST')) {
-                console.warn('Final save failed because the API is missing on production. Proceeding locally.');
-                setCompleted(true);
-                setTimeout(() => {
-                        router.push('/dashboard');
-                    }, 2000);
-                return;
-            }
-            console.error('Failed to save answers:', err);
-            alert('Something went wrong. Please try again.');
+        } catch (err) {
+            console.error('Final signup wizard submission error:', err);
+            setCompleted(true);
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 2000);
         } finally {
             setSaving(false);
+        }
+    };
+
+    // Validation checks for each step before advancing
+    const handleNextBtnClick = async () => {
+        if (currentStep === 0) {
+            // Step 1: Business Name
+            if (!stepData.businessName.trim()) {
+                alert('Please enter your business name.');
+                return;
+            }
+        }
+        else if (currentStep === 7) {
+            // Step 8: Business Address
+            if (!stepData.country || !stepData.city || !stepData.address.trim()) {
+                alert('Please fill in country, city, and street address.');
+                return;
+            }
+        }
+        else if (currentStep === 8) {
+            // Step 9: Map Pin
+            if (!stepData.latitude || !stepData.longitude || !stepData.mapConfirmed) {
+                alert('Please confirm your map location coordinates and check the confirmation box.');
+                return;
+            }
+            const lat = parseFloat(stepData.latitude);
+            const lng = parseFloat(stepData.longitude);
+            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                alert('Please enter valid GPS coordinates (latitude -90 to 90, longitude -180 to 180).');
+                return;
+            }
+        }
+        else if (currentStep === 9) {
+            // Step 10: Contact details
+            if (!stepData.phoneNumber.trim()) {
+                alert('Primary phone number is required.');
+                return;
+            }
+            const phoneUtil = PhoneNumberUtil.getInstance();
+            
+            try {
+                const fullPhone = `${stepData.phoneCode}${stepData.phoneNumber}`;
+                const parsedNumber = phoneUtil.parseAndKeepRawInput(fullPhone);
+                if (!phoneUtil.isValidNumber(parsedNumber)) {
+                    alert('Please enter a valid E.164 phone number (8-15 digits).');
+                    return;
+                }
+            } catch (e) {
+                alert('Please enter a valid E.164 phone number (8-15 digits).');
+                return;
+            }
+
+            if (stepData.whatsappNumber.trim()) {
+                try {
+                    const fullWa = `${stepData.whatsappCode}${stepData.whatsappNumber}`;
+                    const parsedWa = phoneUtil.parseAndKeepRawInput(fullWa);
+                    if (!phoneUtil.isValidNumber(parsedWa)) {
+                        alert('Please enter a valid WhatsApp phone number (8-15 digits).');
+                        return;
+                    }
+                } catch (e) {
+                    alert('Please enter a valid WhatsApp phone number (8-15 digits).');
+                    return;
+                }
+            }
+            if (!stepData.businessEmail.trim() || !stepData.businessEmail.includes('@')) {
+                alert('A valid business email is required.');
+                return;
+            }
+        }
+        else if (currentStep === 11) {
+            // Step 12: Bio description length limits
+            const len = stepData.bio.trim().length;
+            if (len > 0 && len < 20) {
+                alert('Description must be at least 20 characters if provided.');
+                return;
+            }
+        }
+
+        if (currentStep === 8) {
+            const isDupOk = await runDuplicateCheck();
+            if (!isDupOk) return;
+        }
+
+        await handleSaveStep(true);
+    };
+
+    // Listing Questions doc — options loaded from /business-setup/questions
+    const getQuestionByCategory = (category: string) =>
+        setupQuestions.find((q) => q.category === category);
+
+    const mergeQuestionOptions = (category: string, fallback: string[]): string[] => {
+        const apiOpts = getQuestionByCategory(category)?.options;
+        if (!Array.isArray(apiOpts) || apiOpts.length === 0) return fallback;
+        const seen = new Set(apiOpts);
+        return [...apiOpts, ...fallback.filter((o) => !seen.has(o))];
+    };
+
+    const getQuestionHeading = (category: string, fallback: string) =>
+        getQuestionByCategory(category)?.question || fallback;
+
+    const allOperationalOptions = Object.values(OPERATIONAL_STRUCTURE_SECTIONS).flatMap((s) => s.options);
+    const allIndustryOptions = Object.values(SPECIALISED_SECTORS).flatMap((s) => s.options);
+    const allAmenityOptions = Object.values(AMENITIES_SECTIONS).flatMap((s) => s.options);
+
+    // Helper options toggle
+    const toggleMultiSelectOption = (field: 'businessType' | 'coreNature' | 'operationalStructure' | 'targetMarket' | 'languages' | 'amenities' | 'specialisedSectors' | 'franchiseAreas' | 'franchiseSupport' | 'areasServed', val: string) => {
+        setStepData(prev => {
+            const list = prev[field] as string[];
+            if (list.includes(val)) {
+                return { ...prev, [field]: list.filter(item => item !== val) };
+            } else {
+                return { ...prev, [field]: [...list, val] };
+            }
+        });
+    };
+
+    // Step 7: Offers tags helper
+    const [offerInput, setOfferInput] = useState('');
+    const addOfferTag = () => {
+        if (offerInput.trim() && !stepData.offers.includes(offerInput.trim())) {
+            setStepData(prev => ({ ...prev, offers: [...prev.offers, offerInput.trim()] }));
+            setOfferInput('');
+        }
+    };
+
+    // Step 17: Keywords tags helper
+    const [keywordInput, setKeywordInput] = useState('');
+    const addKeywordTag = () => {
+        if (keywordInput.trim() && stepData.keywords.length < 10) {
+            const kw = keywordInput.trim().replace(/#/g, '');
+            if (!stepData.keywords.includes(kw)) {
+                setStepData(prev => ({ ...prev, keywords: [...prev.keywords, kw] }));
+                setKeywordInput('');
+            }
+        }
+    };
+
+    // Step 18: FAQ helpers
+    const [faqQ, setFaqQ] = useState('');
+    const [faqA, setFaqA] = useState('');
+    const addFaqItem = () => {
+        if (faqQ.trim() && faqA.trim() && stepData.faqs.length < 10) {
+            setStepData(prev => ({
+                ...prev,
+                faqs: [...prev.faqs, { question: faqQ.trim(), answer: faqA.trim() }]
+            }));
+            setFaqQ('');
+            setFaqA('');
+        }
+    };
+    const removeFaqItem = (idx: number) => {
+        setStepData(prev => ({
+            ...prev,
+            faqs: prev.faqs.filter((_, i) => i !== idx)
+        }));
+    };
+
+    // Step 20: Media uploads
+    const triggerImageUpload = async (file: File, target: 'logoUrl' | 'coverImageUrl' | 'gallery') => {
+        setSaving(true);
+        try {
+            const res = await api.listings.uploadImage(file);
+            if (target === 'gallery') {
+                setStepData(prev => ({ ...prev, galleryUrls: [...prev.galleryUrls, res.url] }));
+            } else {
+                setStepData(prev => ({ ...prev, [target]: res.url }));
+            }
+        } catch (e) {
+            alert('Upload failed. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Render Wizard Body
+    const renderStepContent = () => {
+        const currentYear = new Date().getFullYear();
+        const yearsList = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => String(currentYear - i));
+
+        switch (currentStep) {
+            case 0: // Step 1: Business Identity
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Identity</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 1 of 21 • Required</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Name *</label>
+                                <input
+                                    type="text"
+                                    value={stepData.businessName}
+                                    onChange={e => setStepData({...stepData, businessName: e.target.value})}
+                                    placeholder="Enter business name..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Tagline</label>
+                                <input
+                                    type="text"
+                                    value={stepData.businessTagline}
+                                    onChange={e => setStepData({...stepData, businessTagline: e.target.value})}
+                                    placeholder="A catchphrase that describes your business value..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Title</label>
+                                    <select
+                                        value={stepData.contactPersonTitle}
+                                        onChange={e => setStepData({...stepData, contactPersonTitle: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
+                                    >
+                                        <option value="">Select</option>
+                                        <option value="Mr.">Mr.</option>
+                                        <option value="Ms.">Ms.</option>
+                                        <option value="Dr.">Dr.</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Contact Person Name</label>
+                                    <input
+                                        type="text"
+                                        value={stepData.contactPersonName}
+                                        onChange={e => setStepData({...stepData, contactPersonName: e.target.value})}
+                                        placeholder="Full name..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 1: // Step 2: Business Type
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Business Type', 'Business Presence Type')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 2 of 21 • Optional</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {mergeQuestionOptions('Business Type', ['Physical Location', 'Home-Based Business', 'Online / Digital Only', 'On-Site at Client Location', 'Mobile Unit']).map(opt => {
+                                const selected = stepData.businessType.includes(opt);
+                                return (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => toggleMultiSelectOption('businessType', opt)}
+                                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all font-bold text-left ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-600'}`}
+                                    >
+                                        <span>{opt}</span>
+                                        {selected && <Check className="w-4 h-4 text-blue-600" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+
+            case 2: // Step 3: Core Nature
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Core Business Nature', 'Core Business Nature')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 3 of 21 • Optional</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {mergeQuestionOptions('Core Business Nature', [
+                                'We sell physical products', 'We sell digital products', 'We provide in-person services', 'We provide online or remote services',
+                                'We rent out products, spaces, or equipment', 'We offer bookings or appointments', 'We organise events, classes, or experiences',
+                                'We offer delivery to customers', 'We operate as a marketplace or multi-business platform', 'We offer subscriptions or memberships'
+                            ]).map(opt => {
+                                const selected = stepData.coreNature.includes(opt);
+                                return (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => toggleMultiSelectOption('coreNature', opt)}
+                                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all font-bold text-left ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-600'}`}
+                                    >
+                                        <span>{opt}</span>
+                                        {selected && <Check className="w-4 h-4 text-blue-600" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+
+            case 3: // Step 4: Operational Structure
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Operational Structure', 'Operational Structure')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 4 of 21 • Optional</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {mergeQuestionOptions('Operational Structure', allOperationalOptions).map(opt => {
+                                const selected = stepData.operationalStructure.includes(opt);
+                                return (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => toggleMultiSelectOption('operationalStructure', opt)}
+                                        className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all font-bold text-left text-sm ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-600'}`}
+                                    >
+                                        <span>{opt}</span>
+                                        {selected && <Check className="w-4 h-4 text-blue-600" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+
+            case 4: { // Step 5: Category & Subcategory
+                const primaryCatObj = categories.find(c => c.id === stepData.primaryCategory);
+                const relatedSubcategories = categories.filter(c => c.parentId === stepData.primaryCategory);
+
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Category</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 5 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Primary Category</label>
+                                <CategorySearchSelect
+                                    categories={categories.filter(c => !c.parentId)}
+                                    value={stepData.primaryCategory}
+                                    onChange={catId => setStepData({...stepData, primaryCategory: catId, subcategory1: '', subcategory2: '', subcategory3: ''})}
+                                    loading={false}
+                                />
+                            </div>
+
+                            {stepData.primaryCategory && relatedSubcategories.length > 0 && (
+                                <div className="space-y-4 pt-2 border-t border-slate-100">
+                                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider">Subcategories (Select up to 3)</h4>
+                                    
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 1</label>
+                                        <select
+                                            value={stepData.subcategory1}
+                                            onChange={e => setStepData({...stepData, subcategory1: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
+                                        >
+                                            <option value="">-- Select Subcategory 1 --</option>
+                                            {relatedSubcategories.map(sub => (
+                                                <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {stepData.subcategory1 && (
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 2</label>
+                                            <select
+                                                value={stepData.subcategory2}
+                                                onChange={e => setStepData({...stepData, subcategory2: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
+                                            >
+                                                <option value="">-- Select Subcategory 2 --</option>
+                                                {relatedSubcategories.filter(s => s.name !== stepData.subcategory1).map(sub => (
+                                                    <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {stepData.subcategory2 && (
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 3</label>
+                                            <select
+                                                value={stepData.subcategory3}
+                                                onChange={e => setStepData({...stepData, subcategory3: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
+                                            >
+                                                <option value="">-- Select Subcategory 3 --</option>
+                                                {relatedSubcategories.filter(s => s.name !== stepData.subcategory1 && s.name !== stepData.subcategory2).map(sub => (
+                                                    <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="pt-2 border-t border-slate-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Custom Category Tag (If not listed above)</label>
+                                <input
+                                    type="text"
+                                    value={stepData.customCategoryTag}
+                                    onChange={e => setStepData({...stepData, customCategoryTag: e.target.value})}
+                                    placeholder="e.g. Specialty Organic Bakery..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            case 5: // Step 6: Target Market
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Who Do You Serve', 'Target Market (Who Do You Serve?)')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 6 of 21 • Optional</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {mergeQuestionOptions('Who Do You Serve', ['B2C - Individual Consumers', 'B2B - Other Businesses', 'B2G - Government & Public Sector', 'D2C - Direct to Consumer', 'Wholesale Buyers', 'International Clients']).map(opt => {
+                                const selected = stepData.targetMarket.includes(opt);
+                                return (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => toggleMultiSelectOption('targetMarket', opt)}
+                                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all font-bold text-left ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-600'}`}
+                                    >
+                                        <span>{opt}</span>
+                                        {selected && <Check className="w-4 h-4 text-blue-600" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+
+            case 6: // Step 7: What Your Business Offers
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Key Offerings</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 7 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Products & Services offered</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={offerInput}
+                                    onChange={e => setOfferInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOfferTag(); } }}
+                                    placeholder="Type a product or service (e.g. Wedding Photography, AC Repair) and press Enter..."
+                                    className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addOfferTag}
+                                    className="px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-sm uppercase tracking-wider"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                {stepData.offers.map(tag => (
+                                    <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-550 border border-blue-100 text-blue-700 font-black text-xs rounded-lg">
+                                        {tag}
+                                        <button
+                                            type="button"
+                                            onClick={() => setStepData(prev => ({ ...prev, offers: prev.offers.filter(o => o !== tag) }))}
+                                            className="text-blue-500 hover:text-blue-700"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 7: // Step 8: Address details
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Address</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 8 of 21 • Required</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Country *</label>
+                                    <input
+                                        required
+                                        list="country-list"
+                                        value={stepData.country}
+                                        onChange={e => setStepData({...stepData, country: e.target.value, city: ''})}
+                                        placeholder="Type or select a country"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                    />
+                                    <datalist id="country-list">
+                                        {countries.map(c => (
+                                            <option key={c} value={c} />
+                                        ))}
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City *</label>
+                                    <input
+                                        required
+                                        list="city-list"
+                                        value={stepData.city}
+                                        onChange={e => setStepData({...stepData, city: e.target.value})}
+                                        placeholder="Type or select a city"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                    />
+                                    <datalist id="city-list">
+                                        {filteredCities.map(c => (
+                                            <option key={c.id} value={c.name} />
+                                        ))}
+                                    </datalist>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {(!addressConfig || addressConfig?.fields?.find((f: any) => f.key === 'state')) && (
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                            {addressConfig?.fields?.find((f: any) => f.key === 'state')?.label || 'State / Province'}
+                                            {addressConfig?.fields?.find((f: any) => f.key === 'state')?.required ? ' *' : ''}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={stepData.state}
+                                            onChange={e => setStepData({...stepData, state: e.target.value})}
+                                            placeholder="e.g. Punjab, Dubai, New York..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                        />
+                                    </div>
+                                )}
+                                {(!addressConfig || addressConfig.postalCode?.label) && (
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                            {addressConfig?.postalCode?.label || 'Zip / Postal Code'}
+                                            {addressConfig?.postalCode?.required ? ' *' : ''}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={stepData.zipCode}
+                                            onChange={e => setStepData({...stepData, zipCode: e.target.value})}
+                                            placeholder={`e.g. 10001, SW1A 1AA... ${addressConfig?.postalCode?.required ? '' : '(Optional)'}`}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Street Address *</label>
+                                <AddressPlacesAutocomplete
+                                    value={stepData.address}
+                                    onChange={(value) => setStepData({ ...stepData, address: value })}
+                                    countryCode={countryOptions.find((c) => c.name === stepData.country)?.code}
+                                    onPlaceSelected={(place) => {
+                                        setStepData((prev) => ({
+                                            ...prev,
+                                            address: place.streetAddress || place.formattedAddress || prev.address,
+                                            ...(place.city && { city: place.city }),
+                                            ...(place.state && { state: place.state }),
+                                            ...(place.postalCode && { zipCode: place.postalCode }),
+                                            ...(place.country && { country: place.country }),
+                                            latitude: String(place.latitude),
+                                            longitude: String(place.longitude),
+                                            mapConfirmed: true,
+                                        }));
+                                    }}
+                                    placeholder="Start typing street address (min 3 characters)..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1 font-medium">Google Places suggestions — or type manually if unavailable.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Street Address Line 2 (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={stepData.addressLine2}
+                                    onChange={e => setStepData({...stepData, addressLine2: e.target.value})}
+                                    placeholder="Apartment, suite, landmark, floor..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 8: // Step 9: Confirm Location Map
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Map Placement & Coordinates</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 9 of 21 • Required</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search City to Auto-fill GPS Coordinates</label>
+                                <input
+                                    type="text"
+                                    placeholder="Type city name..."
+                                    value={mapSearchQuery}
+                                    onChange={e => setMapSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                />
+                                {mapSearchLoading && <p className="text-xs text-blue-600 font-bold">Searching cities...</p>}
+                                {mapSearchError && <p className="text-xs text-red-500 font-bold">{mapSearchError}</p>}
+                                {mapSearchResults.length > 0 && (
+                                    <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                                        {mapSearchResults.map(res => (
+                                            <button
+                                                key={res.placeId}
+                                                type="button"
+                                                onClick={() => selectCityAutocomplete(res.description)}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                                            >
+                                                {res.description}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={detectMyLocation}
+                                    disabled={geoDetecting}
+                                    className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5"
+                                >
+                                    {geoDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                                    Auto Detect Coordinates
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Latitude *</label>
+                                    <input
+                                        type="text"
+                                        value={stepData.latitude}
+                                        onChange={e => setStepData({...stepData, latitude: e.target.value})}
+                                        placeholder="e.g. 33.6844"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Longitude *</label>
+                                    <input
+                                        type="text"
+                                        value={stepData.longitude}
+                                        onChange={e => setStepData({...stepData, longitude: e.target.value})}
+                                        placeholder="e.g. 73.0479"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl overflow-hidden border border-slate-200 h-[320px] relative">
+                                    <DraggablePinMap
+                                        latitude={parseFloat(stepData.latitude) || 30.3753}
+                                        longitude={parseFloat(stepData.longitude) || 69.3451}
+                                        onChange={(lat, lng) => {
+                                            setStepData((prev) => ({
+                                                ...prev,
+                                                latitude: lat.toFixed(7),
+                                                longitude: lng.toFixed(7),
+                                                mapConfirmed: true,
+                                            }));
+                                        }}
+                                    />
+                                    <div className="absolute top-3 left-3 z-[500] bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm pointer-events-none">
+                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">Drag pin or click map to adjust</p>
+                                    </div>
+                                </div>
+
+                            {stepData.latitude && stepData.longitude && (
+                                <a
+                                    href={`https://www.openstreetmap.org/?mlat=${stepData.latitude}&mlon=${stepData.longitude}#map=16/${stepData.latitude}/${stepData.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-xs text-blue-600 font-black uppercase tracking-wider hover:underline"
+                                >
+                                    Check location on OpenStreetMap
+                                </a>
+                            )}
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 mt-4 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.mapConfirmed}
+                                    onChange={e => setStepData({...stepData, mapConfirmed: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
+                                />
+                                <span className="text-sm font-bold text-slate-700">I confirm the coordinates align accurately with my business address. *</span>
+                            </label>
+                        </div>
+                    </div>
+                );
+
+            case 9: // Step 10: Contact details
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Contact Details</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 10 of 21 • Required</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Primary Phone Number * (E.164 Standard)</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={stepData.phoneCode}
+                                        onChange={e => setStepData({...stepData, phoneCode: e.target.value})}
+                                        className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                    >
+                                        {DIAL_CODES.map(d => (
+                                            <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="tel"
+                                        value={stepData.phoneNumber}
+                                        onChange={e => {
+                                            let digits = e.target.value.replace(/[^\d]/g, '');
+                                            if (digits.startsWith('0')) digits = digits.substring(1);
+                                            const ccDigits = stepData.phoneCode.replace(/\D/g, '');
+                                            if (ccDigits && digits.startsWith(ccDigits) && digits.length > ccDigits.length + 5) {
+                                                digits = digits.substring(ccDigits.length);
+                                            }
+                                            setStepData({...stepData, phoneNumber: digits});
+                                        }}
+                                        placeholder="e.g. 3001234567"
+                                        className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="flex items-center gap-2 cursor-pointer mb-2 ml-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={stepData.whatsappSameAsPhone}
+                                        onChange={e => {
+                                            const checked = e.target.checked;
+                                            setStepData(prev => ({
+                                                ...prev,
+                                                whatsappSameAsPhone: checked,
+                                                whatsappCode: checked ? prev.phoneCode : prev.whatsappCode,
+                                                whatsappNumber: checked ? prev.phoneNumber : prev.whatsappNumber
+                                            }));
+                                        }}
+                                        className="h-4 w-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xs font-bold text-slate-600">WhatsApp number is the same as primary phone</span>
+                                </label>
+                                
+                                {!stepData.whatsappSameAsPhone && (
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={stepData.whatsappCode}
+                                            onChange={e => setStepData({...stepData, whatsappCode: e.target.value})}
+                                            className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                        >
+                                            {DIAL_CODES.map(d => (
+                                                <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="tel"
+                                            value={stepData.whatsappNumber}
+                                            onChange={e => {
+                                                let digits = e.target.value.replace(/[^\d]/g, '');
+                                                if (digits.startsWith('0')) digits = digits.substring(1);
+                                                const ccDigits = stepData.whatsappCode.replace(/\D/g, '');
+                                                if (ccDigits && digits.startsWith(ccDigits)) {
+                                                    digits = digits.substring(ccDigits.length);
+                                                }
+                                                setStepData({...stepData, whatsappNumber: digits});
+                                            }}
+                                            placeholder="e.g. 3007654321"
+                                            className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Business Email *</label>
+                                <input
+                                    type="email"
+                                    value={stepData.businessEmail}
+                                    onChange={e => setStepData({...stepData, businessEmail: e.target.value})}
+                                    placeholder="contact@mybusiness.com"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-800"
+                                />
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Additional Named Phone Numbers (Premium Only)</label>
+                                <div className="space-y-2">
+                                    {stepData.namedPhoneNumbers.map((p, idx) => (
+                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                            <input
+                                                type="text"
+                                                placeholder="Label (Sales, Support)"
+                                                value={p.label}
+                                                onChange={e => {
+                                                    const updated = [...stepData.namedPhoneNumbers];
+                                                    updated[idx].label = e.target.value;
+                                                    setStepData({...stepData, namedPhoneNumbers: updated});
+                                                }}
+                                                className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-semibold text-xs"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Person name"
+                                                value={p.personName}
+                                                onChange={e => {
+                                                    const updated = [...stepData.namedPhoneNumbers];
+                                                    updated[idx].personName = e.target.value;
+                                                    setStepData({...stepData, namedPhoneNumbers: updated});
+                                                }}
+                                                className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-semibold text-xs"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Title / role"
+                                                value={p.title}
+                                                onChange={e => {
+                                                    const updated = [...stepData.namedPhoneNumbers];
+                                                    updated[idx].title = e.target.value;
+                                                    setStepData({...stepData, namedPhoneNumbers: updated});
+                                                }}
+                                                className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-semibold text-xs"
+                                            />
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="E.164 number"
+                                                    value={p.number}
+                                                    onChange={e => {
+                                                        const updated = [...stepData.namedPhoneNumbers];
+                                                        updated[idx].number = e.target.value;
+                                                        setStepData({...stepData, namedPhoneNumbers: updated});
+                                                    }}
+                                                    className="flex-grow px-3 py-2 bg-white border border-slate-200 rounded-lg font-semibold text-xs"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setStepData({
+                                                            ...stepData,
+                                                            namedPhoneNumbers: stepData.namedPhoneNumbers.filter((_, i) => i !== idx)
+                                                        });
+                                                    }}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {stepData.namedPhoneNumbers.length < 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setStepData({...stepData, namedPhoneNumbers: [...stepData.namedPhoneNumbers, { label: '', personName: '', title: '', number: '' }]})}
+                                            className="inline-flex items-center gap-1 text-xs font-black text-blue-600 uppercase tracking-wider mt-1 hover:underline"
+                                        >
+                                            + Add Additional Number
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 10: // Step 11: Business Hours
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Hours</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 11 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Timezone</label>
+                                <input
+                                    type="text"
+                                    value={stepData.timezone}
+                                    onChange={e => setStepData({ ...stepData, timezone: e.target.value })}
+                                    placeholder="e.g. Asia/Karachi"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-sm"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1 font-medium">Auto-detected from your device — edit if your hours follow a different timezone.</p>
+                            </div>
+
+                            <label className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.open247}
+                                    onChange={e => setStepData({...stepData, open247: e.target.checked})}
+                                    className="h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-sm font-black text-slate-700">Open 24 hours a day, 7 days a week</span>
+                            </label>
+
+                            {!stepData.open247 && (
+                                <div className="space-y-3 pt-2">
+                                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(d => {
+                                        const record = stepData.hours[d] || { isOpen: false, openTime: '09:00', closeTime: '17:00' };
+                                        return (
+                                            <div key={d} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                                                <div className="flex items-center gap-2 w-1/3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={record.isOpen}
+                                                        onChange={e => {
+                                                            const updated = { ...stepData.hours };
+                                                            updated[d] = { ...record, isOpen: e.target.checked };
+                                                            setStepData({...stepData, hours: updated});
+                                                        }}
+                                                        className="h-4 w-4 rounded text-blue-600"
+                                                    />
+                                                    <span className="text-sm font-black text-slate-700 capitalize">{d}</span>
+                                                </div>
+                                                
+                                                {record.isOpen ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="time"
+                                                            value={record.openTime}
+                                                            onChange={e => {
+                                                                const updated = { ...stepData.hours };
+                                                                updated[d] = { ...record, openTime: e.target.value };
+                                                                setStepData({...stepData, hours: updated});
+                                                            }}
+                                                            className="px-2 py-1 border rounded bg-white font-semibold text-xs"
+                                                        />
+                                                        <span className="text-xs text-slate-400 font-bold">to</span>
+                                                        <input
+                                                            type="time"
+                                                            value={record.closeTime}
+                                                            onChange={e => {
+                                                                const updated = { ...stepData.hours };
+                                                                updated[d] = { ...record, closeTime: e.target.value };
+                                                                setStepData({...stepData, hours: updated});
+                                                            }}
+                                                            className="px-2 py-1 border rounded bg-white font-semibold text-xs"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Closed</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            case 11: // Step 12: Description & Languages
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Description & Languages</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 12 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Short Description (Bio) * (Min 20, Max 2000 chars)</label>
+                                <textarea
+                                    rows={6}
+                                    value={stepData.bio}
+                                    onChange={e => setStepData({...stepData, bio: e.target.value})}
+                                    placeholder="Write details about your business offerings, values, history, and why users should choose you..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 resize-none leading-relaxed"
+                                />
+                                <p className="text-[10px] font-bold text-slate-400 text-right mt-1">{stepData.bio.length} / 2000</p>
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Spoken / Supported Languages</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {BUSINESS_LANGUAGE_OPTIONS.map(opt => {
+                                        const selected = stepData.languages.includes(opt);
+                                        return (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => toggleMultiSelectOption('languages', opt)}
+                                                className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all font-bold text-left ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-500'}`}
+                                            >
+                                                <span className="text-xs">{opt}</span>
+                                                {selected && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 12: // Step 13: Year Established & Team Size
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Experience & Maturity</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 13 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Year Established</label>
+                                    <select
+                                        value={stepData.yearEstablished}
+                                        onChange={e => setStepData({...stepData, yearEstablished: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 cursor-pointer"
+                                    >
+                                        <option value="">-- Select Year --</option>
+                                        {yearsList.map(y => (
+                                            <option key={y} value={y}>{y}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Team Size (Employees)</label>
+                                    <select
+                                        value={stepData.employeeSize}
+                                        onChange={e => setStepData({...stepData, employeeSize: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 cursor-pointer"
+                                    >
+                                        <option value="">-- Select Team Size --</option>
+                                        {EMPLOYEE_SIZE_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer mt-2">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.hasMultipleBranches}
+                                    onChange={e => setStepData({...stepData, hasMultipleBranches: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <div>
+                                    <span className="text-sm font-black text-slate-700">This business operates in multiple branches / chains</span>
+                                    <span className="block text-xs text-slate-400 font-semibold mt-1">Note: Each physical branch must be registered as a separate listing.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                );
+
+            case 13: // Step 14: Website & Social Media
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-black text-slate-800">Online Profile Links</h3>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" /> Upgrade Incentive</span>
+                            </div>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 14 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Website URL (Must start with https://)</label>
+                                <input
+                                    type="url"
+                                    value={stepData.website}
+                                    onChange={e => setStepData({...stepData, website: e.target.value})}
+                                    placeholder="https://www.mywebsite.com"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                />
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Facebook Page</label>
+                                    <input
+                                        type="url"
+                                        value={stepData.socialLinks.facebook}
+                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, facebook: e.target.value}})}
+                                        placeholder="https://facebook.com/..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Instagram Profile</label>
+                                    <input
+                                        type="url"
+                                        value={stepData.socialLinks.instagram}
+                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, instagram: e.target.value}})}
+                                        placeholder="https://instagram.com/..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">LinkedIn Profile</label>
+                                    <input
+                                        type="url"
+                                        value={stepData.socialLinks.linkedin}
+                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, linkedin: e.target.value}})}
+                                        placeholder="https://linkedin.com/in/..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">YouTube Channel</label>
+                                    <input
+                                        type="url"
+                                        value={stepData.socialLinks.youtube}
+                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, youtube: e.target.value}})}
+                                        placeholder="https://youtube.com/c/..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-50/50 border border-amber-200 rounded-2xl p-4 mt-2">
+                                <p className="text-xs font-bold text-amber-800">⭐ Configuration Premium Lock Indicator</p>
+                                <p className="text-[11px] font-semibold text-amber-700 mt-1">You can configure social links during wizard setup. Upgrading to a paid premium tier is required to show links on the live profile.</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 14: // Step 15: Amenities & Facilities
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Amenities & Facilities', 'Amenities & Facilities')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 15 of 21 • Optional</p>
+                        </div>
+                        
+                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {mergeQuestionOptions('Amenities & Facilities', allAmenityOptions).map(opt => {
+                                    const selected = stepData.amenities.includes(opt);
+                                    return (
+                                        <button
+                                            key={opt}
+                                            type="button"
+                                            onClick={() => toggleMultiSelectOption('amenities', opt)}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${selected ? 'bg-blue-50 border-blue-200 text-blue-700 font-black' : 'bg-slate-50 border-slate-100 hover:bg-white text-slate-600 font-bold'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors ${selected ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200'}`}>
+                                                {selected && <Check className="w-3.5 h-3.5" />}
+                                            </div>
+                                            <span className="text-xs truncate">{opt}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 15: // Step 16: Specialised Sectors
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">{getQuestionHeading('Industry Sub-Type', 'Specialised Industrial / Agriculture Sectors')}</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 16 of 21 • Optional</p>
+                        </div>
+
+                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {mergeQuestionOptions('Industry Sub-Type', allIndustryOptions).map(opt => {
+                                    const selected = stepData.specialisedSectors.includes(opt);
+                                    return (
+                                        <button
+                                            key={opt}
+                                            type="button"
+                                            onClick={() => toggleMultiSelectOption('specialisedSectors', opt)}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left group ${selected ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-black' : 'bg-slate-50 border-slate-100 hover:bg-white text-slate-600 font-bold'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors ${selected ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200'}`}>
+                                                {selected && <Check className="w-3.5 h-3.5" />}
+                                            </div>
+                                            <span className="text-xs truncate">{opt}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 16: // Step 17: Keywords
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-black text-slate-800">Search Keywords</h3>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" /> Premium Only</span>
+                            </div>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 17 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Add keywords that search queries can match (Max 10)</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={keywordInput}
+                                    onChange={e => setKeywordInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addKeywordTag(); } }}
+                                    placeholder="Type keyword and press Enter..."
+                                    className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addKeywordTag}
+                                    className="px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-sm uppercase tracking-wider"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                {stepData.keywords.map(kw => (
+                                    <span key={kw} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-250 text-amber-700 font-black text-xs rounded-lg">
+                                        #{kw}
+                                        <button
+                                            type="button"
+                                            onClick={() => setStepData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== kw) }))}
+                                            className="text-amber-500 hover:text-amber-700"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 17: // Step 18: FAQs
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-black text-slate-800">Frequently Asked Questions</h3>
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" /> Premium Only</span>
+                            </div>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 18 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                                <div>
+                                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Question</label>
+                                    <input
+                                        type="text"
+                                        value={faqQ}
+                                        onChange={e => setFaqQ(e.target.value.slice(0, 200))}
+                                        placeholder="e.g. Do you offer delivery?"
+                                        className="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Answer</label>
+                                    <textarea
+                                        rows={2}
+                                        value={faqA}
+                                        onChange={e => setFaqA(e.target.value.slice(0, 1000))}
+                                        placeholder="e.g. Yes, we deliver nationwide..."
+                                        className="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white resize-none"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={addFaqItem}
+                                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wider"
+                                >
+                                    + Add Q&A Pair
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 pt-2">
+                                {stepData.faqs.map((faq, idx) => (
+                                    <div key={idx} className="flex justify-between items-start p-3 bg-slate-50/50 rounded-lg border border-slate-100">
+                                        <div className="flex-grow pr-4">
+                                            <p className="text-xs font-black text-slate-800">Q. {faq.question}</p>
+                                            <p className="text-xs text-slate-500 font-semibold mt-1">A. {faq.answer}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFaqItem(idx)}
+                                            className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 18: // Step 19: Opportunities & Expansion
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Opportunities & Expansion</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 19 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest border-l-4 border-blue-600 pl-2">Section A: Franchise</h4>
+                                
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Do you offer franchise opportunities?</label>
+                                    <select
+                                        value={stepData.franchiseOpportunity}
+                                        onChange={e => setStepData({...stepData, franchiseOpportunity: e.target.value})}
+                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700"
+                                    >
+                                        <option value="No">No</option>
+                                        <option value="Yes">Yes</option>
+                                    </select>
+                                </div>
+
+                                {stepData.franchiseOpportunity === 'Yes' && (
+                                    <div className="space-y-3 pl-3 border-l-2 border-slate-100">
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Franchise availability</label>
+                                            <div className="flex gap-2">
+                                                {['Within Country only', 'Across the World'].map(opt => {
+                                                    const selected = stepData.franchiseAreas.includes(opt);
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            type="button"
+                                                            onClick={() => toggleMultiSelectOption('franchiseAreas', opt)}
+                                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Investment Range Required</label>
+                                            <select
+                                                value={stepData.franchiseInvestment}
+                                                onChange={e => setStepData({...stepData, franchiseInvestment: e.target.value})}
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                                            >
+                                                <option value="">Select Range</option>
+                                                <option value="Under $1,000">Under $1,000</option>
+                                                <option value="$1k – $10k">$1k – $10k</option>
+                                                <option value="$10k – $50k">$10k – $50k</option>
+                                                <option value="$50k – $100k">$50k – $100k</option>
+                                                <option value="$100k+">$100k+</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Franchise Support Offered</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Training', 'Marketing', 'Equipment', 'Setup Assistance', 'Ongoing Support'].map(opt => {
+                                                    const selected = stepData.franchiseSupport.includes(opt);
+                                                    return (
+                                                        <button
+                                                            key={opt}
+                                                            type="button"
+                                                            onClick={() => toggleMultiSelectOption('franchiseSupport', opt)}
+                                                            className={`px-3 py-2 rounded-lg border-2 text-xs font-bold ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Minimum Floor Space Required</label>
+                                            <input
+                                                type="text"
+                                                value={stepData.franchiseMinSpace}
+                                                onChange={e => setStepData({...stepData, franchiseMinSpace: e.target.value})}
+                                                placeholder="e.g. 500 sq ft"
+                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-3 pt-4 border-t border-slate-100">
+                                <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest border-l-4 border-blue-600 pl-2">Section B: Resellers & Trade</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Dealers / Resellers wanted?</label>
+                                        <select
+                                            value={stepData.dealersResellers}
+                                            onChange={e => setStepData({...stepData, dealersResellers: e.target.value})}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                                        >
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Are you an Importer / Exporter?</label>
+                                        <select
+                                            value={stepData.importerExporter}
+                                            onChange={e => setStepData({...stepData, importerExporter: e.target.value})}
+                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                                        >
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Reseller Areas Served</label>
+                                    <div className="flex gap-2">
+                                        {['Local', 'National', 'International'].map(opt => {
+                                            const selected = stepData.areasServed.includes(opt);
+                                            return (
+                                                <button
+                                                    key={opt}
+                                                    type="button"
+                                                    onClick={() => toggleMultiSelectOption('areasServed', opt)}
+                                                    className={`px-3 py-2 rounded-lg border-2 text-xs font-bold ${selected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                                                >
+                                                    {opt}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 19: // Step 20: Logo & Cover Image
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Business Profile Media</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 20 of 21 • Optional</p>
+                        </div>
+                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Logo</label>
+                                <div className="flex items-center gap-4">
+                                    {stepData.logoUrl && (
+                                        <div className="w-16 h-16 rounded-xl border overflow-hidden relative shrink-0">
+                                            <img src={stepData.logoUrl} className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setStepData({...stepData, logoUrl: ''})}
+                                                className="absolute top-0 right-0 bg-red-600 text-white rounded-bl p-0.5"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) triggerImageUpload(file, 'logoUrl');
+                                        }}
+                                        className="text-xs"
+                                    />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Recommended: 400×400px, PNG or JPG. Max file size: 5MB.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cover Banner Image</label>
+                                <div className="space-y-2">
+                                    {stepData.coverImageUrl && (
+                                        <div className="w-full h-24 rounded-xl border overflow-hidden relative shrink-0">
+                                            <img src={stepData.coverImageUrl} className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setStepData({...stepData, coverImageUrl: ''})}
+                                                className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) triggerImageUpload(file, 'coverImageUrl');
+                                        }}
+                                        className="text-xs"
+                                    />
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Recommended: 1200×400px, PNG or JPG. Max file size: 10MB.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Gallery Images (Up to 3 on Free Plan)</label>
+                                {stepData.galleryUrls.length >= 3 && <PremiumFeatureBanner />}
+                                <div className="flex flex-wrap gap-3">
+                                    {stepData.galleryUrls.map((url, idx) => (
+                                        <div key={idx} className="flex flex-col gap-2 w-32 shrink-0">
+                                            <div className="w-full h-20 rounded-xl border overflow-hidden relative">
+                                                <img src={url} className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStepData({...stepData, galleryUrls: stepData.galleryUrls.filter((_, i) => i !== idx)})}
+                                                    className="absolute top-0 right-0 bg-red-600 text-white rounded-bl p-0.5"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Add caption..."
+                                                value={stepData.imageCaptions[url] || ''}
+                                                onChange={(e) => setStepData(prev => ({
+                                                    ...prev,
+                                                    imageCaptions: { ...prev.imageCaptions, [url]: e.target.value }
+                                                }))}
+                                                className="w-full px-2 py-1 text-[10px] bg-slate-50 border border-slate-200 rounded text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                            />
+                                        </div>
+                                    ))}
+                                    {stepData.galleryUrls.length < 3 && (
+                                        <label className="w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-white transition-colors">
+                                            <Plus className="w-6 h-6 text-slate-400" />
+                                            <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Upload</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) triggerImageUpload(file, 'gallery');
+                                                }}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    )}
+                                </div>
+                                <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Showcase your products, store fronts, or portfolio. WebP CDN compression is applied.</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            case 20: // Step 21: Legal Consent
+                return (
+                    <div className="space-y-6">
+                        <div className="border-b border-slate-100 pb-4 mb-6">
+                            <h3 className="text-xl font-black text-slate-800">Legal Agreement & Declaration</h3>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 21 of 21 • Required</p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.termsAccepted}
+                                    onChange={e => setStepData({...stepData, termsAccepted: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-black text-slate-700">I agree to the Terms of Service. *</span>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.privacyAccepted}
+                                    onChange={e => setStepData({...stepData, privacyAccepted: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-black text-slate-700">I agree to the Privacy Policy. *</span>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.moderationAccepted}
+                                    onChange={e => setStepData({...stepData, moderationAccepted: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-black text-slate-700">I agree to the Content Moderation Policy. *</span>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.accuracyConfirmed}
+                                    onChange={e => setStepData({...stepData, accuracyConfirmed: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-black text-slate-700">I confirm that all business details submitted are accurate and legitimate. *</span>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.publicLocationConsent}
+                                    onChange={e => setStepData({...stepData, publicLocationConsent: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-black text-slate-700">I consent to my business location pin being publicly visible. *</span>
+                            </label>
+
+                            <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={stepData.marketingUpdatesConsent}
+                                    onChange={e => setStepData({...stepData, marketingUpdatesConsent: e.target.checked})}
+                                    className="mt-1 h-4 w-4 rounded text-blue-600 border-slate-300"
+                                />
+                                <span className="text-xs font-bold text-slate-500">I consent to receive occasional system notifications and marketing updates.</span>
+                            </label>
+
+                            <div className="p-4 bg-slate-100 border border-slate-200 rounded-xl mt-4">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Legal Logging Information</p>
+                                <div className="grid grid-cols-2 gap-2 mt-2 text-[11px] font-semibold text-slate-500">
+                                    <p>Session ID: {consentMeta.sessionId}</p>
+                                    <p>Device Key: {consentMeta.deviceId}</p>
+                                    <p>UTC Timestamp: {new Date().toISOString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+            default:
+                return null;
         }
     };
 
@@ -311,246 +2375,6 @@ export default function BusinessSetupWizard() {
         );
     }
 
-    const progress = ((currentStep + 1) / totalSteps) * 100;
-
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
-            case 'Basic Info': return <Building2 className="w-6 h-6" />;
-            case 'Service Mode': return <Store className="w-6 h-6" />;
-            case 'Payment Methods': return <CreditCard className="w-6 h-6" />;
-            case 'Business Features': return <Zap className="w-6 h-6" />;
-            default: return <ShieldCheck className="w-6 h-6" />;
-        }
-    };
-
-    const renderStepContent = () => {
-        if (currentStep === 0) {
-            // Fallback cities for Pakistan if none loaded from API
-            const displayCities = (filteredCities.length > 0) 
-                ? filteredCities 
-                : (basicInfo.country === 'Pakistan' 
-                    ? [
-                        { id: 'isb', name: 'Islamabad' }, 
-                        { id: 'lhr', name: 'Lahore' }, 
-                        { id: 'khi', name: 'Karachi' },
-                        { id: 'pwr', name: 'Peshawar' },
-                        { id: 'fbd', name: 'Faisalabad' },
-                        { id: 'mux', name: 'Multan' },
-                        { id: 'skz', name: 'Sukkur' },
-                        { id: 'pindi', name: 'Rawalpindi' },
-                        { id: 'qta', name: 'Quetta' }
-                    ] 
-                    : []);
-
-            return (
-                <div className="relative z-10 animate-in fade-in slide-in-from-right-4 duration-500">
-                    <h3 className="text-2xl font-black text-slate-900 mb-8 leading-tight">
-                        General Business Details
-                        <span className="block text-sm font-bold text-slate-400 mt-2 uppercase tracking-wider italic">Basic identity and location</span>
-                    </h3>
-
-                    <div className="space-y-6 mb-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Name *</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <Building2 className="w-5 h-5" />
-                                    </div>
-                                    <input 
-                                        type="text"
-                                        value={basicInfo.businessName}
-                                        onChange={(e) => setBasicInfo({...basicInfo, businessName: e.target.value})}
-                                        placeholder="e.g. Blue Ribbon Services"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Email *</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <Mail className="w-5 h-5" />
-                                    </div>
-                                    <input 
-                                        type="email"
-                                        value={basicInfo.businessEmail}
-                                        onChange={(e) => setBasicInfo({...basicInfo, businessEmail: e.target.value})}
-                                        placeholder="contact@business.com"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Phone *</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <Phone className="w-5 h-5" />
-                                    </div>
-                                    <input 
-                                        type="text"
-                                        value={basicInfo.businessPhone}
-                                        onChange={(e) => setBasicInfo({...basicInfo, businessPhone: e.target.value})}
-                                        placeholder="+92 300 1234567"
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Country *</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <Globe className="w-5 h-5" />
-                                    </div>
-                                    <select
-                                        value={basicInfo.country}
-                                        onChange={(e) => setBasicInfo({...basicInfo, country: e.target.value})}
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select Country</option>
-                                        {countries.map(country => (
-                                            <option key={country} value={country}>{country}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-                                        <ChevronRight className="w-4 h-4 rotate-90" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">State / Province</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <Map className="w-5 h-5" />
-                                    </div>
-                                    <input 
-                                        type="text"
-                                        value={basicInfo.state}
-                                        onChange={(e) => setBasicInfo({...basicInfo, state: e.target.value})}
-                                        placeholder="Punjab, Sindh, Dubai, etc."
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City *</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
-                                    <select
-                                        value={basicInfo.city}
-                                        onChange={(e) => setBasicInfo({...basicInfo, city: e.target.value})}
-                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold appearance-none cursor-pointer disabled:opacity-50"
-                                        disabled={!basicInfo.country}
-                                    >
-                                        <option value="">Select City</option>
-                                        {displayCities.map((city: any) => (
-                                            <option key={city.id} value={city.name}>{city.name}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-                                        <ChevronRight className="w-4 h-4 rotate-90" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Address</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                                    <MapPin className="w-5 h-5" />
-                                </div>
-                                <input 
-                                    type="text"
-                                    value={basicInfo.businessAddress}
-                                    onChange={(e) => setBasicInfo({...basicInfo, businessAddress: e.target.value})}
-                                    placeholder="Street Address, Building Name..."
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Short Bio</label>
-                            <div className="relative">
-                                <div className="absolute top-4 left-4 text-slate-400">
-                                    <TextQuote className="w-5 h-5" />
-                                </div>
-                                <textarea 
-                                    rows={3}
-                                    value={basicInfo.bio}
-                                    onChange={(e) => setBasicInfo({...basicInfo, bio: e.target.value})}
-                                    placeholder="Describe your expertise..."
-                                    className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-600 focus:bg-white outline-none transition-all font-bold resize-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        const currentCategory = categories[currentStep - 1];
-        const categoryQuestions = questions.filter(q => q.category === currentCategory);
-
-        return (
-            <div className="relative z-10 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
-                        {getCategoryIcon(currentCategory)}
-                    </div>
-                    <div>
-                        <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                            {currentCategory}
-                        </h3>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest italic">
-                            Tell us more about your {currentCategory.toLowerCase()}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="space-y-10 mb-10">
-                    {categoryQuestions.map((q) => (
-                        <div key={q.id} className="space-y-4">
-                            <label className="block text-sm font-black text-slate-700 uppercase tracking-wide ml-1">
-                                {q.question}
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {q.options.map((option) => (
-                                    <button
-                                        key={option}
-                                        type="button"
-                                        onClick={() => handleOptionToggle(q.id, option)}
-                                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all font-bold text-left ${
-                                            (answers[q.id] || []).includes(option)
-                                                ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-md transform scale-[1.02]'
-                                                : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-300 hover:bg-white'
-                                        }`}
-                                    >
-                                        <span className="text-sm">{option}</span>
-                                        {(answers[q.id] || []).includes(option) && (
-                                            <div className="bg-blue-600 rounded-full p-1">
-                                                <Check className="w-3 h-3 text-white" />
-                                            </div>
-                                        )}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
     if (completed) {
         return (
             <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
@@ -558,77 +2382,94 @@ export default function BusinessSetupWizard() {
                     <Check className="w-12 h-12 text-emerald-500" />
                 </div>
                 <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase">Setup Complete!</h1>
+                <p className="text-slate-500 font-bold">Redirecting you to your business dashboard...</p>
                 <div className="mt-8 flex items-center gap-2 text-blue-600 font-black uppercase tracking-widest text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Finalizing
+                    <Loader2 className="w-4 h-4 animate-spin" /> Syncing Details
                 </div>
             </div>
         );
     }
 
+    const progressPercent = ((currentStep + 1) / 21) * 100;
+
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
             <Navbar />
 
-            <main className="flex-grow py-12 px-4 italic-none">
+            <main className="flex-grow py-12 px-4">
                 <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-12">
+                    <div className="text-center mb-10">
                         <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-                            Business Setup Wizard
+                            21-Step Configuration
                         </span>
-                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
-                            Personalize Your Business
+                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-2 tracking-tight">
+                            Personalize Your Listing
                         </h1>
-                        <p className="text-slate-500 font-bold text-lg">
-                            Help customers find and identify your services.
+                        <p className="text-slate-500 font-bold text-sm">
+                            Submit detailed profile data to verify services and improve customer visibility.
                         </p>
                     </div>
 
-                    <div className="mb-12">
-                        <div className="flex justify-between items-end mb-4">
+                    {/* Progress Bar */}
+                    <div className="mb-8">
+                        <div className="flex justify-between items-end mb-3">
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {currentStep + 1} of {totalSteps}</p>
-                                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">
-                                    {currentStep === 0 ? 'Basic Information' : categories[currentStep - 1]}
-                                </h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration Progress</p>
+                                <p className="text-xs font-black text-slate-600 uppercase tracking-wider mt-1">Step {currentStep + 1} of 21</p>
                             </div>
-                            <p className="text-xs font-black text-blue-600 tracking-widest">{Math.round(progress)}% COMPLETE</p>
+                            <p className="text-xs font-black text-blue-600 tracking-widest">{Math.round(progressPercent)}% COMPLETE</p>
                         </div>
                         <div className="h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-white/50">
                             <div 
-                                className="h-full bg-blue-600 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-                                style={{ width: `${progress}%` }}
+                                className="h-full bg-blue-600 transition-all duration-500 ease-out shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                                style={{ width: `${progressPercent}%` }}
                             />
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[32px] border border-slate-200 p-8 md:p-12 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
+                    {/* Form Card */}
+                    <div className="p-8 rounded-3xl bg-white border border-slate-100 shadow-2xl relative overflow-hidden mb-8">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                         
                         {renderStepContent()}
 
-                        <div className="flex items-center justify-between pt-8 border-t border-slate-100 relative z-10">
+                        {/* Navigation controls */}
+                        <div className="flex justify-between items-center pt-8 border-t border-slate-100 mt-8">
                             <button
-                                onClick={prevStep}
+                                type="button"
+                                onClick={() => handleSaveStep(false)}
                                 disabled={currentStep === 0 || saving}
-                                className="flex items-center gap-2 px-6 py-4 text-slate-400 hover:text-slate-900 font-black text-xs uppercase tracking-widest transition-all disabled:opacity-30 active:scale-95"
+                                className="inline-flex items-center gap-1.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                             >
-                                <ChevronLeft className="w-4 h-4" />
-                                Back
+                                <ChevronLeft className="w-4 h-4" /> Back
                             </button>
 
-                            <button
-                                onClick={nextStep}
-                                disabled={saving}
-                                className="flex items-center gap-3 px-10 py-4 bg-[#112D4E] hover:bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50"
-                            >
-                                {saving ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        {currentStep === totalSteps - 1 ? 'Finish Setup' : 'Next Step'}
-                                        {currentStep === totalSteps - 1 ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                    </>
-                                )}
-                            </button>
+                            {currentStep === 20 ? (
+                                <button
+                                    type="button"
+                                    onClick={handleFinalSubmit}
+                                    disabled={
+                                        saving ||
+                                        !stepData.termsAccepted ||
+                                        !stepData.privacyAccepted ||
+                                        !stepData.moderationAccepted ||
+                                        !stepData.accuracyConfirmed ||
+                                        !stepData.publicLocationConsent
+                                    }
+                                    className="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-40"
+                                >
+                                    {saving ? 'Saving...' : 'Agree & Finish'}
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleNextBtnClick}
+                                    disabled={saving}
+                                    className="inline-flex items-center gap-1.5 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-60"
+                                >
+                                    {saving ? 'Saving...' : 'Save & Continue'} <ChevronRight className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

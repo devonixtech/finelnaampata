@@ -7,10 +7,11 @@ import { MapPin, Clock, DollarSign, Megaphone, Send, User, CheckCircle2 } from '
 
 interface BroadcastCardProps {
     lead: JobLead;
+    canRespond?: boolean;
     onRespond: (lead: JobLead) => void;
 }
 
-export default function BroadcastCard({ lead, onRespond }: BroadcastCardProps) {
+export default function BroadcastCard({ lead, canRespond = true, onRespond }: BroadcastCardProps) {
     return (
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all group relative overflow-hidden">
             {/* Proximity Indicator */}
@@ -53,7 +54,7 @@ export default function BroadcastCard({ lead, onRespond }: BroadcastCardProps) {
                 {lead.description}
             </p>
 
-            {/* Customer Info & Contact (For Vendors) */}
+            {/* Customer Info & Contact (For Businesses) */}
             {lead.user && (
                 <div className="flex items-center justify-between mb-6 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-3">
@@ -94,12 +95,14 @@ export default function BroadcastCard({ lead, onRespond }: BroadcastCardProps) {
                 <button
                     onClick={() => onRespond(lead)}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95 shadow-lg ${
-                        lead.hasResponded 
+                        !canRespond && !lead.hasResponded
+                        ? 'bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-none'
+                        : lead.hasResponded 
                         ? 'bg-slate-50 text-slate-600 hover:bg-slate-100 shadow-none' 
                         : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'
                     }`}
                 >
-                    <span>{lead.hasResponded ? 'View Proposal' : 'Send Proposal'}</span>
+                    <span>{!canRespond && !lead.hasResponded ? 'Upgrade to Respond' : lead.hasResponded ? 'View Proposal' : 'Send Proposal'}</span>
                     {!lead.hasResponded ? <Send className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
                 </button>
             </div>

@@ -6,9 +6,26 @@ async function bootstrap() {
     const app = await NestFactory.createApplicationContext(AppModule);
     const citiesService = app.get(CitiesService);
 
-    console.log('🏙️ Updating Pakistani cities with coordinates...');
-    const result = await citiesService.bulkImportByCountry('Pakistan');
-    console.log('✅ Pakistani cities updated:', result);
+    const countries = [
+        'Pakistan',
+        'India',
+        'United Arab Emirates',
+        'Saudi Arabia',
+        'United Kingdom',
+        'United States',
+        'Canada',
+        'Australia',
+    ];
+
+    for (const country of countries) {
+        console.log(`🏙️ Updating ${country} cities with coordinates...`);
+        try {
+            const result = await citiesService.bulkImportByCountry(country);
+            console.log(`✅ ${country} cities updated:`, result);
+        } catch (error) {
+            console.error(`❌ Failed to import cities for ${country}:`, error);
+        }
+    }
 
     await app.close();
 }

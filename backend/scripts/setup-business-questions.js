@@ -56,22 +56,100 @@ async function setupBusinessQuestions() {
             
             const questions = [
                 {
-                    category: 'Service Mode',
-                    question: 'How do you provide your services?',
-                    options: JSON.stringify(['Home Service', 'In-store / Studio', 'Online / Virtual', 'Emergency Services']),
+                    category: 'Business Type',
+                    question: 'Where does your business operate?',
+                    options: JSON.stringify(['Physical Location', 'Home-Based Business', 'Online / Digital Only', 'On-Site at Client Location', 'Mobile Unit']),
                     order: 1
                 },
                 {
-                    category: 'Payment Methods',
-                    question: 'Which payment methods do you accept?',
-                    options: JSON.stringify(['Cash', 'UPI / QR Code', 'Credit/Debit Card', 'Net Banking', 'Digital Wallets']),
+                    category: 'Core Business Nature',
+                    question: 'What does your business primarily do?',
+                    options: JSON.stringify(['We sell physical products', 'We sell digital products', 'We provide in-person services', 'We provide online or remote services', 'We offer delivery to customers']),
                     order: 2
                 },
                 {
-                    category: 'Business Features',
-                    question: 'What amenities or features does your business offer?',
-                    options: JSON.stringify(['WiFi Available', 'Parking Space', 'Air Conditioned', 'Wheelchair Accessible', 'Waiting Area', 'Contactless Delivery']),
+                    category: 'Operational Structure',
+                    question: 'How does your business operate?',
+                    options: JSON.stringify(['Manufacturer', 'Retailer', 'Wholesaler', 'Distributor', 'Consulting / Advisory', 'Repair & Maintenance', 'Individual / Freelancer', 'Private Company']),
                     order: 3
+                },
+                {
+                    category: 'Who Do You Serve',
+                    question: 'Who are your primary customers?',
+                    options: JSON.stringify(['B2C - Individual Consumers', 'B2B - Other Businesses', 'B2G - Government & Public Sector', 'D2C - Direct to Consumer', 'Wholesale Buyers', 'International Clients']),
+                    order: 4
+                },
+                {
+                    category: 'Contact Details',
+                    question: 'How can customers reach you?',
+                    options: JSON.stringify(['Primary Phone', 'WhatsApp Number', 'Additional Phone Numbers (up to 5 on paid plan)', 'Business Email', 'Website URL']),
+                    order: 5
+                },
+                {
+                    category: 'Business Hours',
+                    question: 'When are you open?',
+                    options: JSON.stringify(['Monday Open', 'Tuesday Open', 'Wednesday Open', 'Thursday Open', 'Friday Open', 'Saturday Open', 'Sunday Open', 'Open 24/7']),
+                    order: 6
+                },
+                {
+                    category: 'Business Description',
+                    question: 'Tell customers about your business',
+                    options: JSON.stringify(['Business Description Added', 'Business Languages Added']),
+                    order: 7
+                },
+                {
+                    category: 'Experience & Team',
+                    question: 'Tell us about your business maturity and team size',
+                    options: JSON.stringify(['Year Established Added', 'Just Me (Solo)', '2-5 Employees', '6-10 Employees', '11-25 Employees', '26-50 Employees', '51+ Employees']),
+                    order: 8
+                },
+                {
+                    category: 'Website & Social Media',
+                    question: 'Where else can customers find you online?',
+                    options: JSON.stringify(['Website', 'Facebook', 'Instagram', 'YouTube', 'LinkedIn', 'TikTok', 'X / Twitter', 'Pinterest', 'Snapchat']),
+                    order: 9
+                },
+                {
+                    category: 'Keywords',
+                    question: 'Add keywords that describe your business',
+                    options: JSON.stringify(['Local Service', 'Professional', 'Trusted', 'Affordable', 'Emergency', 'Premium', 'Family Friendly', 'Fast Response', 'Certified', '24/7']),
+                    order: 10
+                },
+                {
+                    category: 'FAQs',
+                    question: 'Add FAQs to help customers quickly',
+                    options: JSON.stringify(['Pricing FAQ Added', 'Service Area FAQ Added', 'Opening Hours FAQ Added', 'Appointment FAQ Added', 'Payment Methods FAQ Added']),
+                    order: 11
+                },
+                {
+                    category: 'Logo & Cover Image',
+                    question: 'Upload profile media for your business',
+                    options: JSON.stringify(['Logo (Recommended 400x400)', 'Cover Image (Recommended 1200x400)', 'Gallery Images Added', 'Album Grouping Enabled']),
+                    order: 12
+                },
+                {
+                    category: 'Amenities & Facilities',
+                    question: 'What does your location offer?',
+                    options: JSON.stringify(['Physical Location', 'Online Business', 'Delivery Available', '24/7 Open', 'Free Wi-Fi', 'Parking Available', 'Wheelchair Accessible', 'Female Staff Available', 'Home Service', 'In-store / Studio', 'Online / Virtual', 'Emergency Services', 'Cash Accepted', 'Card Accepted', 'Bank Transfer', 'Mobile Wallet', 'Online Payment']),
+                    order: 13
+                },
+                {
+                    category: 'Industry Sub-Type',
+                    question: 'Does your business fall into specialised sectors?',
+                    options: JSON.stringify(['Factory', 'Manufacturing Unit', 'Industrial Supplier', 'Warehouse', 'Seed Store', 'Dairy Farm', 'Poultry Farm', 'Agricultural Equipment']),
+                    order: 14
+                },
+                {
+                    category: 'Business Opportunities & Expansion',
+                    question: 'Do you offer expansion or partnership opportunities?',
+                    options: JSON.stringify(['Franchise Opportunities', 'Dealers / Resellers Needed', 'Importer / Exporter', 'Local Service Area', 'National Service Area', 'International Service Area']),
+                    order: 15
+                },
+                {
+                    category: 'Map Confirmation',
+                    question: 'Confirm your location on map',
+                    options: JSON.stringify(['Pin Confirmed']),
+                    order: 16
                 }
             ];
 
@@ -84,6 +162,12 @@ async function setupBusinessQuestions() {
             console.log('Questions seeded successfully');
         } else {
             console.log('Questions already exist, skipping seed.');
+            await client.query(`
+                UPDATE business_questions
+                SET category = 'Amenities & Facilities'
+                WHERE category IN ('Payment Methods', 'Service Mode', 'Business Features');
+            `);
+            console.log('Legacy question categories normalized to Amenities & Facilities');
         }
 
     } catch (err) {

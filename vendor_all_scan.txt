@@ -1,0 +1,153 @@
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\fix_social.js:8 - const mapRegex = /\{business\.vendor\.socialLinks\.map\(\(link, idx\) => \{[\s\S]*?\}\)/;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\add-listing\page.tsx:617 - await api.vendors.updateProfile({ socialLinks: linksToSave });
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\analytics\page.tsx:27 - api.vendors.getStats(),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:42 - if (isVendor || isAdmin) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:43 - data = await chatApi.getVendorConversations() as any[];
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:62 - }, [selectedConvId, isVendor, isAdmin]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:77 - if (!selectedConvId || (!isVendor && !isAdmin)) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:84 - }, [selectedConvId, isVendor, isAdmin]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:218 - placeholder={isVendor ? "Search customers..." : "Search businesses..."}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:235 - {isVendor ? "New customer inquiries will appear here." : "Start talking to businesses to see chats here."}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:251 - {isVendor ? (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:276 - {isVendor ? (conv.user?.fullName || 'Anonymous') : (conv.business?.title || 'Business')}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:286 - {isVendor ? conv.business?.title : 'Customer Service'}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:312 - {isVendor ? (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:332 - {isVendor ? (currentConv?.user?.fullName || 'Anonymous Customer') : (currentConv?.business?.title || 'Business')}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:358 - {(isVendor || isAdmin) && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\chat\page.tsx:470 - Select a conversation to start chatting {isVendor ? 'with customers' : 'with businesses'} in real-time.
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\comments\page.tsx:51 - const res = await api.comments.getVendorComments(p, 10);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:50 - if (!isVendor || !setupStatus) return null;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:96 - if (isVendor || isAdmin) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:98 - api.vendors.getStats(),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:99 - api.vendors.getProfile(),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:108 - api.leads.getForVendor({ limit: 5 }),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:134 - if (isVendor || isAdmin) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:135 - const convs = await chatApi.getVendorConversations() as any[];
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:150 - }, [user, isVendor, isAdmin]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:265 - {isVendor ? "Manage your presence and see how your listings are performing today." : "Track your favorites, reviews, and community interactions."}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:269 - {((isVendor || isAdmin) ? hasFeature('canAddListing') : false) && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:323 - {isVendor && profileCompletion && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:349 - <StatsGrid stats={isVendor || isAdmin ? businessStats : userStats} />
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:355 - {(isVendor || isAdmin) ? (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:397 - {(isVendor || isAdmin) && hasFeature('showAnalytics') && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:420 - {((isVendor || isAdmin) ? hasFeature('showSaved') : true) && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:456 - {((isVendor || isAdmin) ? hasFeature('showFollowing') : true) && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:497 - {!isVendor && !isAdmin && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:527 - title={isVendor || isAdmin ? "Reviews" : "My Reviews"}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:530 - {isVendor && hasFeature('showDemand') && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:534 - {((isVendor || isAdmin) && hasFeature('showChat')) && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:556 - {isVendor ? (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:571 - <p className="text-sm font-black text-slate-900 truncate">{isVendor ? (conv.user?.fullName || 'User') : (conv.business?.title || 'Business')}</p>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\dashboard\page.tsx:593 - {isVendor && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\leads\page.tsx:247 - (isVendor || isAdmin)
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\leads\page.tsx:248 - ? api.leads.getForVendor(params)
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\leads\page.tsx:252 - if (isVendor) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\leads\page.tsx:258 - const statsRes = isVendor ? results[1] : null;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\leads\page.tsx:307 - const all = await api.leads.getForVendor({ limit: 500, ...(filterStatus && { status: filterStatus }), ...(filterType && { type: filterType }) });
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\messages\page.tsx:233 - (isVendor || isAdmin)
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\messages\page.tsx:234 - ? api.leads.getForVendor(params)
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\messages\page.tsx:238 - if (isVendor) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\messages\page.tsx:244 - const statsRes = isVendor ? results[1] : null;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\offer-plans\page.tsx:43 - const [vendorOffers, setVendorOffers] = useState<OfferItem[]>([]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\offer-plans\page.tsx:80 - setVendorOffers(offersRes.data || []);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\offer-plans\page.tsx:104 - const selectedOffer = vendorOffers.find(o => o.id === selectedOfferId);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\offer-plans\page.tsx:283 - {vendorOffers.length === 0 ? (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\offer-plans\page.tsx:298 - {vendorOffers.map(offer => (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:52 - function ReviewCard({ review, isVendor, onReply }: { review: Review; isVendor: boolean; onReply: (r: Review) => void }) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:96 - {isVendor && !review.vendorResponse && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:104 - {review.vendorResponse && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:144 - const res = await api.reviews.getVendorAll(1, 100);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:161 - const unanswered = reviews.filter(r => !r.vendorResponse).length;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:246 - {isVendor && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\reviews\page.tsx:370 - isVendor={isVendor}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:264 - const vendorPayload: any = {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:275 - Object.keys(vendorPayload).forEach(k => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:276 - if (vendorPayload[k] === undefined) delete vendorPayload[k];
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\settings\page.tsx:278 - await api.vendors.updateProfile(vendorPayload);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\subscription\page.tsx:81 - const vendor = data?.vendor;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\subscription\success\page.tsx:58 - const vendor = data?.vendor;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\(dashboard)\upgrade\page.tsx:25 - await api.vendors.becomeVendor({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\demand\page.tsx:43 - const totalBusinesses = (data as any)?.stats?.totalVendors || 0;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\promotion-rules\page.tsx:407 - The above prices are your global baseline. Vendors on **Diamond** or **Platinum** tiers receive discounted rates based on their plan settings, incentivizing high-tier subscriptions.
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\reviews\page.tsx:57 - vendorResponse?: string;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\subscriptions\page.tsx:77 - api.admin.getVendors(1, 100),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\subscriptions\page.tsx:261 - const vendor = data?.vendor;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\subscriptions\page.tsx:436 - const handleCancelSub = async (subId: string, vendorName: string) => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\subscriptions\page.tsx:437 - if (!confirm(`Cancel subscription for ${vendorName}? This cannot be undone easily.`)) return;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\subscriptions\page.tsx:616 - onClick={() => handleCancelSub(sub.id, vendorName)}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\summary-reports\page.tsx:108 - const totalBusinesses = stats?.totalVendors?.toString() || '0';
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\summary-reports\page.tsx:109 - const businessesGraphData = stats?.vendorsGraphData;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\users\page.tsx:233 - {(['all', 'user', 'vendor'] as const).map((r) => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\users\page.tsx:561 - {selectedUserDetails?.vendor && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\admin\verifications\page.tsx:33 - const res = await api.admin.getVendors(p, LIMIT, isVerified, q);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:73 - const VendorOnlineBadge = ({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:887 - vendorUserId &&
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:889 - typeof vendorUserId === "string" &&
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:890 - currentUserId === vendorUserId
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:1334 - {comment.vendorResponse && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:1342 - "{comment.vendorResponse}"
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:1344 - {comment.vendorResponseAt && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:1348 - comment.vendorResponseAt,
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business\[businessSlug]\BusinessDetailClient.tsx:2161 - {/* Business Profile / Vendor Profile Card */}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:287 - api.vendors.getProfile(),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:716 - await api.vendors.updateProfile({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:720 - await api.vendors.updateProfile({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:724 - await api.vendors.updateProfile({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:729 - await api.vendors.updateProfile({
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\business-setup\page.tsx:1032 - 'We offer delivery to customers', 'We operate as a marketplace or multi-vendor platform', 'We offer subscriptions or memberships'
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\template\page.tsx:7 - return <CityVendorsClient city="template" />;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:25 - console.log('[CityVendors] Fallback detected, using actual city from URL:', effectiveCity);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:33 - const [vendors, setVendors] = useState<any[]>([]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:43 - const data = await api.vendors.getByCity(cityName);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:45 - setVendors(arr);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:58 - let arr = [...vendors];
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:71 - }, [query, sortBy, vendors]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\CityVendorsClient.tsx:169 - {filtered.map(vendor => (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\cities\[cityName]\page.tsx:48 - return <CityVendorsClient city={cityName} />;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\page.tsx:10 - const slugs = await api.vendors.getAllSlugs();
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\page.tsx:15 - 'sample-vendor',
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:22 - vendorName: string;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:61 - if (pathParts[0] === 'vendors' && pathParts[1] && pathParts[1] !== 'template' && pathParts[1] !== 'default') {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:62 - if (!vendor || actualSlug !== pathParts[1]) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:64 - console.log('[VendorProfile] Route detected from URL:', actualSlug);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:68 - console.log('[VendorProfile] Route detected from query param:', actualSlug);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:73 - let data = vendor;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:77 - console.log('[VendorProfile] Slug mismatch, forcing reload for:', actualSlug);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:82 - console.log('[VendorProfile] Using initialData from SSR');
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:83 - setVendor(initialData);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:93 - const profileData = await api.vendors.getPublicProfile(actualSlug);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:98 - console.log(`[VendorProfile] Legacy ID detected. Redirecting to SEO slug: ${profileData.slug}`);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:103 - setVendor(profileData);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:105 - console.error('[VendorProfile] Failed to load profile:', err);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:115 - if (!vendor) return [];
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:121 - }, [vendor, searchTerm, activeCategory]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\app\vendors\[vendorSlug]\VendorProfileClient.tsx:154 - if (error || !vendor) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorAvatar.tsx:20 - }: VendorAvatarProps) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\VendorProfileCard.tsx:38 - vendorName?: string;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\chat\ChatWindow.tsx:23 - const [vendorOnline, setVendorOnline] = useState(false);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\chat\ChatWindow.tsx:46 - if (userId === vendorUserId) setVendorOnline(true);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\chat\ChatWindow.tsx:50 - if (userId === vendorUserId) setVendorOnline(false);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\chat\ChatWindow.tsx:107 - {vendorOnline && (
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\chat\ChatWindow.tsx:116 - {vendorOnline ? 'Always Online' : 'Currently Offline'}
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastFeed.tsx:35 - const data = await api.broadcasts.getVendorInbox();
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:42 - const [vendorCategories, setVendorCategories] = useState<string[]>([]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:56 - const vendorListings = await api.listings.getMyListings({ limit: 100 });
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:57 - if (vendorListings?.data) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:58 - const vendorCatIds = vendorListings.data.flatMap((b: any) => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:65 - setVendorCategories([...new Set(vendorCatIds)]);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\BroadcastRequestForm.tsx:134 - if (step === 0 && vendorCategories.includes(formData.categoryId)) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\leads\VendorLeadsInbox.tsx:39 - const response = await api.leads.getForVendor({ limit: 5 });
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:216 - const [cats, cityList, countryList, amenityList, vendorProfile, businessesRes] = await Promise.all([
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:221 - api.vendors.getProfile().catch(() => null),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:230 - if (vendorProfile?.socialLinks) {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:231 - setSocialLinks(vendorProfile.socialLinks);
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\AddBusinessModal.tsx:354 - await api.vendors.updateProfile({ socialLinks: linksToSave });
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\components\vendor\Sidebar.tsx:42 - if (!isVendorOrAdmin) return;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\lib\api.ts:467 - vendors: {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\lib\api.ts:483 - getForVendor: (params: any = {}) => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\lib\api.ts:585 - getVendors: (page = 1, limit = 20, isVerified?: boolean, search?: string) => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\lib\api.ts:855 - getVendorComments: (page = 1, limit = 10) =>
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\lib\business-status.ts:36 - ...getVendorOnlineStatus(isOnline),
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\services\chat.service.ts:10 - getVendorConversations: async () => {
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\types\api.ts:176 - vendorResponse?: string;
+c:\Users\Ahmed Bilal Khan\Desktop\business-directory\apps\web\types\api.ts:177 - vendorResponseAt?: string;

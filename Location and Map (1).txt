@@ -1,0 +1,335 @@
+
+NAAMPATA
+Maps & Location Specification
+
+I have created this document to help reduce costs without compromising quality. Please review it carefully and check what has already been implemented and what is still missing. Execute all pending items exactly as mentioned in the document.
+
+
+Table of Contents
+Table of Contents2
+1. Quick Reference — What to Use3
+2. Banned APIs — Never Use3
+3. Rules4
+3.1 Maps Display4
+3.2 User Location4
+3.3 Address Input — Business Registration Only4
+3.4 Geocoding Queue4
+3.5 Search & Nearby — Combined Elasticsearch + PostGIS Pipeline4
+Pipeline Flow4
+Elasticsearch Index Requirements5
+PostGIS Geo-Filter Requirements5
+3.6 Redis Cache — Search Results (Full Rules)5
+Cache Key Structure5
+TTL Rules6
+Invalidation Rules — Mandatory6
+Cache Warming6
+3.7 Navigation6
+3.8 Duplicate Business Detection6
+3.9 Provider Abstraction Layer7
+3.10 Cost Controls7
+3.11 OpenStreetMap Tile Fair-Use Policy (Mobile Fallback Only)7
+4. Expected Monthly Cost8
+5. Developer Checklist — Verify Before Launch8
+
+
+1. Quick Reference — What to Use
+
+Use Case
+Solution
+Cost
+Map on business profile (web)
+Google Maps Embed API
+Free — unlimited
+Map in mobile app
+Google Maps SDK (Android / iOS)
+Free — unlimited
+User location
+Device GPS only
+Free
+Address input (registration only)
+Google Places Autocomplete + session tokens
+Low — once per signup
+Convert address → coordinates
+Google Geocoding API via BullMQ queue
+Low — once per business
+Full-text search + relevance ranking
+Elasticsearch
+Free (self-hosted on AWS)
+Radius / nearby filter
+PostgreSQL + PostGIS (ST_DWithin)
+Free
+Combined search (text + geo)
+Elasticsearch → PostGIS pipeline
+Free
+Navigation / directions
+'Open in Google Maps' external link
+Free
+Map fallback (mobile only)
+OpenStreetMap static tile image
+Free (fair-use limits apply)
+
+2. Banned APIs — Never Use
+
+
+Banned API
+Reason
+Maps JavaScript API (Dynamic Maps)
+$7 per 1,000 map loads
+Google Nearby Search API
+$32 per 1,000 requests
+Google Place Details API
+$17 per 1,000 requests
+Google Distance Matrix API
+$5 per 1,000 requests
+Google Directions API
+$5 per 1,000 requests
+Google Geolocation API
+Paid — device GPS is free
+All Legacy APIs (Places, Directions, Distance)
+Deprecated and paid
+
+3. Rules
+3.1 Maps Display
+Web: Google Maps Embed API on business profile pages — free, unlimited.
+Mobile: Google Maps SDK — free, unlimited.
+No map auto-loads. Default view is always list view. Map loads only when user clicks "View on Map".
+Mobile fallback: if SDK fails, show a static OpenStreetMap tile + address text + Retry button (one try/catch in Flutter — no full OSM integration). See Section 3.11 for OSM fair-use rules.
+
+3.2 User Location
+Device GPS only — no external API. Accuracy: within 100 m. Add a Refresh button.
+If GPS denied or unavailable: Manual city selection → Manual pin placement.
+Never request location at app launch.
+Never store GPS location beyond the active session.
+
+3.3 Address Input — Business Registration Only
+Use Google Places Autocomplete. Trigger after 3+ characters with 300 ms debounce.
+Session tokens are mandatory — without them every keystroke is a separate billable API call.
+Store only: name, address, city, lat, lng. Do not store any raw Google Places data.
+
+3.4 Geocoding Queue
+Never geocode on the frontend. Use BullMQ queue on the backend.
+Flow: user submits → profile saved (status: pending_geocode) → BullMQ queues job → worker updates lat/lng → status: active.
+Before calling the API, check if the same address already exists in DB — reuse stored coordinates if found.
+Retry failed geocoding up to 3 times. Send admin alert if all retries fail.
+
+Rate limit fix: BullMQ worker concurrency to maximum 10 concurrent jobs, with a minimum 100 ms delay between jobs. This prevents hitting Google's QPS limit during registration spikes.
+
+3.5 Search & Nearby — Combined Elasticsearch + PostGIS Pipeline
+
+ARCHITECTURE RULE: Elasticsearch handles text relevance. PostGIS handles geo-boundary filtering. Both are mandatory and must work together in every search request. Never use one without the other for business discovery queries.
+
+Pipeline Flow
+Every business discovery search must follow this exact pipeline:
+
+Step
+Engine
+What it does
+1
+Elasticsearch
+Receives query text + category + filters. Scores and ranks matching business documents by relevance. Returns a list of matching business IDs with scores.
+2
+PostGIS (ST_DWithin)
+Takes the business IDs from Step 1. Applies the user's chosen radius filter (1 km, 5 km, 10 km, 25 km, 50 km). Eliminates results outside the boundary.
+3
+Merge & Sort
+Combines Elasticsearch relevance score + distance. Applies final sort (relevance, distance, or rating as chosen by user). Returns paginated result set.
+4
+Redis Cache
+Caches the final merged result set keyed by search parameters. TTL: 15 minutes. See Section 3.6 for full cache rules.
+
+Elasticsearch Index Requirements
+Index name: businesses. Map the following fields: name (text, analyzed), category (keyword), tags / keywords (text), city (keyword), status (keyword), lat_lng (geo_point).
+Use a custom analyzer for Urdu/Roman Urdu transliteration where applicable.
+Always filter by status: active before returning results — never surface pending or suspended listings.
+Boost fields in order: exact name match > category match > keyword match > description match.
+Pagination: use search_after (not from/size) for deep pagination at scale.
+
+PostGIS Geo-Filter Requirements
+Use ST_DWithin on the geography type (not geometry) for accurate metre-based distance calculations.
+Add a GIST spatial index on every location column: CREATE INDEX CONCURRENTLY idx_businesses_location ON businesses USING GIST(location);
+Radius options available to user: 1 km, 5 km, 10 km, 25 km, 50 km.
+Pass only the business_id list from Elasticsearch into the PostGIS WHERE clause — never run PostGIS on the full table without an ID filter.
+Never use Google Nearby Search API, Distance Matrix API, or Directions API.
+
+3.6 Redis Cache — Search Results (Full Rules)
+
+FIX APPLIED v2.4: Full cache invalidation rules added. Missing invalidation causes stale results — closed businesses shown as open, deleted listings appearing in search. This is a trust-destroying bug. Follow all rules below without exception.
+
+Cache Key Structure
+All search result cache keys must follow this exact format:
+
+search:{city_slug}:{category_slug}:{radius_km}:{query_hash}
+
+Example: search:lahore:restaurants:5:a3f9c1d2. The query_hash is an MD5 or SHA-1 of the normalized query string + active filters.
+
+TTL Rules
+Data Type
+TTL
+Search results (city + category + radius)
+15 minutes
+Individual business profile data
+30 minutes
+Popular search suggestions
+1 hour
+City / category index lists
+6 hours
+
+Invalidation Rules — Mandatory
+On business address update: immediately delete all cache keys matching search:{city_slug}:*. Use Redis SCAN + DEL — never KEYS in production.
+On business status change (activation, suspension, deletion): immediately purge all cache keys that could contain this business. Fire a BullMQ cache-invalidation job on every status transition.
+On business category update: purge cache keys for both old and new categories in the affected city.
+On business deletion: purge business profile cache key (business:{id}) AND all city-level search caches where it appeared.
+On business hours update (open/closed status change): purge the business profile cache immediately. Search caches with "Open Now" filter must be purged within 1 minute.
+Never use FLUSHDB or FLUSHALL for targeted invalidation — these wipe the entire cache.
+
+Cache Warming
+After any bulk invalidation event, queue a BullMQ cache-warm job for the top 20 most-searched city/category/radius combinations.
+Warm jobs run at off-peak times (02:00–05:00 local) to repopulate expired popular searches.
+
+3.7 Navigation
+Add 'Open in Google Maps' button on every business profile.
+Link format: https://www.google.com/maps?q=LAT,LNG
+No in-app navigation. No Routes API. No Directions API.
+
+3.8 Duplicate Business Detection
+Flag as duplicate only when 2 or more of these signals match simultaneously:
+
+Signal
+Rule
+GPS coordinates
+Within 10 m of an existing listing
+Business name
+80%+ similarity — use pg_trgm. Normalize before comparison: lowercase, trim spaces, strip punctuation, normalize Unicode, apply transliteration.
+Phone number
+Exact match — normalize to E.164 format before comparison.
+Address text
+85%+ similarity — use pg_trgm after same normalization as name.
+
+1 signal match = soft warning, user can continue.
+2+ signals = confirmation prompt shown to user.
+Never hard-block automatically — always allow user override.
+Validate on both frontend and backend.
+
+pg_trgm is already available in PostgreSQL with PostGIS setups. It is free, fast, and handles fuzzy text matching natively — no extra library needed. Enable with: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+3.9 Provider Abstraction Layer
+Never call Google API clients directly in application code.
+Wrap all map/location API calls in three NestJS injectable services: GeocoderService, PlacesService, MapProvider.
+The rest of the app calls only these services. Switching providers later requires changing only these files.
+Add a fourth service: SearchLocationService — this is the single entry point for all combined Elasticsearch + PostGIS search queries. No other layer calls Elasticsearch or PostGIS directly for search.
+
+3.10 Cost Controls
+Set hard daily quota limits for all paid APIs in Google Cloud Console.
+Set billing alerts at 50% and 90% of monthly budget.
+
+Important: Business profile pages must remain publicly accessible (no login required to view them). The Google Maps Embed API is free for public pages. Putting it behind a login wall may violate Google's Terms of Service.
+
+3.11 OpenStreetMap Tile Fair-Use Policy (Mobile Fallback Only)
+
+NEW in v2.4: OSM tile fair-use rules added. Violating these terms can result in your app being IP-blocked by OSM tile servers — causing the fallback to fail for all users.
+
+The OSM static tile fallback is used only in the mobile app, only when the Google Maps SDK fails, and only for a single static tile per failure event. Despite this limited use, the following rules apply:
+
+Rule
+Detail
+Tile server
+Use tile.openstreetmap.org for MVP only. If monthly active users exceed 50,000, migrate to a self-hosted tile server or a CDN-backed provider (e.g., Stadia Maps free tier, Protomaps).
+Usage cap
+The OSM Tile Usage Policy prohibits bulk or automated tile fetching. This fallback fires only on SDK failure — one tile per event. This is compliant.
+Caching
+Cache returned OSM tiles on the device for a minimum of 24 hours. Never re-fetch the same tile within 24 hours.
+Attribution
+Display "© OpenStreetMap contributors" text on any screen showing an OSM tile. This is legally mandatory under the ODbL licence.
+Migration trigger
+At 50,000+ MAU: migrate OSM tiles to Stadia Maps free tier (no key required up to 200,000 tile requests/month) or self-hosted. Document this in post-launch roadmap.
+
+4. Expected Monthly Cost
+
+Scale
+Expected Monthly Cost
+Launch — 0 to 10,000 businesses
+$0
+Growth — 100,000 businesses, 1M users
+$50 – $100
+
+These figures assume full compliance with this specification: Embed API on web, Maps SDK on mobile, PostGIS for all geo-queries, Elasticsearch on self-hosted AWS (included in infra cost), Redis for caching, and BullMQ for geocoding queue. No Google Nearby Search, Distance Matrix, or Directions API usage.
+
+5. Developer Checklist — Verify Before Launch
+
+Done
+Checklist Item
+☐
+Google Maps Embed API used on web profile pages
+☐
+Google Maps SDK used in mobile app
+☐
+No map auto-loads — user must click to load
+☐
+OSM static tile fallback implemented in Flutter (try/catch only)
+☐
+OSM tiles cached on device for minimum 24 hours
+☐
+"© OpenStreetMap contributors" attribution displayed on OSM tile screens
+☐
+OSM migration plan documented for 50,000+ MAU milestone
+☐
+Device GPS used for user location — no external API
+☐
+Location not requested at app launch, not stored beyond session
+☐
+Places Autocomplete triggers after 3+ chars, 300 ms debounce
+☐
+Session tokens implemented and verified working
+☐
+Only name, address, city, lat, lng stored — no raw Google Places data
+☐
+Geocoding runs via BullMQ queue — not on frontend
+☐
+BullMQ worker concurrency max 10, 100 ms delay between jobs
+☐
+Address deduplication check runs before geocoding API call
+☐
+Geocoding retries up to 3 times, admin alert on full failure
+☐
+Elasticsearch index created with correct field mappings
+☐
+Elasticsearch always filters status: active before returning results
+☐
+Elasticsearch uses search_after for deep pagination (not from/size)
+☐
+PostGIS ST_DWithin used on geography type for all radius filtering
+☐
+PostGIS queries receive Elasticsearch ID list — never full-table scan
+☐
+GIST spatial index created on all location columns
+☐
+SearchLocationService is the single entry point for all search queries
+☐
+Redis cache key format: search:{city}:{category}:{radius}:{query_hash}
+☐
+Redis TTL: 15 min for search results, 30 min for profiles
+☐
+Cache invalidation fires on: address update, status change, category change, deletion
+☐
+BullMQ cache-invalidation job fires on every business status transition
+☐
+KEYS command is never used in production Redis — SCAN + DEL only
+☐
+Cache warming job scheduled for off-peak hours on top search combos
+☐
+Duplicate detection: pg_trgm for name/address, E.164 for phone, 2+ signals required
+☐
+Names/addresses normalized (lowercase, stripped punctuation) before similarity check
+☐
+GeocoderService, PlacesService, MapProvider, SearchLocationService created as NestJS services
+☐
+No direct Google API or Elasticsearch/PostGIS calls in application code — services only
+☐
+Hard daily quota limits set in Google Cloud Console
+☐
+Billing alerts set at 50% and 90% of budget
+☐
+All banned APIs confirmed disabled in Google Cloud project
+☐
+Business profile pages are publicly accessible (no login required to view)
+

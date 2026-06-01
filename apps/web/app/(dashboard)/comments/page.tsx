@@ -27,7 +27,7 @@ interface CommentItem {
 const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
 
-export default function VendorCommentsPage() {
+export default function BusinessCommentsPage() {
     const { user } = useAuth();
     const [comments, setComments] = useState<CommentItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -70,7 +70,7 @@ export default function VendorCommentsPage() {
         );
     }
 
-    // Vendors always have access to managing their customer reviews.
+    // Businesses always have access to managing their customer reviews.
     // The previous lock screen has been removed to provide full feature access.
     
     const openReply = (comment: CommentItem) => {

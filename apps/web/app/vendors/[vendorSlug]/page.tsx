@@ -7,7 +7,7 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
     try {
-        const slugs = await api.vendors.getAllSlugs();
+        const slugs = await api.businessProfiles.getAllSlugs();
         const params = (slugs || []).map(slug => ({ vendorSlug: slug }));
 
         // Ensure template, sample-vendor and reported failing IDs are included for fallbacks

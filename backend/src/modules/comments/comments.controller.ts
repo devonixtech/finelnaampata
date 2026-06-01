@@ -57,7 +57,7 @@ export class CommentsController {
 
     // --- Vendor Endpoints ---
 
-    @Get('vendor/comments')
+    @Get(['vendor/comments', 'business/comments'])
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.VENDOR)
     getVendorComments(
@@ -68,7 +68,7 @@ export class CommentsController {
         return this.commentsService.findVendorComments(userId, page, limit);
     }
 
-    @Post('vendor/comments/:commentId/reply')
+    @Post(['vendor/comments/:commentId/reply', 'business/comments/:commentId/reply'])
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.VENDOR)
     reply(
@@ -79,7 +79,7 @@ export class CommentsController {
         return this.commentsService.reply(userId, commentId, replyDto);
     }
 
-    @Patch('vendor/comments/reply/:replyId')
+    @Patch(['vendor/comments/reply/:replyId', 'business/comments/reply/:replyId'])
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.VENDOR)
     updateReply(
@@ -90,7 +90,7 @@ export class CommentsController {
         return this.commentsService.updateReply(userId, replyId, updateDto);
     }
 
-    @Delete('vendor/comments/reply/:replyId')
+    @Delete(['vendor/comments/reply/:replyId', 'business/comments/reply/:replyId'])
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.VENDOR)
     removeReply(

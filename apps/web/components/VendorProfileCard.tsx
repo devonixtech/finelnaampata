@@ -190,10 +190,10 @@ export default function VendorProfileCard({ vendor, city }: Props) {
 
                 {/* ── CTA ── */}
                 <Link
-                    href={`/vendors/${vendor.slug || vendor.id}`}
+                    href={`/businesses/${vendor.slug || vendor.id}`}
                     className="block w-full text-center py-3 bg-gradient-to-r from-[#FF7A30] to-[#F5A623] hover:from-[#E86920] hover:to-[#E09010] text-white text-sm font-black rounded-xl transition-all active:scale-95 shadow-md shadow-orange-500/25"
                 >
-                    View Listings
+                    View Business
                 </Link>
             </div>
         </div>

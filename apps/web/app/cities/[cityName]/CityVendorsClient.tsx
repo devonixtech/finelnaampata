@@ -40,7 +40,7 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
         const load = async () => {
             setLoading(true);
             try {
-                const data = await api.vendors.getByCity(cityName);
+                const data = await api.businessProfiles.getByCity(cityName);
                 const arr = Array.isArray(data) ? data : [];
                 setVendors(arr);
                 setFiltered(arr);
@@ -84,14 +84,14 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                         <div className="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center">
                             <MapPin className="w-6 h-6 text-orange-400" />
                         </div>
-                        <span className="text-orange-400 text-sm font-black uppercase tracking-widest">Vendor Profiles</span>
+                        <span className="text-orange-400 text-sm font-black uppercase tracking-widest">Business Profiles</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-4">
                         Business Profiles in
                         <span className="text-orange-400"> {cityName}</span>
                     </h1>
                     <p className="text-white/50 font-medium text-base max-w-lg">
-                        Browse all verified business profiles in {cityName}
+                        Browse all business profiles in {cityName}
                     </p>
                 </div>
             </section>
@@ -102,7 +102,7 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                     <div className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-slate-400" />
                         <span className="font-black text-slate-900">
-                            {loading ? 'Loading…' : `${filtered.length} vendor${filtered.length !== 1 ? 's' : ''} found`}
+                            {loading ? 'Loading…' : `${filtered.length} business${filtered.length !== 1 ? 'es' : ''} found`}
                         </span>
                     </div>
 
@@ -112,7 +112,7 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Search vendor or category…"
+                                placeholder="Search business or category…"
                                 value={query}
                                 onChange={e => setQuery(e.target.value)}
                                 className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-400 placeholder:text-slate-400 w-52"
@@ -146,9 +146,9 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                         <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <MapPin className="w-8 h-8 text-slate-300" />
                         </div>
-                        <h3 className="text-xl font-black text-slate-900 mb-2">No vendors found</h3>
+                        <h3 className="text-xl font-black text-slate-900 mb-2">No businesses found</h3>
                         <p className="text-slate-400 text-sm mb-6">
-                            {query ? `No vendors match "${query}" in ${cityName}` : `No approved vendors in ${cityName} yet`}
+                            {query ? `No businesses match "${query}" in ${cityName}` : `No approved businesses in ${cityName} yet`}
                         </p>
                         {query && (
                             <button

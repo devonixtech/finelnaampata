@@ -3,15 +3,16 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Building2, Phone, ArrowRight, Loader2, Zap, CheckCircle2 } from 'lucide-react';
+import { Building2, Phone, ArrowRight, Loader2, Zap, CheckCircle2, MapPin } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
-export default function VendorUpgradePage() {
+export default function BusinessUpgradePage() {
     const { user, syncProfile } = useAuth();
     const router = useRouter();
     const [businessName, setBusinessName] = useState('');
     const [businessPhone, setBusinessPhone] = useState(user?.phone || '');
+    const [businessAddress, setBusinessAddress] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -22,16 +23,17 @@ export default function VendorUpgradePage() {
         setError('');
 
         try {
-            await api.vendors.becomeVendor({
+            await api.businessProfiles.register({
                 businessName,
                 businessPhone,
+                businessAddress,
             });
 
             // The backend successfully upgraded the user role.
             // Synchronize the profile so the frontend knows the new role.
             await syncProfile();
 
-            // Redirect to subscription plans since they are now a vendor without a plan
+            // Redirect to subscription plans since they are now a business account without a plan
             router.push('/subscription?upgrade=success');
         } catch (err: any) {
             setError(err.message || 'Failed to upgrade account. Please try again.');
@@ -53,9 +55,9 @@ export default function VendorUpgradePage() {
                     <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-orange-50 rounded-2xl flex items-center justify-center mb-6">
                         <Zap className="w-8 h-8 text-orange-500" />
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-3">Upgrade to Business Account</h1>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-3">Upgrade to Paid Business Plan</h1>
                     <p className="text-slate-500 font-bold leading-relaxed">
-                        Transform your regular user account into a powerful vendor profile. Start listing your services, tracking leads, and connecting with thousands of local customers.
+                        Transform your regular user account into a powerful business profile. Start listing your services, tracking leads, and connecting with thousands of local customers.
                     </p>
                 </div>
 
@@ -106,12 +108,27 @@ export default function VendorUpgradePage() {
                             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                             <input
                                 required
-                                minLength={8}
                                 type="tel"
                                 className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white focus:ring-4 focus:ring-orange-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
                                 placeholder="+1 234 567 890"
                                 value={businessPhone}
                                 onChange={(e) => setBusinessPhone(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                                required
+                                minLength={5}
+                                type="text"
+                                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-orange-500/20 focus:bg-white focus:ring-4 focus:ring-orange-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                                placeholder="e.g. 123 Main St, Sector F-6, Islamabad"
+                                value={businessAddress}
+                                onChange={(e) => setBusinessAddress(e.target.value)}
                             />
                         </div>
                     </div>

@@ -12,6 +12,7 @@ import {
     HttpStatus,
     UseInterceptors,
     Inject,
+    Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { CacheInterceptor, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -32,6 +33,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { FeatureGateGuard } from '../../common/guards/feature-gate.guard';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User, UserRole } from '../../entities/user.entity';
+import { Request } from 'express';
+import { SearchLocationService } from '../location/search-location.service';
 
 @ApiTags('businesses')
 @Controller('businesses')
@@ -40,6 +43,7 @@ export class BusinessesController {
     constructor(
         private readonly businessesService: BusinessesService,
         private readonly searchService: SearchService,
+        private readonly searchLocationService: SearchLocationService,
         private readonly affiliateService: AffiliateService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
@@ -48,14 +52,32 @@ export class BusinessesController {
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @UseGuards(FeatureGateGuard)
     @ApiBearerAuth()
-    @ApiOperation({ summary: 'Create a new listing (Vendor only)' })
+    @ApiOperation({ summary: 'Create a new listing (Business account only)' })
     @ApiResponse({ status: 201, description: 'Listing created successfully' })
-    @ApiResponse({ status: 403, description: 'Only vendors can create listings' })
-    create(
+    @ApiResponse({ status: 403, description: 'Only business accounts can create listings' })
+    async create(
         @Body() createBusinessDto: CreateBusinessDto,
         @CurrentUser() user: User,
+        @Req() req: Request,
     ) {
-        return this.businessesService.create(createBusinessDto, user);
+        const forwardedFor = req.headers['x-forwarded-for'];
+        const ipAddress = Array.isArray(forwardedFor)
+            ? forwardedFor[0]
+            : String(forwardedFor || req.ip || '').split(',')[0].trim();
+        const sessionId = String(req.headers['x-session-id'] || '');
+        const deviceId = String(req.headers['x-device-id'] || req.headers['user-agent'] || '');
+
+        const created = await this.businessesService.create(createBusinessDto, user, {
+            ipAddress: ipAddress || undefined,
+            sessionId: sessionId || undefined,
+            deviceId: deviceId || undefined,
+        });
+        await this.searchLocationService.invalidateCity(created.city);
+        await this.searchLocationService.invalidateCityCategory(
+            created.city,
+            created.category?.slug || created.categoryId || 'all',
+        );
+        return created;
     }
 
     @Patch(':id/image')
@@ -82,12 +104,11 @@ export class BusinessesController {
     }
 
     @Public()
-    @UseInterceptors(CacheInterceptor)
     @Get('search')
     @ApiOperation({ summary: 'Search listings with filters and geo-location' })
     @ApiResponse({ status: 200, description: 'Search results returned' })
     search(@Query() searchDto: SearchBusinessDto) {
-        return this.businessesService.search(searchDto);
+        return this.searchLocationService.search(searchDto, () => this.businessesService.search(searchDto));
     }
 
     @Public()
@@ -124,6 +145,7 @@ export class BusinessesController {
         @Body() updateBusinessDto: UpdateBusinessDto,
         @CurrentUser() user: User,
     ) {
+        const before = await this.businessesService.getListingSnapshot(id);
         const result = await this.businessesService.update(id, updateBusinessDto, user);
 
         // Invalidate cache
@@ -142,6 +164,19 @@ export class BusinessesController {
             console.error('Cache Invalidation Error:', err);
         }
 
+        if (before) {
+            await this.searchLocationService.invalidateCity(before.city);
+            await this.searchLocationService.invalidateCityCategory(
+                before.city,
+                before.category?.slug || before.categoryId || 'all',
+            );
+        }
+        await this.searchLocationService.invalidateCity(result.city);
+        await this.searchLocationService.invalidateCityCategory(
+            result.city,
+            result.category?.slug || result.categoryId || 'all',
+        );
+
         return result;
     }
 
@@ -153,15 +188,23 @@ export class BusinessesController {
     @ApiResponse({ status: 204, description: 'Listing deleted successfully' })
     @ApiResponse({ status: 403, description: 'Unauthorized access' })
     @ApiResponse({ status: 404, description: 'Listing not found' })
-    remove(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
-        return this.businessesService.remove(id, user);
+    async remove(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
+        const snapshot = await this.businessesService.getListingSnapshot(id);
+        await this.businessesService.remove(id, user);
+        if (snapshot) {
+            await this.searchLocationService.invalidateCity(snapshot.city);
+            await this.searchLocationService.invalidateCityCategory(
+                snapshot.city,
+                snapshot.category?.slug || snapshot.categoryId || 'all',
+            );
+        }
     }
 
-    @Get('vendor/my-listings')
+    @Get(['vendor/my-listings', 'owner/my-listings'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
-    @ApiOperation({ summary: 'Get current vendor listings' })
-    @ApiResponse({ status: 200, description: 'Vendor listings retrieved' })
+    @ApiOperation({ summary: 'Get current business listings' })
+    @ApiResponse({ status: 200, description: 'Business listings retrieved' })
     getMyBusinesses(
         @CurrentUser() user: User,
         @Query('page') page?: number,
@@ -197,6 +240,64 @@ export class BusinessesController {
     @Public()
     async sync() {
         return this.searchService.reindexAll();
+    }
+
+    @Get(':id/albums')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'List albums for a business listing' })
+    getAlbums(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
+        return this.businessesService.getAlbums(id, user);
+    }
+
+    @Post(':id/albums')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Create an album (paid plans only)' })
+    createAlbum(
+        @Param('id', ParseUuidPipe) id: string,
+        @CurrentUser() user: User,
+        @Body('name') name: string,
+    ) {
+        return this.businessesService.createAlbum(id, user, name);
+    }
+
+    @Patch(':id/albums/:albumId')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Rename an album' })
+    renameAlbum(
+        @Param('id', ParseUuidPipe) id: string,
+        @Param('albumId') albumId: string,
+        @CurrentUser() user: User,
+        @Body('name') name: string,
+    ) {
+        return this.businessesService.renameAlbum(id, albumId, user, name);
+    }
+
+    @Delete(':id/albums/:albumId')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Delete an album' })
+    deleteAlbum(
+        @Param('id', ParseUuidPipe) id: string,
+        @Param('albumId') albumId: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.businessesService.deleteAlbum(id, albumId, user);
+    }
+
+    @Patch(':id/albums/:albumId/images')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Replace/reorder album images and captions' })
+    upsertAlbumImages(
+        @Param('id', ParseUuidPipe) id: string,
+        @Param('albumId') albumId: string,
+        @CurrentUser() user: User,
+        @Body('images') images: any[],
+    ) {
+        return this.businessesService.upsertAlbumImages(id, albumId, user, images);
     }
 
 

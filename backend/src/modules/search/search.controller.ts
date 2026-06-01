@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { CacheInterceptor } from '@nestjs/cache-manager';
 
 import { SearchService } from './search.service';
+import { SearchLocationService } from './search-location.service';
 import { BroadcastService } from '../notifications/broadcast.service';
 
 import { Public } from '../../common/decorators/public.decorator';
@@ -34,6 +35,7 @@ export class SearchController {
 
     constructor(
         private readonly searchService: SearchService,
+        private readonly searchLocationService: SearchLocationService,
         private readonly broadcastService: BroadcastService
     ) {
         this.logger.log('🚀 SearchController initialized at /api/v1/search');
@@ -55,12 +57,7 @@ export class SearchController {
                 console.error('Broadcast handleSearch error:', err);
             });
 
-        return this.searchService.search(
-            searchDto,
-            req?.user?.id,
-            req?.ip,
-            req?.get('user-agent')
-        );
+        return this.searchLocationService.searchHybrid(searchDto);
     }
 
     @Post('sync')

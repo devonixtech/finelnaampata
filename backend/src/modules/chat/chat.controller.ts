@@ -37,7 +37,7 @@ export class ChatController {
         return this.chatService.getUserConversations(req.user.id);
     }
 
-    @Get('conversations/vendor')
+    @Get(['conversations/vendor', 'conversations/business'])
     @ApiOperation({ summary: 'Get all conversations for the current vendor' })
     async getVendorConversations(@Request() req: any) {
         return this.chatService.getVendorConversationsByUserId(req.user.id);
@@ -61,6 +61,22 @@ export class ChatController {
     async markAsRead(@Request() req: any, @Param('id') id: string) {
         await this.chatService.markAsRead(id, req.user.id);
         return { success: true };
+    }
+
+    @Get('conversations/:id/notes')
+    @ApiOperation({ summary: 'Get private business/admin notes for a customer conversation' })
+    async getNotes(@Request() req: any, @Param('id') id: string) {
+        return this.chatService.getNotes(id, req.user);
+    }
+
+    @Post('conversations/:id/notes')
+    @ApiOperation({ summary: 'Create a private business/admin note for a customer conversation' })
+    async createNote(
+        @Request() req: any,
+        @Param('id') id: string,
+        @Body('content') content: string,
+    ) {
+        return this.chatService.createNote(id, req.user, content);
     }
 
     @Post('conversations/:id/messages')

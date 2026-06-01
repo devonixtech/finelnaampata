@@ -4,6 +4,9 @@ import {
     ConflictException,
     BadRequestException,
 } from '@nestjs/common';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, ILike, Brackets } from 'typeorm';
 import { Category, CategoryStatus, CategorySource } from '../../entities/category.entity';
@@ -178,6 +181,256 @@ export class CategoriesService {
         }
 
         return { count };
+    }
+
+    /**
+     * Bulk import categories from `categories-list.json` in repo root.
+     * Supports array of strings or objects: { name, slug?, parentName?, description?, icon? }.
+     */
+    async getCategoriesReviewExport(filePath = join(process.cwd(), 'categories-list.json')) {
+        const raw = await readFile(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            throw new BadRequestException('categories-list.json must be a JSON array');
+        }
+        return {
+            filePath,
+            count: parsed.length,
+            note:
+                'Amend this file, then run POST /categories/admin/bulk-import-file to import approved categories.',
+            sample: parsed.slice(0, 25),
+        };
+    }
+
+    async bulkImportFromFile(filePath = join(process.cwd(), 'categories-list.json')): Promise<{ count: number; created: number; updated: number }> {
+        const raw = await readFile(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            throw new BadRequestException('categories-list.json must be a JSON array');
+        }
+
+        let created = 0;
+        let updated = 0;
+
+        const byName = new Map<string, Category>();
+        const all = await this.categoryRepository.find();
+        for (const cat of all) {
+            byName.set(cat.name.trim().toLowerCase(), cat);
+        }
+
+        const resolveInput = (entry: any) => {
+            if (typeof entry === 'string') {
+                const cleaned = entry.trim();
+                return {
+                    name: cleaned.replace(/_/g, ' '),
+                    slug: generateSlug(cleaned),
+                    source: CategorySource.GOOGLE,
+                    status: CategoryStatus.ACTIVE,
+                    icon: this.mapGoogleTypeToIcon(generateSlug(cleaned)),
+                    description: undefined as string | undefined,
+                    parentName: undefined as string | undefined,
+                };
+            }
+
+            const baseName = String(entry?.name || entry?.slug || '').trim();
+            if (!baseName) return null;
+            const slug = generateSlug(String(entry.slug || baseName));
+            return {
+                name: baseName,
+                slug,
+                source: entry.source || CategorySource.GOOGLE,
+                status: entry.status || CategoryStatus.ACTIVE,
+                icon: entry.icon || this.mapGoogleTypeToIcon(slug),
+                description: entry.description,
+                parentName: entry.parentName || entry.parent || undefined,
+            };
+        };
+
+        // Pass 1: create/update categories without parent relation
+        for (const entry of parsed) {
+            const input = resolveInput(entry);
+            if (!input) continue;
+
+            const nameKey = input.name.trim().toLowerCase();
+            let existing = byName.get(nameKey) || await this.categoryRepository.findOne({
+                where: [{ slug: ILike(input.slug) }, { name: ILike(input.name) }],
+            });
+
+            if (!existing) {
+                existing = this.categoryRepository.create({
+                    name: input.name,
+                    slug: input.slug,
+                    source: input.source,
+                    status: input.status,
+                    icon: input.icon,
+                    description: input.description,
+                });
+                existing = await this.categoryRepository.save(existing);
+                created++;
+            } else {
+                let changed = false;
+                if (!existing.icon && input.icon) { existing.icon = input.icon; changed = true; }
+                if (!existing.description && input.description) { existing.description = input.description; changed = true; }
+                if (existing.status !== CategoryStatus.ACTIVE) { existing.status = CategoryStatus.ACTIVE; changed = true; }
+                if (changed) {
+                    await this.categoryRepository.save(existing);
+                    updated++;
+                }
+            }
+
+            byName.set(nameKey, existing);
+        }
+
+        // Pass 2: parent assignments
+        for (const entry of parsed) {
+            const input = resolveInput(entry);
+            if (!input || !input.parentName) continue;
+            const child = byName.get(input.name.trim().toLowerCase());
+            const parent = byName.get(String(input.parentName).trim().toLowerCase());
+            if (!child || !parent || child.id === parent.id) continue;
+            if (child.parentId !== parent.id) {
+                child.parentId = parent.id;
+                await this.categoryRepository.save(child);
+                updated++;
+            }
+        }
+
+        return { count: created + updated, created, updated };
+    }
+
+    async syncGoogleBusinessProfileCategories(params?: {
+        languageCode?: string;
+        regionCode?: string;
+        pageSize?: number;
+        writeReviewFile?: boolean;
+    }): Promise<{
+        fetched: number;
+        created: number;
+        updated: number;
+        reviewFilePath?: string;
+    }> {
+        const accessToken = process.env.GOOGLE_BUSINESS_ACCESS_TOKEN;
+        if (!accessToken) {
+            throw new BadRequestException(
+                'GOOGLE_BUSINESS_ACCESS_TOKEN is missing. Set this env var and retry.',
+            );
+        }
+
+        const languageCode = params?.languageCode || 'en';
+        const regionCode = params?.regionCode || 'PK';
+        const pageSize = Math.min(Math.max(params?.pageSize || 200, 1), 200);
+
+        const normalizedNames = new Set<string>();
+        const categories: Array<{
+            name: string;
+            slug: string;
+            source: CategorySource;
+            status: CategoryStatus;
+            description?: string;
+            icon?: string;
+        }> = [];
+
+        let nextPageToken: string | undefined;
+        do {
+            const query = new URLSearchParams({
+                languageCode,
+                regionCode,
+                pageSize: String(pageSize),
+            });
+            if (nextPageToken) query.set('pageToken', nextPageToken);
+
+            const url = `https://mybusinessbusinessinformation.googleapis.com/v1/categories?${query.toString()}`;
+            const res = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new BadRequestException(
+                    `Google Business categories fetch failed (${res.status}): ${errText}`,
+                );
+            }
+
+            const data = await res.json() as {
+                categories?: Array<{
+                    categoryId?: string;
+                    displayName?: string;
+                    serviceTypes?: Array<{ serviceTypeId?: string; displayName?: string }>;
+                }>;
+                nextPageToken?: string;
+            };
+
+            for (const item of data.categories || []) {
+                if (!item.displayName) continue;
+                const normalized = item.displayName.trim().toLowerCase();
+                if (!normalized || normalizedNames.has(normalized)) continue;
+                normalizedNames.add(normalized);
+                const slug = generateSlug(item.displayName);
+                categories.push({
+                    name: item.displayName.trim(),
+                    slug,
+                    source: CategorySource.GOOGLE,
+                    status: CategoryStatus.ACTIVE,
+                    icon: this.mapGoogleTypeToIcon(slug),
+                    description: item.categoryId ? `googleCategoryId:${item.categoryId}` : undefined,
+                });
+            }
+
+            nextPageToken = data.nextPageToken || undefined;
+        } while (nextPageToken);
+
+        let created = 0;
+        let updated = 0;
+        for (const incoming of categories) {
+            let existing = await this.categoryRepository.findOne({
+                where: [{ slug: ILike(incoming.slug) }, { name: ILike(incoming.name) }],
+            });
+
+            if (!existing) {
+                existing = this.categoryRepository.create(incoming);
+                await this.categoryRepository.save(existing);
+                created++;
+                continue;
+            }
+
+            let changed = false;
+            if (!existing.icon && incoming.icon) {
+                existing.icon = incoming.icon;
+                changed = true;
+            }
+            if (!existing.description && incoming.description) {
+                existing.description = incoming.description;
+                changed = true;
+            }
+            if (existing.status !== CategoryStatus.ACTIVE) {
+                existing.status = CategoryStatus.ACTIVE;
+                changed = true;
+            }
+            if (changed) {
+                await this.categoryRepository.save(existing);
+                updated++;
+            }
+        }
+
+        let reviewFilePath: string | undefined;
+        if (params?.writeReviewFile !== false) {
+            const reviewDir = join(process.cwd(), 'tmp');
+            await mkdir(reviewDir, { recursive: true });
+            reviewFilePath = join(
+                reviewDir,
+                `google-business-categories-${regionCode.toLowerCase()}-${languageCode.toLowerCase()}.json`,
+            );
+            await writeFile(reviewFilePath, JSON.stringify(categories, null, 2), 'utf-8');
+        }
+
+        return {
+            fetched: categories.length,
+            created,
+            updated,
+            reviewFilePath,
+        };
     }
 
     /**

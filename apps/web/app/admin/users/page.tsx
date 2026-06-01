@@ -18,7 +18,7 @@ type Role = 'user' | 'vendor' | 'superadmin';
 
 const ROLE_CONFIG: Record<Role, { label: string; cls: string; Icon: any }> = {
     user: { label: 'User', cls: 'bg-slate-100 text-slate-600 border-slate-200', Icon: UserIcon },
-    vendor: { label: 'Vendor', cls: 'bg-blue-50 text-blue-700 border-blue-200', Icon: Briefcase },
+    vendor: { label: 'Business', cls: 'bg-blue-50 text-blue-700 border-blue-200', Icon: Briefcase },
     // admin: { label: 'Admin', cls: 'bg-amber-50 text-amber-700 border-amber-200', Icon: Shield },
     superadmin: { label: 'Superadmin', cls: 'bg-red-50 text-red-700 border-red-200', Icon: Crown },
 };
@@ -492,7 +492,7 @@ export default function AdminUsersPage() {
                                             <StatusBadge active={selectedUser.isActive} />
                                             {selectedUserDetails?.vendor?.isVerified && (
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                    <BadgeCheck className="w-3.5 h-3.5" /> Verified Vendor
+                                                    <BadgeCheck className="w-3.5 h-3.5" /> Trusted Business
                                                 </span>
                                             )}
                                         </div>
@@ -557,10 +557,10 @@ export default function AdminUsersPage() {
                                             </div>
                                         </div>
 
-                                        {/* Vendor Profile Section */}
+                                        {/* Business Profile Section */}
                                         {selectedUserDetails?.vendor && (
                                             <div className="space-y-4">
-                                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-l-4 border-blue-500 pl-3">Vendor Business Profile</h4>
+                                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-l-4 border-blue-500 pl-3">Business Profile</h4>
                                                 <div className="grid grid-cols-2 gap-6 p-6 bg-blue-50/50 rounded-3xl border border-blue-100">
                                                     <div className="space-y-1">
                                                         <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Business Name</span>
@@ -611,53 +611,22 @@ export default function AdminUsersPage() {
                             {(selectedUserDetails as any)?.setupData && (
                                 <div className="px-8 pb-8 space-y-6">
                                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Business Setup Intelligence</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        {/* Service Mode */}
-                                        <div className="p-5 bg-emerald-50/50 rounded-3xl border border-emerald-100/50">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                                                    <Store className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Service Mode</span>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {((selectedUserDetails as any).setupData['Service Mode'] || (selectedUserDetails as any).setupData['srv-1'])?.map((val: string) => (
-                                                    <div key={val} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                                        {val}
-                                                    </div>
-                                                )) || <p className="text-[10px] font-bold text-slate-400 italic">Not set</p>}
-                                            </div>
-                                        </div>
-
-                                        {/* Payment Methods */}
-                                        <div className="p-5 bg-blue-50/50 rounded-3xl border border-blue-100/50">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                                                    <CreditCard className="w-4 h-4" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Payments</span>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {((selectedUserDetails as any).setupData['Payment Methods'] || (selectedUserDetails as any).setupData['pay-1'])?.map((val: string) => (
-                                                    <div key={val} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                                        <CheckCircle2 className="w-3 h-3 text-blue-500" />
-                                                        {val}
-                                                    </div>
-                                                )) || <p className="text-[10px] font-bold text-slate-400 italic">Not set</p>}
-                                            </div>
-                                        </div>
-
-                                        {/* Amenities */}
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {/* Amenities + Service + Payments (Doc3 merged) */}
                                         <div className="p-5 bg-indigo-50/50 rounded-3xl border border-indigo-100/50">
                                             <div className="flex items-center gap-3 mb-4">
                                                 <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
                                                     <Zap className="w-4 h-4" />
                                                 </div>
-                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Features</span>
+                                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Amenities & Facilities</span>
                                             </div>
                                             <div className="space-y-2">
-                                                {((selectedUserDetails as any).setupData['Business Features'] || (selectedUserDetails as any).setupData['feat-1'])?.map((val: string) => (
+                                                {Array.from(new Set([
+                                                    ...((selectedUserDetails as any).setupData['Amenities & Facilities'] || []),
+                                                    ...((selectedUserDetails as any).setupData['Business Features'] || []),
+                                                    ...((selectedUserDetails as any).setupData['Service Mode'] || (selectedUserDetails as any).setupData['srv-1'] || []),
+                                                    ...((selectedUserDetails as any).setupData['Payment Methods'] || (selectedUserDetails as any).setupData['pay-1'] || []),
+                                                ])).map((val: string) => (
                                                     <div key={val} className="flex items-center gap-2 text-xs font-bold text-slate-700">
                                                         <CheckCircle2 className="w-3 h-3 text-indigo-500" />
                                                         {val}

@@ -54,7 +54,7 @@ export class OffersController {
         return this.offersService.create(user.id, dto);
     }
  
-    @Get('vendor')
+    @Get(['vendor', 'owner'])
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
@@ -64,8 +64,9 @@ export class OffersController {
         @CurrentUser() user: User,
         @Query('page') page?: number,
         @Query('limit') limit?: number,
+        @Query('type') type?: string,
     ) {
-        return this.offersService.findByVendor(user.id, page, limit);
+        return this.offersService.findByVendor(user.id, page, limit, type as any);
     }
  
     @Patch(':id')
@@ -81,6 +82,18 @@ export class OffersController {
         @CurrentUser() user: User,
     ) {
         return this.offersService.update(id, user.id, dto);
+    }
+
+    @Post(':id/publish')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Publish a draft offer/event after add-on entitlement' })
+    publish(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.offersService.publish(id, user.id);
     }
  
     @Delete(':id')

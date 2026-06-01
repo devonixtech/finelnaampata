@@ -3,46 +3,40 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, ArrowRight, ShieldCheck, Loader2, Phone, Megaphone, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Phone, Megaphone, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getCookie } from '../../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
+
+import { DEFAULT_DIAL_CODES } from '../../lib/phone-codes';
+
+const inputClass =
+    'w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none';
 
 function RegisterForm() {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
+    const [phoneCode, setPhoneCode] = useState('+92');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [referralCode, setReferralCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
     const { register, googleLogin } = useAuth();
-    const router = useRouter();
     const searchParams = useSearchParams();
-    const [selectedRole, setSelectedRole] = useState<'user' | 'vendor'>('user');
 
     useEffect(() => {
-        const queryRole = searchParams.get('role');
         const ref = searchParams.get('ref');
-
-        // Priority for referral code: URL 'ref' parameter -> session storage fallback
         if (ref) {
             setReferralCode(ref);
-            setSelectedRole('vendor'); // Auto-switch to vendor role for referrals
-        } else if (typeof window !== 'undefined') {
-            const storedRef = sessionStorage.getItem('referralCode');
-            if (storedRef) {
-                setReferralCode(storedRef);
-                setSelectedRole('vendor');
-            }
-        }
-
-        if (queryRole === 'vendor') {
-            setSelectedRole('vendor');
-        } else if (queryRole === 'user') {
-            setSelectedRole('user');
+        } else {
+            const storedRef = getCookie('referralCode');
+            if (storedRef) setReferralCode(storedRef);
         }
     }, [searchParams]);
 
@@ -51,7 +45,7 @@ function RegisterForm() {
             setLoading(true);
             setError('');
             try {
-                await googleLogin(tokenResponse.access_token, selectedRole, referralCode);
+                await googleLogin(tokenResponse.access_token, undefined, referralCode);
             } catch (err: any) {
                 setError(err.message || 'Google registration failed. Please try again.');
             } finally {
@@ -63,16 +57,43 @@ function RegisterForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+
+        if (!agreedToTerms) {
+            setError('Please agree to the Terms and Privacy Policy to continue.');
+            return;
+        }
+
+        const hasMinLength = password.length >= 8;
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber) {
+            setError('Password must meet all strength requirements.');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+
+        const normalizedNumber = phone.replace(/^0+/, ''); // Strip leading zero
+        const fullPhone = `${phoneCode}${normalizedNumber}`;
+        if (phone && !/^\+[1-9]\d{7,14}$/.test(fullPhone)) {
+            setError('Please enter a valid phone number (8 to 15 digits).');
+            return;
+        }
+
+        setLoading(true);
         try {
             await register({
                 fullName,
                 email,
-                phone,
+                phone: fullPhone,
                 password,
-                role: selectedRole,
-                referralCode: selectedRole === 'vendor' ? referralCode : undefined
+                role: 'user',
+                referralCode: referralCode || undefined,
             });
         } catch (err: any) {
             setError(err.message || 'Registration failed. Please try again.');
@@ -86,39 +107,20 @@ function RegisterForm() {
             <Navbar />
 
             <main className="flex-grow flex items-center justify-center px-4 py-10 relative overflow-hidden">
-                {/* Background Accents */}
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[128px] pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[128px] pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-[128px] pointer-events-none" />
 
                 <div className="max-w-md w-full relative z-10">
-                    <div className="text-center mb-10">
+                    <div className="text-center mb-8">
                         <h1 className="text-4xl font-black text-slate-900 mb-3 tracking-tight">
-                            {selectedRole === 'vendor' ? 'Grow Your Business' : 'Join naampata'}
+                            Join Naampata
                         </h1>
                         <p className="text-slate-500 font-medium">
-                            {selectedRole === 'vendor'
-                                ? 'Register as a business to start listing your services'
-                                : 'Start exploring and connecting with your community'}
+                            One account to browse local businesses or list your own when you are ready.
                         </p>
                     </div>
 
                     <div className="bg-white rounded-[20px] border border-slate-100 p-8 md:p-10 shadow-2xl shadow-blue-500/5">
-                        <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-8 border border-slate-100">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedRole('user')}
-                                className={`flex-1 py-3 rounded-xl font-black text-xs transition-all uppercase tracking-widest ${selectedRole === 'user' ? 'bg-white text-blue-600 shadow-md border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                User Account
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedRole('vendor')}
-                                className={`flex-1 py-3 rounded-xl font-black text-xs transition-all uppercase tracking-widest ${selectedRole === 'vendor' ? 'bg-white text-[#FF7A30] shadow-md border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                Business Account
-                            </button>
-                        </div>
 
                         {error && (
                             <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-2xl text-sm font-bold border border-red-100 italic">
@@ -126,15 +128,29 @@ function RegisterForm() {
                             </div>
                         )}
 
-                        <form className="space-y-6" onSubmit={handleSubmit}>
+                        {referralCode && (
+                            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Referred By Affiliate</p>
+                                    <p className="text-sm font-bold text-emerald-900 mt-0.5">Code: {referralCode}</p>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                                </div>
+                            </div>
+                        )}
+
+                        <form className="space-y-5" onSubmit={handleSubmit}>
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Full Name
+                                </label>
                                 <div className="relative">
                                     <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
                                         required
                                         type="text"
-                                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                                        className={inputClass}
                                         placeholder="Enter your full name"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
@@ -143,28 +159,45 @@ function RegisterForm() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                                    <input
-                                        required
-                                        type="tel"
-                                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
-                                        placeholder="+1 234 567 890"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                    />
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Phone Number
+                                </label>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="w-32 px-3 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                                        value={phoneCode}
+                                        onChange={(e) => setPhoneCode(e.target.value)}
+                                    >
+                                        {DEFAULT_DIAL_CODES.map((d) => (
+                                            <option key={d.code} value={d.dialCode}>
+                                                {d.code} ({d.dialCode})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="relative flex-1">
+                                        <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                        <input
+                                            required
+                                            type="tel"
+                                            className={inputClass}
+                                            placeholder="3001234567"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Email Address
+                                </label>
                                 <div className="relative">
                                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
                                         required
                                         type="email"
-                                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                                        className={inputClass}
                                         placeholder="name@example.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -176,72 +209,127 @@ function RegisterForm() {
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                                     Password
                                 </label>
-
                                 <div className="relative">
                                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-
                                     <input
                                         required
-                                        type={showPassword ? "text" : "password"}
-                                        className="w-full pl-14 pr-14 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
+                                        type={showPassword ? 'text' : 'password'}
+                                        className={`${inputClass} pr-14`}
                                         placeholder="At least 8 characters"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
-
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                                     >
-                                        {showPassword ? (
-                                            <EyeOff className="w-5 h-5" />
-                                        ) : (
-                                            <Eye className="w-5 h-5" />
-                                        )}
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
+                                </div>
+                                {password && (
+                                    <div className="mt-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs font-medium text-slate-500">
+                                        <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-1">Password Strength</p>
+                                        {[
+                                            { label: 'At least 8 characters', check: password.length >= 8 },
+                                            { label: 'At least one uppercase letter', check: /[A-Z]/.test(password) },
+                                            { label: 'At least one lowercase letter', check: /[a-z]/.test(password) },
+                                            { label: 'At least one number', check: /[0-9]/.test(password) },
+                                        ].map(({ label, check }) => (
+                                            <div key={label} className="flex items-center gap-2">
+                                                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${check ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                                <span className={check ? 'text-slate-900 font-semibold' : 'text-slate-400'}>{label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Re-type Password
+                                </label>
+                                <div className="relative">
+                                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                    <input
+                                        required
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        className={`${inputClass} pr-14`}
+                                        placeholder="Re-type your password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                                {confirmPassword && password !== confirmPassword && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Passwords do not match</p>
+                                )}
+                                {confirmPassword && password === confirmPassword && (
+                                    <p className="text-[10px] font-bold text-emerald-500 ml-1 mt-1">✓ Passwords match</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Referral Code (Optional)
+                                </label>
+                                <div className="relative">
+                                    <Megaphone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                    <input
+                                        type="text"
+                                        className="w-full pl-14 pr-6 py-4 bg-blue-50/30 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none uppercase placeholder:normal-case"
+                                        placeholder="Enter referral code (if you have one)"
+                                        value={referralCode}
+                                        onChange={(e) => setReferralCode(e.target.value)}
+                                    />
                                 </div>
                             </div>
 
-                            {selectedRole === 'vendor' && (
-                                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Referral Code (Optional)</label>
-                                    <div className="relative">
-                                        <Megaphone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                                        <input
-                                            type="text"
-                                            className="w-full pl-14 pr-6 py-4 bg-blue-50/30 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none uppercase placeholder:normal-case"
-                                            placeholder="Enter your expert's code"
-                                            value={referralCode}
-                                            onChange={(e) => setReferralCode(e.target.value)}
-                                        />
-                                    </div>
+                            <div className="flex items-start gap-3 px-1 leading-5 pt-1">
+                                <div className="relative flex items-center justify-center mt-0.5">
+                                    <input
+                                        type="checkbox"
+                                        id="agreeToTerms"
+                                        checked={agreedToTerms}
+                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-lg checked:border-blue-500 checked:bg-blue-500 transition-colors cursor-pointer peer"
+                                    />
+                                    <svg className="w-3 h-3 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
                                 </div>
-                            )}
-
-                            <div className="flex items-start gap-3 px-1 leading-5">
-                                <input required type="checkbox" className="w-4 h-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500/20 transition-all cursor-pointer mt-0.5" />
-                                <p className="text-[10px] text-slate-400 font-bold leading-relaxed uppercase tracking-wider">
-                                    I agree to the <Link href="/terms" className="text-blue-600 hover:text-blue-700 transition-colors">Terms</Link> and <Link href="/privacy" className="text-blue-600 hover:text-blue-700 transition-colors">Privacy Policy</Link>
-                                </p>
+                                <label htmlFor="agreeToTerms" className="text-[11px] text-slate-500 font-medium leading-relaxed cursor-pointer">
+                                    I agree to the{' '}
+                                    <Link href="/terms" className="text-blue-600 font-bold hover:underline">Terms &amp; Conditions</Link>
+                                    {' '}and{' '}
+                                    <Link href="/privacy" className="text-blue-600 font-bold hover:underline">Privacy Policy</Link>
+                                </label>
                             </div>
 
                             <button
                                 disabled={loading}
                                 type="submit"
-                                className={`w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all  active:scale-95 disabled:opacity-50 text-white ${selectedRole === 'vendor' ? 'bg-[#FF7A30] hover:bg-black shadow-orange-500/10' : 'bg-[#112D4E] hover:bg-black shadow-slate-900/10'}`}
+                                className="w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 text-white shadow-lg bg-[#112D4E] hover:bg-black shadow-slate-900/10"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                                {loading ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
                                     <>
-                                        {selectedRole === 'vendor' ? 'Register Business' : 'Create Account'}
+                                        Create Account
                                         <ArrowRight className="w-4 h-4" />
                                     </>
                                 )}
                             </button>
                         </form>
 
-                        <div className="relative my-10">
-                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+                        <div className="relative my-8">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
                             <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest text-slate-300 bg-white px-4">Or continue with</div>
                         </div>
 
@@ -252,52 +340,21 @@ function RegisterForm() {
                             className="w-full py-4 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl font-black text-sm flex items-center justify-center gap-4 transition-all shadow-sm active:scale-95 disabled:opacity-50 group"
                         >
                             <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
-                                <path
-                                    fill="#4285F4"
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                />
-                                <path
-                                    fill="#34A853"
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                />
-                                <path
-                                    fill="#FBBC05"
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                                />
-                                <path
-                                    fill="#EA4335"
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                />
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                             </svg>
                             Sign up with Google
                         </button>
 
-
-                        <button
-                            type="button"
-                            disabled={loading}
-
-                            className="w-full mt-4 py-4 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl font-black text-sm flex items-center justify-center gap-4 transition-all shadow-sm active:scale-95 disabled:opacity-50 group"
-                        >
-                            <svg
-                                className="w-5 h-5 transition-transform group-hover:scale-110"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                            >
-                                <path
-                                    fill="#1877F2"
-                                    d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.009 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953h-1.514c-1.491 0-1.956.928-1.956 1.88v2.26h3.328l-.532 3.49h-2.796V24C19.612 23.082 24 18.092 24 12.073z"
-                                />
-                            </svg>
-
-                            Sign in with Facebook
-                        </button>
-
+                        <p className="mt-6 text-center text-sm text-slate-500 font-bold">
+                            Already have an account?{' '}
+                            <Link href="/login" className="text-blue-600 hover:text-blue-700 transition-colors">
+                                Log in here
+                            </Link>
+                        </p>
                     </div>
-
-                    <p className="mt-8 text-center text-sm text-slate-500 font-bold">
-                        Already have an account? <Link href="/login" className="text-blue-600 hover:text-blue-700 transition-colors">Log in here</Link>
-                    </p>
                 </div>
             </main>
 

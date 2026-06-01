@@ -5,12 +5,14 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     ManyToOne,
+    OneToMany,
     JoinColumn,
     Index,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Listing } from './business.entity';
 import { User } from './user.entity';
+import { BusinessCustomerNote } from './business-customer-note.entity';
 
 export enum LeadType {
     CALL = 'call',
@@ -119,4 +121,7 @@ export class Lead {
     @ManyToOne(() => User, (user) => user.leads)
     @JoinColumn({ name: 'user_id' })
     user: User;
+
+    @OneToMany(() => BusinessCustomerNote, note => note.lead)
+    customerNotes: BusinessCustomerNote[];
 }

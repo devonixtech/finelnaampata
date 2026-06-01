@@ -63,22 +63,6 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
                     </div>
                 </div>
             </div>
-
-            {isPage && (
-                <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
-                    {[
-                        "Priority Listing",
-                        "Expert Support",
-                        "Detailed Analytics",
-                        "Unlimited Leads"
-                    ].map((feat) => (
-                        <div key={feat} className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                             <CheckCircle2 className="w-4 h-4 text-blue-500" />
-                             {feat}
-                        </div>
-                    ))}
-                </div>
-            )}
         </motion.div>
     );
 

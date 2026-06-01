@@ -7,8 +7,12 @@ export const chatApi = {
     getUserConversations: async () => {
         return api.get('/chat/conversations/user');
     },
+    getBusinessConversations: async () => {
+        return api.get('/chat/conversations/business');
+    },
+    /** @deprecated use getBusinessConversations */
     getVendorConversations: async () => {
-        return api.get('/chat/conversations/vendor');
+        return api.get('/chat/conversations/business');
     },
     getMessages: async (conversationId: string) => {
         return api.get(`/chat/conversations/${conversationId}/messages`);
@@ -21,5 +25,11 @@ export const chatApi = {
     },
     sendMessage: async (conversationId: string, content: string) => {
         return api.post(`/chat/conversations/${conversationId}/messages`, { content, conversationId });
+    },
+    getNotes: async (conversationId: string) => {
+        return api.get(`/chat/conversations/${conversationId}/notes`);
+    },
+    createNote: async (conversationId: string, content: string) => {
+        return api.post(`/chat/conversations/${conversationId}/notes`, { content });
     },
 };

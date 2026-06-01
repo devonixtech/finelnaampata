@@ -24,20 +24,20 @@ import { api } from "../../../lib/api";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-type PromotionPlacement = "homepage" | "category" | "listing";
+type VisibilityPlacement = "offer" | "event";
 
 interface PricingRule {
   id: string;
-  placement: PromotionPlacement | string;
+  placement: VisibilityPlacement | string;
   pricePerHour: number;
   pricePerDay: number;
   isActive: boolean;
 }
 
-const ALLOWED_PLACEMENTS: PromotionPlacement[] = ["homepage", "category", "listing"];
+const ALLOWED_PLACEMENTS: VisibilityPlacement[] = ["offer", "event"];
 
 const PLACEMENT_INFO: Record<
-  PromotionPlacement,
+  VisibilityPlacement,
   {
     title: string;
     description: string;
@@ -48,35 +48,23 @@ const PLACEMENT_INFO: Record<
     borderColor: string;
   }
 > = {
-  homepage: {
-    title: "Home Page",
-    description:
-      "Boost listings to the prime hero section and search foreground.",
-    icon: Home,
-    color: "bg-orange-500",
-    lightColor: "bg-orange-50",
-    textColor: "text-orange-600",
-    borderColor: "border-orange-100",
+  offer: {
+    title: "Deal Visibility",
+    description: "Per-day rate when businesses publish deals and offers.",
+    icon: Tag,
+    color: "bg-emerald-600",
+    lightColor: "bg-emerald-50",
+    textColor: "text-emerald-700",
+    borderColor: "border-emerald-100",
   },
-  category: {
-    title: "Category Page",
-    description:
-      "Ensure visibility at the top of specific business categories.",
-    icon: LayoutGrid,
-    color: "bg-blue-600",
-    lightColor: "bg-blue-50",
-    textColor: "text-blue-600",
-    borderColor: "border-blue-100",
-  },
-  listing: {
-    title: "Listing Boost",
-    description:
-      'Appear in "Suggested" and "Similar" sections of competitor pages.',
-    icon: Zap,
-    color: "bg-violet-600",
-    lightColor: "bg-violet-50",
-    textColor: "text-violet-600",
-    borderColor: "border-violet-100",
+  event: {
+    title: "Event Visibility",
+    description: "Per-day rate when businesses publish events and workshops.",
+    icon: Calendar,
+    color: "bg-rose-600",
+    lightColor: "bg-rose-50",
+    textColor: "text-rose-700",
+    borderColor: "border-rose-100",
   },
 };
 
@@ -200,8 +188,8 @@ export default function PromotionRulesPage() {
   //         )
   //       : 0;
   const visibleRules = rules.filter(
-    (rule): rule is PricingRule & { placement: PromotionPlacement } =>
-      ALLOWED_PLACEMENTS.includes(rule.placement as PromotionPlacement),
+    (rule): rule is PricingRule & { placement: VisibilityPlacement } =>
+      ALLOWED_PLACEMENTS.includes(rule.placement as VisibilityPlacement),
   );
 
   const activeRules = visibleRules.filter((r) => r.isActive).length;
@@ -209,7 +197,7 @@ export default function PromotionRulesPage() {
     visibleRules.length > 0
       ? Math.round(
           visibleRules.reduce(
-            (acc, curr) => acc + Number(curr.pricePerHour),
+            (acc, curr) => acc + Number(curr.pricePerDay || curr.pricePerHour * 24),
             0,
           ) / visibleRules.length,
         )
@@ -231,11 +219,10 @@ export default function PromotionRulesPage() {
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
-              Promotion Boost Pricing
+              Deal & Event Visibility Pricing
             </h1>
             <p className="text-slate-400 font-bold text-lg max-w-md">
-              Configure global hourly rates for vendor promotions and set
-              placement visibility.
+              Set per-day rates for deal and event listings. Legacy ad placements are no longer used.
             </p>
           </div>
 
@@ -251,7 +238,7 @@ export default function PromotionRulesPage() {
             </div>
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
-                Avg. Hourly Rate
+                Avg. Daily Rate
               </div>
               <div className="text-3xl font-black">
                 {avgRate}{" "}
@@ -268,7 +255,7 @@ export default function PromotionRulesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
           <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
-            Placement Controls
+            Visibility Rates
             <div className="h-1 w-12 bg-red-500 rounded-full" />
           </h2>
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -276,7 +263,7 @@ export default function PromotionRulesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* {rules.map((rule) => {
             const info =
               PLACEMENT_INFO[rule.placement as keyof typeof PLACEMENT_INFO] ||
@@ -321,15 +308,11 @@ export default function PromotionRulesPage() {
                 {/* Pricing Controls */}
                 <div className="p-8 space-y-8">
                   <div className="space-y-6">
-                    {/* Hourly Boost Rate */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-end">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-                          Hourly Boost Rate
+                          Daily Visibility Rate
                         </label>
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">
-                          Automated Multiplier
-                        </span>
                       </div>
                       <div className="relative">
                         <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-extrabold text-xl">
@@ -337,17 +320,18 @@ export default function PromotionRulesPage() {
                         </div>
                         <input
                           type="number"
-                          defaultValue={rule.pricePerHour}
+                          defaultValue={rule.pricePerDay || Number(rule.pricePerHour) * 24}
                           onBlur={(e) => {
                             const val = Number(e.target.value);
-                            if (val !== rule.pricePerHour)
-                              handleUpdate(rule.id, { pricePerHour: val });
+                            const current = rule.pricePerDay || Number(rule.pricePerHour) * 24;
+                            if (val !== current)
+                              handleUpdate(rule.id, { pricePerDay: val, pricePerHour: Math.round(val / 24) });
                           }}
                           className="w-full px-8 py-3 pr-20 pl-16 bg-slate-50 border-2 border-transparent rounded-[24px] focus:outline-none focus:border-red-500 focus:bg-white transition-all font-black text-2xl text-slate-900 placeholder:text-slate-200 shadow-inner"
                           placeholder="0"
                         />
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xs uppercase tracking-widest">
-                          / Hr
+                          / Day
                         </div>
                       </div>
                     </div>
@@ -357,10 +341,10 @@ export default function PromotionRulesPage() {
                   <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                     <div className="flex flex-col">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        Estimated Daily
+                        Reference Hourly
                       </span>
                       <span className="text-lg font-black text-slate-900">
-                        Rs {Number(rule.pricePerHour) * 24}
+                        Rs {Math.round(Number(rule.pricePerDay || rule.pricePerHour * 24) / 24)}
                       </span>
                     </div>
                     <button
@@ -404,7 +388,7 @@ export default function PromotionRulesPage() {
                 <div className="space-y-4 text-center md:text-left">
                     <h4 className="text-2xl font-extrabold text-emerald-900">Monetization intelligence</h4>
                     <p className="text-emerald-700 font-medium text-lg leading-snug">
-                        The above prices are your global baseline. Vendors on **Diamond** or **Platinum** tiers receive discounted rates based on their plan settings, incentivizing high-tier subscriptions.
+                        The above prices are your global baseline. Businesses on **Diamond** or **Platinum** tiers receive discounted rates based on their plan settings, incentivizing high-tier subscriptions.
                     </p>
                 </div>
             </div> */}

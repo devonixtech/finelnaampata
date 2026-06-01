@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, ChevronDown, Check, Search, Navigation, Loader2, Signal } from 'lucide-react';
 import { City } from '../types/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { detectNearestCityName, sortAndDedupeCities } from '../lib/location-detect';
 
 interface Props {
     cities: City[];
@@ -19,11 +20,13 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
     const [isLocating, setIsLocating] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const sortedCities = useMemo(() => sortAndDedupeCities(cities), [cities]);
+
     const filteredCities = useMemo(() => {
-        if (!search.trim()) return cities;
+        if (!search.trim()) return sortedCities;
         const q = search.toLowerCase();
-        return cities.filter(c => c.name.toLowerCase().includes(q));
-    }, [cities, search]);
+        return sortedCities.filter(c => c.name.toLowerCase().includes(q));
+    }, [sortedCities, search]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -35,57 +38,22 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleAutoDetect = () => {
-        if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
-            return;
-        }
-
+    const handleAutoDetect = async () => {
         setIsLocating(true);
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-
-                if ((window as any).google && (window as any).google.maps && (window as any).google.maps.Geocoder) {
-                    const geocoder = new (window as any).google.maps.Geocoder();
-                    geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any, status: any) => {
-                        if (status === "OK" && results[0]) {
-                            const place = results[0];
-                            let detectedCity = '';
-                            place.address_components?.forEach((component: any) => {
-                                if (component.types.includes("locality")) {
-                                    detectedCity = component.long_name;
-                                } else if (component.types.includes("administrative_area_level_2") && !detectedCity) {
-                                    detectedCity = component.long_name;
-                                }
-                            });
-
-                            if (detectedCity) {
-                                const matched = cities.find(c =>
-                                    c.name.toLowerCase() === detectedCity.toLowerCase() ||
-                                    c.name.toLowerCase().includes(detectedCity.toLowerCase())
-                                );
-                                if (matched) {
-                                    onChange(matched.name);
-                                } else {
-                                    onChange(detectedCity);
-                                }
-                            }
-                        }
-                        setIsLocating(false);
-                        setIsOpen(false);
-                    });
-                } else {
-                    setIsLocating(false);
-                }
-            },
-            (error) => {
-                console.error("Error getting location:", error);
-                setIsLocating(false);
-                alert("Could not get your location. Please select manually.");
-            },
-            { enableHighAccuracy: true }
-        );
+        try {
+            const cityName = await detectNearestCityName(sortedCities);
+            if (cityName) {
+                onChange(cityName);
+                setIsOpen(false);
+            } else {
+                alert('Could not match your location to a city. Please select manually.');
+            }
+        } catch (error) {
+            console.error('Error getting location:', error);
+            alert('Could not get your location. Please select manually.');
+        } finally {
+            setIsLocating(false);
+        }
     };
 
     return (
@@ -180,9 +148,10 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
                                 <div className="space-y-1">
                                     {filteredCities.map(city => {
                                         const isSelected = city.name === value;
+                                        const rowKey = `${city.id || city.name}-${city.country || 'global'}`;
                                         return (
                                             <button
-                                                key={city.id}
+                                                key={rowKey}
                                                 type="button"
                                                 onClick={() => {
                                                     onChange(city.name);

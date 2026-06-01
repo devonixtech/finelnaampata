@@ -131,7 +131,7 @@ export default function MyJobLeads() {
                                                     <div className="flex flex-wrap items-center gap-2 text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                                                         <div className="flex items-center gap-1">
                                                             <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                                            <span>Verified Expert</span>
+                                                            <span>Business Expert</span>
                                                         </div>
                                                         <span className="hidden sm:inline">•</span>
                                                         <span>{formatDistanceToNow(new Date(resp.createdAt), { addSuffix: true })}</span>

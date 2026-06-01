@@ -9,12 +9,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { JobLead, JobLeadStatus } from '../../entities/job-lead.entity';
 import { JobLeadResponse, JobResponseStatus } from '../../entities/job-lead-response.entity';
-import { Listing } from '../../entities/business.entity';
+import { Listing, BusinessStatus } from '../../entities/business.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { Category } from '../../entities/category.entity';
 import { CreateJobLeadDto } from './dto/create-job-lead.dto';
 import { CreateJobResponseDto } from './dto/create-job-response.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class JobLeadsService {
@@ -31,22 +32,36 @@ export class JobLeadsService {
         @InjectRepository(Category)
         private categoryRepository: Repository<Category>,
         private notificationsGateway: NotificationsGateway,
+        private subscriptionsService: SubscriptionsService,
     ) { }
 
     async createLead(userId: string, dto: CreateJobLeadDto): Promise<JobLead> {
         const category = await this.categoryRepository.findOne({ where: { id: dto.categoryId } });
         if (!category) throw new NotFoundException('Category not found');
 
-        // Validation: Vendor cannot broadcast for their own services
-        const vendor = await this.vendorRepository.findOne({ 
-            where: { userId }, 
-            relations: ['businesses'] 
+        // Validation: A business cannot broadcast for a category where it already has a listing.
+        const vendor = await this.vendorRepository.findOne({
+            where: { userId },
+            select: ['id'],
         });
 
-        if (vendor && vendor.businesses) {
-            const hasOwnService = vendor.businesses.some(b => b.categoryId === dto.categoryId);
-            if (hasOwnService) {
-                throw new BadRequestException('You cannot send a broadcast for a category you already serve as a vendor.');
+        if (vendor) {
+            const conflictCount = await this.listingRepository
+                .createQueryBuilder('listing')
+                .leftJoin('listing.subcategories', 'subcategory')
+                .where('listing.vendor_id = :vendorId', { vendorId: vendor.id })
+                .andWhere('listing.status IN (:...statuses)', {
+                    statuses: [BusinessStatus.PENDING, BusinessStatus.APPROVED],
+                })
+                .andWhere('(listing.category_id = :categoryId OR subcategory.id = :categoryId)', {
+                    categoryId: dto.categoryId,
+                })
+                .getCount();
+
+            if (conflictCount > 0) {
+                throw new BadRequestException(
+                    'You cannot send a broadcast for a category where your business is already listed.',
+                );
             }
         }
 
@@ -215,6 +230,11 @@ export class JobLeadsService {
         if (!vendor) {
             this.logger.warn(`User ${vendorUserId} is not a vendor`);
             throw new ForbiddenException('Not a vendor');
+        }
+
+        const canRespond = await this.subscriptionsService.canPerformAction(vendorUserId, 'canRespondBroadcast');
+        if (!canRespond) {
+            throw new ForbiddenException('Responding to broadcast leads requires a paid plan. Upgrade to send proposals.');
         }
 
         const lead = await this.jobLeadRepository.findOne({ where: { id: leadId }, relations: ['user'] });

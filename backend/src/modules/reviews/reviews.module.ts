@@ -9,11 +9,13 @@ import { ReviewReply } from '../../entities/review-reply.entity';
 import { Listing } from '../../entities/business.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { UsersModule } from '../users/users.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Review, ReviewHelpfulVote, ReviewReply, Listing, Vendor]),
         UsersModule,
+        SubscriptionsModule,
     ],
     controllers: [ReviewsController],
     providers: [ReviewsService, ReviewDetectionService],

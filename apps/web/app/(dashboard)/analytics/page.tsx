@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { FeatureGate } from '../../../components/vendor/FeatureGate';
 
-export default function VendorAnalyticsPage() {
+export default function BusinessAnalyticsPage() {
     const { user } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [listings, setListings] = useState<any[]>([]);
@@ -24,7 +24,7 @@ export default function VendorAnalyticsPage() {
             try {
                 setLoading(true);
                 const [statsData, listingsData] = await Promise.all([
-                    api.vendors.getStats(),
+                    api.businessProfiles.getStats(),
                     api.listings.getMyListings({ limit: 10, sort: 'views_desc' })
                 ]);
                 setStats(statsData);
@@ -48,7 +48,7 @@ export default function VendorAnalyticsPage() {
         );
     }
 
-    // Analytics unlocked for all vendors as per user request.
+    // Analytics unlocked for all businesses as per user request.
 
     // Sort listings by views for top performers
     const topListings = [...listings].sort((a, b) => b.totalViews - a.totalViews).slice(0, 5);

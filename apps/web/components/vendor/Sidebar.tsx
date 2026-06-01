@@ -53,14 +53,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const menuItems: { name: string; icon: any; href: string; badge: string | null; feature?: keyof DashboardFeatures; iconColor?: string }[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null },
+        { name: 'List My Business', icon: Plus, href: '/upgrade', badge: 'Upgrade' },
         { name: 'My Listings', icon: ListTree, href: '/listings', badge: null, feature: 'showListings' },
-        { name: 'Pending Approval', icon: Clock, href: '/pending-listings', badge: null, feature: 'showListings' },
         { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing' },
         { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads' },
-        { name: 'Offers & Events', icon: Megaphone, href: '/offers', badge: null, feature: 'showOffers' },
+        { name: 'Deals & Offers', icon: Megaphone, href: '/deals', badge: null, feature: 'showOffers' },
+        { name: 'Events', icon: Clock, href: '/events', badge: null, feature: 'showOffers' },
         { name: 'Reviews', icon: Star, href: '/reviews', badge: null, feature: 'showReviews' },
         { name: 'Analytics', icon: BarChart, href: '/analytics', badge: null, feature: 'showAnalytics' },
-        { name: 'Saved', icon: Heart, href: '/saved', badge: null, feature: 'showSaved' },
+        { name: 'Saved Businesses', icon: Heart, href: '/saved', badge: null, feature: 'showSaved' },
         { name: 'Following', icon: UserPlus, href: '/following', badge: null, feature: 'showFollowing' },
         { name: 'Queries', icon: Send, href: '/messages', badge: newEnquiryCount > 0 ? String(newEnquiryCount) : null, feature: 'showQueries' },
         { name: 'Live Chat', icon: MessageSquare, iconColor: 'text-emerald-500', href: '/chat', badge: unreadChatCount > 0 ? String(unreadChatCount) : null, feature: 'showChat' },
@@ -73,15 +74,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ];
 
     const filteredItems = menuItems.filter(item => {
-        // Show all items to admins
-        if (user?.role === 'admin' || user?.role === 'superadmin') return true;
+        // Show all items to admins except upgrade CTA
+        if (user?.role === 'admin' || user?.role === 'superadmin') {
+            return item.name !== 'List My Business';
+        }
 
         if (user?.role === 'vendor') {
-            return true;
+            return item.name !== 'List My Business';
         }
 
         // For regular users/customers, show a limited subset
-        return ['Dashboard', 'Live Chat', 'Saved', 'Following', 'Notifications', 'Settings'].includes(item.name);
+        return ['Dashboard', 'List My Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
     });
 
     const SidebarInner = () => (
@@ -92,7 +95,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <div className="absolute inset-0 bg-indigo-500 rounded-[32px] blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
                     <VendorAvatar
                         src={getImageUrl(user?.avatarUrl)}
-                        alt={user?.fullName || 'Vendor'}
+                        alt={user?.fullName || 'Business User'}
                         size="lg"
                         className="relative z-10  shadow-indigo-100 transition-all duration-500 group-hover:scale-[1.02] ring-4 ring-white"
                     />
@@ -116,7 +119,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         {user?.role === 'vendor' && (
                             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-lg border border-indigo-100/50">
                                 <TrendingUp className="w-3 h-3 text-indigo-600" />
-                                <span className="text-[9px] text-indigo-700 font-bold uppercase tracking-wider">{planName}</span>
+                                <span className="text-[9px] text-indigo-700 font-bold uppercase tracking-wider">{planName} Business Plan</span>
                             </div>
                         )}
                     </div>

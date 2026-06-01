@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, Loader2, Phone, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +11,6 @@ import { useGoogleLogin } from '@react-oauth/google';
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -38,7 +37,7 @@ export default function LoginPage() {
         setLoading(true);
         setError('');
         try {
-            await login({ email, password, ...(phone ? { phone } : {}) });
+            await login({ email, password });
         } catch (err: any) {
             setError(err.message || 'Login failed. Please check your credentials.');
         } finally {
@@ -68,20 +67,6 @@ export default function LoginPage() {
                             </div>
                         )}
                         <form className="space-y-6" onSubmit={handleSubmit}>
-                            <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                                    <input
-                                        type="tel"
-                                        className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none"
-                                        placeholder="+1 234 567 890"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                                 <div className="relative">
@@ -174,25 +159,6 @@ export default function LoginPage() {
                                 />
                             </svg>
                             Sign in with Google
-                        </button>
-                        <button
-                            type="button"
-                            disabled={loading}
-
-                            className="w-full mt-4 py-4 bg-white border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl font-black text-sm flex items-center justify-center gap-4 transition-all shadow-sm active:scale-95 disabled:opacity-50 group"
-                        >
-                            <svg
-                                className="w-5 h-5 transition-transform group-hover:scale-110"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                            >
-                                <path
-                                    fill="#1877F2"
-                                    d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.009 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953h-1.514c-1.491 0-1.956.928-1.956 1.88v2.26h3.328l-.532 3.49h-2.796V24C19.612 23.082 24 18.092 24 12.073z"
-                                />
-                            </svg>
-
-                            Sign in with Facebook
                         </button>
                     </div>
 

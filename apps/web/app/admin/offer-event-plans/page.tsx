@@ -490,7 +490,7 @@ const OfferEventPlansPage = () => {
                         <div>
                             <h3 className="font-semibold text-indigo-900">Boost Engine Note</h3>
                             <p className="text-sm text-indigo-700/80 mt-1 leading-relaxed">
-                                Packages defined here will be available to vendors when booking promotions.
+                                Packages defined here will be available to businesses when booking promotions.
                                 Each package includes specific placements and a fixed duration.
                                 Prices are in PKR and handled via Stripe.
                             </p>

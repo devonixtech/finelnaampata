@@ -1,5 +1,6 @@
-import { IsEmail, IsString, MinLength, IsOptional, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsGlobalPhone } from '../../../common/validators/is-global-phone.validator';
 
 export class LoginDto {
     @ApiProperty({ example: 'user@example.com' })
@@ -14,6 +15,6 @@ export class LoginDto {
     @ApiPropertyOptional({ example: '+1234567890' })
     @IsOptional()
     @IsString()
-    @Matches(/^\+?[0-9\-\s()]{7,20}$/, { message: 'Invalid phone number format' })
+    @IsGlobalPhone({ message: 'Phone number must be a valid E.164 number with country code, e.g. +923001234567' })
     phone?: string;
 }

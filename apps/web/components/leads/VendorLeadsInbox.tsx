@@ -24,7 +24,7 @@ const TYPE_CONFIG = {
     website: { icon: Globe, color: 'text-slate-600', bg: 'bg-slate-50' },
 };
 
-export default function VendorLeadsInbox() {
+export default function BusinessLeadsInbox() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

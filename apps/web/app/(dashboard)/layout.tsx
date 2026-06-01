@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/vendor/Sidebar';
 import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import { useAuth } from '../../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { chatApi } from '../../services/chat.service';
@@ -16,13 +16,25 @@ export default function DashboardLayout({
 }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const [isChecking, setIsChecking] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Scroll to top on pathname change
+    useEffect(() => {
+        const scrollContainer = document.getElementById('dashboard-scroll-container');
+        if (scrollContainer) {
+            scrollContainer.scrollTo(0, 0);
+        }
+    }, [pathname]);
 
     useEffect(() => {
         if (!loading) {
             if (!user) {
                 router.replace('/login');
+                setIsChecking(false);
+            } else if (!user.isEmailVerified && user.provider !== 'google') {
+                router.replace('/verify-email');
                 setIsChecking(false);
             } else {
                 setIsChecking(false);
@@ -52,7 +64,7 @@ export default function DashboardLayout({
                     />
 
                     <div className="flex-grow flex flex-col min-w-0 bg-[#F8FAFC]">
-                        <div className="flex-grow overflow-y-auto scroll-smooth relative">
+                        <div id="dashboard-scroll-container" className="flex-grow overflow-y-auto scroll-smooth relative">
                             <div className="absolute inset-0 pointer-events-none overflow-hidden">
                                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/30 rounded-full blur-[120px] -mr-64 -mt-64" />
                                 <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-50/20 rounded-full blur-[120px] -ml-64 -mb-64" />

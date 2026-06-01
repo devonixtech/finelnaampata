@@ -18,8 +18,6 @@ import {
     Activity,
     Receipt,
     MapPin,
-    Gift,
-    Zap,
     MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -42,8 +40,7 @@ const menuItems = [
     { name: 'Search Heatmap', icon: ShieldCheck, href: '/admin/heatmap', badge: null },
     { name: 'Review Moderation', icon: ShieldAlert, href: '/admin/reviews', badge: null },
     { name: 'Q&A Moderation', icon: MessageSquare, href: '/admin/qa', badge: null },
-    { name: 'Promotion Rules', icon: Zap, href: '/admin/promotion-rules', badge: null },
-    // { name: 'Boost Plans', icon: Gift, href: '/admin/offer-event-plans', badge: null },
+    // Promotion/boost menu intentionally removed per monetization policy.
     { name: 'Referrals', icon: Users, href: '/admin/referrals', badge: null },
     { name: 'Settings', icon: Settings, href: '/admin/settings', badge: null },
 ];

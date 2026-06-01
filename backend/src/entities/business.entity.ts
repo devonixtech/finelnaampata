@@ -6,6 +6,8 @@ import {
     UpdateDateColumn,
     ManyToOne,
     OneToMany,
+    ManyToMany,
+    JoinTable,
     JoinColumn,
     Index,
 } from 'typeorm';
@@ -22,6 +24,7 @@ import { Follow } from './follow.entity';
 
 export enum BusinessStatus {
     PENDING = 'pending',
+    PENDING_GEOCODE = 'pending_geocode',
     APPROVED = 'approved',
     REJECTED = 'rejected',
     SUSPENDED = 'suspended',
@@ -85,6 +88,9 @@ export class Listing {
     @Column({ type: 'text' })
     address: string;
 
+    @Column({ name: 'address_line_2', nullable: true, type: 'text' })
+    addressLine2: string;
+
     @Column({ length: 100, nullable: true })
     @Index()
     city: string;
@@ -105,7 +111,6 @@ export class Listing {
     @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
     longitude: number;
 
-    /*
     @Column({
         type: 'geography',
         spatialFeatureType: 'Point',
@@ -114,7 +119,6 @@ export class Listing {
     })
     @Index({ spatial: true })
     location: string;
-    */
 
     // Media
     @Column({ name: 'logo_url', nullable: true, type: 'text' })
@@ -202,6 +206,71 @@ export class Listing {
     @Column({ name: 'rejection_reason', nullable: true, type: 'text' })
     rejectionReason: string;
 
+    // V2 Registration Flow Fields
+    @Column({ name: 'contact_person_name', nullable: true, length: 150 })
+    contactPersonName: string;
+
+    @Column({ name: 'business_type', type: 'jsonb', default: '[]' })
+    businessType: string[];
+
+    @Column({ name: 'core_business_nature', type: 'jsonb', default: '[]' })
+    coreBusinessNature: string[];
+
+    @Column({ name: 'operational_structure', type: 'jsonb', default: '[]' })
+    operationalStructure: string[];
+
+    @Column({ name: 'target_market', type: 'jsonb', default: '[]' })
+    targetMarket: string[];
+
+    @Column({ name: 'location_access', type: 'jsonb', default: '[]' })
+    locationAccess: string[];
+
+    @Column({ name: 'facilities', type: 'jsonb', default: '[]' })
+    facilities: string[];
+
+    @Column({ name: 'staff_features', type: 'jsonb', default: '[]' })
+    staffFeatures: string[];
+
+    @Column({ name: 'payment_methods', type: 'jsonb', default: '[]' })
+    paymentMethods: string[];
+
+    @Column({ name: 'industry_sub_type', type: 'jsonb', default: '[]' })
+    industrySubType: string[];
+
+    // Expansion / Opportunities
+    @Column({ name: 'franchise_opportunities', default: false })
+    franchiseOpportunities: boolean;
+
+    @Column({ name: 'franchise_available_in', type: 'jsonb', default: '[]' })
+    franchiseAvailableIn: string[];
+
+    @Column({ name: 'franchise_investment_range', nullable: true, length: 50 })
+    franchiseInvestmentRange: string;
+
+    @Column({ name: 'franchise_support', type: 'jsonb', default: '[]' })
+    franchiseSupport: string[];
+
+    @Column({ name: 'franchise_min_space', nullable: true, length: 50 })
+    franchiseMinSpace: string;
+
+    @Column({ name: 'looking_for_dealers', default: false })
+    lookingForDealers: boolean;
+
+    @Column({ name: 'is_importer_exporter', default: false })
+    isImporterExporter: boolean;
+
+    @Column({ name: 'areas_served', type: 'jsonb', default: '[]' })
+    areasServed: string[];
+
+    @Column({ name: 'business_languages', type: 'jsonb', default: '[]' })
+    businessLanguages: string[];
+
+    @Column({ name: 'chain_or_multiple_branches', default: false })
+    chainOrMultipleBranches: boolean;
+
+    @Column({ name: 'social_links', type: 'jsonb', default: '[]' })
+    socialLinks: { platform: string, url: string }[];
+
     // Offer / Promo
     @Column({ name: 'has_offer', default: false })
     hasOffer: boolean;
@@ -226,6 +295,9 @@ export class Listing {
     @Column({ type: 'jsonb', default: '[]' })
     faqs: { question: string; answer: string }[];
 
+    @Column({ type: 'jsonb', nullable: true, default: '[]' })
+    albums: { id: string; name: string; images: { url: string; caption?: string }[]; createdAt?: string }[];
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 
@@ -240,6 +312,14 @@ export class Listing {
     @ManyToOne(() => Category, (category) => category.businesses)
     @JoinColumn({ name: 'category_id' })
     category: Category;
+
+    @ManyToMany(() => Category, { cascade: true })
+    @JoinTable({
+        name: 'business_subcategories',
+        joinColumn: { name: 'business_id', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'category_id', referencedColumnName: 'id' }
+    })
+    subcategories: Category[];
 
     @OneToMany(() => BusinessHours, (hours) => hours.business)
     businessHours: BusinessHours[];

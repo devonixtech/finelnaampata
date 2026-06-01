@@ -5,6 +5,7 @@ import {
     BadRequestException,
     ConflictException,
     OnModuleInit,
+    Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not, Brackets, Like, MoreThan } from 'typeorm';
@@ -15,13 +16,13 @@ import { Amenity } from '../../entities/amenity.entity';
 import { Category, CategoryStatus } from '../../entities/category.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { User, UserRole } from '../../entities/user.entity';
+import { AddressConfigService } from '../address/address-config.service';
 import { ActivePlan, ActivePlanStatus } from '../../entities/active-plan.entity';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
-import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
+import { SubscriptionPlan, SubscriptionPlanType } from '../../entities/subscription-plan.entity';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { UpdateBusinessDto } from './dto/update-business.dto';
 import { SearchBusinessDto, SearchSortBy } from './dto/search-business.dto';
-import { SubscriptionPlanType } from '../../entities/subscription-plan.entity';
 import {
     createPaginatedResponse,
     calculateSkip,
@@ -31,6 +32,11 @@ import { calculateDistance } from '../../common/utils/geolocation.util';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
 import { SearchService } from '../search/search.service';
 import { DemandService } from '../demand/demand.service';
+import { GeocodingQueueService } from './geocoding-queue.service';
+import { AffiliateService } from '../affiliate/affiliate.service';
+import { SearchLocationService } from '../location/search-location.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class BusinessesService implements OnModuleInit {
@@ -47,6 +53,8 @@ export class BusinessesService implements OnModuleInit {
         private categoryRepository: Repository<Category>,
         @InjectRepository(Vendor)
         private vendorRepository: Repository<Vendor>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         @InjectRepository(ActivePlan)
         private activePlanRepository: Repository<ActivePlan>,
         @InjectRepository(Subscription)
@@ -56,14 +64,183 @@ export class BusinessesService implements OnModuleInit {
         private notificationsService: NotificationsService,
         private searchService: SearchService,
         private demandService: DemandService,
+        private geocodingQueueService: GeocodingQueueService,
+        private searchLocationService: SearchLocationService,
+        private addressConfigService: AddressConfigService,
+        private affiliateService: AffiliateService,
+        @Optional() @InjectQueue('search-cache-invalidation')
+        private searchCacheInvalidationQueue?: Queue,
     ) { }
-    
+
+    private async validatePostalForCountry(country?: string, pincode?: string | null): Promise<void> {
+        const countryKey = (country || 'Pakistan').trim();
+        const valid = await this.addressConfigService.validatePostalCode(countryKey, pincode);
+        if (!valid) {
+            throw new BadRequestException('Invalid postal code format for the selected country.');
+        }
+    }
+
+    private async assignFreePlanToVendor(vendorId: string): Promise<void> {
+        const freePlan = await this.subscriptionPlanRepository.findOne({
+            where: { planType: SubscriptionPlanType.FREE, isActive: true },
+        });
+        if (!freePlan) return;
+
+        const existing = await this.subscriptionRepository.findOne({
+            where: { vendorId, planId: freePlan.id, status: SubscriptionStatus.ACTIVE },
+        });
+        if (existing) return;
+
+        const now = new Date();
+        const endDate = new Date(now);
+        endDate.setFullYear(now.getFullYear() + 10);
+
+        await this.subscriptionRepository.save(
+            this.subscriptionRepository.create({
+                vendorId,
+                planId: freePlan.id,
+                status: SubscriptionStatus.ACTIVE,
+                startDate: now,
+                endDate,
+                amount: 0,
+                autoRenew: false,
+            }),
+        );
+    }
+
+    /** Unified signup: any user can list a business — provision vendor profile on first listing. */
+    private async ensureVendorForUser(user: User): Promise<Vendor> {
+        let vendor = await this.vendorRepository.findOne({
+            where: { userId: user.id },
+            relations: ['subscriptions'],
+        });
+
+        if (vendor) return vendor;
+
+        vendor = await this.vendorRepository.save(
+            this.vendorRepository.create({
+                userId: user.id,
+                businessName: `${user.fullName}'s Business`,
+                businessPhone: user.phone,
+                isVerified: false,
+            }),
+        );
+
+        await this.assignFreePlanToVendor(vendor.id);
+
+        if (user.role === UserRole.USER) {
+            await this.userRepository.update(user.id, { role: UserRole.VENDOR });
+            user.role = UserRole.VENDOR;
+        }
+
+        if (user.pendingReferralCode) {
+            try {
+                await this.affiliateService.applyReferralCode(user.id, user.pendingReferralCode);
+                await this.userRepository.update(user.id, { pendingReferralCode: null });
+            } catch (err: any) {
+                // Non-blocking — invalid/expired referral should not block listing
+                console.warn(`[BusinessesService] Referral apply skipped: ${err.message}`);
+            }
+        }
+
+        return vendor;
+    }
+
+    private async resolvePlanFeatures(vendorId: string, user?: User) {
+        if (user && [UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            return {
+                maxKeywords: 999,
+                maxFaqs: 999,
+                canCreateAlbums: true,
+                maxSubCategories: 999,
+                maxListings: 999,
+            };
+        }
+
+        const [activeSub, activeNewPlan] = await Promise.all([
+            this.subscriptionRepository.findOne({
+                where: { vendorId, status: SubscriptionStatus.ACTIVE, endDate: MoreThan(new Date()) },
+                relations: ['plan'],
+            }),
+            this.activePlanRepository.findOne({
+                where: { vendorId, status: ActivePlanStatus.ACTIVE, endDate: MoreThan(new Date()) },
+                relations: ['plan'],
+            }),
+        ]);
+
+        const legacy = activeSub?.plan?.dashboardFeatures || {};
+        const modern = (activeNewPlan?.plan?.features as Record<string, unknown>) || {};
+        return { ...legacy, ...modern };
+    }
+
+    private enforcePremiumContentLimits(
+        dto: { metaKeywords?: string; searchKeywords?: string[]; faqs?: { question: string; answer: string }[] },
+        features: Record<string, unknown>,
+    ) {
+        const maxKeywords = Number(features.maxKeywords ?? 0);
+        const maxFaqs = Number(features.maxFaqs ?? 0);
+
+        if (dto.metaKeywords) {
+            const keywordCount = dto.metaKeywords
+                .split(',')
+                .map((k) => k.trim())
+                .filter(Boolean).length;
+            if (keywordCount > maxKeywords) {
+                throw new BadRequestException(
+                    `Your plan allows up to ${maxKeywords} keywords. Please upgrade to add more.`,
+                );
+            }
+        }
+
+        if (dto.searchKeywords) {
+            if (dto.searchKeywords.length > maxKeywords) {
+                throw new BadRequestException(
+                    `Your plan allows up to ${maxKeywords} search keywords. Please upgrade to add more.`,
+                );
+            }
+        }
+
+        if (dto.faqs?.length && dto.faqs.length > maxFaqs) {
+            throw new BadRequestException(
+                `Your plan allows up to ${maxFaqs} FAQs. Please upgrade to add more.`,
+            );
+        }
+    }
+
+    private enforceLegalConsent(dto: { legalConsentAccepted?: boolean }) {
+        if (!dto.legalConsentAccepted) {
+            throw new BadRequestException(
+                'You must accept the Terms & Conditions and Privacy Policy before creating a listing.',
+            );
+        }
+    }
+
+    private async assertCanManageAlbums(vendorId: string, user: User) {
+        const features = await this.resolvePlanFeatures(vendorId, user);
+        if (!features.canCreateAlbums) {
+            throw new ForbiddenException('Photo albums are available on paid plans only. Please upgrade your subscription.');
+        }
+    }
+    private isPostgisAvailable = false;
+
     async onModuleInit() {
+        // Check PostGIS availability
+        try {
+            const res = await this.listingRepository.query("SELECT 1 FROM pg_extension WHERE extname = 'postgis'");
+            this.isPostgisAvailable = res.length > 0;
+            console.log(`[BusinessesService] PostGIS availability checked: ${this.isPostgisAvailable}`);
+        } catch (e) {
+            this.isPostgisAvailable = false;
+        }
+
         // Backfill logic for recent_until and performance indexes
         try {
             const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
             // Native query is faster for schema updates
             await this.listingRepository.query(`
+                CREATE EXTENSION IF NOT EXISTS cube;
+                CREATE EXTENSION IF NOT EXISTS earthdistance;
+
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS recent_until TIMESTAMP NULL;
                 UPDATE businesses 
                 SET recent_until = created_at + INTERVAL '7 days' 
@@ -85,6 +262,16 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE vendors ADD COLUMN IF NOT EXISTS slug VARCHAR(255) NULL;
                 CREATE INDEX IF NOT EXISTS idx_vendors_city ON vendors(city);
                 CREATE INDEX IF NOT EXISTS idx_vendors_slug ON vendors(slug);
+                
+                -- Support multiple sub-categories
+                CREATE TABLE IF NOT EXISTS business_subcategories (
+                    business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+                    category_id uuid NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+                    PRIMARY KEY (business_id, category_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_business_subcategories_category ON business_subcategories(category_id);
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS albums JSONB DEFAULT '[]';
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
             `);
             console.log('[BusinessesService] Database performance indexes auto-sync completed.');
         } catch (error) {
@@ -95,27 +282,33 @@ export class BusinessesService implements OnModuleInit {
     /**
      * Create a new listing
      */
-    async create(createBusinessDto: CreateBusinessDto, user: User): Promise<Listing> {
-        // Find or create vendor profile for the user
+    async create(
+        createBusinessDto: CreateBusinessDto,
+        user: User,
+        context?: { ipAddress?: string; sessionId?: string; deviceId?: string },
+    ): Promise<Listing> {
+        await this.validatePostalForCountry(createBusinessDto.country, createBusinessDto.pincode);
+        this.enforceLegalConsent(createBusinessDto);
+
+        // Find or create vendor profile (unified account — regular users can list a business)
         let vendor = await this.vendorRepository.findOne({
             where: { userId: user.id },
             relations: ['subscriptions'],
         });
 
         if (!vendor) {
-            // Only allow if user is a vendor, admin or superadmin
-            if (user.role === UserRole.USER) {
-                throw new ForbiddenException('Only vendors and administrators can create listings');
+            if ([UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+                vendor = await this.vendorRepository.save(
+                    this.vendorRepository.create({
+                        userId: user.id,
+                        businessName: `${user.fullName}'s Business`,
+                        businessPhone: user.phone,
+                        isVerified: true,
+                    }),
+                );
+            } else {
+                vendor = await this.ensureVendorForUser(user);
             }
-
-            // Create a default vendor profile if it doesn't exist (for admins/superadmins)
-            vendor = this.vendorRepository.create({
-                userId: user.id,
-                businessName: `${user.fullName}'s Business`,
-                businessPhone: user.phone,
-                isVerified: true,
-            });
-            vendor = await this.vendorRepository.save(vendor);
         }
 
         // Verify category exists or handle suggestion
@@ -170,8 +363,9 @@ export class BusinessesService implements OnModuleInit {
         
         // --- Limit Enforcement ---
         // Get limits from features. Priority: ActivePlan (New Engine) -> Subscription (Old Engine) -> Default (Free: 1)
-        const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxListings: 1 };
+        const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxListings: 1, maxSubCategories: 0 };
         const maxListings = planFeatures.maxListings || 1;
+        const maxSubCategories = planFeatures.maxSubCategories || 0;
         
         // Count existing listings
         const existingCount = await this.listingRepository.count({
@@ -181,38 +375,50 @@ export class BusinessesService implements OnModuleInit {
         if (existingCount >= maxListings && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
             throw new BadRequestException(`Business listing limit reached (${maxListings}). Please upgrade your plan to add more businesses.`);
         }
-        
-        // --- Image Limit Enforcement ---
-        // Robust check for free plan across both subscription engines
-        const isFreeSub = activeSub?.plan?.planType === SubscriptionPlanType.FREE;
-        const isFreeNewPlan = activeNewPlan?.plan?.name?.toLowerCase().includes('free');
-        
-        const isFreePlan = (!activeNewPlan && !activeSub) || isFreeSub || isFreeNewPlan;
-        const maxImages = isFreePlan ? 3 : 999;
 
-        if (createBusinessDto.images && createBusinessDto.images.length > maxImages) {
-            throw new BadRequestException(`Image limit reached. The free plan allows only ${maxImages} images. Please upgrade to basic plan for more.`);
+        // Check subcategory limits
+        if (createBusinessDto.subCategoryIds?.length) {
+            if (createBusinessDto.subCategoryIds.length > maxSubCategories && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+                throw new BadRequestException(`Your current plan allows a maximum of ${maxSubCategories} sub-categories. Please upgrade to add more.`);
+            }
         }
+
+        this.enforcePremiumContentLimits(createBusinessDto, planFeatures);
+        
+        // Image limit check bypassed to allow free tier saving premium features
         // -------------------------
 
         const hasFeaturedSub = (activeSub?.plan?.isFeatured) || ((activeNewPlan?.plan?.features as any)?.isFeatured);
         const hasBoostedSub = !!referralPlan || ((activeNewPlan?.plan?.features as any)?.top_ranking);
 
-        // Always set new listings to PENDING for admin approval workflow
+        // Auto-approve new listings — no manual admin queue
+        const now = new Date();
         const listing = this.listingRepository.create({
             ...createBusinessDto,
             offerExpiresAt: sanitizedExpiresAt,
             vendorId: vendor.id,
             slug,
-            status: BusinessStatus.PENDING,
+            status: BusinessStatus.APPROVED,
             isVerified: false,
             isFeatured: hasFeaturedSub || !!referralPlan,
             isSponsored: hasBoostedSub,
-            approvedAt: null,
-            recentUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
+            approvedAt: now,
+            recentUntil: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days recent window
+            location: createBusinessDto.latitude && createBusinessDto.longitude ? `POINT(${createBusinessDto.longitude} ${createBusinessDto.latitude})` : null,
+            subcategories: createBusinessDto.subCategoryIds?.length ? createBusinessDto.subCategoryIds.map(id => ({ id } as any)) : [],
         });
 
         const savedListing = await this.listingRepository.save(listing);
+
+        // If coordinates are missing, enqueue for geocoding
+        if ((!savedListing.latitude || !savedListing.longitude) && savedListing.address) {
+            await this.geocodingQueueService.enqueue({
+                listingId: savedListing.id,
+                address: savedListing.address,
+                city: savedListing.city,
+                country: savedListing.country,
+            }).catch(err => console.error('Geocoding enqueue error:', err));
+        }
 
         // Create business hours if provided
         if (createBusinessDto.businessHours?.length) {
@@ -251,6 +457,12 @@ export class BusinessesService implements OnModuleInit {
 
         // Index in Elasticsearch (async, don't wait to complete to return response)
         this.searchService.indexBusiness(result).catch(err => console.error('ES Index Error:', err));
+
+        // Queue cache invalidation
+        this.searchCacheInvalidationQueue.add('invalidate', { 
+            city: result.city, 
+            categorySlug: result.category?.slug 
+        }).catch(err => console.error('Cache invalidation queue error:', err));
 
         return result;
     }
@@ -406,6 +618,38 @@ export class BusinessesService implements OnModuleInit {
             queryBuilder.andWhere('listing.isVerified = :verified', { verified: true });
         }
 
+        // Distance Filter & Selection using PostGIS or earthdistance fallback
+        if (latitude && longitude) {
+            if (this.isPostgisAvailable) {
+                queryBuilder.addSelect(
+                    `ST_Distance(listing.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)`,
+                    'distance_meters'
+                );
+                if (radius) {
+                    const radiusMeters = radius * 1000;
+                    queryBuilder.andWhere(
+                        `ST_DWithin(listing.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radiusMeters)`,
+                        { radiusMeters }
+                    );
+                }
+            } else {
+                queryBuilder.addSelect(
+                    `earth_distance(ll_to_earth(listing.latitude, listing.longitude), ll_to_earth(:lat, :lng))`,
+                    'distance_meters'
+                );
+                queryBuilder.andWhere('listing.latitude IS NOT NULL AND listing.longitude IS NOT NULL');
+                if (radius) {
+                    const radiusMeters = radius * 1000;
+                    queryBuilder.andWhere(
+                        `earth_distance(ll_to_earth(listing.latitude, listing.longitude), ll_to_earth(:lat, :lng)) <= :radiusMeters`,
+                        { radiusMeters }
+                    );
+                }
+            }
+            queryBuilder.setParameter('lat', latitude);
+            queryBuilder.setParameter('lng', longitude);
+        }
+
         // Advanced Filters
         if (searchDto.onlineNow) {
             queryBuilder.andWhere('user.isOnline = :isOnline', { isOnline: true });
@@ -497,7 +741,7 @@ export class BusinessesService implements OnModuleInit {
             switch (sortBy) {
                 case SearchSortBy.DISTANCE:
                     if (latitude && longitude) {
-                        queryBuilder.addOrderBy('distance', 'ASC');
+                        queryBuilder.addOrderBy('distance_meters', 'ASC');
                     }
                     break;
                 case SearchSortBy.RATING:
@@ -521,8 +765,15 @@ export class BusinessesService implements OnModuleInit {
             const listings = await queryBuilder.skip(skip).take(limit).getRawAndEntities();
 
             // Map and format results
-            const results = listings.entities.map((listing) => {
-                const result: any = listing;
+            const results = listings.entities.map((entity) => {
+                // Find matching raw record to get the custom selected distance_meters value
+                const raw = listings.raw.find(r => r.listing_id === entity.id);
+                const distanceMeters = raw ? parseFloat(raw.distance_meters) : undefined;
+                
+                const result: any = {
+                    ...entity,
+                    distance: distanceMeters !== undefined && !isNaN(distanceMeters) ? Number((distanceMeters / 1000).toFixed(2)) : undefined,
+                };
                 if (result.vendor && result.vendor.user) {
                     result.vendor.isOnline = result.vendor.user.isOnline || false;
                 }
@@ -677,37 +928,47 @@ export class BusinessesService implements OnModuleInit {
         log(`Current User: ${user.id}, Owner: ${listing.vendor.userId}`);
 
         // Only owner or admin can update
-        if (listing.vendor.userId !== user.id && user.role !== UserRole.ADMIN) {
+        if (listing.vendor.userId !== user.id && user.role !== UserRole.ADMIN && user.role !== UserRole.SUPERADMIN) {
             throw new ForbiddenException('You do not have permission to update this listing');
         }
+
+        const countryForPostal = updateBusinessDto.country ?? listing.country;
+        const pincodeForPostal = updateBusinessDto.pincode !== undefined ? updateBusinessDto.pincode : listing.pincode;
+        if (updateBusinessDto.pincode !== undefined || updateBusinessDto.country !== undefined) {
+            await this.validatePostalForCountry(countryForPostal, pincodeForPostal);
+        }
+
+        if (updateBusinessDto.subCategoryIds !== undefined) {
+            const [activeSub, activeNewPlan] = await Promise.all([
+                this.subscriptionRepository.findOne({
+                    where: { vendorId: listing.vendor.id, status: SubscriptionStatus.ACTIVE, endDate: MoreThan(new Date()) },
+                    relations: ['plan']
+                }),
+                this.activePlanRepository.findOne({
+                    where: { vendorId: listing.vendor.id, status: ActivePlanStatus.ACTIVE, endDate: MoreThan(new Date()) },
+                    relations: ['plan']
+                })
+            ]);
+            
+            const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxSubCategories: 0 };
+            const maxSubCategories = planFeatures.maxSubCategories || 0;
+
+            if (updateBusinessDto.subCategoryIds.length > maxSubCategories && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+                throw new BadRequestException(`Your current plan allows a maximum of ${maxSubCategories} sub-categories. Please upgrade to add more.`);
+            }
+
+            listing.subcategories = updateBusinessDto.subCategoryIds.map(id => ({ id } as any));
+        }
+
+        const planFeatures = await this.resolvePlanFeatures(listing.vendor.id, user);
+        this.enforcePremiumContentLimits(updateBusinessDto, planFeatures);
 
         if (updateBusinessDto.amenityIds) {
             log(`Amenity IDs count: ${updateBusinessDto.amenityIds.length}`);
         }
 
         // --- Image Limit Enforcement for Update ---
-        if (updateBusinessDto.images) {
-            const [activeSub, activeNewPlan] = await Promise.all([
-                this.subscriptionRepository.findOne({
-                    where: { vendorId: listing.vendorId, status: SubscriptionStatus.ACTIVE, endDate: MoreThan(new Date()) },
-                    relations: ['plan']
-                }),
-                this.activePlanRepository.findOne({
-                    where: { vendorId: listing.vendorId, status: ActivePlanStatus.ACTIVE, endDate: MoreThan(new Date()) },
-                    relations: ['plan']
-                })
-            ]);
-
-            const isFreeSub = activeSub?.plan?.planType === SubscriptionPlanType.FREE;
-            const isFreeNewPlan = activeNewPlan?.plan?.name?.toLowerCase().includes('free');
-            
-            const isFreePlan = (!activeNewPlan && !activeSub) || isFreeSub || isFreeNewPlan;
-            const maxImages = isFreePlan ? 3 : 999;
-
-            if (updateBusinessDto.images.length > maxImages) {
-                throw new BadRequestException(`Image limit reached. The free plan allows only ${maxImages} images. Please upgrade to basic plan for more.`);
-            }
-        }
+        // Image limit check bypassed to allow free tier saving premium features
         // -------------------------
 
         const oldSlug = listing.slug;
@@ -726,7 +987,7 @@ export class BusinessesService implements OnModuleInit {
         // Update basic text fields
         const textFields = [
             'description', 'shortDescription', 'email', 'phone', 'whatsapp',
-            'website', 'address', 'city', 'state', 'pincode', 'latitude', 'longitude',
+            'website', 'address', 'addressLine2', 'city', 'state', 'pincode', 'latitude', 'longitude',
             'logoUrl', 'coverImageUrl', 'images', 'metaTitle', 'metaDescription',
             'metaKeywords', 'hasOffer', 'offerTitle', 'offerDescription', 'offerBadge',
             'offerExpiresAt', 'offerBannerUrl', 'faqs'
@@ -771,7 +1032,7 @@ export class BusinessesService implements OnModuleInit {
         }
 
         // Remove nested objects from update
-        const { businessHours: _, amenityIds: __, ...updateData } = updateBusinessDto;
+        const { businessHours: _, amenityIds: __, subCategoryIds: ___, ...updateData } = updateBusinessDto;
 
         // Sanitize offerExpiresAt to prevent invalid date errors
         if (
@@ -785,8 +1046,31 @@ export class BusinessesService implements OnModuleInit {
         // Apply updates to the listing object
         Object.assign(listing, updateData);
 
+        if (listing.latitude && listing.longitude) {
+            listing.location = `POINT(${listing.longitude} ${listing.latitude})`;
+        } else {
+            listing.location = null as any;
+        }
+
         await this.listingRepository.save(listing);
         log('Listing saved to database');
+
+        // Invalidate cache via BullMQ worker
+        if (listing.city) {
+            this.searchCacheInvalidationQueue.add('invalidate', {
+                city: listing.city,
+                categorySlug: listing.category?.slug,
+            }).catch(err => console.error('Cache invalidation queue error:', err));
+        }
+
+        if ((!listing.latitude || !listing.longitude) && listing.address) {
+            await this.geocodingQueueService.enqueue({
+                listingId: listing.id,
+                address: listing.address,
+                city: listing.city,
+                country: listing.country,
+            }).catch(err => console.error('Geocoding enqueue error:', err));
+        }
 
         const updatedListing = await this.findOne(id, user);
 
@@ -818,6 +1102,14 @@ export class BusinessesService implements OnModuleInit {
 
         // Remove from Elasticsearch
         this.searchService.remove(id).catch(err => console.error('ES Remove Error:', err));
+
+        // Queue cache invalidation
+        if (listing.city) {
+            this.searchCacheInvalidationQueue.add('invalidate', {
+                city: listing.city,
+                categorySlug: listing.category?.slug,
+            }).catch(err => console.error('Cache invalidation queue error:', err));
+        }
     }
 
     /**
@@ -935,5 +1227,73 @@ export class BusinessesService implements OnModuleInit {
         });
 
         return this.amenityRepository.save(amenity);
+    }
+
+    /**
+     * Get a lightweight snapshot of a listing (for cache invalidation before update/delete)
+     */
+    async getListingSnapshot(id: string): Promise<Listing | null> {
+        return this.listingRepository.findOne({
+            where: { id },
+            relations: ['category'],
+        });
+    }
+
+    // ---------------------------------------------------------------------------
+    // Albums (paid plans only — stored as JSON on listing)
+    // ---------------------------------------------------------------------------
+
+    private async getOwnedListing(id: string, user: User): Promise<Listing> {
+        const listing = await this.listingRepository.findOne({
+            where: { id },
+            relations: ['vendor'],
+        });
+        if (!listing) throw new NotFoundException('Listing not found');
+        if (
+            listing.vendor.userId !== user.id &&
+            user.role !== UserRole.ADMIN &&
+            user.role !== UserRole.SUPERADMIN
+        ) {
+            throw new ForbiddenException('You do not have permission to manage this listing');
+        }
+        return listing;
+    }
+
+    async getAlbums(id: string, user: User): Promise<any[]> {
+        const listing = await this.getOwnedListing(id, user);
+        await this.assertCanManageAlbums(listing.vendorId, user);
+        return listing.albums || [];
+    }
+
+    async createAlbum(id: string, user: User, name: string): Promise<any> {
+        const listing = await this.getOwnedListing(id, user);
+        await this.assertCanManageAlbums(listing.vendorId, user);
+        const album = { id: Date.now().toString(), name, images: [], createdAt: new Date().toISOString() };
+        listing.albums = [...(listing.albums || []), album];
+        await this.listingRepository.save(listing);
+        return album;
+    }
+
+    async renameAlbum(id: string, albumId: string, user: User, name: string): Promise<any> {
+        const listing = await this.getOwnedListing(id, user);
+        await this.assertCanManageAlbums(listing.vendorId, user);
+        listing.albums = (listing.albums || []).map((a) => (a.id === albumId ? { ...a, name } : a));
+        await this.listingRepository.save(listing);
+        return listing.albums.find((a) => a.id === albumId);
+    }
+
+    async deleteAlbum(id: string, albumId: string, user: User): Promise<void> {
+        const listing = await this.getOwnedListing(id, user);
+        await this.assertCanManageAlbums(listing.vendorId, user);
+        listing.albums = (listing.albums || []).filter((a) => a.id !== albumId);
+        await this.listingRepository.save(listing);
+    }
+
+    async upsertAlbumImages(id: string, albumId: string, user: User, images: any[]): Promise<any> {
+        const listing = await this.getOwnedListing(id, user);
+        await this.assertCanManageAlbums(listing.vendorId, user);
+        listing.albums = (listing.albums || []).map((a) => (a.id === albumId ? { ...a, images } : a));
+        await this.listingRepository.save(listing);
+        return listing.albums.find((a) => a.id === albumId);
     }
 }

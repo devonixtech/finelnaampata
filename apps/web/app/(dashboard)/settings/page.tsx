@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award } from 'lucide-react';
+import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award, Lock } from 'lucide-react';
 import { api, getImageUrl } from '../../../lib/api';
 import VendorAvatar from '../../../components/VendorAvatar';
 import { useAuth } from '../../../context/AuthContext';
@@ -30,7 +30,7 @@ export default function AccountSettings() {
         city: '',
         state: '',
         country: 'Pakistan',
-        // Vendor Fields
+        // Business fields
         businessName: '',
         businessEmail: '',
         businessPhone: '',
@@ -258,7 +258,7 @@ export default function AccountSettings() {
                 avatarUrl: currentAvatarUrl
             });
 
-            // 3. Update vendor profile — ONLY if the user is explicitly a vendor
+            // 3. Update business profile — ONLY if the user is explicitly a business
             if (user?.role === 'vendor') {
                 // Strip empty strings — @IsOptional() only skips undefined/null, not ""
                 const vendorPayload: any = {
@@ -275,7 +275,7 @@ export default function AccountSettings() {
                 Object.keys(vendorPayload).forEach(k => {
                     if (vendorPayload[k] === undefined) delete vendorPayload[k];
                 });
-                await api.vendors.updateProfile(vendorPayload);
+                await api.businessProfiles.updateProfile(vendorPayload);
             }
 
             // 4. Update Notification Settings
@@ -583,16 +583,18 @@ export default function AccountSettings() {
                                     <Globe className="w-3.5 h-3.5" /> State / Province
                                 </label>
                                 <div className="relative">
-                                    <select
+                                    <input
+                                        list="settings-state-list"
                                         name="state"
                                         value={formData.state}
-                                        onChange={handleSelectChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select State</option>
+                                        onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                                        placeholder="Type or select a state"
+                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
+                                    />
+                                    <datalist id="settings-state-list">
                                         {formData.country === 'Pakistan' ? (
                                             availableStates.map(state => (
-                                                <option key={state} value={state}>{state}</option>
+                                                <option key={state} value={state} />
                                             ))
                                         ) : (() => {
                                             const FALLBACK_STATES: Record<string, string[]> = {
@@ -605,20 +607,10 @@ export default function AccountSettings() {
                                                 'Australia': ['New South Wales', 'Victoria', 'Queensland', 'South Australia', 'Western Australia', 'Tasmania', 'Australian Capital Territory', 'Northern Territory'],
                                             };
                                             const opts = FALLBACK_STATES[formData.country] || [];
-                                            return opts.map(s => <option key={s} value={s}>{s}</option>);
+                                            return opts.map(s => <option key={s} value={s} />);
                                         })()}
-                                        <option value="Other">Other</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    </datalist>
                                 </div>
-                                {formData.state === 'Other' && (
-                                    <input
-                                        type="text"
-                                        placeholder="Type state/province name"
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none mt-3"
-                                        onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                                    />
-                                )}
                             </div>
 
                             <div className="space-y-3">
@@ -626,19 +618,21 @@ export default function AccountSettings() {
                                     <MapPin className="w-3.5 h-3.5" /> City
                                 </label>
                                 <div className="relative">
-                                    <select
+                                    <input
+                                        list="settings-city-list"
                                         name="city"
                                         value={formData.city}
-                                        onChange={handleSelectChange}
+                                        onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                                        placeholder={formData.state ? "Type or select a city" : "Select state first"}
                                         disabled={!formData.state}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <option value="">Select City</option>
+                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <datalist id="settings-city-list">
                                         {formData.country === 'Pakistan' ? (
                                             allCities
                                                 .filter(c => c.state === formData.state)
                                                 .map(city => (
-                                                    <option key={city.id} value={city.name}>{city.name}</option>
+                                                    <option key={city.id} value={city.name} />
                                                 ))
                                         ) : (() => {
                                             const FALLBACK_CITIES: Record<string, string[]> = {
@@ -648,20 +642,10 @@ export default function AccountSettings() {
                                                 'Abu Dhabi': ['Khalifa City', 'Al Reem Island'],
                                             };
                                             const opts = FALLBACK_CITIES[formData.state] || [];
-                                            return opts.map(c => <option key={c} value={c}>{c}</option>);
+                                            return opts.map(c => <option key={c} value={c} />);
                                         })()}
-                                        <option value="Other">Other</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                    </datalist>
                                 </div>
-                                {formData.city === 'Other' && (
-                                    <input
-                                        type="text"
-                                        placeholder="Type city name"
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none mt-3"
-                                        onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                                    />
-                                )}
                             </div>
                         </div>
 
@@ -687,7 +671,7 @@ export default function AccountSettings() {
                     </form>
                 </div>
 
-                {/* Business Information (Vendor Only) */}
+                {/* Business Information (Business Only) */}
                 {(user?.role === 'vendor' || user?.vendor) && (
                     <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30">
@@ -740,6 +724,7 @@ export default function AccountSettings() {
                                     <input
                                         type="text"
                                         name="businessAddress"
+                                        required
                                         value={formData.businessAddress}
                                         onChange={handleChange}
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
@@ -792,7 +777,7 @@ export default function AccountSettings() {
                     </div>
                 )}
 
-                {/* Business Hours (Vendor Only) */}
+                {/* Business Hours (Business Only) */}
                 {(user?.role === 'vendor' || user?.vendor) && (
                     <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
@@ -859,13 +844,27 @@ export default function AccountSettings() {
                     </div>
                 )}
 
-                {/* Social Media Profiles (Vendor Only) */}
-                {(user?.role === 'vendor' || user?.vendor) && (
-                    <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
-                        <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
-                            <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center shrink-0">
-                                <Share2 className="w-6 h-6" />
+            {/* Social Media Profiles (Business Only) */}
+            {(user?.role === 'vendor' || user?.vendor) && (
+                <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden relative">
+                    {/* PREMIUM GATE FOR SOCIAL LINKS */}
+                    {(!user?.vendor?.subscriptions?.some((sub: any) => sub.status === 'active' && sub.plan?.name?.toLowerCase() !== 'free')) && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-white/60 flex flex-col items-center justify-center p-6 text-center rounded-[20px] border border-orange-100/50">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-orange-500/20">
+                                <Lock className="w-6 h-6 text-white" />
                             </div>
+                            <h4 className="text-lg font-black text-slate-900 mb-2">Premium Feature</h4>
+                            <p className="text-sm font-bold text-slate-600 mb-4 max-w-sm">Upgrade your plan to add social media links to your listing.</p>
+                            <a href="/subscription" className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-slate-900/20">
+                                Upgrade Plan
+                            </a>
+                        </div>
+                    )}
+
+                    <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
+                        <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center shrink-0">
+                            <Share2 className="w-6 h-6" />
+                        </div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between gap-4 flex-wrap">
                                     <div>
@@ -1074,15 +1073,15 @@ export default function AccountSettings() {
 
                 {/* Danger Zone: Account Deletion */}
                 <div className="bg-white rounded-[20px] border border-rose-100 shadow-sm overflow-hidden">
-                    {/* <div className="p-8 lg:p-12 border-b border-rose-50 bg-rose-50/30 flex items-start gap-4">
-                    <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
-                        <AlertTriangle className="w-6 h-6" />
+                    <div className="p-8 lg:p-12 border-b border-rose-50 bg-rose-50/30 flex items-start gap-4">
+                        <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center shrink-0">
+                            <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-rose-900 mb-2">Danger Zone</h3>
+                            <p className="text-sm text-rose-600 font-medium">Irreversible actions. Be careful with these settings.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-xl font-black text-rose-900 mb-2">Danger Zone</h3>
-                        <p className="text-sm text-rose-600 font-medium">Irreversible actions. Be careful with these settings.</p>
-                    </div>
-                </div> */}
 
                     <div className="p-8 lg:p-12 space-y-6">
                         {deletionStatus && (

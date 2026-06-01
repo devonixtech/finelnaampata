@@ -119,7 +119,7 @@ export default function PricingPage() {
     }, []);
 
     const getCtaHref = (plan: Plan) => {
-        if (!user) return `/register?role=vendor&plan=${plan.planType}`;
+        if (!user) return `/register?plan=${plan.planType}`;
         if (user.role === "vendor") {
             if (plan.planType === "free") return "/dashboard";
             return `/dashboard?upgrade=${plan.id}`;
@@ -130,7 +130,7 @@ export default function PricingPage() {
     const getCtaLabel = (plan: Plan) => {
         if (!user) return plan.planType === "free" ? "Get Started Free" : "Start Basic Plan";
         if (user.role === "vendor") return plan.planType === "free" ? "Go to Dashboard" : "Upgrade Now";
-        return "Become a Vendor";
+        return "Create Business Profile";
     };
 
     return (
@@ -212,14 +212,14 @@ export default function PricingPage() {
                                                 <div className="flex items-end gap-1">
                                                     <span className={`text-5xl font-black ${config.accentColor}`}>{priceDisplay}</span>
                                                     {plan.price > 0 && (
-                                                        <span className="text-slate-400 font-medium mb-2">/month</span>
+                                                        <span className="text-slate-400 font-medium mb-2">/{plan.billingCycle?.toLowerCase() === "yearly" ? "year" : "month"}</span>
                                                     )}
                                                 </div>
                                                 {plan.price === 0 && (
                                                     <p className="text-slate-400 text-sm font-medium mt-1">Free forever · No credit card required</p>
                                                 )}
                                                 {plan.price > 0 && (
-                                                    <p className="text-slate-400 text-sm font-medium mt-1">Billed monthly · Cancel anytime</p>
+                                                    <p className="text-slate-400 text-sm font-medium mt-1">{plan.billingCycle?.toLowerCase() === "yearly" ? "Billed yearly" : "Billed monthly"} · Cancel anytime</p>
                                                 )}
                                             </div>
 
@@ -363,7 +363,7 @@ export default function PricingPage() {
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link
-                                href="/register?role=vendor"
+                                href="/register"
                                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#FF7A30] text-white font-bold rounded-2xl hover:bg-[#E86920] shadow-lg shadow-orange-500/30 transition-all active:scale-95"
                             >
                                 Start for Free <ArrowRight className="w-4 h-4" />

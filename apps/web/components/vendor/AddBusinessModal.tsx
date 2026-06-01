@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CategorySearchSelect from '../CategorySearchSelect';
 import { useAuth } from '../../context/AuthContext';
 import { usePlanFeature } from '../../hooks/usePlanFeature';
+import { useAddressConfig, fetchCountries } from '../../hooks/useAddressConfig';
+import { detectLocationForUi, sortAndDedupeCities } from '../../lib/location-detect';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 
@@ -39,17 +41,22 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
     const [cities, setCities] = useState<City[]>([]);
+    const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('general');
 
     const [formData, setFormData] = useState({
         title: '',
         categoryId: '',
+        subCategoryIds: [] as string[],
         description: '',
         phone: '',
         whatsapp: '',
         website: '',
+        namedPhoneNumbers: [] as { label: string; number: string }[],
+        country: '',
         address: '',
+        addressLine2: '',
         city: '',
         state: '',
         pincode: '',
@@ -68,10 +75,12 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         faqs: [] as { question: string; answer: string }[]
     });
 
+    const { config: addressConfig, validatePostalCode } = useAddressConfig(formData.country || null);
+
     const activeSub = user?.vendor?.subscriptions?.find((sub: any) => sub.status === 'active');
     const { getFeatureValue, planName, isFree } = usePlanFeature();
-    const maxKeywords = getFeatureValue('maxKeywords') || 0;
     const maxListings = getFeatureValue('maxListings') || 1;
+    const maxNamedPhoneNumbers = getFeatureValue('maxNamedPhoneNumbers') || 0;
     const maxImages = isFree ? 3 : 999;
     
     const [myListingsCount, setMyListingsCount] = useState<number | null>(null);
@@ -88,7 +97,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
     const addKeyword = (raw: string) => {
         const tag = raw.trim().toLowerCase().replace(/[,]+$/, '');
-        if (tag && !keywords.includes(tag) && keywords.length < maxKeywords) {
+        if (tag && !keywords.includes(tag)) {
             const updated = [...keywords, tag];
             setKeywords(updated);
             setFormData(prev => ({ ...prev, metaKeywords: updated.join(',') }));
@@ -112,6 +121,31 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
     };
 
     const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([]);
+    const canManageNamedPhones = (maxNamedPhoneNumbers || 0) > 0 || isAdmin;
+
+    const addNamedPhone = () => {
+        if (!canManageNamedPhones) return;
+        setFormData(prev => {
+            if (prev.namedPhoneNumbers.length >= maxNamedPhoneNumbers) return prev;
+            return { ...prev, namedPhoneNumbers: [...prev.namedPhoneNumbers, { label: '', number: '' }] };
+        });
+    };
+
+    const updateNamedPhone = (index: number, key: 'label' | 'number', value: string) => {
+        setFormData(prev => {
+            const next = [...prev.namedPhoneNumbers];
+            if (!next[index]) return prev;
+            next[index] = { ...next[index], [key]: key === 'label' ? value.slice(0, 50) : value };
+            return { ...prev, namedPhoneNumbers: next };
+        });
+    };
+
+    const removeNamedPhone = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            namedPhoneNumbers: prev.namedPhoneNumbers.filter((_, i) => i !== index),
+        }));
+    };
 
     const addSocialLink = (platform: string) => {
         if (!socialLinks.find(s => s.platform === platform)) {
@@ -151,280 +185,41 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         }));
     };
 
-    // Google Maps State & Refs
-    const [mapError, setMapError] = useState(false);
-    const [mapLoaded, setMapLoaded] = useState(false);
-    const autoCompleteRef = useRef<any>(null);
-    const addressInputRef = useRef<HTMLInputElement>(null);
-    const mapRef = useRef<any>(null);
-    const markerRef = useRef<any>(null);
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const initInProgress = useRef(false);
     const formDataRef = useRef(formData);
 
     useEffect(() => {
         formDataRef.current = formData;
     }, [formData]);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined' && (window as any).google?.maps?.importLibrary) {
-            setMapLoaded(true);
-            return;
-        }
-
-        const interval = setInterval(() => {
-            if (typeof window !== 'undefined' && (window as any).google?.maps?.importLibrary) {
-                setMapLoaded(true);
-                clearInterval(interval);
-            }
-        }, 1000);
-
-        (window as any).gm_authFailure = () => {
-            console.error('[AddBusiness] Google Maps auth failure');
-            setMapError(true);
-        };
-
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, []);
-
     const updateLocationFromCoords = async (lat: number, lng: number) => {
         setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
-        
+    };
+
+    const handleGetCurrentLocation = async () => {
         try {
-            if (!(window as any).google || !(window as any).google.maps || !(window as any).google.maps.Geocoder) return;
-            const geocoder = new (window as any).google.maps.Geocoder();
-            const response = await geocoder.geocode({ location: { lat, lng } });
-
-            if (response.results?.[0]) {
-                const place = response.results[0];
-                let city = '';
-                let state = '';
-                let pincode = '';
-                let address = place.formatted_address || '';
-
-                place.address_components?.forEach((component: any) => {
-                    const types = component.types;
-                    if (types.includes("locality")) city = component.long_name;
-                    else if (types.includes("administrative_area_level_2") && !city) city = component.long_name;
-                    else if (types.includes("administrative_area_level_1")) state = component.long_name;
-                    else if (types.includes("postal_code")) pincode = component.long_name;
-                });
-
-                let cleanAddress = address;
-                [city, state, "Pakistan", pincode].forEach(term => {
-                    if (term) {
-                        const regex = new RegExp(`,?\\s*${term}\\s*,?`, 'gi');
-                        cleanAddress = cleanAddress.replace(regex, '').trim();
-                    }
-                });
-                cleanAddress = cleanAddress.replace(/,$/, '').trim();
-
-                setFormData(prev => ({
-                    ...prev,
-                    address: cleanAddress || address,
-                    city: city || prev.city,
-                    state: state || prev.state,
-                    pincode: pincode || prev.pincode,
-                }));
-            }
+            const coords = await detectLocationForUi();
+            if (!coords) return;
+            await updateLocationFromCoords(coords.latitude, coords.longitude);
         } catch (error) {
-            console.error("Geocoding failed:", error);
+            console.error("Error getting location:", error);
         }
     };
-
-    const initAutocomplete = async () => {
-        if (!mapContainerRef.current || !addressInputRef.current || initInProgress.current) return;
-
-        try {
-            initInProgress.current = true;
-            const defaultCenter = { lat: formData.latitude, lng: formData.longitude };
-            
-            if (!(window as any).google?.maps?.importLibrary) {
-                console.warn('[AddBusiness] Google Maps importLibrary not available yet');
-                initInProgress.current = false;
-                return;
-            }
-
-            const { Map } = await (window as any).google.maps.importLibrary("maps");
-            const { Autocomplete } = await (window as any).google.maps.importLibrary("places");
-
-            if (!mapRef.current) {
-                mapRef.current = new Map(mapContainerRef.current, {
-                    center: defaultCenter,
-                    zoom: 15,
-                    mapTypeId: 'roadmap',
-                    mapTypeControl: false,
-                    streetViewControl: false,
-                    fullscreenControl: false,
-                });
-
-                console.log('[AddBusiness] Map instance created');
-
-                try {
-                    const { Marker } = await (window as any).google.maps.importLibrary("marker");
-                    markerRef.current = new Marker({
-                        position: defaultCenter,
-                        map: mapRef.current,
-                        draggable: true,
-                        title: "Drag to set location",
-                        animation: (window as any).google?.maps?.Animation?.DROP
-                    });
-                    console.log('[AddBusiness] Legacy Marker initialized');
-                } catch (markerErr) {
-                    console.warn('[AddBusiness] Marker failure:', markerErr);
-                }
-
-                if (markerRef.current) {
-                    markerRef.current.addListener("dragend", (e: any) => {
-                        let lat: number, lng: number;
-                        if (e && e.latLng) {
-                            lat = typeof e.latLng.lat === 'function' ? e.latLng.lat() : e.latLng.lat;
-                            lng = typeof e.latLng.lng === 'function' ? e.latLng.lng() : e.latLng.lng;
-                        } else {
-                            const pos = markerRef.current.position;
-                            if (!pos) return;
-                            lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
-                            lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
-                        }
-                        updateLocationFromCoords(lat, lng);
-                    });
-                }
-
-                mapRef.current.addListener("click", (e: any) => {
-                    if (e.latLng) {
-                        const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-                        if (markerRef.current) {
-                            if (markerRef.current.setPosition) {
-                                markerRef.current.setPosition(pos);
-                            } else {
-                                markerRef.current.position = pos;
-                            }
-                        }
-                        updateLocationFromCoords(pos.lat, pos.lng);
-                    }
-                });
-            } else {
-                // Handle map resize if container was hidden
-                if ((window as any).google?.maps?.event) {
-                    (window as any).google.maps.event.trigger(mapRef.current, 'resize');
-                }
-            }
-
-            if (!autoCompleteRef.current) {
-                autoCompleteRef.current = new Autocomplete(
-                    addressInputRef.current,
-                    {
-                        componentRestrictions: { country: "pk" },
-                        fields: ["address_components", "geometry", "formatted_address"],
-                    }
-                );
-
-                autoCompleteRef.current.addListener("place_changed", () => {
-                    try {
-                        const place = autoCompleteRef.current.getPlace();
-                        if (!place.geometry) return;
-
-                        const lat = place.geometry.location.lat();
-                        const lng = place.geometry.location.lng();
-                        const pos = { lat, lng };
-
-                        mapRef.current.setCenter(pos);
-                        mapRef.current.setZoom(17);
-                        if (markerRef.current.setPosition) {
-                            markerRef.current.setPosition(pos);
-                        } else {
-                            markerRef.current.position = pos;
-                        }
-
-                        let city = '';
-                        let state = '';
-                        let pincode = '';
-                        let address = place.formatted_address || '';
-
-                        place.address_components?.forEach((component: any) => {
-                            const types = component.types;
-                            if (types.includes("locality")) city = component.long_name;
-                            else if (types.includes("administrative_area_level_2") && !city) city = component.long_name;
-                            else if (types.includes("administrative_area_level_1")) state = component.long_name;
-                            else if (types.includes("postal_code")) pincode = component.long_name;
-                        });
-
-                        let cleanAddress = address;
-                        [city, state, "Pakistan", pincode].forEach(term => {
-                            if (term) {
-                                const regex = new RegExp(`,?\\s*${term}\\s*,?`, 'gi');
-                                cleanAddress = cleanAddress.replace(regex, '').trim();
-                            }
-                        });
-                        cleanAddress = cleanAddress.replace(/,$/, '').trim();
-
-                        setFormData(prev => ({
-                            ...prev,
-                            address: cleanAddress || address || prev.address,
-                            city: city || prev.city,
-                            state: state || prev.state,
-                            pincode: pincode || prev.pincode,
-                            latitude: lat,
-                            longitude: lng,
-                        }));
-                    } catch (err) {
-                        console.error("Error in place_changed handler:", err);
-                    }
-                });
-            }
-        } catch (err) {
-            console.error('[AddBusiness] Map initialization error:', err);
-            setMapError(true);
-        } finally {
-            initInProgress.current = false;
-        }
-    };
-
-    const handleGetCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                if (mapRef.current && markerRef.current) {
-                    const pos = { lat: latitude, lng: longitude };
-                    mapRef.current.setCenter(pos);
-                    mapRef.current.setZoom(17);
-                    markerRef.current.position = pos;
-                    updateLocationFromCoords(latitude, longitude);
-                }
-            },
-            (error) => {
-                console.error("Error getting location:", error);
-                alert("Could not get your current location. Please check your browser permissions.");
-            },
-            { enableHighAccuracy: true }
-        );
-    };
-
-    useEffect(() => {
-        if (activeTab === 'location' && mapLoaded) {
-            setTimeout(initAutocomplete, 100);
-        }
-    }, [activeTab, mapLoaded]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [cats, cityList, amenityList, vendorProfile, businessesRes] = await Promise.all([
+                const [cats, cityList, countryList, amenityList, vendorProfile, businessesRes] = await Promise.all([
                     api.categories.getAll(),
                     api.cities.getAll(),
+                    api.cities.getCountries().catch(() => []),
                     api.listings.getAmenities(),
-                    api.vendors.getProfile().catch(() => null),
+                    api.businessProfiles.getProfile().catch(() => null),
                     api.listings.getMyListings()
                 ]);
                 setCategories(cats);
-                setCities(cityList);
+                setCities(sortAndDedupeCities(Array.isArray(cityList) ? cityList : []));
+                const countriesFromApi = await fetchCountries();
+                setCountries(countriesFromApi.length > 0 ? countriesFromApi : (countryList || []).filter(Boolean).map((c: string) => ({ code: c, name: c })).sort((a: any, b: any) => a.name.localeCompare(b.name)));
                 setAmenities(amenityList || []);
                 setMyListingsCount(businessesRes?.data?.length || 0);
 
@@ -458,15 +253,18 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                 mappedIds: initialAmenityIds
             });
 
-            setFormData({
+                setFormData({
                 title: business.title || '',
                 categoryId: business.category?.id || '',
+                subCategoryIds: business.subcategories?.map((sc: any) => sc.id) || [],
                 description: business.description || '',
                 phone: business.phone || '',
                 whatsapp: business.whatsapp || '',
-                website: business.website || '',
-                address: business.address || '',
-                city: business.city || '',
+                    website: business.website || '',
+                    country: (business as any).country || '',
+                    address: business.address || '',
+                    addressLine2: (business as any).addressLine2 || '',
+                    city: business.city || '',
                 state: business.state || '',
                 pincode: business.pincode || '',
                 latitude: Number(business.latitude) || 40.7128,
@@ -489,6 +287,8 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                 })(),
                 offerBannerUrl: business.offerBannerUrl || '',
                 faqs: (business.faqs || []).filter(f => f && f.question && f.answer)
+                ,
+                namedPhoneNumbers: (business as any).namedPhoneNumbers || []
             });
             // Pre-fill gallery previews
             setGalleryPreviews(business.images || []);
@@ -527,6 +327,9 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
             // Filter out empty FAQs
             submissionData.faqs = (submissionData.faqs || []).filter(f => f.question.trim() && f.answer.trim());
+            submissionData.namedPhoneNumbers = (submissionData.namedPhoneNumbers || [])
+                .map((p: any) => ({ label: String(p.label || '').trim(), number: String(p.number || '').trim() }))
+                .filter((p: any) => p.label && p.number);
             console.log("[AddBusinessModal] Submitting data:", submissionData);
         
             try {
@@ -544,7 +347,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
             // Save social links to vendor profile
             const linksToSave = socialLinks.filter(s => s.url?.trim());
             try {
-                await api.vendors.updateProfile({ socialLinks: linksToSave });
+                await api.businessProfiles.updateProfile({ socialLinks: linksToSave });
             } catch (socialErr) {
                 console.error('Failed to update social links:', socialErr);
                 // Don't block the main flow if social links fail
@@ -811,6 +614,71 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                         />
                                                     </div>
 
+                                                    {/* Subcategories */}
+                                                    {(() => {
+                                                        const maxSubCategories = getFeatureValue('maxSubCategories') || 0;
+                                                        const allowedMax = Math.min(3, maxSubCategories);
+                                                        
+                                                        if (allowedMax > 0 && formData.categoryId && formData.categoryId !== 'other') {
+                                                            const relatedSubcategories = categories.filter(c => c.parentId === formData.categoryId);
+                                                            if (relatedSubcategories.length > 0) {
+                                                                return (
+                                                                    <div className="mt-4 p-4 bg-purple-50/50 rounded-xl border border-purple-100">
+                                                                        <div className="flex items-center gap-2 mb-3">
+                                                                            <Layers className="w-4 h-4 text-purple-600" />
+                                                                            <h4 className="text-sm font-black text-slate-900">Subcategories (Select up to {allowedMax})</h4>
+                                                                        </div>
+                                                                        <div className="space-y-3">
+                                                                            {Array.from({ length: allowedMax }).map((_, i) => (
+                                                                                <div key={`sub-${i}`}>
+                                                                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Subcategory {i + 1}</label>
+                                                                                    <div className="relative">
+                                                                                        <select
+                                                                                            value={formData.subCategoryIds[i] || ''}
+                                                                                            onChange={e => {
+                                                                                                const newSubs = [...formData.subCategoryIds];
+                                                                                                if (e.target.value) {
+                                                                                                    newSubs[i] = e.target.value;
+                                                                                                } else {
+                                                                                                    newSubs.splice(i, 1);
+                                                                                                }
+                                                                                                setFormData(prev => ({ ...prev, subCategoryIds: newSubs.filter(Boolean) }));
+                                                                                            }}
+                                                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none shadow-sm pr-10"
+                                                                                        >
+                                                                                            <option value="">-- Optional --</option>
+                                                                                            {relatedSubcategories.map(sub => (
+                                                                                                <option 
+                                                                                                    key={sub.id} 
+                                                                                                    value={sub.id}
+                                                                                                    disabled={formData.subCategoryIds.includes(sub.id) && formData.subCategoryIds[i] !== sub.id}
+                                                                                                >
+                                                                                                    {sub.name}
+                                                                                                </option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        } else if (allowedMax === 0 && formData.categoryId) {
+                                                            return (
+                                                                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 opacity-60">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Premium Feature</h4>
+                                                                    </div>
+                                                                    <p className="text-[10px] font-medium text-slate-400">Upgrade to select multiple subcategories.</p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+
                                                     <div className="space-y-2.5">
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Short Description</label>
                                                         <div className="relative group">
@@ -856,6 +724,9 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                                 </div>
                                                             </label>
                                                         </div>
+                                                        <p className="text-[10px] font-bold text-slate-500 ml-1">
+                                                            Recommended size: 1200 x 675 px (16:9), PNG/JPG, max 5 MB.
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </motion.div>
@@ -864,23 +735,74 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                             <motion.div key="location" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2.5">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">City</label>
-                                                        <div className="relative group">
-                                                            <select required name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all appearance-none cursor-pointer pr-10 shadow-sm">
-                                                                {cities.map(city => (<option key={city.id} value={city.name}>{city.name}</option>))}
-                                                            </select>
-                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg></div>
-                                                        </div>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Country <span className="text-red-500">*</span></label>
+                                                        <select
+                                                            required
+                                                            name="country"
+                                                            value={formData.country}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value, city: '', state: '' }))}
+                                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        >
+                                                            <option value="">Select a country...</option>
+                                                            {countries.map((c) => (
+                                                                <option key={c.code} value={c.code}>{c.name}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                     <div className="space-y-2.5">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">State</label>
-                                                        <input required name="state" value={formData.state} onChange={handleChange} placeholder="State" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                            {addressConfig.locality.label} {addressConfig.locality.required && <span className="text-red-500">*</span>}
+                                                        </label>
+                                                        <input
+                                                            required={addressConfig.locality.required}
+                                                            list="city-list"
+                                                            name="city"
+                                                            value={formData.city}
+                                                            onChange={handleChange}
+                                                            placeholder={`Enter ${addressConfig.locality.label.toLowerCase()}`}
+                                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                        <datalist id="city-list">
+                                                            {cities
+                                                                .sort((a, b) => a.name.localeCompare(b.name))
+                                                                .map(city => (<option key={city.id} value={city.name} />))}
+                                                        </datalist>
                                                     </div>
+                                                    {addressConfig.administrativeArea.used && (
+                                                        <div className="space-y-2.5">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                                {addressConfig.administrativeArea.label} {addressConfig.administrativeArea.required && <span className="text-red-500">*</span>}
+                                                            </label>
+                                                            {addressConfig.administrativeArea.options && addressConfig.administrativeArea.options.length > 0 ? (
+                                                                <select
+                                                                    required={addressConfig.administrativeArea.required}
+                                                                    name="state"
+                                                                    value={formData.state}
+                                                                    onChange={handleChange}
+                                                                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                                >
+                                                                    <option value="">Select {addressConfig.administrativeArea.label}...</option>
+                                                                    {addressConfig.administrativeArea.options.map(opt => (
+                                                                        <option key={opt.code} value={opt.code}>{opt.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : (
+                                                                <input
+                                                                    required={addressConfig.administrativeArea.required}
+                                                                    name="state"
+                                                                    value={formData.state}
+                                                                    onChange={handleChange}
+                                                                    placeholder={addressConfig.administrativeArea.label}
+                                                                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="space-y-2.5">
                                                     <div className="flex items-center justify-between">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address / Area</label>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address <span className="text-red-500">*</span></label>
                                                         <button
                                                             type="button"
                                                             onClick={handleGetCurrentLocation}
@@ -891,40 +813,53 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     </div>
                                                     <div className="relative group">
                                                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                                                        <input required ref={addressInputRef} name="address" value={formData.address} onChange={handleChange} placeholder="Search area or drag marker..." className="w-full pl-11 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
+                                                        <input required name="address" value={formData.address} onChange={handleChange} placeholder="Street address..." className="w-full pl-11 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
                                                     </div>
                                                 </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2.5">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Pincode</label>
-                                                        <input required name="pincode" value={formData.pincode} onChange={handleChange} placeholder="50000" className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div className="space-y-2.5">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lat</label>
-                                                            <input type="number" step="any" name="latitude" value={formData.latitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                        </div>
-                                                        <div className="space-y-2.5">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Long</label>
-                                                            <input type="number" step="any" name="longitude" value={formData.longitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                        </div>
-                                                    </div>
+                                                <div className="space-y-2.5">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Street Address Line 2 (Optional)</label>
+                                                    <input
+                                                        name="addressLine2"
+                                                        value={(formData as any).addressLine2 || ''}
+                                                        onChange={handleChange}
+                                                        placeholder="Apartment, suite, unit, building, floor, etc."
+                                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                    />
                                                 </div>
 
-                                                <div className="h-48 rounded-2xl border-2 border-slate-200 overflow-hidden relative shadow-sm">
-                                                    {mapError ? (
-                                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-red-50 text-red-500">
-                                                            <p className="text-sm font-bold">Google Maps failed to load.</p>
-                                                            <p className="text-xs mt-1">Please check your API key geometry tracking.</p>
+                                                {addressConfig.postalCode.used && (
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2.5">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                                {addressConfig.postalCode.label} {addressConfig.postalCode.required ? <span className="text-red-500">*</span> : '(Optional)'}
+                                                            </label>
+                                                            <input
+                                                                name="pincode"
+                                                                required={addressConfig.postalCode.required}
+                                                                value={formData.pincode}
+                                                                onChange={handleChange}
+                                                                placeholder={addressConfig.postalCode.label}
+                                                                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                            />
+                                                            {formData.pincode && !validatePostalCode(formData.pincode) && (
+                                                                <p className="text-xs text-red-500 font-bold ml-1">Invalid {addressConfig.postalCode.label} format for this country.</p>
+                                                            )}
                                                         </div>
-                                                    ) : !mapLoaded ? (
-                                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50">
-                                                            <Loader2 className="w-6 h-6 animate-spin text-orange-500 mb-2" />
-                                                            <p className="text-xs font-bold text-slate-500">Loading Map...</p>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lat</label>
+                                                                <input type="number" step="any" name="latitude" value={formData.latitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
+                                                            </div>
+                                                            <div className="space-y-2.5">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Long</label>
+                                                                <input type="number" step="any" name="longitude" value={formData.longitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
+                                                            </div>
                                                         </div>
-                                                    ) : null}
-                                                    <div ref={mapContainerRef} className="w-full h-full bg-slate-100" />
+                                                    </div>
+                                                )}
+
+                                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-[11px] font-semibold text-slate-500">
+                                                    Address format and required fields update automatically based on the selected country.
                                                 </div>
                                             </motion.div>
                                         )}
@@ -977,41 +912,62 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-3">
+                                                <div className="space-y-3 relative">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center justify-between">
                                                         Search Keywords
-                                                        <span className="text-[9px] text-slate-300 normal-case tracking-normal">max {maxKeywords} tags</span>
-                                                    </label>
-                                                    <div
-                                                        onClick={() => keywordInputRef.current?.focus()}
-                                                        className="min-h-[52px] flex flex-wrap gap-2 cursor-text p-3 bg-slate-50 border border-slate-200 rounded-2xl transition-all focus-within:ring-2 focus-within:ring-orange-400 focus-within:bg-white"
-                                                    >
-                                                        {keywords.map(kw => (
-                                                            <span
-                                                                key={kw}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-700 border border-slate-200 shadow-sm rounded-lg text-xs font-bold transition-all hover:pr-1 group"
-                                                            >
-                                                                #{kw}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => { e.stopPropagation(); removeKeyword(kw); }}
-                                                                    className="w-0 overflow-hidden group-hover:w-4 transition-all flex items-center justify-center text-slate-400 hover:text-red-500"
-                                                                >
-                                                                    <X className="w-3 h-3" />
-                                                                </button>
+                                                        {isFree ? (
+                                                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                                                <Lock className="w-2.5 h-2.5" /> Premium Only
                                                             </span>
-                                                        ))}
-                                                        <input
-                                                            ref={keywordInputRef}
-                                                            type="text"
-                                                            value={keywordInput}
-                                                            onChange={e => setKeywordInput(e.target.value)}
-                                                            onKeyDown={handleKeywordKeyDown}
-                                                            onBlur={() => { if (keywordInput.trim()) addKeyword(keywordInput); }}
-                                                            placeholder={keywords.length === 0 ? 'Type a keyword, press Enter…' : ''}
-                                                            className="flex-1 min-w-[140px] bg-transparent outline-none text-sm font-semibold text-slate-700 placeholder:text-slate-400"
-                                                        />
-                                                    </div>
+                                                        ) : (
+                                                            <span className="text-[9px] text-slate-300 normal-case tracking-normal">Press Enter after each keyword</span>
+                                                        )}
+                                                    </label>
+                                                    {isFree ? (
+                                                        <div className="p-6 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40 flex flex-col items-center gap-3 text-center">
+                                                            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center">
+                                                                <Lock className="w-5 h-5 text-amber-600" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-black text-slate-800">Search Keywords are a Premium Feature</p>
+                                                                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Upgrade to add up to 10 keywords that boost your listing in search results.</p>
+                                                            </div>
+                                                            <Link href="/subscription" className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl transition-colors">
+                                                                Upgrade Plan
+                                                            </Link>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            onClick={() => keywordInputRef.current?.focus()}
+                                                            className="min-h-[52px] flex flex-wrap gap-2 cursor-text p-3 bg-slate-50 border border-slate-200 rounded-2xl transition-all focus-within:ring-2 focus-within:ring-orange-400 focus-within:bg-white"
+                                                        >
+                                                            {keywords.map(kw => (
+                                                                <span
+                                                                    key={kw}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-slate-700 border border-slate-200 shadow-sm rounded-lg text-xs font-bold transition-all hover:pr-1 group"
+                                                                >
+                                                                    #{kw}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); removeKeyword(kw); }}
+                                                                        className="w-0 overflow-hidden group-hover:w-4 transition-all flex items-center justify-center text-slate-400 hover:text-red-500"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                    </button>
+                                                                </span>
+                                                            ))}
+                                                            <input
+                                                                ref={keywordInputRef}
+                                                                type="text"
+                                                                value={keywordInput}
+                                                                onChange={e => setKeywordInput(e.target.value)}
+                                                                onKeyDown={handleKeywordKeyDown}
+                                                                onBlur={() => { if (keywordInput.trim()) addKeyword(keywordInput); }}
+                                                                placeholder={keywords.length === 0 ? 'Type a keyword, press Enter…' : ''}
+                                                                className="flex-1 min-w-[140px] bg-transparent outline-none text-sm font-semibold text-slate-700 placeholder:text-slate-400"
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                             </motion.div>
@@ -1043,7 +999,68 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                                <div className="space-y-3 pt-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Additional Named Numbers (Paid)</label>
+                                                        {canManageNamedPhones ? (
+                                                            <span className="text-[10px] font-black text-slate-500">{formData.namedPhoneNumbers.length}/{maxNamedPhoneNumbers}</span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600"><Lock className="w-3 h-3" /> Upgrade required</span>
+                                                        )}
+                                                    </div>
+
+                                                    {formData.namedPhoneNumbers.map((item, idx) => (
+                                                        <div key={idx} className="grid grid-cols-12 gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={item.label}
+                                                                onChange={(e) => updateNamedPhone(idx, 'label', e.target.value)}
+                                                                placeholder="Label (Sales, Support)"
+                                                                className="col-span-4 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                                                                disabled={!canManageNamedPhones}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={item.number}
+                                                                onChange={(e) => updateNamedPhone(idx, 'number', e.target.value)}
+                                                                placeholder="+923001234567"
+                                                                className="col-span-7 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                                                                disabled={!canManageNamedPhones}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeNamedPhone(idx)}
+                                                                className="col-span-1 h-10 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center"
+                                                                disabled={!canManageNamedPhones}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={addNamedPhone}
+                                                        disabled={!canManageNamedPhones || formData.namedPhoneNumbers.length >= maxNamedPhoneNumbers}
+                                                        className="w-full py-2.5 border border-dashed border-slate-300 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                                                    >
+                                                        + Add Named Number
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-4 pt-4 border-t border-slate-100 relative">
+                                                    {isFree && (
+                                                        <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-white/80 flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-slate-100">
+                                                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                                                                <Lock className="w-5 h-5 text-slate-400" />
+                                                            </div>
+                                                            <h4 className="text-sm font-black text-slate-900 mb-1">Premium Feature</h4>
+                                                            <p className="text-[11px] font-bold text-slate-500 mb-4 max-w-[200px]">Upgrade to add your social media profiles.</p>
+                                                            <Link href="/subscription" className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all">
+                                                                Upgrade Plan
+                                                            </Link>
+                                                        </div>
+                                                    )}
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Social Media Profiles</label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {SOCIAL_PLATFORMS.map(p => {
@@ -1075,65 +1092,82 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
                                         {activeTab === 'faqs' && (
                                             <motion.div key="faqs" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
-                                                <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Question</label>
-                                                        <input
-                                                            type="text"
-                                                            value={newFaq.question}
-                                                            onChange={(e) => setNewFaq(prev => ({ ...prev, question: e.target.value }))}
-                                                            placeholder="e.g. Do you offer home delivery?"
-                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-400 outline-none"
-                                                        />
+                                                {isFree ? (
+                                                    <div className="p-8 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40 flex flex-col items-center gap-4 text-center">
+                                                        <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
+                                                            <Lock className="w-6 h-6 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-slate-800">FAQs are a Premium Feature</p>
+                                                            <p className="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">Upgrade your plan to add up to 10 Frequently Asked Questions to your business profile. FAQs help customers quickly understand your services and reduce direct enquiries.</p>
+                                                        </div>
+                                                        <Link href="/subscription" className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl transition-colors shadow-lg shadow-amber-500/25">
+                                                            View Upgrade Plans
+                                                        </Link>
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Answer</label>
-                                                        <textarea
-                                                            value={newFaq.answer}
-                                                            onChange={(e) => setNewFaq(prev => ({ ...prev, answer: e.target.value }))}
-                                                            placeholder="e.g. Yes, we offer free home delivery..."
-                                                            rows={3}
-                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-400 outline-none resize-none"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={addFaq}
-                                                        disabled={!newFaq.question.trim() || !newFaq.answer.trim()}
-                                                        className="w-full py-3 bg-white border-2 border-orange-500 text-orange-600 rounded-xl font-black text-sm hover:bg-orange-500 hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                                    >
-                                                        <Plus className="w-4 h-4" /> Add FAQ Item
-                                                    </button>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    {(formData.faqs || []).map((faq, idx) => (
-                                                        <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm group">
-                                                            <div className="flex justify-between gap-4">
-                                                                <div className="flex-1 space-y-1">
-                                                                    <h4 className="text-sm font-black text-slate-900 flex items-start gap-2">
-                                                                        <span className="text-orange-500">Q.</span> {faq.question}
-                                                                    </h4>
-                                                                    <p className="text-xs text-slate-500 font-medium">
-                                                                        <span className="text-blue-500 font-black">A.</span> {faq.answer}
-                                                                    </p>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeFaq(idx)}
-                                                                    className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
+                                                ) : (
+                                                    <>
+                                                        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Question</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={newFaq.question}
+                                                                    onChange={(e) => setNewFaq(prev => ({ ...prev, question: e.target.value }))}
+                                                                    placeholder="e.g. Do you offer home delivery?"
+                                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-400 outline-none"
+                                                                />
                                                             </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Answer</label>
+                                                                <textarea
+                                                                    value={newFaq.answer}
+                                                                    onChange={(e) => setNewFaq(prev => ({ ...prev, answer: e.target.value }))}
+                                                                    placeholder="e.g. Yes, we offer free home delivery..."
+                                                                    rows={3}
+                                                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-orange-400 outline-none resize-none"
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={addFaq}
+                                                                disabled={!newFaq.question.trim() || !newFaq.answer.trim()}
+                                                                className="w-full py-3 bg-white border-2 border-orange-500 text-orange-600 rounded-xl font-black text-sm hover:bg-orange-500 hover:text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                                            >
+                                                                <Plus className="w-4 h-4" /> Add FAQ Item
+                                                            </button>
                                                         </div>
-                                                    ))}
-                                                    {(!formData.faqs || formData.faqs.length === 0) && (
-                                                        <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-2xl">
-                                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No FAQs added yet</p>
+
+                                                        <div className="space-y-3">
+                                                            {(formData.faqs || []).map((faq, idx) => (
+                                                                <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm group">
+                                                                    <div className="flex justify-between gap-4">
+                                                                        <div className="flex-1 space-y-1">
+                                                                            <h4 className="text-sm font-black text-slate-900 flex items-start gap-2">
+                                                                                <span className="text-orange-500">Q.</span> {faq.question}
+                                                                            </h4>
+                                                                            <p className="text-xs text-slate-500 font-medium">
+                                                                                <span className="text-blue-500 font-black">A.</span> {faq.answer}
+                                                                            </p>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeFaq(idx)}
+                                                                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                            {(!formData.faqs || formData.faqs.length === 0) && (
+                                                                <div className="text-center py-10 border-2 border-dashed border-slate-100 rounded-2xl">
+                                                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No FAQs added yet</p>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    </>
+                                                )}
                                             </motion.div>
                                         )}
                                     </AnimatePresence>

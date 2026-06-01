@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { getGoogleMapEmbedUrl } from "../../../lib/map-embed";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Star,
@@ -49,7 +50,7 @@ import Link from "next/link";
 import FollowButton from "../../../components/FollowButton";
 import { api, getImageUrl } from "../../../lib/api";
 import { Business } from "../../../types/api";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth, setCookie } from "../../../context/AuthContext";
 import { getBusinessOpenStatus } from "../../../lib/business-status";
 import ChatTrigger, {
   ChatTriggerHandle,
@@ -203,146 +204,10 @@ export default function BusinessDetailClient({
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
 
-  // Map State & Refs
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState(false);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const initInProgress = useRef(false);
-
-  const initMap = async () => {
-    // Only initialize if we have the container, business data, and we are on the Overview tab
-    // Also don't initialize if already in progress
-    if (
-      !mapContainerRef.current ||
-      !business ||
-      activeTab !== "Overview" ||
-      initInProgress.current
-    )
-      return;
-
-    try {
-      initInProgress.current = true;
-
-      // Coordinate parsing for Pakistan context (fallback if invalid)
-      const lat = parseFloat(String(business.latitude)) || 30.3753;
-      const lng = parseFloat(String(business.longitude)) || 69.3451;
-      const center = { lat, lng };
-
-      console.log("[BusinessDetail] Initializing map at:", center);
-
-      // Ensure window.google.maps is available
-      if (!(window as any).google?.maps?.importLibrary) {
-        console.warn(
-          "[BusinessDetail] Google Maps importLibrary not available yet",
-        );
-        initInProgress.current = false;
-        return;
-      }
-
-      const { Map } = await (window as any).google.maps.importLibrary("maps");
-
-      if (!mapRef.current) {
-        // Initialize the Map
-        mapRef.current = new Map(mapContainerRef.current, {
-          center,
-          zoom: 15,
-          mapTypeId: "roadmap",
-          zoomControl: true,
-          streetViewControl: true,
-          fullscreenControl: true,
-          maxZoom: 19,
-          minZoom: 2,
-          // Remove DEMO_MAP_ID as it can cause blank maps if not authorized
-        });
-
-        console.log("[BusinessDetail] Map instance created");
-
-        // Try AdvancedMarkerElement (requires MapId, which we removed for stability)
-        // We'll use legacy Marker for better reliability unless a Map ID is provided
-        try {
-          const { Marker } = await (window as any).google.maps.importLibrary(
-            "marker",
-          );
-          markerRef.current = new Marker({
-            position: center,
-            map: mapRef.current,
-            title: business.title,
-            animation: (window as any).google.maps.Animation?.DROP,
-          });
-          console.log("[BusinessDetail] Legacy Marker initialized");
-        } catch (markerErr) {
-          console.warn("[BusinessDetail] Marker failed:", markerErr);
-        }
-      } else {
-        // Update existing map if business data changed or tab switched back
-        mapRef.current.setCenter(center);
-        // Trigger a resize to ensure map renders correctly after being hidden
-        if ((window as any).google?.maps?.event) {
-          (window as any).google.maps.event.trigger(mapRef.current, "resize");
-        }
-
-        if (markerRef.current) {
-          if (markerRef.current.setPosition) {
-            markerRef.current.setPosition(center);
-          } else {
-            markerRef.current.position = center;
-          }
-        }
-      }
-    } catch (err) {
-      console.error("[BusinessDetail] GOOGLE MAP CRITICAL ERROR:", err);
-      setMapError(true);
-    } finally {
-      initInProgress.current = false;
-    }
-  };
-
-  useEffect(() => {
-    if (loading || !mapLoaded || !business || activeTab !== "Overview") return;
-
-    const frameId = window.requestAnimationFrame(() => {
-      initMap();
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [loading, mapLoaded, business, activeTab]);
-
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      (window as any).google?.maps?.importLibrary
-    ) {
-      console.log("[BusinessDetail] Google Maps script found");
-      setMapLoaded(true);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (
-        typeof window !== "undefined" &&
-        (window as any).google?.maps?.importLibrary
-      ) {
-        console.log("[BusinessDetail] Google Maps backend ready");
-        setMapLoaded(true);
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    // Handle API Key failures (global callback)
-    (window as any).gm_authFailure = () => {
-      console.error(
-        "[BusinessDetail] Google Maps auth failure - check API Key and Billing",
-      );
-      setMapError(true);
-    };
-
-    return () => {
-      if (interval) clearInterval(interval);
-      // Don't delete gm_authFailure globally as it might affect other pages
-    };
-  }, []);
+  const mapEmbedUrl = useMemo(
+    () => (business ? getGoogleMapEmbedUrl(business) : null),
+    [business],
+  );
 
   useEffect(() => {
     const loadBusiness = async () => {
@@ -441,8 +306,8 @@ export default function BusinessDetailClient({
               await api.affiliate.trackClick(refCode);
             } catch (e) { }
           } else {
-            // Store in session storage for later if not logged in
-            sessionStorage.setItem("referralCode", refCode);
+            // Store in a 10-day cookie for later if not logged in
+            setCookie("referralCode", refCode, 10);
           }
         }
       } catch (err: any) {
@@ -960,7 +825,7 @@ export default function BusinessDetailClient({
                 <div className="flex flex-wrap items-center gap-3 mb-6">
                   {business.isVerified && (
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                      <ShieldCheck className="w-3.5 h-3.5" /> Trusted
                     </div>
                   )}
                   <div className="flex items-center gap-2">
@@ -1179,30 +1044,24 @@ export default function BusinessDetailClient({
                             Location & Directions
                           </h3>
                           <div className="relative h-[400px] rounded-[20px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 bg-slate-50">
-                            {mapError ? (
+                            {mapEmbedUrl ? (
+                              <iframe
+                                title="Business location map"
+                                src={mapEmbedUrl}
+                                className="w-full h-full border-0"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                allowFullScreen
+                              />
+                            ) : (
                               <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                                <div className="w-16 h-16 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-500 mb-4">
-                                  <MapPin className="w-8 h-8" />
-                                </div>
-                                <p className="font-bold text-slate-900">
-                                  Map unavailable
-                                </p>
+                                <MapPin className="w-10 h-10 text-slate-300 mb-3" />
+                                <p className="font-bold text-slate-900">Map preview</p>
                                 <p className="text-sm text-slate-500 mt-1 max-w-xs">
                                   {business.address}, {business.city}
                                 </p>
                               </div>
-                            ) : !mapLoaded ? (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                  Loading Location ...
-                                </p>
-                              </div>
-                            ) : null}
-                            <div
-                              ref={mapContainerRef}
-                              className="w-full h-full"
-                            />
+                            )}
 
                             {/* Floating Info Overlay */}
                             <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-auto md:w-80 p-4 md:p-6 bg-white/90 backdrop-blur-xl border border-white/20 rounded-[16px] shadow-2xl">
@@ -1330,12 +1189,12 @@ export default function BusinessDetailClient({
                                   </p>
                                 )}
 
-                                {/* Vendor Response (if any) */}
+                                {/* Business Response (if any) */}
                                 {comment.vendorResponse && (
                                   <div className="mt-6 p-5 bg-blue-50 rounded-3xl border border-blue-100 relative">
                                     <div className="absolute -top-3 left-6 px-3 py-1 bg-white border border-blue-100 rounded-lg shadow-sm">
                                       <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                                        Vendor Response
+                                        Business Response
                                       </span>
                                     </div>
                                     <p className="text-sm text-slate-700 font-medium leading-relaxed italic">
@@ -1516,7 +1375,7 @@ export default function BusinessDetailClient({
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 mb-2">No Amenities Listed</h3>
                             <p className="text-slate-400 font-medium max-w-sm mx-auto">
-                              The vendor hasn't specified any amenities for this business yet.
+                              The business hasn't specified any amenities yet.
                             </p>
                           </div>
                         )}
@@ -2169,7 +2028,7 @@ export default function BusinessDetailClient({
 
                 <div className="flex flex-col items-center text-center">
                   <Link
-                    href={business.vendor?.slug ? `/vendors/${business.vendor.slug}` : (business.vendorId || business.vendor?.id) ? `/vendors/${business.vendorId || business.vendor?.id}` : "#"}
+                    href={business.vendor?.slug ? `/businesses/${business.vendor.slug}` : (business.vendorId || business.vendor?.id) ? `/businesses/${business.vendorId || business.vendor?.id}` : "#"}
                     className={`flex flex-col items-center text-center group/vendor ${!(business.vendor?.slug || business.vendorId || business.vendor?.id) ? "pointer-events-none" : "cursor-pointer"}`}
                   >
                     <div className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-400 font-bold overflow-hidden shadow-inner mb-6 relative group border-4 border-white ring-1 ring-slate-100">
@@ -2180,7 +2039,7 @@ export default function BusinessDetailClient({
                               business.logoUrl || business.vendor?.user?.avatarUrl,
                             ) as string
                           }
-                          alt={business.title || business.vendor?.user?.fullName || "Vendor"}
+                          alt={business.title || business.vendor?.user?.fullName || "Business"}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
@@ -2200,7 +2059,7 @@ export default function BusinessDetailClient({
 
                     <h5 className="text-2xl font-black text-slate-900 leading-tight mb-2 group-hover/vendor:text-primary transition-colors">
                       {business.vendor?.user?.fullName ||
-                        "Verified Business Owner"}
+                        "Business Owner"}
                     </h5>
                    
                   </Link>
@@ -2287,7 +2146,7 @@ export default function BusinessDetailClient({
                       <button
                         type="button"
                         onClick={() => {
-                          window.location.href = `/vendors/${business.vendor?.slug || business.vendorId || business.vendor?.id}`;
+                          window.location.href = `/businesses/${business.vendor?.slug || business.vendorId || business.vendor?.id}`;
                         }}
                         className="group/btn relative w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 overflow-hidden hover:bg-blue-600 transition-all duration-300 shadow-lg shadow-slate-900/10 active:scale-[0.98] mt-6 cursor-pointer z-20"
                       >

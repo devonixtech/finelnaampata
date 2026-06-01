@@ -25,6 +25,7 @@ import { api } from '../../lib/api';
 import { OfferType, City } from '../../types/api';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { detectLocationForUi, sortAndDedupeCities } from '../../lib/location-detect';
 
 const OffersEventsContent = () => {
     const searchParams = useSearchParams();
@@ -53,7 +54,7 @@ const OffersEventsContent = () => {
         const loadInitialData = async () => {
             try {
                 const citiesData = await api.cities.getAll();
-                setCities(citiesData || []);
+                setCities(sortAndDedupeCities(citiesData || []));
             } catch (err) {
                 console.error('Failed to load cities:', err);
             }
@@ -67,19 +68,52 @@ const OffersEventsContent = () => {
             const params = {
                 query,
                 city,
-                type: type || undefined,
                 radius: lat && lng ? radius : undefined,
                 latitude: lat || undefined,
                 longitude: lng || undefined,
                 page,
-                limit: 12
+                limit: 12,
             };
-            const response = await api.offers.search(params);
-            setOffers(response.data);
-            setTotal(response.meta.total);
-            setTotalPages(response.meta.totalPages);
+
+            const loaders: Promise<{ data: any[]; meta: any }>[] = [];
+            if (type === 'event') {
+                loaders.push(api.events.search(params));
+            } else if (type === 'offer') {
+                loaders.push(api.deals.search(params));
+            } else {
+                loaders.push(
+                    api.deals.search(params),
+                    api.events.search({ ...params, page: 1, limit: 50 }),
+                );
+            }
+
+            const results = await Promise.all(loaders);
+            let merged: any[] = [];
+            let totalCount = 0;
+            let pages = 1;
+
+            if (type === 'event' || type === 'offer') {
+                merged = (results[0]?.data || []).map((item) => ({
+                    ...item,
+                    type: type === 'event' ? 'event' : 'offer',
+                }));
+                totalCount = results[0]?.meta?.total || merged.length;
+                pages = results[0]?.meta?.totalPages || 1;
+            } else {
+                const deals = (results[0]?.data || []).map((d) => ({ ...d, type: 'offer' as const }));
+                const events = (results[1]?.data || []).map((e) => ({ ...e, type: 'event' as const }));
+                merged = [...deals, ...events].sort(
+                    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+                );
+                totalCount = merged.length;
+                pages = Math.max(results[0]?.meta?.totalPages || 1, 1);
+            }
+
+            setOffers(merged);
+            setTotal(totalCount);
+            setTotalPages(pages);
         } catch (error) {
-            console.error('Failed to fetch offers:', error);
+            console.error('Failed to fetch deals/events:', error);
         } finally {
             setLoading(false);
         }
@@ -106,21 +140,16 @@ const OffersEventsContent = () => {
         router.push(`/offers-events?${params.toString()}`, { scroll: false });
     };
 
-    const handleGetLocation = () => {
+    const handleGetLocation = async () => {
         setIsLocating(true);
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLat(position.coords.latitude.toString());
-                    setLng(position.coords.longitude.toString());
-                    setIsLocating(false);
-                },
-                (error) => {
-                    console.error('Geolocation error:', error);
-                    setIsLocating(false);
-                }
-            );
-        } else {
+        try {
+            const coords = await detectLocationForUi();
+            if (!coords) return;
+            setLat(coords.latitude.toString());
+            setLng(coords.longitude.toString());
+        } catch (error) {
+            console.error('Geolocation error:', error);
+        } finally {
             setIsLocating(false);
         }
     };

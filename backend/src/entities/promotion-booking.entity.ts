@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import { Vendor } from './vendor.entity';
 import { OfferEvent, OfferType } from './offer-event.entity';
+import { Deal } from './deal.entity';
+import { Event } from './event.entity';
 
 export enum BookingStatus {
     PENDING = 'pending',
@@ -27,9 +29,17 @@ export class PromotionBooking {
     @Index()
     vendorId: string;
 
-    @Column({ name: 'offer_event_id', type: 'uuid' })
+    @Column({ name: 'offer_event_id', type: 'uuid', nullable: true })
     @Index()
     offerEventId: string;
+
+    @Column({ name: 'deal_id', type: 'uuid', nullable: true })
+    @Index()
+    dealId: string;
+
+    @Column({ name: 'event_id', type: 'uuid', nullable: true })
+    @Index()
+    eventId: string;
 
     @Column({
         type: 'enum',
@@ -78,7 +88,15 @@ export class PromotionBooking {
     @JoinColumn({ name: 'vendor_id' })
     vendor: Vendor;
 
-    @ManyToOne(() => OfferEvent, { onDelete: 'CASCADE' })
+    @ManyToOne(() => OfferEvent, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'offer_event_id' })
     offerEvent: OfferEvent;
+
+    @ManyToOne(() => Deal, { onDelete: 'CASCADE', nullable: true })
+    @JoinColumn({ name: 'deal_id' })
+    deal: Deal;
+
+    @ManyToOne(() => Event, { onDelete: 'CASCADE', nullable: true })
+    @JoinColumn({ name: 'event_id' })
+    event: Event;
 }

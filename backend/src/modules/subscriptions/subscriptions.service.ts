@@ -22,6 +22,8 @@ import { AffiliateReferral, ReferralStatus, ReferralType } from '../../entities/
 import { Affiliate } from '../../entities/affiliate.entity';
 import { CreatePlanDto, UpdatePlanDto, CheckoutDto, AssignPlanDto, CreatePricingPlanDto, UpdatePricingPlanDto } from './dto/subscription.dto';
 import { OfferEvent } from '../../entities/offer-event.entity';
+import { Deal } from '../../entities/deal.entity';
+import { Event } from '../../entities/event.entity';
 
 
 import { ConfigService } from '@nestjs/config';
@@ -57,6 +59,10 @@ export class SubscriptionsService implements OnModuleInit {
         private affiliateRepository: Repository<Affiliate>,
         @InjectRepository(OfferEvent)
         private offerEventRepository: Repository<OfferEvent>,
+        @InjectRepository(Deal)
+        private dealRepository: Repository<Deal>,
+        @InjectRepository(Event)
+        private eventRepository: Repository<Event>,
         private configService: ConfigService,
         private affiliateService: AffiliateService,
         @Inject(forwardRef(() => PromotionsService))
@@ -81,15 +87,26 @@ export class SubscriptionsService implements OnModuleInit {
     /**
      * Get all available subscription plans (Client)
      */
-    async getPlans(): Promise<SubscriptionPlan[]> {
-        return this.planRepository.find({ where: { isActive: true }, order: { price: 'ASC' } });
+    private normalizePlanResponse(plan: SubscriptionPlan): any {
+        const dashboardFeatures = (plan.dashboardFeatures || (plan as any).features || {}) as Record<string, any>;
+        return {
+            ...plan,
+            billingCycle: (plan.billingCycle || 'monthly').toLowerCase(),
+            dashboardFeatures,
+        };
+    }
+
+    async getPlans(): Promise<any[]> {
+        const plans = await this.planRepository.find({ where: { isActive: true }, order: { price: 'ASC' } });
+        return plans.map((plan) => this.normalizePlanResponse(plan));
     }
 
     /**
      * ADMIN: Get all plans including inactive ones
      */
-    async getPlansForAdmin(): Promise<SubscriptionPlan[]> {
-        return this.planRepository.find({ order: { price: 'ASC' } });
+    async getPlansForAdmin(): Promise<any[]> {
+        const plans = await this.planRepository.find({ order: { price: 'ASC' } });
+        return plans.map((plan) => this.normalizePlanResponse(plan));
     }
 
     /**
@@ -351,6 +368,11 @@ export class SubscriptionsService implements OnModuleInit {
 
         const baseUrl = this.getCleanBaseUrl(origin);
 
+        const apiKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+        if (!apiKey || apiKey === 'sk_test_your_secret_key_here') {
+            throw new BadRequestException('Stripe payment gateway is not configured. Please add a valid STRIPE_SECRET_KEY.');
+        }
+
         // ── Ensure plan has a valid Stripe Price ID (matching the current price) ────────────────
         let needsNewPrice = !plan.stripePriceId;
 
@@ -461,6 +483,48 @@ export class SubscriptionsService implements OnModuleInit {
      */
     async verifyCheckoutSession(sessionId: string, userId: string) {
         try {
+            if (sessionId.startsWith('MOCK-')) {
+                const existingTransaction = await this.transactionRepository.findOne({
+                    where: { gatewayTransactionId: sessionId },
+                    relations: ['subscription', 'subscription.plan']
+                });
+
+                if (existingTransaction) {
+                    return {
+                        success: true,
+                        alreadyProcessed: true,
+                        planName: existingTransaction.subscription?.plan?.name || 'Premium Plan',
+                        planType: existingTransaction.subscription?.plan?.planType,
+                        amount: existingTransaction.amount,
+                        endDate: existingTransaction.subscription?.endDate,
+                        transactionId: existingTransaction.id
+                    };
+                }
+
+                const existingActivePlan = await this.activePlanRepository.findOne({
+                    where: { transactionId: sessionId },
+                    relations: ['plan']
+                });
+
+                if (existingActivePlan) {
+                    const transaction = await this.transactionRepository.findOne({
+                        where: { gatewayTransactionId: sessionId }
+                    });
+                    
+                    return {
+                        success: true,
+                        alreadyProcessed: true,
+                        planName: existingActivePlan.plan?.name || 'Premium Plan',
+                        type: existingActivePlan.plan?.type || 'plan',
+                        amount: existingActivePlan.amountPaid,
+                        endDate: existingActivePlan.endDate,
+                        transactionId: transaction?.id
+                    };
+                }
+                
+                throw new NotFoundException('Mock transaction not found');
+            }
+
             const session = await this.stripe.checkout.sessions.retrieve(sessionId);
 
             if (session.payment_status === 'paid') {
@@ -894,6 +958,14 @@ export class SubscriptionsService implements OnModuleInit {
                     showReviews: !!result.plan.features?.showReviews,
                     showChat: !!result.plan.features?.showChat,
                     showBroadcast: !!result.plan.features?.showBroadcast,
+                    canRespondBroadcast:
+                        result.plan.features?.canRespondBroadcast !== undefined
+                            ? !!result.plan.features.canRespondBroadcast
+                            : result.plan.name?.toLowerCase() !== 'free',
+                    canReplyReviews:
+                        result.plan.features?.canReplyReviews !== undefined
+                            ? !!result.plan.features.canReplyReviews
+                            : result.plan.name?.toLowerCase() !== 'free',
                     showSaved: true,
                     showFollowing: true,
                     showListings: true,
@@ -909,6 +981,14 @@ export class SubscriptionsService implements OnModuleInit {
                     showReviews: !!result.plan.dashboardFeatures?.showReviews,
                     showChat: !!result.plan.dashboardFeatures?.showChat,
                     showBroadcast: !!result.plan.dashboardFeatures?.showBroadcast,
+                    canRespondBroadcast:
+                        result.plan.dashboardFeatures?.canRespondBroadcast !== undefined
+                            ? !!result.plan.dashboardFeatures.canRespondBroadcast
+                            : result.plan.planType !== 'free' && Number(result.plan.price) > 0,
+                    canReplyReviews:
+                        result.plan.dashboardFeatures?.canReplyReviews !== undefined
+                            ? !!result.plan.dashboardFeatures.canReplyReviews
+                            : result.plan.planType !== 'free' && Number(result.plan.price) > 0,
                     showSaved: true,
                     showFollowing: true,
                     showListings: true,
@@ -1254,8 +1334,19 @@ export class SubscriptionsService implements OnModuleInit {
             order: { endDate: 'ASC' },
         });
 
-        // 2. Get active featured offers/events
-        const featuredOffers = await this.offerEventRepository.find({
+        // 2. Get active featured deals
+        const featuredDeals = await this.dealRepository.find({
+            where: {
+                vendorId: vendor.id,
+                isFeatured: true,
+                featuredUntil: MoreThan(now),
+            },
+            relations: ['business'],
+            order: { featuredUntil: 'ASC' },
+        });
+
+        // 2b. Get active featured events
+        const featuredEvents = await this.eventRepository.find({
             where: {
                 vendorId: vendor.id,
                 isFeatured: true,
@@ -1278,27 +1369,43 @@ export class SubscriptionsService implements OnModuleInit {
                 status: p.status,
                 target: p.targetId ? 'Boosted Item' : 'Listing Feature',
             })),
-            boosts: featuredOffers.map(o => ({
-                id: o.id,
-                name: `Feature ${o.type?.toUpperCase() || 'OFFER'}`,
-                title: o.title || 'Untitled Offer',
-                business: o.business?.title || 'Unknown Business',
-                startDate: o.startDate,
-                endDate: o.featuredUntil,
-                type: o.type,
-                target: o.title || 'Untitled Offer',
-            })),
-            dynamicBookings: dynamicBookings.map(b => ({
-                id: b.id,
-                name: `Promotion for ${b.offerEvent?.title || 'Item'}`,
-                title: b.offerEvent?.title || 'Untitled Item',
-                business: b.offerEvent?.business?.title || 'Unknown Business',
-                placements: b.placements || [],
-                startDate: b.startTime,
-                endDate: b.endTime,
-                status: b.status,
-                totalPrice: b.totalPrice || 0,
-            })),
+            boosts: [
+                ...featuredDeals.map(d => ({
+                    id: d.id,
+                    name: 'Feature DEAL',
+                    title: d.title || 'Untitled Deal',
+                    business: d.business?.title || 'Unknown Business',
+                    startDate: d.startDate,
+                    endDate: d.featuredUntil,
+                    type: 'offer',
+                    target: d.title || 'Untitled Deal',
+                })),
+                ...featuredEvents.map(e => ({
+                    id: e.id,
+                    name: 'Feature EVENT',
+                    title: e.title || 'Untitled Event',
+                    business: e.business?.title || 'Unknown Business',
+                    startDate: e.startDate,
+                    endDate: e.featuredUntil,
+                    type: 'event',
+                    target: e.title || 'Untitled Event',
+                })),
+            ],
+            dynamicBookings: dynamicBookings.map(b => {
+                const title = b.deal?.title || b.event?.title || b.offerEvent?.title || 'Untitled Item';
+                const businessTitle = b.deal?.business?.title || b.event?.business?.title || b.offerEvent?.business?.title || 'Unknown Business';
+                return {
+                    id: b.id,
+                    name: `Promotion for ${title}`,
+                    title: title,
+                    business: businessTitle,
+                    placements: b.placements || [],
+                    startDate: b.startTime,
+                    endDate: b.endTime,
+                    status: b.status,
+                    totalPrice: b.totalPrice || 0,
+                };
+            }),
         };
     }
 

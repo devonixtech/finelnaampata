@@ -309,6 +309,11 @@ export default function Navbar() {
                     <div className="flex items-center justify-end gap-2">
                         {user ? (
                             <div className="flex items-center gap-3">
+                                {user.role === 'user' && (
+                                    <Link href="/upgrade" className="hidden sm:inline-block px-4 py-2 rounded-xl bg-[#FF7A30] text-white font-bold text-xs hover:bg-[#E86920] transition-all whitespace-nowrap">
+                                        List My Business
+                                    </Link>
+                                )}
                                 <Link href={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'} className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors">
                                     <VendorAvatar
                                         src={user.avatarUrl}
@@ -405,7 +410,7 @@ export default function Navbar() {
                         ) : (
                             <div className="hidden sm:flex items-center gap-4">
                                 <Link href="/login" className="text-sm font-semibold text-[#70757a] hover:text-[#202124] px-4 py-2">Login</Link>
-                                <Link href="/register?role=vendor" className="px-6 py-2.5 rounded-xl bg-[#FF7A30] text-white font-bold text-sm hover:bg-[#E86920] shadow-lg shadow-orange-500/20 transition-all active:scale-95 whitespace-nowrap">Add Business</Link>
+                                <Link href="/register" className="px-6 py-2.5 rounded-xl bg-[#FF7A30] text-white font-bold text-sm hover:bg-[#E86920] shadow-lg shadow-orange-500/20 transition-all active:scale-95 whitespace-nowrap">List My Business</Link>
                             </div>
                         )}
 
@@ -537,8 +542,14 @@ export default function Navbar() {
                             {!user && (
                                 <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
                                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="py-4 text-center rounded-2xl font-bold bg-slate-100 text-[#2D3E50]">Log In</Link>
-                                    <Link href="/register?role=vendor" onClick={() => setIsMobileMenuOpen(false)} className="py-4 text-center rounded-2xl font-bold bg-[#FF7A30] text-white">Join Us</Link>
+                                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="py-4 text-center rounded-2xl font-bold bg-[#FF7A30] text-white">Create Account</Link>
                                 </div>
+                            )}
+
+                            {user && user.role === 'user' && (
+                                <Link href="/upgrade" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-4 text-center rounded-2xl font-bold bg-[#FF7A30] text-white mb-3">
+                                    List My Business
+                                </Link>
                             )}
 
                             {user && (

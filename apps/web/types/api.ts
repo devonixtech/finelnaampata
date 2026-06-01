@@ -92,6 +92,7 @@ export interface Business {
     shortDescription?: string;
     email?: string;
     phone: string;
+    namedPhoneNumbers?: { label: string; number: string }[];
     address: string;
     city: string;
     state: string;
@@ -101,6 +102,14 @@ export interface Business {
     logoUrl?: string;
     coverImageUrl?: string;
     images: string[];
+    imageCaptions?: Record<string, string>;
+    albums?: {
+        id: string;
+        name: string;
+        images: { id: string; url: string; caption?: string; sortOrder: number }[];
+        createdAt: string;
+        updatedAt: string;
+    }[];
     averageRating: number;
     totalReviews: number;
     priceRange?: string;
@@ -108,6 +117,7 @@ export interface Business {
     isFeatured: boolean;
     whatsapp?: string;
     category?: Category;
+    subcategories?: Category[];
     website?: string;
     businessHours?: BusinessHours[];
     businessAmenities?: BusinessAmenity[];
@@ -230,7 +240,11 @@ export interface JobLead {
         id: string;
         fullName: string;
         email: string;
-        phone?: string;
+    phone?: string;
+    namedPhoneNumbers?: {
+        label: string;
+        number: string;
+    }[];
     };
     myResponse?: JobLeadResponse;
 }

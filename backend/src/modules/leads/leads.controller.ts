@@ -46,7 +46,7 @@ export class LeadsController {
         return this.leadsService.create(createLeadDto, user, meta);
     }
 
-    @Get('vendor')
+    @Get(['vendor', 'business'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get all leads for the current vendor' })
@@ -63,7 +63,7 @@ export class LeadsController {
         return this.leadsService.findAllForUser(user.id, getLeadsDto);
     }
 
-    @Get('vendor/stats')
+    @Get(['vendor/stats', 'business/stats'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get lead statistics for the current vendor' })
@@ -115,5 +115,27 @@ export class LeadsController {
     @ApiResponse({ status: 200, description: 'Lead marked as read' })
     async markAsRead(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
         return this.leadsService.markAsRead(id, user.id);
+    }
+
+    @Post(':id/notes')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Add a CRM note to a lead' })
+    @ApiResponse({ status: 201, description: 'Note added successfully' })
+    async addNote(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('note') note: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.leadsService.addNote(id, note, user.id);
+    }
+
+    @Get(':id/notes')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get all CRM notes for a lead' })
+    @ApiResponse({ status: 200, description: 'Notes retrieved successfully' })
+    async getNotes(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
+        return this.leadsService.getNotes(id, user.id);
     }
 }

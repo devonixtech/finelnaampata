@@ -9,7 +9,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { FeatureGate } from '../../../components/vendor/FeatureGate';
 
-export default function VendorBroadcastsPage() {
+export default function BusinessBroadcastsPage() {
     const { user } = useAuth();
     const isVendor = user?.role === 'vendor';
 
@@ -44,6 +44,15 @@ export default function VendorBroadcastsPage() {
 
             {/* Main Content */}
             <div className="bg-slate-50/30 rounded-[24px] p-8 sm:p-12 border-2 border-slate-50">
+                <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
+                    <h2 className="text-sm font-black text-slate-900 mb-3">Review Broadcast Requirements</h2>
+                    <div className="grid gap-2 text-xs font-semibold text-slate-600 sm:grid-cols-2">
+                        <p>Share a real customer requirement with a clear scope, category, city, and expected timeline.</p>
+                        <p>Do not request fake reviews, paid positive reviews, competitor reviews, or duplicate/spam broadcasts.</p>
+                        <p>Include enough details for businesses to decide whether they can help before responding.</p>
+                        <p>A business cannot broadcast in a category where it already has an active listing.</p>
+                    </div>
+                </div>
                 <BroadcastFeed />
             </div>
             </div>

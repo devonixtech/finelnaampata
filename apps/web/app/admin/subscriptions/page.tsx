@@ -1,741 +1,307 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    Receipt, Users, CreditCard, Check, X, Search, Loader2,
-    AlertTriangle, CheckCircle2, XCircle, Clock, Zap, Crown,
-    Building2, RefreshCw, ChevronRight, Plus, Calendar, Eye,
-    TrendingUp, Bell, FileText, Download
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
+import { Loader2, Plus, AlertCircle, RefreshCw, XCircle, Search, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-/* ─── Types ─────────────────────────────────────────────────────────────── */
-interface Subscription {
-    id: string;
-    status: string;
-    startDate: string;
-    endDate: string;
-    amount: number;
-    currency: string;
-    createdAt: string;
-    vendor?: {
-        id: string;
-        businessName: string;
-        user?: { fullName: string; email: string };
-    };
-    plan?: { name: string; planType: string; price: number };
-}
+export default function SubscriptionsPage() {
+    const [subscriptions, setSubscriptions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-interface Transaction {
-    id: string;
-    invoiceNumber: string;
-    amount: number;
-    currency: string;
-    status: string;
-    paymentGateway: string;
-    createdAt: string;
-    paidAt?: string;
-    vendor?: { businessName: string; user?: { fullName: string; email: string } };
-    subscription?: { plan?: { name: string } };
-}
-
-/* ─── Status Badge ───────────────────────────────────────────────────────── */
-const StatusBadge = ({ status }: { status: string }) => {
-    const map: Record<string, { label: string; cls: string; Icon: any }> = {
-        active: { label: 'Active', cls: 'bg-emerald-50 text-emerald-700', Icon: CheckCircle2 },
-        cancelled: { label: 'Cancelled', cls: 'bg-slate-100 text-slate-500', Icon: XCircle },
-        expired: { label: 'Expired', cls: 'bg-red-50 text-red-600', Icon: AlertTriangle },
-        suspended: { label: 'Suspended', cls: 'bg-amber-50 text-amber-600', Icon: Clock },
-        completed: { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', Icon: Check },
-        pending: { label: 'Pending', cls: 'bg-amber-50 text-amber-600', Icon: Clock },
-        failed: { label: 'Failed', cls: 'bg-red-50 text-red-600', Icon: XCircle },
-    };
-    const cfg = map[status] || { label: status, cls: 'bg-slate-100 text-slate-500', Icon: Clock };
-    return (
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${cfg.cls}`}>
-            <cfg.Icon className="w-3 h-3" />
-            {cfg.label}
-        </span>
-    );
-};
-
-/* ─── Assign Plan Modal ──────────────────────────────────────────────────── */
-function AssignPlanModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-    const [vendors, setVendors] = useState<any[]>([]);
+    // Modal state for assigning
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [assignForm, setAssignForm] = useState({
+        vendorId: '',
+        planId: '',
+        durationDays: 30
+    });
+    
+    // Select options
     const [plans, setPlans] = useState<any[]>([]);
-    const [selectedVendor, setSelectedVendor] = useState('');
-    const [selectedPlan, setSelectedPlan] = useState('');
-    const [durationDays, setDurationDays] = useState(30);
-    const [vendorSearch, setVendorSearch] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
-    const [error, setError] = useState('');
+    const [vendors, setVendors] = useState<any[]>([]); // Using getVendors
+    const [searchVendor, setSearchVendor] = useState('');
 
-    useEffect(() => {
-        Promise.all([
-            api.admin.getVendors(1, 100),
-            api.subscriptions.getPlans(),
-        ]).then(([v, p]) => {
-            setVendors(v?.data || []);
-            setPlans(Array.isArray(p) ? p : []);
-        }).catch(console.error).finally(() => setFetching(false));
-    }, []);
-
-    const filteredVendors = vendors.filter(v =>
-        (v.user?.fullName || '').toLowerCase().includes(vendorSearch.toLowerCase()) ||
-        (v.user?.email || '').toLowerCase().includes(vendorSearch.toLowerCase()) ||
-        (v.businessName || '').toLowerCase().includes(vendorSearch.toLowerCase())
-    );
-
-    const handleAssign = async () => {
-        if (!selectedVendor || !selectedPlan) {
-            setError('Please select both a vendor and a plan.');
-            return;
-        }
-        setLoading(true);
-        setError('');
+    const fetchSubscriptions = async () => {
         try {
-            await api.subscriptions.adminAssign({ vendorId: selectedVendor, planId: selectedPlan, durationDays });
-            onSuccess();
-            onClose();
+            setLoading(true);
+            const response = await api.subscriptions.adminGetAll(1, 50);
+            setSubscriptions(response?.data || response || []);
         } catch (err: any) {
-            setError(err.message || 'Failed to assign plan');
+            setError(err.message || 'Failed to fetch subscriptions');
         } finally {
             setLoading(false);
         }
     };
 
+    const fetchOptions = async () => {
+        try {
+            const [plansRes, vendorsRes] = await Promise.all([
+                api.admin.plans.getAll(),
+                api.admin.getVendors(1, 50)
+            ]);
+            setPlans(Array.isArray(plansRes) ? plansRes : []);
+            setVendors(vendorsRes?.data || vendorsRes || []);
+        } catch (err: any) {
+            console.error('Failed to load options', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchSubscriptions();
+        fetchOptions();
+    }, []);
+
+    const handleAssign = async () => {
+        try {
+            setActionLoading('assign');
+            await api.subscriptions.adminAssign({
+                vendorId: assignForm.vendorId,
+                planId: assignForm.planId,
+                durationDays: assignForm.durationDays || undefined
+            });
+            setIsAssignModalOpen(false);
+            setAssignForm({ vendorId: '', planId: '', durationDays: 30 });
+            await fetchSubscriptions();
+        } catch (err: any) {
+            alert(err.message || 'Failed to assign plan');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleCancel = async (id: string) => {
+        if (!confirm('Are you sure you want to cancel this subscription immediately?')) return;
+        try {
+            setActionLoading(`cancel-${id}`);
+            await api.subscriptions.adminCancel(id);
+            await fetchSubscriptions();
+        } catch (err: any) {
+            alert(err.message || 'Failed to cancel subscription');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleTriggerExpiry = async () => {
+        try {
+            setActionLoading('expiry');
+            await api.subscriptions.adminTriggerExpiryCheck();
+            alert('Expiry check triggered successfully.');
+            await fetchSubscriptions();
+        } catch (err: any) {
+            alert(err.message || 'Failed to trigger expiry check');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const filteredVendors = vendors.filter(v => 
+        (v.user?.firstName || '').toLowerCase().includes(searchVendor.toLowerCase()) || 
+        (v.user?.email || '').toLowerCase().includes(searchVendor.toLowerCase())
+    );
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900">Assign Plan to Vendor</h2>
-                        <p className="text-sm font-bold text-slate-400 mt-0.5">Manually activate a subscription</p>
-                    </div>
-                    <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400">
-                        <X className="w-5 h-5" />
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Active Subscriptions</h1>
+                    <p className="text-slate-500 font-bold mt-2">Manage user plans, manual assignments, and expirations.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleTriggerExpiry}
+                        disabled={actionLoading === 'expiry'}
+                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        {actionLoading === 'expiry' ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                        Sync Expirations
+                    </button>
+                    <button
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Assign Plan
                     </button>
                 </div>
+            </div>
 
-                <div className="p-8 space-y-5">
-                    {fetching ? (
-                        <div className="flex items-center justify-center py-10">
-                            <Loader2 className="w-7 h-7 animate-spin text-slate-300" />
-                        </div>
-                    ) : (
-                        <>
-                            {/* Vendor Search */}
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Vendor</label>
-                                <div className="relative mb-2">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        value={vendorSearch}
-                                        onChange={e => setVendorSearch(e.target.value)}
-                                        placeholder="Search by name or email..."
-                                        className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                    />
-                                </div>
-                                <select
-                                    value={selectedVendor}
-                                    onChange={e => setSelectedVendor(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                >
-                                    <option value="">-- Select Vendor --</option>
-                                    {filteredVendors.map(v => (
-                                        <option key={v.id} value={v.id}>
-                                            {v.businessName || v.user?.fullName || v.user?.email}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+            {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <p className="font-bold text-sm">{error}</p>
+                </div>
+            )}
 
-                            {/* Plan */}
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Plan</label>
-                                <select
-                                    value={selectedPlan}
-                                    onChange={e => setSelectedPlan(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                >
-                                    <option value="">-- Select Plan --</option>
-                                    {plans.map(p => (
-                                        <option key={p.id} value={p.id}>
-                                            {p.name} — PKR {Number(p.price).toLocaleString()}/{p.billingCycle}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Duration */}
-                            <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Duration (Days)</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={365}
-                                    value={durationDays}
-                                    onChange={e => setDurationDays(Number(e.target.value))}
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
-                                />
-                            </div>
-
-                            {error && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-bold">
-                                    {error}
-                                </div>
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Vendor</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Plan</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Dates</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center">
+                                        <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+                                        <p className="text-sm font-bold text-slate-400">Loading subscriptions...</p>
+                                    </td>
+                                </tr>
+                            ) : subscriptions.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center">
+                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Calendar className="w-8 h-8 text-slate-400" />
+                                        </div>
+                                        <p className="text-slate-900 font-black text-lg">No active subscriptions</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                subscriptions.map((sub) => (
+                                    <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-black text-slate-900">{sub.vendor?.user?.firstName || 'Unknown Vendor'}</p>
+                                                <p className="text-xs font-bold text-slate-500">{sub.vendor?.user?.email || 'N/A'}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="font-black text-slate-900">{sub.plan?.name || 'Custom Plan'}</p>
+                                                <p className="text-xs font-bold text-slate-500">Billing: {sub.plan?.billingCycle || 'N/A'}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg ${
+                                                sub.status === 'active' ? 'bg-green-100 text-green-700' :
+                                                sub.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                sub.status === 'expired' ? 'bg-slate-100 text-slate-500' :
+                                                'bg-amber-100 text-amber-700'
+                                            }`}>
+                                                {sub.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-bold text-slate-600">
+                                                <p>Start: {new Date(sub.startDate).toLocaleDateString()}</p>
+                                                <p>End: {new Date(sub.endDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {sub.status === 'active' && (
+                                                    <button
+                                                        onClick={() => handleCancel(sub.id)}
+                                                        disabled={actionLoading === `cancel-${sub.id}`}
+                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all disabled:opacity-50"
+                                                        title="Cancel Subscription"
+                                                    >
+                                                        {actionLoading === `cancel-${sub.id}` ? <Loader2 className="w-5 h-5 animate-spin" /> : <XCircle className="w-5 h-5" />}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
                             )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                            <div className="flex gap-3 pt-2">
+            <AnimatePresence>
+                {isAssignModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-slate-100">
+                                <h2 className="text-2xl font-black text-slate-900">Assign Subscription</h2>
+                                <p className="text-sm font-bold text-slate-500 mt-1">Manually grant a plan to a vendor.</p>
+                            </div>
+
+                            <div className="p-6 space-y-5">
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Search Vendor</label>
+                                    <div className="relative mb-3">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={searchVendor}
+                                            onChange={e => setSearchVendor(e.target.value)}
+                                            placeholder="Search by name or email..."
+                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <select
+                                        value={assignForm.vendorId}
+                                        onChange={e => setAssignForm({ ...assignForm, vendorId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                    >
+                                        <option value="" disabled>Select Vendor</option>
+                                        {filteredVendors.map(v => (
+                                            <option key={v.id} value={v.id}>{v.user?.firstName || ''} ({v.user?.email || 'No email'})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Select Plan</label>
+                                    <select
+                                        value={assignForm.planId}
+                                        onChange={e => setAssignForm({ ...assignForm, planId: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                    >
+                                        <option value="" disabled>Select a Plan</option>
+                                        {plans.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name} - ${p.price}/{p.billingCycle}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Duration (Days)</label>
+                                    <input
+                                        type="number"
+                                        value={assignForm.durationDays}
+                                        onChange={e => setAssignForm({ ...assignForm, durationDays: parseInt(e.target.value) || 0 })}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        min="1"
+                                    />
+                                    <p className="text-xs font-medium text-slate-400 mt-2">Leave at 30 for standard monthly.</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                                 <button
-                                    onClick={onClose}
-                                    className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl font-black text-sm transition-colors"
+                                    onClick={() => setIsAssignModalOpen(false)}
+                                    className="px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-100 transition-all"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleAssign}
-                                    disabled={loading}
-                                    className="flex-[2] py-3 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                                    disabled={actionLoading === 'assign' || !assignForm.vendorId || !assignForm.planId}
+                                    className="flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-50"
                                 >
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                    {actionLoading === 'assign' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                                     Assign Plan
                                 </button>
                             </div>
-                        </>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-}
-
-/* ─── Invoice Modal ─────────────────────────────────────────────────────── */
-function InvoiceModal({ invoiceId, onClose }: { invoiceId: string; onClose: () => void }) {
-    const [data, setData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const printRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        api.subscriptions.getInvoice(invoiceId)
-            .then(setData)
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, [invoiceId]);
-
-    const handlePrint = () => {
-        if (!printRef.current) return;
-        const content = printRef.current.innerHTML;
-        const w = window.open('', '_blank');
-        if (!w) return;
-        w.document.write(`<html><head><title>Invoice</title>
-            <style>
-                body { font-family: system-ui, sans-serif; padding: 40px; color: #0f172a; }
-                .logo { font-size: 24px; font-weight: 900; color: #f97316; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { padding: 12px 16px; text-align: left; }
-                th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
-                .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #fff7ed; color: #f97316; }
-                .total-row { border-top: 2px solid #f1f5f9; font-weight: 900; }
-            </style>
-        </head><body>${content}</body></html>`);
-        w.document.close();
-        w.print();
-    };
-
-    const txn = data?.transaction;
-    const vendor = data?.vendor;
-    const userInfo = data?.user;
-    const plan = txn?.subscription?.plan;
-    const invDate = txn?.paidAt ? new Date(txn.paidAt) : new Date(txn?.createdAt);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, y: 20, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-orange-500" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-black text-slate-900">Invoice</h2>
-                            {txn && <p className="text-xs text-slate-400 font-bold">{txn.invoiceNumber || txn.id}</p>}
-                        </div>
+                        </motion.div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {!loading && txn && (
-                            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-black transition-colors">
-                                <Download className="w-3.5 h-3.5" /> Print / Save PDF
-                            </button>
-                        )}
-                        <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="overflow-y-auto max-h-[75vh]">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
-                        </div>
-                    ) : !txn ? (
-                        <div className="text-center py-16 text-slate-400 font-bold">Invoice not found</div>
-                    ) : (
-                        <div ref={printRef} className="p-8">
-                            {/* Invoice Header */}
-                            <div className="flex items-start justify-between mb-10">
-                                <div>
-                                    <div className="logo text-2xl font-black text-orange-500 mb-1">naampata</div>
-                                    <p className="text-xs text-slate-400 font-bold">Business Listings Platform</p>
-                                </div>
-                                <div className="text-right">
-                                <div className="inline-block px-4 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-black uppercase tracking-wider mb-2">
-                                    {txn.status === 'completed' || txn.status === 'paid' ? '✓ Paid' : txn.status}
-                                </div>
-                                    <p className="text-sm font-black text-slate-900">{txn.invoiceNumber || `INV-${txn.id.slice(0, 8).toUpperCase()}`}</p>
-                                    <p className="text-xs text-slate-400 font-bold mt-0.5">
-                                        {invDate.toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Billed To */}
-                            <div className="grid grid-cols-2 gap-8 mb-10 pb-8 border-b border-slate-100">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">Billed To</p>
-                                    <p className="font-black text-slate-900">{vendor?.businessName || userInfo?.fullName}</p>
-                                    <p className="text-sm text-slate-500 font-bold mt-1">{userInfo?.email}</p>
-                                    {userInfo?.phone && <p className="text-sm text-slate-500 font-bold">{userInfo?.phone}</p>}
-                                    {vendor?.ntnNumber && <p className="text-xs text-slate-400 font-bold mt-1">NTN: {vendor.ntnNumber}</p>}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">Payment Details</p>
-                                    <p className="text-sm font-black text-slate-900">Method: {txn.paymentGateway || 'Online'}</p>
-                                    <p className="text-sm text-slate-500 font-bold mt-1">
-                                        Billing: {txn.subscription?.plan?.billingCycle || 'Monthly'}
-                                    </p>
-                                    {txn.paidAt && (
-                                        <p className="text-xs text-slate-400 font-bold mt-1">
-                                            Paid: {new Date(txn.paidAt).toLocaleDateString('en-PK')}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Items Table */}
-                            <table className="w-full mb-6">
-                                <thead>
-                                    <tr className="bg-slate-50 rounded-xl">
-                                        <th className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-l-xl">Description</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">Period</th>
-                                        <th className="px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-r-xl">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr className="border-b border-slate-50">
-                                        <td className="px-4 py-4">
-                                            <p className="font-black text-slate-900">{plan?.name || 'Subscription Plan'}</p>
-                                            <p className="text-xs text-slate-400 font-bold mt-0.5">
-                                                {plan?.planType?.toUpperCase()} · Up to {plan?.maxListings || 1} listing(s)
-                                            </p>
-                                        </td>
-                                        <td className="px-4 py-4 text-center text-sm text-slate-500 font-bold">
-                                            {plan?.billingCycle || 'Monthly'}
-                                        </td>
-                                        <td className="px-4 py-4 text-right font-black text-slate-900">
-                                            PKR {Number(txn.amount).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colSpan={2} className="px-4 py-4 text-right text-sm font-black text-slate-500 uppercase tracking-wider">Total</td>
-                                        <td className="px-4 py-4 text-right text-xl font-black text-slate-900">
-                                            PKR {Number(txn.amount).toLocaleString()}
-                                        </td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-
-                            {/* Footer note */}
-                            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                                <p className="text-xs text-slate-400 font-bold">Thank you for your business! For queries, contact support@naampata.com</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-}
-
-/* ─── Main Page ─────────────────────────────────────────────────────────── */
-export default function AdminSubscriptionsPage() {
-    const [tab, setTab] = useState<'subscriptions' | 'transactions'>('subscriptions');
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [totalSubs, setTotalSubs] = useState(0);
-    const [totalTxns, setTotalTxns] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [assignModal, setAssignModal] = useState(false);
-    const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
-    const [triggeringCron, setTriggeringCron] = useState(false);
-    const [cronResult, setCronResult] = useState<{ notified: number; errors: number } | null>(null);
-    const LIMIT = 15;
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            if (tab === 'subscriptions') {
-                const r = await api.subscriptions.adminGetAll(page, LIMIT);
-                setSubscriptions(r.data || []);
-                setTotalSubs(r.total || 0);
-            } else {
-                const r = await api.subscriptions.adminGetTransactions(page, LIMIT);
-                setTransactions(r.data || []);
-                setTotalTxns(r.total || 0);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchData(); }, [tab, page]);
-
-    const handleCancelSub = async (subId: string, vendorName: string) => {
-        if (!confirm(`Cancel subscription for ${vendorName}? This cannot be undone easily.`)) return;
-        try {
-            await api.subscriptions.adminCancel(subId);
-            fetchData();
-        } catch (err: any) {
-            alert(err.message || 'Failed to cancel');
-        }
-    };
-
-    const handleTriggerExpiryCheck = async () => {
-        setTriggeringCron(true);
-        setCronResult(null);
-        try {
-            const res = await api.subscriptions.adminTriggerExpiryCheck();
-            setCronResult({ notified: res.notified, errors: res.errors });
-        } catch (err: any) {
-            alert(err.message || 'Failed to trigger');
-        } finally {
-            setTriggeringCron(false);
-        }
-    };
-
-    const daysLeft = (endDate: string) => {
-        const d = Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        return d;
-    };
-
-    const totalPages = Math.ceil((tab === 'subscriptions' ? totalSubs : totalTxns) / LIMIT);
-
-    return (
-        <div className="max-w-7xl mx-auto pb-20 space-y-8">
-            {/* ── Header ── */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Subscriptions</h1>
-                    <p className="text-slate-400 font-bold mt-2 flex items-center gap-2">
-                        <Receipt className="w-4 h-4 text-orange-500" />
-                        Manage vendor plans, invoices, and expiry notifications.
-                    </p>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                    {/* Trigger Expiry Check */}
-                    <button
-                        onClick={handleTriggerExpiryCheck}
-                        disabled={triggeringCron}
-                        className="flex items-center gap-2 px-5 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-2xl font-black text-sm border border-amber-200 transition-colors disabled:opacity-60"
-                    >
-                        {triggeringCron ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-                        Send Expiry Reminders
-                    </button>
-                    {/* Assign Plan */}
-                    <button
-                        onClick={() => setAssignModal(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-sm transition-colors shadow-lg shadow-slate-900/10"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Assign Plan to Vendor
-                    </button>
-                </div>
-            </div>
-
-            {/* ── Cron Result ── */}
-            <AnimatePresence>
-                {cronResult && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 font-bold text-sm flex items-center gap-3"
-                    >
-                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                        Expiry check complete. <strong>{cronResult.notified}</strong> vendors notified, <strong>{cronResult.errors}</strong> errors.
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── Stats Cards ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {[
-                    { label: 'Total Subscriptions', value: totalSubs, icon: CreditCard, color: 'blue' },
-                    { label: 'Total Transactions', value: totalTxns, icon: Receipt, color: 'emerald' },
-                    {
-                        label: 'Active Now',
-                        value: subscriptions.filter(s => s.status === 'active').length,
-                        icon: CheckCircle2,
-                        color: 'orange'
-                    },
-                ].map((card) => (
-                    <div key={card.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-2xl bg-${card.color}-50 flex items-center justify-center flex-shrink-0`}>
-                            <card.icon className={`w-6 h-6 text-${card.color}-500`} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">{card.label}</p>
-                            <p className="text-3xl font-black text-slate-900 mt-0.5">{card.value}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* ── Tabs ── */}
-            <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-                {[
-                    { key: 'subscriptions', label: '📋 Subscriptions' },
-                    { key: 'transactions', label: '💳 Transactions' },
-                ].map(t => (
-                    <button
-                        key={t.key}
-                        onClick={() => { setTab(t.key as any); setPage(1); }}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${tab === t.key ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                        {t.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* ── Content ── */}
-            <AnimatePresence mode="wait">
-                {tab === 'subscriptions' && (
-                    <motion.div key="subs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="border-b border-slate-100 px-6 py-4 flex items-center gap-3">
-                                <CreditCard className="w-4 h-4 text-slate-400" />
-                                <h3 className="font-black text-slate-900">All Vendor Subscriptions</h3>
-                                <span className="ml-auto text-xs font-black text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{totalSubs} total</span>
-                            </div>
-
-                            {loading ? (
-                                <div className="flex items-center justify-center py-16">
-                                    <Loader2 className="w-8 h-8 animate-spin text-slate-200" />
-                                </div>
-                            ) : subscriptions.length === 0 ? (
-                                <div className="text-center py-16 text-slate-400 font-bold">No subscriptions found.</div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-slate-50">
-                                                {['Vendor', 'Plan', 'Status', 'Start', 'Expires', 'Amount', 'Actions'].map(h => (
-                                                    <th key={h} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-300">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {subscriptions.map((sub, i) => {
-                                                const days = daysLeft(sub.endDate);
-                                                const isWarn = sub.status === 'active' && days <= 4 && days >= 0;
-                                                const vendorName = sub.vendor?.businessName || sub.vendor?.user?.fullName || '—';
-                                                return (
-                                                    <motion.tr
-                                                        key={sub.id}
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        transition={{ delay: i * 0.03 }}
-                                                        className={`border-b border-slate-50 hover:bg-slate-50/30 transition-colors ${isWarn ? 'bg-amber-50/30' : ''}`}
-                                                    >
-                                                        <td className="px-5 py-4">
-                                                            <p className="font-black text-slate-900 text-sm">{vendorName}</p>
-                                                            <p className="text-xs text-slate-400 font-bold">{sub.vendor?.user?.email || '—'}</p>
-                                                        </td>
-                                                        <td className="px-5 py-4 text-sm font-bold text-slate-600">{sub.plan?.name || '—'}</td>
-                                                        <td className="px-5 py-4"><StatusBadge status={sub.status} /></td>
-                                                        <td className="px-5 py-4 text-xs font-bold text-slate-400">
-                                                            {new Date(sub.startDate).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                        </td>
-                                                        <td className="px-5 py-4">
-                                                            <p className="text-xs font-bold text-slate-600">
-                                                                {new Date(sub.endDate).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                            </p>
-                                                            {isWarn && (
-                                                                <p className="text-[10px] font-black text-amber-600 mt-0.5">⚠ {days}d left</p>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-5 py-4 font-black text-slate-900 text-sm">
-                                                            PKR {Number(sub.amount).toLocaleString()}
-                                                        </td>
-                                                        <td className="px-5 py-4">
-                                                            {sub.status === 'active' && (
-                                                                <button
-                                                                    onClick={() => handleCancelSub(sub.id, vendorName)}
-                                                                    className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-black text-xs transition-colors"
-                                                                >
-                                                                    <XCircle className="w-3.5 h-3.5" /> Cancel
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                    </motion.tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-
-                {tab === 'transactions' && (
-                    <motion.div key="txns" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="border-b border-slate-100 px-6 py-4 flex items-center gap-3">
-                                <Receipt className="w-4 h-4 text-slate-400" />
-                                <h3 className="font-black text-slate-900">All Transactions</h3>
-                                <span className="ml-auto text-xs font-black text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{totalTxns} total</span>
-                            </div>
-
-                            {loading ? (
-                                <div className="flex items-center justify-center py-16">
-                                    <Loader2 className="w-8 h-8 animate-spin text-slate-200" />
-                                </div>
-                            ) : transactions.length === 0 ? (
-                                <div className="text-center py-16 text-slate-400 font-bold">No transactions found.</div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-slate-50">
-                                                {['Invoice #', 'Vendor', 'Plan', 'Amount', 'Gateway', 'Status', 'Date', 'Actions'].map(h => (
-                                                    <th key={h} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-300">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {transactions.map((txn, i) => (
-                                                <motion.tr
-                                                    key={txn.id}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    transition={{ delay: i * 0.03 }}
-                                                    className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors"
-                                                >
-                                                    <td className="px-5 py-4">
-                                                        <p className="font-black text-slate-900 text-sm">{txn.invoiceNumber || `INV-${txn.id.slice(0, 8).toUpperCase()}`}</p>
-                                                    </td>
-                                                    <td className="px-5 py-4">
-                                                        <p className="font-bold text-slate-700 text-sm">{txn.vendor?.businessName || txn.vendor?.user?.fullName || '—'}</p>
-                                                        <p className="text-xs text-slate-400 font-bold">{txn.vendor?.user?.email || ''}</p>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-sm font-bold text-slate-500">{txn.subscription?.plan?.name || '—'}</td>
-                                                    <td className="px-5 py-4 font-black text-slate-900">PKR {Number(txn.amount).toLocaleString()}</td>
-                                                    <td className="px-5 py-4 text-sm font-bold text-slate-400">{txn.paymentGateway || '—'}</td>
-                                                    <td className="px-5 py-4"><StatusBadge status={txn.status} /></td>
-                                                    <td className="px-5 py-4 text-xs font-bold text-slate-400">
-                                                        {new Date(txn.paidAt || txn.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-right">
-                                                        <button
-                                                            onClick={() => setSelectedInvoiceId(txn.id)}
-                                                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-black text-xs transition-colors"
-                                                        >
-                                                            <Eye className="w-3.5 h-3.5" /> View
-                                                        </button>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── Pagination ── */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3">
-                    <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                        className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-black text-sm text-slate-500 disabled:opacity-40 transition-colors"
-                    >
-                        ← Prev
-                    </button>
-                    <span className="font-black text-slate-600 text-sm">Page {page} of {totalPages}</span>
-                    <button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                        className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-black text-sm text-slate-500 disabled:opacity-40 transition-colors"
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
-
-            {/* ── Assign Plan Modal ── */}
-            <AnimatePresence>
-                {assignModal && (
-                    <AssignPlanModal
-                        onClose={() => setAssignModal(false)}
-                        onSuccess={fetchData}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* ── Invoice Modal ── */}
-            <AnimatePresence>
-                {selectedInvoiceId && (
-                    <InvoiceModal
-                        invoiceId={selectedInvoiceId}
-                        onClose={() => setSelectedInvoiceId(null)}
-                    />
                 )}
             </AnimatePresence>
         </div>

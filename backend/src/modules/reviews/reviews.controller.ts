@@ -178,7 +178,7 @@ export class ReviewsController {
     }
 
 
-    @Get('vendor/all')
+    @Get(['vendor/all', 'business/all'])
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Get all reviews for the current vendor businesses' })

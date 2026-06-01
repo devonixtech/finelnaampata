@@ -25,7 +25,7 @@ const safeFormat = (date: any, formatStr: string, fallback = '—') => {
     return format(d, formatStr);
 };
 
-export default function VendorInvoicesPage() {
+export default function BusinessInvoicesPage() {
     const [invoices, setInvoices] = useState<any[]>([]);
     const [promotions, setPromotions] = useState<any>({ plans: [], boosts: [] });
     const [loading, setLoading] = useState(true);

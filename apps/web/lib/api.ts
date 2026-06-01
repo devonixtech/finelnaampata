@@ -235,7 +235,8 @@ export const api = {
         },
     },
     listings: {
-        create: (listingData: any) => fetcher<Business>('/businesses', {
+        create: (listingData: any, options?: FetcherOptions) => fetcher<Business>('/businesses', {
+            ...options,
             method: 'POST',
             body: JSON.stringify(listingData),
         }),
@@ -254,16 +255,49 @@ export const api = {
         getBySlug: (slug: string, options?: FetcherOptions) => fetcher<Business>(`/businesses/slug/${slug}`, options),
         getFeatured: (page = 1, limit = 12, options?: FetcherOptions) => fetcher<SearchResponse>(`/businesses/search?featuredOnly=true&page=${page}&limit=${limit}`, options),
         uploadImage: async (file: File) => {
-            const result = await api.cloudinary.uploadToCloudinary(file, 'listings');
+            let fileToUpload = file;
+            if (typeof window !== 'undefined' && file.type.startsWith('image/')) {
+                try {
+                    const imageCompression = (await import('browser-image-compression')).default;
+                    const options = {
+                        maxSizeMB: 0.75,
+                        maxWidthOrHeight: 1280,
+                        useWebWorker: true,
+                        fileType: 'image/jpeg',
+                    };
+                    const compressedBlob = await imageCompression(file, options);
+                    fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+                    console.log(`[api.ts] Compressed image from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB`);
+                } catch (error) {
+                    console.warn('[api.ts] Image compression failed, uploading original.', error);
+                }
+            }
+            const result = await api.cloudinary.uploadToCloudinary(fileToUpload, 'listings');
             return { url: result.secure_url };
         },
         getMyListings: (params: any = {}) => {
             const query = new URLSearchParams(params).toString();
-            return fetcher<{ data: Business[], meta: any }>(`/businesses/vendor/my-listings?${query}`);
+            return fetcher<{ data: Business[], meta: any }>(`/businesses/owner/my-listings?${query}`);
         },
         update: (id: string, listingData: any) => fetcher<Business>(`/businesses/${id}`, {
             method: 'PATCH',
             body: JSON.stringify(listingData),
+        }),
+        getAlbums: (listingId: string) => fetcher<any[]>(`/businesses/${listingId}/albums`),
+        createAlbum: (listingId: string, name: string) => fetcher<any[]>(`/businesses/${listingId}/albums`, {
+            method: 'POST',
+            body: JSON.stringify({ name }),
+        }),
+        renameAlbum: (listingId: string, albumId: string, name: string) => fetcher<any[]>(`/businesses/${listingId}/albums/${albumId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ name }),
+        }),
+        deleteAlbum: (listingId: string, albumId: string) => fetcher<any[]>(`/businesses/${listingId}/albums/${albumId}`, {
+            method: 'DELETE',
+        }),
+        upsertAlbumImages: (listingId: string, albumId: string, images: any[]) => fetcher<any[]>(`/businesses/${listingId}/albums/${albumId}/images`, {
+            method: 'PATCH',
+            body: JSON.stringify({ images }),
         }),
         getAmenities: () => fetcher<any[]>('/businesses/amenities/all'),
         createAmenity: (data: { name: string, icon?: string }) => fetcher<any>('/businesses/amenities', {
@@ -273,7 +307,12 @@ export const api = {
     },
     cities: {
         getPopular: (options?: FetcherOptions) => fetcher<City[]>('/cities/popular', options),
-        getAll: (options?: FetcherOptions) => fetcher<City[]>('/cities', options),
+        getAll: (options?: FetcherOptions & { country?: string }) => {
+            const country = options?.country?.trim();
+            const query = country ? `?country=${encodeURIComponent(country)}` : '';
+            return fetcher<City[]>(`/cities${query}`, options);
+        },
+        getCountries: (options?: FetcherOptions) => fetcher<string[]>('/cities/countries', options),
         getSupportedCountries: (options?: FetcherOptions) => fetcher<{ country: string; cityCount: number }[]>('/cities/supported-countries', options),
         // Admin endpoints
         adminCreate: (data: any) => fetcher<City>('/cities/admin', {
@@ -301,6 +340,15 @@ export const api = {
             timeout: 60000,
         }),
     },
+    addressConfig: {
+        getCountries: (options?: FetcherOptions) =>
+            fetcher<{ code: string; name: string }[]>('/address-config/countries', options),
+        get: (countryCode: string) => fetcher<any>(`/address-config/${encodeURIComponent(countryCode)}`),
+        validatePostal: (countryCode: string, postalCode: string) =>
+            fetcher<{ valid: boolean }>(
+                `/address-config/${encodeURIComponent(countryCode)}/validate-postal-code?postalCode=${encodeURIComponent(postalCode)}`,
+            ),
+    },
     reviews: {
         findAll: (params: any = {}, options?: FetcherOptions) => {
             const query = new URLSearchParams(params).toString();
@@ -308,7 +356,9 @@ export const api = {
         },
         getByBusiness: (idOrSlug: string, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews/business/${idOrSlug}`, options),
         getByVendor: (vendorId: string, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews?vendorId=${vendorId}`, options),
-        getVendorAll: (page = 1, limit = 20, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews/vendor/all?page=${page}&limit=${limit}`, options),
+        getBusinessAll: (page = 1, limit = 20, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews/business/all?page=${page}&limit=${limit}`, options),
+        /** @deprecated use getBusinessAll */
+        getVendorAll: (page = 1, limit = 20, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews/business/all?page=${page}&limit=${limit}`, options),
         getPopular: (limit = 3, options?: FetcherOptions) => fetcher<{ data: Review[], meta: any }>(`/reviews?rating=5&limit=${limit}`, options),
         create: (reviewData: any) => fetcher<Review>('/reviews', {
             method: 'POST',
@@ -422,27 +472,48 @@ export const api = {
             method: 'POST',
         }),
     },
-    vendors: {
-        getStats: (options?: FetcherOptions) => fetcher<any>('/vendors/dashboard-stats', options),
-        getProfile: (options?: FetcherOptions) => fetcher<any>('/vendors/profile', options),
-        updateProfile: (profileData: any) => fetcher<any>('/vendors/profile', {
+    businessProfiles: {
+        getStats: (options?: FetcherOptions) => fetcher<any>('/business-profiles/dashboard-stats', options),
+        getProfile: (options?: FetcherOptions) => fetcher<any>('/business-profiles/profile', options),
+        updateProfile: (profileData: any) => fetcher<any>('/business-profiles/profile', {
             method: 'PATCH',
             body: JSON.stringify(profileData),
         }),
-        becomeVendor: (data: { businessName: string, businessPhone: string }) => fetcher<any>('/vendors/become-vendor', {
+        register: (data: { businessName: string, businessPhone: string, businessAddress: string }) => fetcher<any>('/business-profiles/register', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-        getByCity: (city: string) => fetcher<any>(`/vendors/by-city?city=${encodeURIComponent(city)}`),
-        getPublicProfile: (id: string) => fetcher<any>(`/vendors/${id}/public`),
-        getAllSlugs: () => fetcher<string[]>('/vendors/slugs/all'),
+        getByCity: (city: string) => fetcher<any>(`/business-profiles/by-city?city=${encodeURIComponent(city)}`),
+        getPublicProfile: (id: string) => fetcher<any>(`/business-profiles/${id}/public`),
+        getAllSlugs: () => fetcher<string[]>('/business-profiles/slugs/all'),
+    },
+    /** @deprecated Use api.businessProfiles */
+    vendors: {
+        getStats: (options?: FetcherOptions) => fetcher<any>('/business-profiles/dashboard-stats', options),
+        getProfile: (options?: FetcherOptions) => fetcher<any>('/business-profiles/profile', options),
+        updateProfile: (profileData: any) => fetcher<any>('/business-profiles/profile', {
+            method: 'PATCH',
+            body: JSON.stringify(profileData),
+        }),
+        becomeVendor: (data: { businessName: string, businessPhone: string }) => fetcher<any>('/business-profiles/register', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        getByCity: (city: string) => fetcher<any>(`/business-profiles/by-city?city=${encodeURIComponent(city)}`),
+        getPublicProfile: (id: string) => fetcher<any>(`/business-profiles/${id}/public`),
+        getAllSlugs: () => fetcher<string[]>('/business-profiles/slugs/all'),
     },
     leads: {
+        getForBusiness: (params: any = {}) => {
+            const query = new URLSearchParams(params).toString();
+            return fetcher<any>(`/leads/business?${query}`);
+        },
+        /** @deprecated use getForBusiness */
         getForVendor: (params: any = {}) => {
             const query = new URLSearchParams(params).toString();
-            return fetcher<any>(`/leads/vendor?${query}`);
+            return fetcher<any>(`/leads/business?${query}`);
         },
-        getStats: () => fetcher<any>('/leads/vendor/stats'),
+        getStats: () => fetcher<any>('/leads/business/stats'),
         updateStatus: (id: string, status: string) => fetcher<any>(`/leads/${id}/status`, {
             method: 'PATCH',
             body: JSON.stringify({ status }),
@@ -466,6 +537,11 @@ export const api = {
             const query = new URLSearchParams(params).toString();
             return fetcher<any>(`/leads/my-enquiries?${query}`);
         },
+        addNote: (leadId: string, note: string) => fetcher<any>(`/leads/${leadId}/notes`, {
+            method: 'POST',
+            body: JSON.stringify({ note }),
+        }),
+        getNotes: (leadId: string) => fetcher<any[]>(`/leads/${leadId}/notes`),
     },
     auth: {
         login: (credentials: any) => fetcher<any>('/auth/login', {
@@ -479,6 +555,14 @@ export const api = {
         googleLogin: (data: { credential: string; role?: string; referralCode?: string }) => fetcher<any>('/auth/google', {
             method: 'POST',
             body: JSON.stringify(data),
+        }),
+        verifyEmail: (email: string, otp: string) => fetcher<{ success: boolean; message: string }>('/auth/verify-email', {
+            method: 'POST',
+            body: JSON.stringify({ email, otp }),
+        }),
+        resendOtp: (email: string) => fetcher<{ success: boolean; message: string }>('/auth/resend-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
         }),
         logout: () => fetcher<void>('/auth/logout', { method: 'POST', silent: true }),
         ping: () => fetcher<{ online: boolean }>('/auth/ping', { method: 'POST', silent: true }),
@@ -688,11 +772,14 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
-        getMy: (page = 1, limit = 10) =>
-            fetcher<{ data: any[]; meta: any }>(`/offers/vendor?page=${page}&limit=${limit}`),
+        getMy: (page = 1, limit = 10, type?: 'offer' | 'event') => 
+            fetcher<{ data: any[]; meta: any }>(`/offers/owner?page=${page}&limit=${limit}${type ? `&type=${type}` : ''}`),
         update: (id: string, data: any) => fetcher<any>(`/offers/${id}`, {
             method: 'PATCH',
             body: JSON.stringify(data),
+        }),
+        publish: (id: string) => fetcher<any>(`/offers/${id}/publish`, {
+            method: 'POST',
         }),
         remove: (id: string) => fetcher<any>(`/offers/${id}`, {
             method: 'DELETE',
@@ -716,6 +803,80 @@ export const api = {
             return fetcher<{ data: any[]; meta: any }>(`/offers/public/search?${query}`);
         },
     },
+    deals: {
+        getById: (id: string) => fetcher<any>(`/deals/public/${id}`),
+        create: (data: any) => fetcher<any>('/deals', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        getMy: (page = 1, limit = 10) => 
+            fetcher<{ data: any[]; meta: any }>(`/deals/owner?page=${page}&limit=${limit}`),
+        update: (id: string, data: any) => fetcher<any>(`/deals/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+        publish: (id: string) => fetcher<any>(`/deals/${id}/publish`, {
+            method: 'POST',
+        }),
+        remove: (id: string) => fetcher<any>(`/deals/${id}`, {
+            method: 'DELETE',
+        }),
+        // Admin
+        adminGetAll: (page = 1, limit = 20) => fetcher<{ data: any[]; meta: any }>(`/deals/admin/all?page=${page}&limit=${limit}`),
+        adminToggleFeatured: (id: string, isFeatured: boolean) => fetcher(`/deals/admin/${id}/feature`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isFeatured }),
+        }),
+        getByBusiness: (businessId: string) =>
+            fetcher<any[]>(`/deals/business/${businessId}/deals`),
+        search: (params: Record<string, string | number | boolean | undefined | null>) => {
+            const sanitizedParams: Record<string, string> = {};
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '' && value !== false) {
+                    sanitizedParams[key] = String(value);
+                }
+            });
+            const query = new URLSearchParams(sanitizedParams).toString();
+            return fetcher<{ data: any[]; meta: any }>(`/deals/public/search?${query}`);
+        },
+    },
+    events: {
+        getById: (id: string) => fetcher<any>(`/events/public/${id}`),
+        create: (data: any) => fetcher<any>('/events', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        getMy: (page = 1, limit = 10) => 
+            fetcher<{ data: any[]; meta: any }>(`/events/owner?page=${page}&limit=${limit}`),
+        update: (id: string, data: any) => fetcher<any>(`/events/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+        publish: (id: string) => fetcher<any>(`/events/${id}/publish`, {
+            method: 'POST',
+        }),
+        remove: (id: string) => fetcher<any>(`/events/${id}`, {
+            method: 'DELETE',
+        }),
+        // Admin
+        adminGetAll: (page = 1, limit = 20) => fetcher<{ data: any[]; meta: any }>(`/events/admin/all?page=${page}&limit=${limit}`),
+        adminToggleFeatured: (id: string, isFeatured: boolean) => fetcher(`/events/admin/${id}/feature`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isFeatured }),
+        }),
+        getByBusiness: (businessId: string) =>
+            fetcher<any[]>(`/events/business/${businessId}/events`),
+        search: (params: Record<string, string | number | boolean | undefined | null>) => {
+            const sanitizedParams: Record<string, string> = {};
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '' && value !== false) {
+                    sanitizedParams[key] = String(value);
+                }
+            });
+            const query = new URLSearchParams(sanitizedParams).toString();
+            return fetcher<{ data: any[]; meta: any }>(`/events/public/search?${query}`);
+        },
+    },
     comments: {
         create: (data: any) => fetcher<any>('/comments', {
             method: 'POST',
@@ -725,20 +886,23 @@ export const api = {
             fetcher<{ data: any[]; meta: any }>(`/comments/public?page=${page}&limit=${limit}`),
         getByBusiness: (businessId: string, page = 1, limit = 10) =>
             fetcher<{ data: any[]; meta: any }>(`/business/${businessId}/comments?page=${page}&limit=${limit}`),
+        getBusinessComments: (page = 1, limit = 10) =>
+            fetcher<{ data: any[]; meta: any }>(`/business/comments?page=${page}&limit=${limit}`),
+        /** @deprecated use getBusinessComments */
         getVendorComments: (page = 1, limit = 10) =>
-            fetcher<{ data: any[]; meta: any }>(`/vendor/comments?page=${page}&limit=${limit}`),
+            fetcher<{ data: any[]; meta: any }>(`/business/comments?page=${page}&limit=${limit}`),
         reply: (commentId: string, data: any) =>
-            fetcher<any>(`/vendor/comments/${commentId}/reply`, {
+            fetcher<any>(`/business/comments/${commentId}/reply`, {
                 method: 'POST',
                 body: JSON.stringify(data),
             }),
         updateReply: (replyId: string, data: any) =>
-            fetcher<any>(`/vendor/comments/reply/${replyId}`, {
+            fetcher<any>(`/business/comments/reply/${replyId}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             }),
         deleteReply: (replyId: string) =>
-            fetcher<void>(`/vendor/comments/reply/${replyId}`, {
+            fetcher<void>(`/business/comments/reply/${replyId}`, {
                 method: 'DELETE',
             }),
     },
@@ -771,17 +935,23 @@ export const api = {
     broadcasts: {
         create: (data: any) => fetcher<any>('/broadcasts', { method: 'POST', body: JSON.stringify(data) }),
         getMyLeads: () => fetcher<any[]>('/broadcasts/my-leads'),
-        getVendorInbox: () => fetcher<any[]>('/broadcasts/vendor/inbox'),
-        getStats: () => fetcher<{ newCount: number }>('/broadcasts/vendor/stats'),
+        getBusinessInbox: () => fetcher<any[]>('/broadcasts/business/inbox'),
+        /** @deprecated use getBusinessInbox */
+        getVendorInbox: () => fetcher<any[]>('/broadcasts/business/inbox'),
+        getStats: () => fetcher<{ newCount: number }>('/broadcasts/business/stats'),
         respond: (id: string, data: any) => fetcher<any>(`/broadcasts/${id}/respond`, { method: 'POST', body: JSON.stringify(data) }),
         getResponses: (id: string) => fetcher<any[]>(`/broadcasts/${id}/responses`),
     },
     promotions: {
+        getVisibilityRate: (type: 'deal' | 'event' = 'deal', options?: FetcherOptions) =>
+            fetcher<{ dayRate: number; type: string }>(`/promotions/visibility-rate?type=${type}`, { silent: true, ...options }),
+        calculateVisibility: (data: { startTime: string; endTime: string; type: 'deal' | 'event' }) =>
+            api.post<{ days: number; dayRate: number; totalPrice: number }>('/promotions/calculate-visibility', data),
         getPricingRules: (options?: FetcherOptions) => fetcher<any[]>('/promotions/pricing-rules', options),
-        calculatePrice: (data: { placements: string[], startTime: string, endTime: string, pricingId?: string }, type: string = 'offer') =>
+        calculatePrice: (data: { placements?: string[]; startTime: string; endTime: string; pricingId?: string; dealId?: string; eventId?: string }, type: string = 'offer') =>
             api.post<{ totalPrice: number; durationHours: number; breakup: any[]; isMinimumApplied?: boolean }>(`/promotions/calculate?type=${type}`, data),
-        book: (data: { offerEventId: string; placements: string[]; startTime: string; endTime: string }) =>
-            api.post<{ sessionId: string; checkoutUrl: string }>('/promotions/book', data),
+        book: (data: { offerEventId?: string; dealId?: string; eventId?: string; placements?: string[]; startTime: string; endTime: string }) =>
+            api.post<{ sessionId?: string; checkoutUrl?: string; success?: boolean; bookingId?: string }>('/promotions/book', data),
         verifySession: (sessionId: string) => fetcher<any>(`/promotions/verify-session?session_id=${sessionId}`),
     },
     businessSetup: {
@@ -789,6 +959,37 @@ export const api = {
         getStatus: (options?: FetcherOptions) => fetcher<{ isCompleted: boolean; answers: Record<string, string[]> }>('/business-setup/status', { silent: true, ...options }),
         saveAnswers: (answers: Record<string, string | string[]>) =>
             api.post<{ success: boolean }>('/business-setup/answers', { answers }),
+        checkDuplicate: (data: {
+            businessName: string;
+            phone: string;
+            address: string;
+            city: string;
+            state?: string;
+            latitude?: string;
+            longitude?: string;
+        }) => api.post<{ showPrompt: boolean; signals: string[]; matchCount: number }>('/business-setup/duplicate-check', data),
+    },
+    location: {
+        placesAutocomplete: (params: { input: string; sessionToken: string; countryCode?: string }) => {
+            const q = new URLSearchParams({
+                input: params.input,
+                sessionToken: params.sessionToken,
+            });
+            if (params.countryCode) q.set('countryCode', params.countryCode);
+            return fetcher<Array<{ placeId: string; description: string }>>(`/location/places/autocomplete?${q.toString()}`, { silent: true });
+        },
+        placeDetails: (placeId: string, sessionToken: string) =>
+            fetcher<{
+                placeId: string;
+                formattedAddress: string;
+                latitude: number;
+                longitude: number;
+                city?: string;
+                state?: string;
+                postalCode?: string;
+                country?: string;
+                streetAddress?: string;
+            } | null>(`/location/places/${encodeURIComponent(placeId)}?sessionToken=${encodeURIComponent(sessionToken)}`, { silent: true }),
     },
     qa: {
         getForBusiness: (businessId: string, options?: FetcherOptions) => fetcher<any[]>(`/qa/business/${businessId}`, { silent: true, ...options }),

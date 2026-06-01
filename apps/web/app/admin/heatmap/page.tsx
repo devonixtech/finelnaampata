@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
 import { Map as MapIcon, RefreshCcw, Navigation, Search, Layers, Sliders, Info, Zap } from 'lucide-react';
 
@@ -10,16 +10,21 @@ export default function SearchHeatmapPage() {
     const [error, setError] = useState<string | null>(null);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [mapLoaded, setMapLoaded] = useState(false);
 
     // Heatmap options
     const [radius, setRadius] = useState(30);
     const [opacity, setOpacity] = useState(0.8);
     const [dissipating, setDissipating] = useState(true);
 
-    const mapRef = useRef<HTMLDivElement>(null);
-    const googleMapRef = useRef<google.maps.Map | null>(null);
-    const heatmapLayerRef = useRef<google.maps.visualization.HeatmapLayer | null>(null);
+    const hotspotRows = heatmapData
+        .map((point) => ({
+            latitude: Number(point.latitude),
+            longitude: Number(point.longitude),
+            weight: Number(point.weight) || 0,
+        }))
+        .filter((point) => Number.isFinite(point.latitude) && Number.isFinite(point.longitude))
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 200);
 
     const fetchHeatmapData = async () => {
         setLoading(true);
@@ -36,80 +41,9 @@ export default function SearchHeatmapPage() {
         }
     };
 
-    // Check if Google Maps API is loaded with visualization library
-    useEffect(() => {
-        const checkMap = () => {
-            if (typeof window !== 'undefined' && window.google?.maps?.visualization) {
-                setMapLoaded(true);
-            } else {
-                const timer = setTimeout(checkMap, 500);
-                return () => clearTimeout(timer);
-            }
-        };
-        return checkMap();
-    }, []);
-
     useEffect(() => {
         fetchHeatmapData();
     }, []);
-
-    useEffect(() => {
-        if (mapLoaded && mapRef.current && !googleMapRef.current) {
-            const map = new google.maps.Map(mapRef.current, {
-                zoom: 6,
-                center: { lat: 30.3753, lng: 69.3451 },
-                mapId: '9bbf977755b39e6a', // High-end dark/light theme
-                disableDefaultUI: false,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
-            googleMapRef.current = map;
-        }
-    }, [mapLoaded]);
-
-    // Update Heatmap Layer
-    useEffect(() => {
-        if (googleMapRef.current && mapLoaded) {
-            if (heatmapLayerRef.current) {
-                heatmapLayerRef.current.setMap(null);
-            }
-
-            if (heatmapData.length > 0) {
-                const points = heatmapData.map(point => ({
-                    location: new google.maps.LatLng(parseFloat(point.latitude), parseFloat(point.longitude)),
-                    weight: parseFloat(point.weight) || 1
-                }));
-
-                const heatmap = new google.maps.visualization.HeatmapLayer({
-                    data: points,
-                    map: googleMapRef.current,
-                    radius: radius,
-                    opacity: opacity,
-                    dissipating: dissipating,
-                    gradient: [
-                        'rgba(0, 255, 255, 0)',
-                        'rgba(0, 255, 255, 1)',
-                        'rgba(0, 191, 255, 1)',
-                        'rgba(0, 127, 255, 1)',
-                        'rgba(0, 63, 255, 1)',
-                        'rgba(0, 0, 255, 1)',
-                        'rgba(0, 0, 223, 1)',
-                        'rgba(0, 0, 191, 1)',
-                        'rgba(0, 0, 159, 1)',
-                        'rgba(0, 0, 127, 1)',
-                        'rgba(63, 0, 91, 1)',
-                        'rgba(127, 0, 63, 1)',
-                        'rgba(191, 0, 31, 1)',
-                        'rgba(255, 0, 0, 1)'
-                    ]
-                });
-
-                heatmapLayerRef.current = heatmap;
-            }
-        }
-    }, [heatmapData, mapLoaded, radius, opacity, dissipating]);
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -260,13 +194,37 @@ export default function SearchHeatmapPage() {
                     </div>
                 </div>
 
-                {/* Map Display */}
+                {/* Intensity Table */}
                 <div className="lg:col-span-3">
                     <div className="bg-white p-4 rounded-[1rem] border border-slate-100 shadow-xl relative min-h-[600px]">
-                        <div
-                            ref={mapRef}
-                            className="w-full h-[650px] rounded-[2.5rem] overflow-hidden bg-slate-100 relative shadow-inner"
-                        />
+                        <div className="w-full h-[650px] rounded-[2.5rem] overflow-hidden bg-slate-50 relative shadow-inner border border-slate-100">
+                            <div className="h-full flex flex-col">
+                                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Top Search Hotspots</p>
+                                    <p className="text-xs font-bold text-slate-400">Rows: {hotspotRows.length}</p>
+                                </div>
+                                <div className="flex-1 overflow-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="sticky top-0 bg-slate-100">
+                                            <tr>
+                                                <th className="text-left px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-500">Latitude</th>
+                                                <th className="text-left px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-500">Longitude</th>
+                                                <th className="text-left px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-500">Weight</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {hotspotRows.map((row, idx) => (
+                                                <tr key={`${row.latitude}-${row.longitude}-${idx}`} className="border-b border-slate-100">
+                                                    <td className="px-6 py-3 font-mono text-slate-700">{row.latitude.toFixed(6)}</td>
+                                                    <td className="px-6 py-3 font-mono text-slate-700">{row.longitude.toFixed(6)}</td>
+                                                    <td className="px-6 py-3 font-black text-slate-900">{row.weight.toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
 
                         {loading && (
                             <div className="absolute inset-4 bg-white/60 backdrop-blur-xl flex items-center justify-center rounded-[2.5rem] z-10 animate-in fade-in duration-300">

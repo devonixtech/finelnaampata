@@ -11,6 +11,9 @@ import { api, getImageUrl } from '../../../lib/api';
 import { Review } from '../../../types/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FeatureGate } from '../../../components/vendor/FeatureGate';
+import { usePlanFeature } from '../../../hooks/usePlanFeature';
+import Link from 'next/link';
+import { Lock } from 'lucide-react';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (d: string) => {
@@ -49,7 +52,7 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
 }
 
 // ─── Review Card ───────────────────────────────────────────────────────────────
-function ReviewCard({ review, isVendor, onReply }: { review: Review; isVendor: boolean; onReply: (r: Review) => void }) {
+function ReviewCard({ review, isVendor, canReply, onReply }: { review: Review; isVendor: boolean; canReply: boolean; onReply: (r: Review) => void }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -94,10 +97,17 @@ function ReviewCard({ review, isVendor, onReply }: { review: Review; isVendor: b
                         </span>
                     </div>
                     {isVendor && !review.vendorResponse && (
-                        <button onClick={() => onReply(review)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-xl hover:bg-blue-700 transition-all">
-                            <Send className="w-3 h-3" /> Reply
-                        </button>
+                        canReply ? (
+                            <button onClick={() => onReply(review)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-xl hover:bg-blue-700 transition-all">
+                                <Send className="w-3 h-3" /> Reply
+                            </button>
+                        ) : (
+                            <Link href="/subscription"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 text-[10px] font-black rounded-xl border border-orange-100 hover:bg-orange-100 transition-all">
+                                <Lock className="w-3 h-3" /> Upgrade to Reply
+                            </Link>
+                        )
                     )}
                 </div>
 
@@ -118,8 +128,10 @@ function ReviewCard({ review, isVendor, onReply }: { review: Review; isVendor: b
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const ITEMS_PER_PAGE = 9;
 
-export default function VendorReviews() {
+export default function BusinessReviews() {
     const { user } = useAuth();
+    const { hasFeature } = usePlanFeature();
+    const canReplyReviews = hasFeature('canReplyReviews');
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -192,6 +204,10 @@ export default function VendorReviews() {
 
     const handleReply = async () => {
         if (!respondingTo || !responseText.trim()) return;
+        if (!canReplyReviews) {
+            alert('Replying to reviews requires a paid plan. Upgrade to respond.');
+            return;
+        }
         setIsSubmitting(true);
         try {
             // Use standardized reviews API for vendor response
@@ -260,6 +276,32 @@ export default function VendorReviews() {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Review broadcast requirements (client spec) */}
+                <div className="mb-6 rounded-2xl border border-violet-100 bg-violet-50/70 p-5">
+                    <h2 className="text-sm font-black text-slate-900 mb-3">Review Broadcast Requirements</h2>
+                    <div className="grid gap-2 text-xs font-semibold text-slate-600 sm:grid-cols-2">
+                        <p>Share a real customer requirement with a clear scope, category, city, and expected timeline.</p>
+                        <p>Do not request fake reviews, paid positive reviews, competitor reviews, or duplicate/spam broadcasts.</p>
+                        <p>Include enough details for businesses to decide whether they can help before responding.</p>
+                        <p>A business cannot broadcast in a category where it already has an active listing.</p>
+                    </div>
+                    <p className="mt-3 text-[10px] font-bold text-violet-700">
+                        Post review-request broadcasts from{' '}
+                        <a href="/broadcasts" className="underline">Broadcast Feed</a>.
+                    </p>
+                </div>
+
+                {/* Review Guidelines Panel */}
+                <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
+                    <h2 className="text-sm font-black text-slate-900 mb-3">Responding to Customer Reviews</h2>
+                    <div className="grid gap-2 text-xs font-semibold text-slate-600 sm:grid-cols-2">
+                        <p>Keep responses professional, courteous, and constructive, regardless of the reviewer's tone.</p>
+                        <p>Do not post personally identifiable information (PII) about the customer.</p>
+                        <p>Address concerns transparently and offer a resolution when applicable.</p>
+                        <p>Avoid using copied-and-pasted generic templates for every response.</p>
+                    </div>
                 </div>
 
                 {/* ── Filters ────────────────────────────────────────── */}
@@ -357,6 +399,7 @@ export default function VendorReviews() {
                                     key={review.id}
                                     review={review}
                                     isVendor={isVendor}
+                                    canReply={canReplyReviews}
                                     onReply={setRespondingTo}
                                 />
                             ))}

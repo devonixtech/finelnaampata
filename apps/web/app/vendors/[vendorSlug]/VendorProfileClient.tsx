@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-    BadgeCheck, Star, Mail, Phone, MapPin,
+    Star, Mail, Phone, MapPin,
     Calendar, Building2, Globe, ArrowLeft,
     TrendingUp, Award, Clock, Search, Filter,
     Tag, Gift, Ticket, ChevronRight
@@ -57,8 +57,8 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                 const urlParams = new URLSearchParams(window.location.search);
                 const querySlug = urlParams.get('originalSlug');
 
-                // URL structure: /vendors/slug/ or /vendors/slug
-                if (pathParts[0] === 'vendors' && pathParts[1] && pathParts[1] !== 'template' && pathParts[1] !== 'default') {
+                // URL structure: /businesses/slug/, /vendors/slug/, etc.
+                if ((pathParts[0] === 'businesses' || pathParts[0] === 'vendors') && pathParts[1] && pathParts[1] !== 'template' && pathParts[1] !== 'default') {
                     if (!vendor || actualSlug !== pathParts[1]) {
                         actualSlug = pathParts[1];
                         console.log('[VendorProfile] Route detected from URL:', actualSlug);
@@ -90,20 +90,20 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                     return;
                 }
 
-                const profileData = await api.vendors.getPublicProfile(actualSlug);
+                const profileData = await api.businessProfiles.getPublicProfile(actualSlug);
                 
                 // Redirection Logic for SEO (301-like client-side redirect)
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
                 if (isUuid && profileData.slug && profileData.slug !== slugOrId) {
                     console.log(`[VendorProfile] Legacy ID detected. Redirecting to SEO slug: ${profileData.slug}`);
-                    router.replace(`/vendors/${profileData.slug}`);
+                    router.replace(`/businesses/${profileData.slug}`);
                     return;
                 }
 
                 setVendor(profileData);
             } catch (err: any) {
                 console.error('[VendorProfile] Failed to load profile:', err);
-                setError(err.message || 'Failed to load vendor profile');
+                setError(err.message || 'Failed to load business profile');
             } finally {
                 setLoading(false);
             }
@@ -144,7 +144,7 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                 <Navbar />
                 <div className="flex flex-col items-center justify-center h-[60vh]">
                     <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-slate-400 font-bold animate-pulse">Loading Profile...</p>
+                    <p className="text-slate-400 font-bold animate-pulse">Loading Business Profile...</p>
                 </div>
                 <Footer />
             </div>
@@ -159,8 +159,8 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                     <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Building2 className="w-10 h-10 text-red-500" />
                     </div>
-                    <h1 className="text-2xl font-black text-slate-900 mb-2">Profile Not Found</h1>
-                    <p className="text-slate-500 mb-8">{error || 'We couldn\'t find the profile you were looking for.'}</p>
+                    <h1 className="text-2xl font-black text-slate-900 mb-2">Business Profile Not Found</h1>
+                    <p className="text-slate-500 mb-8">{error || 'We couldn\'t find the business profile you were looking for.'}</p>
                     <Link href="/search" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all">
                         <ArrowLeft className="w-5 h-5" /> Back to Search
                     </Link>
@@ -189,11 +189,6 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                                 size="lg" 
                                 className="shadow-sm border border-slate-100 rounded-3xl"
                             />
-                            {vendor.isVerified && (
-                                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-xl shadow-lg flex items-center justify-center border border-slate-50">
-                                    <BadgeCheck className="w-5 h-5 text-indigo-500" />
-                                </div>
-                            )}
                         </div>
 
                         {/* Summary Section */}
@@ -208,7 +203,7 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                             </div>
 
                             <p className="text-slate-500 font-medium text-lg leading-relaxed max-w-2xl mb-8">
-                                {vendor.bio || `${vendor.businessName} is a verified professional service provider committed to excellence and customer satisfaction.`}
+                                {vendor.bio || `${vendor.businessName} is a professional service provider committed to excellence and customer satisfaction.`}
                             </p>
 
                             {/* Minimalist Stats Panel */}
@@ -356,7 +351,7 @@ export default function VendorProfileClient({ slugOrId, initialData }: { slugOrI
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-4">
                         <div>
                             <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Professional Showcase</h2>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest leading-none">Discover our verified industry services</p>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest leading-none">Discover our industry services</p>
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-center gap-4">

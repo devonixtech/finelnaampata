@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, MapPin, Sliders, Star, X, Filter, Navigation, CheckCircle2, Clock } from 'lucide-react';
+import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import BusinessCard from '../../components/BusinessCard';
@@ -82,29 +83,21 @@ function SearchResults() {
         loadData();
     }, [query, city, categorySlug, minRating, radius, latitude, longitude, openNow, verifiedOnly, fastResponse, onlineNow, experience, mostContacted, featuredOnly, filter]);
 
-    const handleNearMe = () => {
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
-            return;
-        }
-
+    const handleNearMe = async () => {
         setGeoLoading(true);
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                const params = new URLSearchParams(searchParams.toString());
-                params.set('latitude', String(latitude));
-                params.set('longitude', String(longitude));
-                if (!params.has('radius')) params.set('radius', '10');
-                router.push(`/search?${params.toString()}`);
-                setGeoLoading(false);
-            },
-            (error) => {
-                console.error('Geolocation error:', error);
-                alert('Could not get your location. Please check your browser permissions.');
-                setGeoLoading(false);
-            }
-        );
+        try {
+            const coords = await detectLocationForUi();
+            if (!coords) return;
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('latitude', String(coords.latitude));
+            params.set('longitude', String(coords.longitude));
+            if (!params.has('radius')) params.set('radius', '10');
+            router.push(`/search?${params.toString()}`);
+        } catch (error) {
+            console.error('Geolocation error:', error);
+        } finally {
+            setGeoLoading(false);
+        }
     };
 
     const updateFilter = (key: string, value: string | boolean | null) => {
@@ -302,7 +295,7 @@ function SearchResults() {
                                     </label>
 
                                     <label className="flex items-center justify-between cursor-pointer group">
-                                        <span className="text-xs font-bold text-slate-400 group-hover:text-slate-900 transition-colors">Verified Only</span>
+                                        <span className="text-xs font-bold text-slate-400 group-hover:text-slate-900 transition-colors">Trusted Only</span>
                                         <input 
                                             type="checkbox" 
                                             checked={verifiedOnly} 

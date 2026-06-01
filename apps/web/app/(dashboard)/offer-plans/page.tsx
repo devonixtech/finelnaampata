@@ -33,7 +33,7 @@ interface OfferItem {
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
 const inputClass = "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 
-function VendorOfferPlansPageInner() {
+function BusinessOfferPlansPageInner() {
     const { user } = useAuth();
     const searchParams = useSearchParams();
     
@@ -44,7 +44,7 @@ function VendorOfferPlansPageInner() {
     
     // UI state
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'booking' | 'trajection' | 'history'>('booking');
+    const [activeTab, setActiveTab] = useState<'trajection' | 'history'>('trajection');
     const [isMinimumApplied, setIsMinimumApplied] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -188,7 +188,7 @@ function VendorOfferPlansPageInner() {
                         <div>
                             <h1 className="text-3xl font-black tracking-tight">Boost & Promote</h1>
                             <p className="text-white/60 font-medium text-sm mt-0.5">
-                                Increase visibility for your offers and events across the platform
+                                Track visibility payments for your deals and events
                             </p>
                         </div>
                     </div>
@@ -231,13 +231,30 @@ function VendorOfferPlansPageInner() {
                 </div>
             )}
 
+            {/* Visibility info */}
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <p className="font-black text-slate-900">Pay per day when you publish</p>
+                    <p className="text-sm font-bold text-slate-500 mt-1">
+                        Create a deal or event, set your visibility dates, and checkout from the Deals or Events dashboard.
+                    </p>
+                </div>
+                <div className="flex gap-3 flex-shrink-0">
+                    <Link href="/deals" className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-sm transition-all">
+                        Manage Deals
+                    </Link>
+                    <Link href="/events" className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-sm transition-all">
+                        Manage Events
+                    </Link>
+                </div>
+            </div>
+
             {/* Navigation Tabs */}
             <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
                 {[
-                    { id: 'booking', label: 'New Booking', icon: Plus },
                     { 
                         id: 'trajection', 
-                        label: `Active Boosts ${activeBoostsCount > 0 ? `(${activeBoostsCount})` : ''}`, 
+                        label: `Active Visibility ${activeBoostsCount > 0 ? `(${activeBoostsCount})` : ''}`, 
                         icon: Zap 
                     },
                     { id: 'history', label: 'History', icon: FileText },
@@ -267,249 +284,6 @@ function VendorOfferPlansPageInner() {
                         <Loader2 className="w-10 h-10 animate-spin text-orange-500 mb-4" />
                         <p className="font-black text-slate-400">Syncing dynamic data...</p>
                     </div>
-                ) : activeTab === 'booking' ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Booking Form */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
-                                <h2 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-orange-500" /> Configure Promotion
-                                </h2>
-
-                                <form onSubmit={handleBooking} className="space-y-8">
-                                    {/* Offer Selection */}
-                                    <div>
-                                        <label className={labelClass}>Select Offer or Event</label>
-                                        {vendorOffers.length === 0 ? (
-                                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-                                                <p className="text-sm font-bold text-amber-700">You don't have any offers or events yet.</p>
-                                                <Link href="/offers" className="text-xs font-black text-orange-600 mt-2 inline-block hover:underline">
-                                                    Create an offer first →
-                                                </Link>
-                                            </div>
-                                        ) : (
-                                            <select 
-                                                required 
-                                                value={selectedOfferId}
-                                                onChange={e => setSelectedOfferId(e.target.value)}
-                                                className={inputClass}
-                                            >
-                                                <option value="">-- Choose your promotion --</option>
-                                                {vendorOffers.map(offer => (
-                                                    <option key={offer.id} value={offer.id}>
-                                                        [{offer.type.toUpperCase()}] {offer.title} - {offer.business?.title}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
-                                    </div>
-
-                                    {/* Placements */}
-                                    <div>
-                                        <label className={labelClass}>Choose Placements</label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            {[
-                                                { id: 'homepage', name: 'Main Homepage', desc: 'Top featured section', icon: Home },
-                                                { id: 'category', name: 'Category Pages', desc: 'Above all results', icon: Layout },
-                                                { id: 'listing', name: 'Search & Listing', desc: 'Boosted search position', icon: Search },
-                                            ].map(place => (
-                                                <button
-                                                    key={place.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const exists = selectedPlacements.includes(place.id);
-                                                        setSelectedPlacements(exists 
-                                                            ? selectedPlacements.filter(i => i !== place.id) 
-                                                            : [...selectedPlacements, place.id]
-                                                        );
-                                                    }}
-                                                    className={`group relative flex flex-col items-start gap-3 p-5 rounded-3xl border-2 transition-all text-left ${
-                                                        selectedPlacements.includes(place.id)
-                                                            ? 'border-orange-500 bg-orange-50/50 shadow-md ring-4 ring-orange-500/10'
-                                                            : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
-                                                    }`}
-                                                >
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                                                        selectedPlacements.includes(place.id) ? 'bg-orange-500 text-white' : 'bg-white text-slate-400 group-hover:text-slate-600 shadow-sm'
-                                                    }`}>
-                                                        <place.icon className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-black text-slate-900 text-sm leading-tight">{place.name}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5">{place.desc}</p>
-                                                    </div>
-                                                    {selectedPlacements.includes(place.id) && (
-                                                        <div className="absolute top-4 right-4">
-                                                            <CheckCircle2 className="w-4 h-4 text-orange-500" />
-                                                        </div>
-                                                    )}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Date Range */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className={labelClass}>Start Boosting From</label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <input 
-                                                    type="datetime-local"
-                                                    required
-                                                    value={promoStartTime}
-                                                    onChange={e => setPromoStartTime(e.target.value)}
-                                                    className={`${inputClass} pl-10`}
-                                                    min={new Date().toISOString().slice(0, 16)}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className={labelClass}>End Boosting At</label>
-                                            <div className="relative">
-                                                <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                                <input 
-                                                    type="datetime-local"
-                                                    required
-                                                    value={promoEndTime}
-                                                    onChange={e => setPromoEndTime(e.target.value)}
-                                                    className={`${inputClass} pl-10`}
-                                                    min={promoStartTime || new Date().toISOString().slice(0, 16)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <button 
-                                        type="submit" 
-                                        disabled={isBooking || !selectedOfferId || selectedPlacements.length === 0}
-                                        className="hidden lg:block w-full"
-                                    >
-                                        {/* This button is visually hidden because the summary card handles the action */}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        {/* Pricing Summary Sidebar */}
-                        <div className="space-y-6">
-                            <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden sticky top-8">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-                                
-                                <h3 className="text-lg font-black mb-6 flex items-center gap-2">
-                                    <Wallet className="w-5 h-5 text-orange-400" /> Booking Summary
-                                </h3>
-
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex justify-between items-center text-sm py-2 border-b border-white/10 text-white/60">
-                                        <span className="font-bold">Placements</span>
-                                        <span className="font-black text-white">{selectedPlacements.length} selected</span>
-                                    </div>
-                                    
-                                    {priceBreakup.length > 0 && (
-                                        <div className="space-y-3 py-2">
-                                            {priceBreakup.map((item, idx) => (
-                                                <div key={idx} className="space-y-1">
-                                                    <div className="flex justify-between text-[11px] font-black uppercase tracking-wider text-orange-400">
-                                                        <span>{item.placement}</span>
-                                                        <span>PKR {item.subtotal.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-[10px] text-white/40 font-bold">
-                                                        <span>Rate</span>
-                                                        <span>PKR {item.hourRate}/{item.isCustomRate ? 'hr (Plan)' : 'hr'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-[10px] text-white/40 font-bold">
-                                                        <span>Duration</span>
-                                                        <span>{item.days > 0 ? `${item.days}d ` : ''}{item.hours}h</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {!priceBreakup.length && selectedPlacements.map(p => (
-                                        <div key={p} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 text-[10px] font-black uppercase tracking-wider">
-                                            <TrendingUp className="w-3 h-3 text-orange-400" /> {p}
-                                        </div>
-                                    ))}
-                                    
-                                    <div className="pt-4 space-y-2 border-t border-white/10">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Total Price</p>
-                                            {isMinimumApplied && (
-                                                <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30 animate-pulse">
-                                                    Stripe Minimum Applied
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-xs font-black text-white/60">PKR</span>
-                                            <span className={`text-4xl font-black ${isCalculating ? 'opacity-30' : 'opacity-100'}`}>
-                                                {estimatedPrice.toLocaleString('en-PK')}
-                                            </span>
-                                            {isCalculating && <Loader2 className="w-5 h-5 animate-spin text-orange-400 inline-block mb-1 ml-2" />}
-                                        </div>
-                                        {isMinimumApplied && (
-                                            <p className="text-[9px] text-white/40 font-medium">To satisfy payment gateway requirements, a minimum charge of ₨ 150 applies for all boosts.</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 mb-4 border-t border-white/10 pt-4">
-                                    <label className="flex items-start gap-3 cursor-pointer group">
-                                        <div className="relative flex items-center justify-center mt-0.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={agreed}
-                                                onChange={(e) => setAgreed(e.target.checked)}
-                                                className="w-5 h-5 appearance-none border-2 border-slate-600 rounded-lg checked:border-orange-500 checked:bg-orange-500 transition-colors cursor-pointer peer"
-                                            />
-                                            <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        </div>
-                                        <span className="text-sm font-medium text-white/60 group-hover:text-white transition-colors text-left">
-                                            I agree to the <a href="/terms" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>.
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <button
-                                    onClick={handleBooking}
-                                    disabled={isBooking || !selectedOfferId || selectedPlacements.length === 0 || !promoStartTime || !promoEndTime || !agreed}
-                                    className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {isBooking ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> Finalizing...</>
-                                    ) : (
-                                        <>Proceed to Payment <ChevronRight className="w-4 h-4" /></>
-                                    )}
-                                </button>
-                                
-                                <div className="mt-6 flex items-center gap-3 px-4 py-3 bg-white/5 rounded-2xl border border-white/10">
-                                    <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
-                                    <p className="text-[10px] font-bold text-white/60 leading-tight">
-                                        Real-time dynamic pricing based on placement and duration rules.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
-                                <h4 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-                                    <Info className="w-4 h-4 text-blue-500" /> Professional Boost Tips
-                                </h4>
-                                <ul className="space-y-3">
-                                    {[
-                                        'Homepage placement gets 10x more views.',
-                                        'Weekend boosts drive 40% more conversion.',
-                                        'Use high-quality banner images for better CTR.',
-                                    ].map((tip, i) => (
-                                        <li key={i} className="flex gap-2 text-xs font-bold text-slate-500">
-                                            <span className="text-orange-500">•</span> {tip}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
                 ) : activeTab === 'trajection' ? (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Active Dynamic Bookings */}
@@ -526,14 +300,16 @@ function VendorOfferPlansPageInner() {
                                     </div>
                                     <h3 className="text-xl font-black text-slate-900 mb-2">No Active Boosts</h3>
                                     <p className="text-slate-400 font-bold mb-8 max-w-sm mx-auto">
-                                        You don't have any active promotions at the moment. Start a new booking to boost your visibility!
+                                        Publish a deal or event with visibility dates to appear in search and on the homepage.
                                     </p>
-                                    <button 
-                                        onClick={() => setActiveTab('booking')}
-                                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-orange-500 text-white rounded-2xl font-black text-sm hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20"
-                                    >
-                                        Create First Boost <Plus className="w-4 h-4" />
-                                    </button>
+                                    <div className="flex gap-3 justify-center flex-wrap">
+                                        <Link href="/deals" className="inline-flex items-center gap-2 px-8 py-3.5 bg-orange-500 text-white rounded-2xl font-black text-sm hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20">
+                                            Create Deal <ArrowRight className="w-4 h-4" />
+                                        </Link>
+                                        <Link href="/events" className="inline-flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all">
+                                            Create Event <ArrowRight className="w-4 h-4" />
+                                        </Link>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -709,7 +485,7 @@ function VendorOfferPlansPageInner() {
     );
 }
 
-export default function VendorOfferPlansPage() {
+export default function BusinessOfferPlansPage() {
     return (
         <Suspense fallback={
             <div className="flex flex-col items-center justify-center min-vh-[60vh] gap-4">
@@ -717,7 +493,7 @@ export default function VendorOfferPlansPage() {
                 <p className="font-black text-slate-400 animate-pulse">Initializing platform modules...</p>
             </div>
         }>
-            <VendorOfferPlansPageInner />
+            <BusinessOfferPlansPageInner />
         </Suspense>
     );
 }

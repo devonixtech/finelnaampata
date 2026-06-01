@@ -18,11 +18,31 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../entities/user.entity';
 import { CalculatePriceDto, CreateBookingDto } from './dto/create-booking.dto';
 import { Public } from '../../common/decorators/public.decorator';
-
 @ApiTags('promotions')
 @Controller('promotions')
 export class PromotionsController {
     constructor(private readonly promotionsService: PromotionsService) {}
+
+    @Public()
+    @Get('visibility-rate')
+    @ApiOperation({ summary: 'Get per-day visibility rate for deals or events' })
+    async getVisibilityRate(@Query('type') type: 'deal' | 'event' = 'deal') {
+        return this.promotionsService.getVisibilityRate(type);
+    }
+
+    @Post('calculate-visibility')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Calculate per-day visibility price for a deal or event window' })
+    async calculateVisibility(
+        @Body() body: { startTime: string; endTime: string; type?: 'deal' | 'event' },
+    ) {
+        return this.promotionsService.calculateVisibilityPrice(
+            body.startTime,
+            body.endTime,
+            body.type === 'event' ? 'event' : 'deal',
+        );
+    }
 
     @Public()
     @Get('pricing-rules')

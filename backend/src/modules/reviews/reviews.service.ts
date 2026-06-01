@@ -24,6 +24,7 @@ import {
 } from '../../common/utils/pagination.util';
 import { ReviewDetectionService } from './review-detection.service';
 import { TrustService } from '../users/trust.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class ReviewsService {
@@ -40,6 +41,7 @@ export class ReviewsService {
         private vendorRepository: Repository<Vendor>,
         private reviewDetectionService: ReviewDetectionService,
         private trustService: TrustService,
+        private subscriptionsService: SubscriptionsService,
     ) { }
 
     /**
@@ -294,6 +296,13 @@ export class ReviewsService {
             user.role !== UserRole.ADMIN
         ) {
             throw new ForbiddenException('Only the business owner can respond to reviews');
+        }
+
+        if (user.role !== UserRole.ADMIN) {
+            const canReply = await this.subscriptionsService.canPerformAction(user.id, 'canReplyReviews');
+            if (!canReply) {
+                throw new ForbiddenException('Replying to reviews requires a paid plan. Upgrade to respond.');
+            }
         }
 
         // Update review with vendor response

@@ -1,0 +1,735 @@
+
+NAAMPATA
+Business Sign-Up
+Complete Question Flow & Field Specification
+Future-Proof — All Steps — Developer Ready
+
+Badge
+Meaning
+Required
+Business cannot proceed without completing this step
+Optional
+Business can skip — can be completed later from profile settings
+Paid Only
+Field is shown but saved and locked unless business has an active paid subscription
+Multi-select
+Business can select more than one option
+Single-select
+Business selects exactly one option
+
+
+Table of Contents
+Table of Contents2
+Overview4
+Design Principles4
+Sign-Up Flow Summary4
+Step 1 — Business Name & Tagline6
+Fields6
+Step 2 — Business Type6
+Step 3 — Core Business Nature6
+Step 4 — Operational Structure7
+Producer7
+Sales & Distribution7
+Intermediary7
+Service Function8
+Organisational Structure8
+Step 5 — Business Category & Subcategory8
+Fields8
+Step 6 — Who Do You Serve?9
+Step 7 — Business Address9
+Fields9
+Step 8 — Confirm Your Location on Map10
+Behaviour10
+Step 9 — Contact Details10
+Fields10
+Step 10 — Business Hours11
+Fields11
+Step 11 — Business Description11
+Step 12 — Experience & Team12
+Fields12
+Step 13 — Website & Social Media12
+Step 14 — Amenities & Facilities13
+Location & Access13
+Facilities13
+Staff14
+Payment Methods Accepted14
+Step 15 — Industry Sub-Type14
+Industrial, Manufacturing & B2B14
+Agriculture, Farming & Rural Businesses15
+Step 16 — Keywords15
+Step 17 — Frequently Asked Questions (FAQs)15
+Step 18 — Business Opportunities & Expansion15
+Step 19 — Logo & Cover Image16
+Step 20 — Legal Consent17
+After Sign-Up — Listing Goes Live17
+Post Sign-Up Profile Completion18
+Duplicate Business Detection18
+Developer Implementation Notes18
+Fixes Required from Current Build18
+Data Storage Requirements19
+
+
+Overview
+This document defines every question asked during the NAAMPATA business sign-up flow, in the exact order they appear. Each step specifies the field type, whether it is required or optional, all available options, and implementation notes for the developer.
+
+Design Principles
+Questions are organised into logical steps — one topic per step. Do not mix unrelated questions on one screen.
+Required fields must be completed before the business can advance to the next step.
+Optional fields can be skipped and completed later from the business profile settings.
+Steps with many options must use scrollable checkbox lists — never dropdowns for multi-select.
+Progress indicator must be visible throughout the entire sign-up flow showing current step / total steps.
+Every step must have a "Save & Continue" button and a "Back" button.
+The entire flow must be completable on mobile with no horizontal scrolling.
+All structured answers are stored in the database as structured data — not free text — for AI features and analytics.
+
+Sign-Up Flow Summary
+Step
+Topic
+Required / Optional
+1
+Business Name & Tagline
+Required
+2
+Business Type (Presence)
+Optional
+3
+Core Business Nature
+Optional
+4
+Operational Structure
+Optional
+5
+Business Category & Subcategory
+Optional
+6
+Target Market
+Optional
+7
+What Your Business Offers
+Optional
+8
+Business Address
+Required
+9
+Map Pin Placement
+Required
+10
+Contact Details
+Required
+11
+Business Hours
+Optional
+12
+Business Description
+Optional
+13
+Year Established & Team Size
+Optional
+14
+Website & Social Media
+Optional
+15
+Amenities & Facilities
+Optional
+16
+Industrial / Agriculture Sub-Type
+Optional
+17
+Keywords
+Optional
+18
+FAQs
+Optional
+19
+Business Opportunities & Expansion
+Optional
+20
+Logo & Cover Image
+Optional
+21
+Legal Consent
+Required
+
+
+Step 1 — Business Name & Tagline
+Step 1  Business Name & Tagline
+Required/Optional
+The legal or trading name of the business, and a short tagline that describes what they do.
+Field type:  Text input
+
+Fields
+Field
+Details
+Business Name
+Text input. Max 100 characters. Required.
+Business Tagline
+Text input. Max 150 characters. Optional. Helper text: "One sentence that describes what you do — e.g. Best Pizza in Lahore since 1998." Optional.
+Contact Person Name
+Text input. Title dropdown (Mr. / Ms. / Dr. / Other) + full name. Optional.
+
+Business Name is used across the entire platform — search, profile, listings, broadcasts, and reviews. It must be entered accurately. Add a note: "Enter your business name exactly as customers know it."
+
+Step 2 — Business Type
+Step 2  Where does your business operate?
+Optional
+Select all location types that apply to how your business reaches customers. You can select more than one.
+Field type:  Multi-select checkboxes
+
+Select all that apply:
+☐  Physical Location (Store, Office, Clinic, etc.)
+☐  Home-Based Business
+☐  Online / Digital Only
+☐  On-Site at Client Location
+☐  Mobile Unit (Food Truck, Van, Pop-Up, etc.)
+
+
+Store this as a multi-value enum array. Used for filtering (e.g. "Online businesses near me", "Home services available") and future AI categorisation.
+
+Step 3 — Core Business Nature
+Step 3  What does your business primarily do?
+Optional
+Select the option that best describes the core nature of your business. Select all that apply.
+Field type:  Multi-select checkboxes
+
+Select all that apply:
+☐  We sell physical products
+☐  We sell digital products
+☐  We provide in-person services
+☐  We provide online or remote services
+☐  We rent out products, spaces, or equipment
+☐  We offer bookings or appointments
+☐  We organise events, classes, or experiences
+☐  We offer delivery to customers
+☐  We operate as a marketplace or multi-vendor platform
+☐  We offer subscriptions or memberships
+
+Step 4 — Operational Structure
+Step 4  How does your business operate?
+Optional
+Select the structure that best describes how your business delivers its products or services. Select all that apply.
+Field type:  Multi-select checkboxes
+
+Producer
+Producer — select if applicable:
+☐  Manufacturer
+☐  Assembler
+☐  Fabricator
+☐  Farmer / Agricultural Producer
+☐  Extractor / Mining
+☐  OEM (Original Equipment Manufacturer)
+☐  Private Label Producer
+☐  Garment / Textile Factory
+
+
+Sales & Distribution
+Sales & Distribution — select if applicable:
+☐  Retailer
+☐  Wholesaler
+☐  Distributor
+☐  Importer
+☐  Exporter
+☐  Dealer / Authorised Seller
+☐  Reseller
+☐  Franchise
+
+
+Intermediary
+Intermediary — select if applicable:
+☐  Broker
+☐  Agent / Representative
+☐  Auctioneer
+☐  Commission-Based Facilitator
+☐  Marketplace Operator
+☐  Franchisee
+
+
+
+
+Service Function
+Service Function — select if applicable:
+☐  Consulting / Advisory
+☐  Installation
+☐  Repair & Maintenance
+☐  Design
+☐  Training / Education
+☐  Technical Support
+☐  Operations Management
+☐  Cleaning / Hygiene
+☐  Security Services
+☐  Logistics / Transport
+☐  Healthcare / Medical
+☐  Legal / Compliance
+
+Organisational Structure
+Organisational structure:
+☐  Individual / Freelancer
+☐  Partnership
+☐  Private Company
+☐  Public Company
+☐  Government Entity
+☐  Nonprofit / NGO
+☐  Cooperative
+☐  Other
+
+
+Step 5 — Business Category & Subcategory
+Step 5  What category best describes your business?
+Optional
+Select your primary business category and subcategory. The platform uses Google Business categories (4,000+ categories) as the base dataset. AI-powered suggestions will appear as you type.
+Field type:  Searchable dropdown + AI suggestions
+
+Fields
+Field
+Details
+Primary Category
+Optional. Searchable dropdown. AI suggests top 3 matches as business types. Source: Google Business categories dataset.
+Subcategory
+Optional. Appears after primary category is selected. Up to 3 subcategories.
+Custom Category Tag
+Optional. Stored for admin review and future category expansion.
+
+
+
+
+Step 6 — Who Do You Serve?
+Step 6  Who are your primary customers?
+Optional
+Select all customer types your business sells to. This helps users find the right businesses and powers future filtering.
+Field type:  Multi-select checkboxes
+
+Select all that apply:
+☐  B2C — Individual Consumers
+☐  B2B — Other Businesses
+☐  B2G — Government & Public Sector
+☐  D2C — Direct to Consumer (own brand)
+☐  Wholesale Buyers
+☐  International Clients
+
+Step 7 — Business Address
+Step 7  Where is your business located?
+Required
+Enter the full address of your business. This is publicly displayed on your profile and used for radius-based search. Use the autocomplete to find your address quickly.
+Field type:  Address form with Google Places Autocomplete
+
+Fields
+Field
+Details
+Country
+Required. Dropdown — full countries list (all countries worldwide).
+Street Address
+Required. Text input with Google Places Autocomplete (triggers after 3 characters, 300ms debounce, session tokens mandatory).
+City / Town
+Required. Auto-filled from Places Autocomplete. Editable.
+State / Province / Region
+Optional. Field label and presence dynamically set by country (libaddressinput dataset). See Address Localisation Spec.
+Zip / Postal Code
+Optional. Field label dynamically set by country. Not shown for countries without postal codes (e.g. Pakistan, UAE). Format validated server-side.
+Landmark / Additional Info
+Optional. Free text. Max 100 characters. Helper: "Floor number, building name, nearest landmark, etc."
+
+Address fields are dynamically rendered based on country selection using the Google libaddressinput dataset (github.com/google/libaddressinput). Never hardcode field labels. Country selection drives the entire address form structure. See Address Form Spec for full implementation details.
+
+Step 8 — Confirm Your Location on Map
+Step 8  Confirm your location on the map
+Required
+After the address is entered, show a map with a pin at the detected location. The business can drag the pin to the exact position if needed. GPS auto-detect button also available.
+Field type:  Interactive map with draggable pin
+
+Behaviour
+Auto-place pin at the coordinates returned by the address geocoding queue (BullMQ).
+Business can drag the pin to correct position if the auto-placement is inaccurate.
+"Detect My Location" button — uses device GPS (when-in-use permission only, never at launch).
+If GPS is denied: fallback to manual city selection, then manual pin drag.
+Coordinates are stored permanently after registration. Geocoding API is never called again for the same business.
+Duplicate location check runs here — if another business is within 10m with a similar name or phone, show a confirmation prompt (not a hard block).
+
+Step 9 — Contact Details
+Step 9  How can customers reach you?
+Required
+Add your business contact details. These are displayed publicly on your profile. Multiple phone and WhatsApp numbers can be added, also mention with contact person name, position and title.
+Field type:  Dynamic multi-entry form
+
+Fields
+Field
+Details
+Primary Phone Number
+Required. International format with country code selector. Validated using libphonenumber (E.164 format, 8–15 digits). No duplicate country code entries.
+WhatsApp Number
+Optional. Same validation as phone. Toggle: "Same as primary phone" to auto-fill.
+Additional Phone Numbers
+Optional. Up to 5 named numbers on paid plan (each number can have a label e.g. "Sales", "Support", "WhatsApp Business").
+Business Email Address
+Optional. Validated email format. Publicly displayed on profile.
+Website URL
+Optional. Must begin with http:// or https://. Shown as clickable link on profile.
+
+Phone number validation: use libphonenumber (free, open source). Remove the hardcoded 8-digit minimum. Support global formats (8–15 digits). Country code PK must not appear twice in the dropdown.
+
+Step 10 — Business Hours
+Step 10  When are you open?
+Optional
+Set your regular opening hours for each day of the week. These power the real-time Open / Closed badge on your profile.
+Field type:  Day-by-day time picker
+
+Fields
+Field
+Details
+Open Days
+Toggle each day of the week on / off. Default: all days off.
+Opening Time
+Time picker (12hr or 24hr based on device locale) per active day.
+Closing Time
+Time picker per active day.
+24/7 Open toggle
+If enabled, overrides all day/time settings and marks business as always open.
+Time Zone
+Auto-detected from country/city. Editable dropdown for correction.
+
+Step 11 — Business Description
+Step 11  Tell customers about your business
+Optional
+Write a description of your business. This is displayed on your public profile and helps customers understand what you offer.
+Field type:  Rich text area
+
+Field
+Details
+Business Description
+Min 20 characters, max 2,000 characters. Character counter shown. Rich text: bold, bullet lists, line breaks only (no images in description field). Helper: "Describe your services, experience, and what makes your business unique."
+Business Languages
+Multi-select. What languages does your business operate in? Helps users find businesses that serve them in their language.
+
+Step 12 — Experience & Team
+Step 12  Tell us a bit more about your business
+Optional
+These details build trust with customers and appear on your profile as trust badges.
+Field type:  Dropdowns & toggles
+
+Fields
+Field
+Details
+Year Established
+Year picker dropdown. Range: 1900 to current year. Used to calculate and display "X years in business" badge on profile.
+Number of Employees
+Single-select dropdown. Options below.
+Chain / Multiple Branches?
+Toggle — Yes / No. If Yes: show info "Each branch must be registered as a separate listing." Informational only.
+
+Number of Employees — select one:
+☐  Just Me (Solo)
+☐  2 – 5
+☐  6 – 10
+☐  11 – 25
+☐  26 – 50
+☐  51 – 100
+☐  101 – 250
+☐  251 – 500
+☐  501 – 1,000
+☐  1,000+
+☐  Prefer not to say
+
+
+Step 13 — Website & Social Media
+Step 13  Where else can customers find you?
+Optional
+Add your online presence. Social media links are available.
+Field type:  URL inputs
+
+Field
+Details
+Website URL
+Optional. Must start with https://. Displayed as clickable link.
+Facebook Page URL
+Optional. Validated as a facebook.com URL.
+Instagram Profile URL
+Optional. Validated as an instagram.com URL.
+YouTube Channel URL
+Optional.
+LinkedIn Page URL
+Optional.
+TikTok Profile URL
+Optional.
+X / Twitter URL
+Optional.
+Pinterest URL
+Optional.
+Snapchat URL
+Optional.
+Other / Custom Link
+Optional. Label + URL. For platforms not listed above.
+
+Show social media fields to all businesses during sign-up but lock them with an upgrade prompt for free plan users. This creates an incentive to upgrade without hiding the feature entirely.
+
+Step 14 — Amenities & Facilities
+Step 14  What does your location offer?
+Optional
+Select all amenities and facilities available at your business location. These are shown on your profile and help customers choose where to go.
+Field type:  Multi-select checkboxes
+
+Location & Access
+Location & Access:
+☐  Physical Location
+☐  Online Business
+☐  Mobile / Home Service
+☐  Delivery Available
+☐  Online Consultation
+☐  Emergency Service
+☐  24/7 Open
+☐  Appointment Only
+
+
+Facilities
+Facilities at your location:
+☐  Free Wi-Fi
+☐  Parking Available
+☐  Air Conditioned
+☐  Waiting Area
+☐  Wheelchair Accessible
+☐  Elevator / Lift
+☐  Kids Area
+☐  Pet Friendly
+☐  Washroom / Toilet
+☐  Prayer Area
+☐  CCTV / Security
+☐  Generator / Backup Power
+☐  Family Seating
+☐  EV Charging
+☐  Locker / Storage
+
+Staff
+Staff available:
+☐  Female Staff Available
+☐  Male Staff Available
+☐  Bilingual Staff
+☐  Sign Language Support
+☐  Trained / Certified Staff
+☐  Uniformed Staff
+☐  Dedicated Customer Support
+
+
+
+Payment Methods Accepted
+We accept:
+☐  Cash Accepted
+☐  Card Accepted
+☐  Bank Transfer
+☐  Mobile Wallet 
+☐ Advance Payment Required?
+☐  Cryptocurrency
+☐  Instalment / Buy Now Pay Later
+☐  Online Payment
+
+
+Step 15 — Industry Sub-Type
+Step 15  Does your business fall into any of these specialised sectors?
+Optional
+
+Industrial, Manufacturing & B2B
+Select if applicable:
+☐  Factory
+☐  Manufacturing Unit
+☐  Industrial Supplier
+☐  Packaging Company
+☐  Printing Press
+☐  Textile Mill
+☐  Garment Factory
+☐  Warehouse
+☐  Cold Storage
+☐  Wholesale Market / Mandi
+☐  Export House
+☐  Import Clearance Agent
+
+Agriculture, Farming & Rural Businesses
+Select if applicable:
+☐  Seed Store
+☐  Fertilizer Store
+☐  Pesticide Shop
+☐  Dairy Farm
+☐  Poultry Farm
+☐  Cattle Farm
+☐  Tractor Dealer
+☐  Agricultural Equipment
+☐  Grain Market
+☐  Livestock Market
+☐  Irrigation Supplies
+☐  Organic Farm
+
+Step 16 — Keywords
+Step 16  Add keywords that describe your business
+Optional
+Keywords help customers find your business through search.
+Field type:  Tag input
+
+Field
+Details
+Keywords
+Up to 10 keywords. Tag-style input — business types a keyword and presses Enter or comma to add it. Each keyword: max 40 characters. Show on free plan with upgrade prompt.
+
+Show the keywords field on free plan with a lock icon and upgrade prompt. Do not hide it entirely — seeing the feature creates upgrade motivation.
+
+Step 17 — Frequently Asked Questions (FAQs)
+Step 17  Add common questions and answers about your business
+Optional
+FAQs are displayed on your public profile to help customers get quick answers.
+Field type:  Dynamic Q&A pairs
+
+Field
+Details
+Question
+Text input. Max 200 characters.
+Answer
+Text area. Max 1,000 characters.
+Number of FAQs
+Up to 10 FAQ pairs. Drag-to-reorder.
+Free Plan
+Show locked with upgrade prompt. Do not hide.
+
+Step 18 — Business Opportunities & Expansion
+Step 20  Does your business offer franchise or distribution opportunities? 
+Share expansion opportunities available to partners, dealers, and investors. This information is displayed on your public profile and enables B2B partner matching on NAAMPATA.
+
+Optional
+
+SECTION A — Franchise & Expansion
+
+Do you offer franchise opportunities?
+☐  Yes
+☐  No
+
+Franchise available in — select all that apply:
+☐  Across the World
+☐  Within the Country only
+
+Investment range — select one:
+☐  Under $1,000
+☐  $1k – $10k
+☐  $10k – $50k
+☐  $50k – $100k
+☐  $100k+
+
+
+Franchise support provided — select all that apply:
+☐  Training
+☐  Marketing
+☐  Equipment
+☐  Setup Assistance
+☐  Staff Training
+☐  Inventory Support
+☐  Technology / Software
+☐  Ongoing Support
+
+
+Field
+Details
+Minimum Space Required
+Text input. Numeric entry + unit selector (sq ft / sq m). Optional. Helper: "Minimum floor area needed to operate this franchise."
+
+SECTION B — Distribution & Dealership
+
+Looking for dealers / resellers?
+☐  Yes
+☐  No
+
+Importer / Exporter?
+☐  Yes
+☐  No
+
+Areas served — select all that apply:
+☐  Local
+☐  National
+☐  International
+
+Step 19 — Logo & Cover Image
+Step 18  Add your business logo and cover image
+Optional
+Your logo and cover image appear at the top of your business profile. All images are automatically optimised and delivered via CDN.
+Field type:  Image upload
+
+Field
+Details
+Logo
+Optional. Recommended: 400×400px, PNG or JPG. Max file size: 5MB. Auto-compressed to WebP. Helper text must show the recommended size.
+Cover Image
+Optional. Recommended: 1200×400px, PNG or JPG. Max file size: 10MB. Auto-compressed to WebP. Helper text must show the recommended size.
+Gallery Images
+Optional. Up to 3 images on free plan. Unlimited on paid plan. Each max 10MB. Auto-compressed to WebP.
+Album Creation
+Business can group images into named albums with ordering control. Free plan: single gallery only.
+
+Always show the recommended image dimensions as helper text directly below each upload field. Do not bury this information in a tooltip or help page. The business must see it before they upload.
+
+Step 20 — Legal Consent
+Step 19  Review and agree to our terms
+Required
+The business must agree to all applicable terms before their listing is created. This step cannot be skipped.
+Field type:  Checkboxes
+
+Consent Item
+Details
+Terms of Service (Business)
+Required checkbox. Link to full document. Cannot proceed without checking.
+Privacy Policy
+Required checkbox. Link to full document.
+Content Moderation Policy
+Required checkbox. Link to full document.
+I confirm my business information is accurate
+Required checkbox. Accuracy declaration.
+I consent to my business location being publicly displayed
+Required checkbox. Location consent per legal requirements.
+I agree to receive platform notifications and updates (optional)
+Optional checkbox. Marketing consent. Pre-unchecked.
+
+Consent logging: at the moment the business checks each box and submits, record: UTC timestamp, IP address, device identifier, session ID, and version number of each document accepted. Retain for minimum 7 years. This is a legal requirement.
+
+After Sign-Up — Listing Goes Live
+Listings are approved and go live automatically after sign-up is completed. There is no manual approval step. Remove the approval queue entirely.
+
+Post Sign-Up Profile Completion
+After the listing goes live, the business is taken to their dashboard with a Profile Completion progress bar showing how complete their profile is. Incomplete optional sections show a prompt to complete them for a stronger profile score.
+
+Profile score is calculated as a percentage and displayed on the business dashboard.
+Higher profile completion = better search ranking (all else being equal).
+Each incomplete optional section shows a "Complete now" button.
+Businesses can edit any field from their profile settings at any time after registration.
+
+Duplicate Business Detection
+Run duplicate detection during Step 8 (Map Pin) and again on final submission. Never hard-block — only prompt for confirmation.
+
+Signal
+Threshold
+Action
+GPS coordinates
+Within 10m of existing listing
+2+ signals: show confirmation prompt
+Business name similarity
+80%+ match (pg_trgm)
+1 signal: soft warning, can continue
+Phone number
+Exact E.164 match
+2+ signals: show confirmation prompt
+Address text similarity
+85%+ match (pg_trgm)
+Never hard-block automatically
+
+Developer Implementation Notes
+Fixes Required from Current Build
+Issue
+Fix Required
+Business Amenities section appearing twice
+Remove the first occurrence. Keep the second one only.
+Payment Methods shown as a separate page
+Remove the separate Payment Methods page. Payment methods are now part of Step 14 (Amenities) as checkboxes.
+Service Mode shown as a separate page
+Remove the separate Service Mode page. This is now covered by Steps 2, 3, and 14.
+Country code PK appearing twice
+Remove the duplicate. Each country code must appear exactly once.
+Hardcoded address fields
+Replace with dynamic address form driven by country config (libaddressinput).
+Phone number 8-digit minimum
+Remove. Use libphonenumber with E.164 validation instead.
+Manual listing approval
+Remove approval queue. All listings go live automatically on submission.
+
+Data Storage Requirements
+All structured question answers (Steps 2–6, 14, 15) must be stored as structured enum arrays in the database — never as free text strings.
+This is required for AI categorisation, search filtering, analytics, and future feature development.
+Each field must have a defined schema before development begins.

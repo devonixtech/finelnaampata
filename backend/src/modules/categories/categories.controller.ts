@@ -52,6 +52,34 @@ export class CategoriesController {
         return this.categoriesService.bulkImportGoogleCategories();
     }
 
+    @Post('admin/bulk-import-file')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Bulk import categories from categories-list.json (Admin only)' })
+    @ApiResponse({ status: 200, description: 'Categories imported from file successfully' })
+    bulkImportFromFile(@Body('filePath') filePath?: string) {
+        return this.categoriesService.bulkImportFromFile(filePath);
+    }
+
+    @Post('admin/sync-google-business-profile')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Sync full Google Business Profile categories (Admin only)' })
+    @ApiResponse({ status: 200, description: 'Google Business Profile categories synced successfully' })
+    syncGoogleBusinessProfileCategories(
+        @Body('languageCode') languageCode?: string,
+        @Body('regionCode') regionCode?: string,
+        @Body('pageSize') pageSize?: number,
+        @Body('writeReviewFile') writeReviewFile?: boolean,
+    ) {
+        return this.categoriesService.syncGoogleBusinessProfileCategories({
+            languageCode,
+            regionCode,
+            pageSize,
+            writeReviewFile,
+        });
+    }
+
     @Post('sync-google')
     @Public()
     @ApiOperation({ summary: 'Ensure a Google category exists (Public for vendor use)' })
@@ -164,6 +192,13 @@ export class CategoriesController {
     @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
     findAll(@Query('includeSubcategories') includeSubcategories?: boolean) {
         return this.categoriesService.findAllActive(includeSubcategories);
+    }
+
+    @Public()
+    @Get('review-export')
+    @ApiOperation({ summary: 'Export categories-list.json metadata for client review' })
+    getReviewExport() {
+        return this.categoriesService.getCategoriesReviewExport();
     }
 
     @Public()

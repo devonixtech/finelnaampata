@@ -177,7 +177,7 @@ export default function AdminBusinessesPage() {
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-50">
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Business Listing</th>
-                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Owner / Vendor</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Owner / Business</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Category / Details</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Status</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
@@ -234,7 +234,7 @@ export default function AdminBusinessesPage() {
                                                         <Tag className="w-3 h-3" /> {b.category?.name || 'Uncategorized'}
                                                     </span>
                                                     {b.isVerified && (
-                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest pl-1">Verified Member</span>
+                                                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest pl-1">Trusted Member</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -427,7 +427,7 @@ export default function AdminBusinessesPage() {
                                     </div>
                                     <div className="space-y-8">
                                         <div className="bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
-                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Vendor Details</p>
+                                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Business Details</p>
                                             <div className="space-y-3">
                                                 <p className="font-black text-slate-900 text-lg">{selectedBusiness.vendor?.businessName || 'Business Owner'}</p>
                                                 <div className="space-y-1">
@@ -440,7 +440,7 @@ export default function AdminBusinessesPage() {
                                             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Operational Status</p>
                                             <div className="flex flex-wrap gap-2">
                                                 <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border ${selectedBusiness.isVerified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                                                    {selectedBusiness.isVerified ? 'Verified' : 'Unverified'}
+                                                    {selectedBusiness.isVerified ? 'Trusted' : 'Not Trusted'}
                                                 </span>
                                                 {selectedBusiness.isFeatured && (
                                                     <span className="px-4 py-2 bg-amber-50 text-amber-600 border border-amber-100 rounded-xl text-[10px] font-black uppercase tracking-wider">Featured Asset</span>

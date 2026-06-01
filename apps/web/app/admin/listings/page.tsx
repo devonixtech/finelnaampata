@@ -56,6 +56,9 @@ export default function AdminListingsPage() {
     }, [page, filter]);
 
     useEffect(() => { fetchListings(); }, [fetchListings]);
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [page]);
 
     const moderate = async (id: string, action: 'approved' | 'rejected', reason?: string) => {
         setActionLoading(id + action);
@@ -193,7 +196,7 @@ export default function AdminListingsPage() {
                                             </span>
                                         </div>
                                         <p className="text-slate-400 text-sm mt-4 line-clamp-2 leading-relaxed italic">
-                                            {listing.description || 'No description provided by the vendor.'}
+                                            {listing.description || 'No description provided by the business.'}
                                         </p>
 
                                         {/* Search Keywords Tags */}
@@ -318,7 +321,7 @@ export default function AdminListingsPage() {
                                 <textarea
                                     value={rejectionReason}
                                     onChange={(e) => setRejectionReason(e.target.value)}
-                                    placeholder="Explain why this listing is being rejected (sent to vendor)..."
+                                    placeholder="Explain why this listing is being rejected (sent to business)..."
                                     className="w-full h-32 px-5 py-4 rounded-[2rem] border border-slate-100 bg-slate-50 text-slate-900 font-medium focus:outline-none focus:ring-4 focus:ring-red-50 placeholder:text-slate-300 text-sm resize-none"
                                 />
                             </div>

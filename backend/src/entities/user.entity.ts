@@ -38,6 +38,7 @@ export enum UserRole {
 export enum AuthProvider {
     LOCAL = 'local',
     GOOGLE = 'google',
+    FACEBOOK = 'facebook',
     BOTH = 'both',
 }
 
@@ -81,6 +82,12 @@ export class User {
     @Column({ name: 'is_phone_verified', default: false })
     isPhoneVerified: boolean;
 
+    @Column({ name: 'verification_otp', nullable: true, length: 6 })
+    verificationOtp: string;
+
+    @Column({ name: 'otp_expires_at', nullable: true, type: 'timestamp' })
+    otpExpiresAt: Date;
+
     @Column({ name: 'is_online', default: false })
     @Index()
     isOnline: boolean;
@@ -97,6 +104,12 @@ export class User {
     /** The Google `sub` identifier.  Unique but nullable so local-only users work. */
     @Column({ name: 'google_id', nullable: true, unique: true })
     googleId: string;
+
+    @Column({ name: 'facebook_id', nullable: true, unique: true })
+    facebookId: string;
+
+    @Column({ name: 'pending_referral_code', nullable: true, length: 32 })
+    pendingReferralCode: string;
 
     /**
      * Auth provider tracking.  Stored as varchar(10) so existing DB rows with

@@ -22,6 +22,7 @@ import { SearchService } from '../search/search.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VendorAttribute } from '../../entities/vendor-attribute.entity';
 import { BusinessQuestion } from '../../entities/business-question.entity';
+import { SearchLocationService } from '../location/search-location.service';
 
 @Injectable()
 export class AdminService {
@@ -62,7 +63,17 @@ export class AdminService {
         private questionRepository: Repository<BusinessQuestion>,
         private searchService: SearchService,
         private notificationsService: NotificationsService,
+        private searchLocationService: SearchLocationService,
     ) { }
+
+    private async invalidateBusinessSearchCache(business: Listing | null | undefined) {
+        if (!business) return;
+        await this.searchLocationService.invalidateCity(business.city);
+        await this.searchLocationService.invalidateCityCategory(
+            business.city,
+            business.category?.slug || business.categoryId || 'all',
+        );
+    }
 
     /**
      * Get all system settings
@@ -271,6 +282,7 @@ export class AdminService {
 
         // Update in Elasticsearch (approval status changed)
         this.searchService.indexBusiness(moderated).catch(err => console.error('ES Approval Index Error:', err));
+        await this.invalidateBusinessSearchCache(result);
 
         return moderated;
     }
@@ -312,6 +324,7 @@ export class AdminService {
 
         // Update in Elasticsearch
         this.searchService.indexBusiness(updated).catch(err => console.error('ES Featured Index Error:', err));
+        await this.invalidateBusinessSearchCache(updated);
 
         return updated;
     }
@@ -328,6 +341,7 @@ export class AdminService {
 
         // Update in Elasticsearch
         this.searchService.indexBusiness(updated).catch(err => console.error('ES Verified Index Error:', err));
+        await this.invalidateBusinessSearchCache(updated);
 
         return updated;
     }
@@ -620,6 +634,7 @@ export class AdminService {
             }
 
             log(`Main record removal...`);
+            await this.invalidateBusinessSearchCache(business);
             const result = await this.businessRepository.remove(business);
 
             // Remove from Elasticsearch
