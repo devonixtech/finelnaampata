@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -46,7 +46,7 @@ let SubscriptionsService = class SubscriptionsService {
         const plan = await this.planRepository.findOne({ where: { id: checkoutDto.planId } });
         if (!plan)
             throw new common_1.NotFoundException('Plan not found');
-        const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+        const frontendUrl = this.configService.get('FRONTEND_URL') || 'https://endearing-taffy-91a2c6.netlify.app';
         return {
             sessionId: 'MOCK-SESSION-' + Date.now(),
             checkoutUrl: `${frontendUrl}/vendor/subscription/success?session_id=MOCK-SESSION-${Date.now()}&mock_plan_id=${plan.id}`,

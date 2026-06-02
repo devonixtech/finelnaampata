@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveApiOrigin } from '../lib/runtime-url';
 
 export interface AddressFieldConfig {
   used: boolean;
@@ -27,7 +28,7 @@ const DEFAULT_CONFIG: CountryAddressConfig = {
   postalCode: { used: true, required: false, label: 'Postal Code' },
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://local-business-listing-directory-production.up.railway.app';
+const BASE_URL = resolveApiOrigin(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL);
 
 const cache = new Map<string, CountryAddressConfig>();
 let countriesCache: Country[] | null = null;

@@ -1,7 +1,7 @@
-
+﻿
 const { execSync } = require('child_process');
 
-const API_URL = 'http://localhost:3005/api/v1';
+const API_URL = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
 
 function testSubscriptionAPI() {
     console.log('--- Testing Subscription API ---');
@@ -25,3 +25,4 @@ function testSubscriptionAPI() {
 }
 
 testSubscriptionAPI();
+

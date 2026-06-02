@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import * as compression from 'compression';
 import { fixProductionSchema } from './database/schema-fixer';
+import { getFrontendOrigins } from './common/utils/public-url.util';
 
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
@@ -62,20 +63,7 @@ async function bootstrap() {
     SwaggerModule.setup('api-docs', app, document); // /api/v1/api-docs
 
     // 5. CORS Configuration
-    const corsOriginRaw = configService.get<string>('CORS_ORIGIN', '');
-    const allowedOrigins = corsOriginRaw
-        .split(',')
-        .map(origin => origin.trim().replace(/\/$/, ''))
-        .filter(origin => origin.length > 0);
-
-    const baseAllowed = [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
-        'https://lucent-ywot-3d8455.netlify.app'
-    ];
-
-    const finalAllowed = [...new Set([...allowedOrigins, ...baseAllowed])];
+    const finalAllowed = getFrontendOrigins(configService);
     logger.log(`✅ Allowed CORS Origins: ${JSON.stringify(finalAllowed)}`);
 
     app.enableCors({

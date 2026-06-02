@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+﻿import { test, expect } from '@playwright/test';
 
 /**
  * E2E Test: Subscription Plans Specification
@@ -21,7 +21,7 @@ import { test, expect } from '@playwright/test';
  * - After payment, features are unlocked
  */
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://endearing-taffy-91a2c6.netlify.app';
 
 // Helper to log into a free-tier vendor account
 async function loginAsVendor(page: any, email = 'testvendor@naampata.com', password = 'Test1234!') {
@@ -33,7 +33,7 @@ async function loginAsVendor(page: any, email = 'testvendor@naampata.com', passw
     await page.waitForTimeout(3000);
 }
 
-test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
+test.describe('Subscription Plans â€” Free vs Paid Feature Gates', () => {
 
     test('TC-SUB-01: Subscription page loads and shows both Free and Paid plans', async ({ page }) => {
         await loginAsVendor(page);
@@ -49,7 +49,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(hasPaid).toBe(true);
     });
 
-    test('TC-SUB-02: Subscription plan prices are admin-configured — not hardcoded', async ({ page }) => {
+    test('TC-SUB-02: Subscription plan prices are admin-configured â€” not hardcoded', async ({ page }) => {
         await loginAsVendor(page);
 
         // Check that pricing comes from API (monitor network)
@@ -109,11 +109,11 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
             
             expect(checkoutApiCalled || redirectedToStripe || checkoutUrl.includes('stripe')).toBe(true);
         } else {
-            console.warn('⚠️ Activate button not found on subscription page');
+            console.warn('âš ï¸ Activate button not found on subscription page');
         }
     });
 
-    test('TC-SUB-04: Free plan — gallery upload locks after 3 photos', async ({ page }) => {
+    test('TC-SUB-04: Free plan â€” gallery upload locks after 3 photos', async ({ page }) => {
         await loginAsVendor(page);
         await page.goto(`${BASE_URL}/add-listing`);
         await page.waitForSelector('body', { timeout: 8000 });
@@ -131,7 +131,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(hasGallery || true).toBe(true); // Gallery section exists
     });
 
-    test('TC-SUB-05: Free plan — Social media links section shows premium lock/upgrade prompt', async ({ page }) => {
+    test('TC-SUB-05: Free plan â€” Social media links section shows premium lock/upgrade prompt', async ({ page }) => {
         await loginAsVendor(page);
         await page.goto(`${BASE_URL}/add-listing`);
         await page.waitForSelector('body', { timeout: 8000 });
@@ -154,13 +154,13 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
 
         // Either there's an upgrade prompt, or the section is restricted  
         if (hasSocial && !hasUpgradePrompt) {
-            console.warn('⚠️ Social media section visible but no upgrade prompt found for free plan user');
+            console.warn('âš ï¸ Social media section visible but no upgrade prompt found for free plan user');
         }
         
         expect(content?.length).toBeGreaterThan(100);
     });
 
-    test('TC-SUB-06: Free plan — Keywords section shows premium lock/upgrade prompt', async ({ page }) => {
+    test('TC-SUB-06: Free plan â€” Keywords section shows premium lock/upgrade prompt', async ({ page }) => {
         await loginAsVendor(page);
         await page.goto(`${BASE_URL}/add-listing`);
         await page.waitForSelector('body', { timeout: 8000 });
@@ -174,7 +174,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
             const lockInKeyword = keywordSection.locator('[class*="lock"], [class*="premium"]');
             const isLocked = await lockInKeyword.isVisible().catch(() => false);
             if (!isLocked) {
-                console.warn('⚠️ Keywords section visible without premium gate for free plan');
+                console.warn('âš ï¸ Keywords section visible without premium gate for free plan');
             }
         }
         
@@ -249,7 +249,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(hasMonthly || hasYearly).toBe(true);
     });
 
-    test('TC-SUB-10: Free plan — Affiliate programme access is available', async ({ page }) => {
+    test('TC-SUB-10: Free plan â€” Affiliate programme access is available', async ({ page }) => {
         await loginAsVendor(page);
         await page.goto(`${BASE_URL}/dashboard`);
         await page.waitForSelector('body', { timeout: 8000 }).catch(() => {});
@@ -266,7 +266,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(content?.length).toBeGreaterThan(100);
     });
 
-    test('TC-SUB-11: Free plan — Receive reviews feature is accessible', async ({ page }) => {
+    test('TC-SUB-11: Free plan â€” Receive reviews feature is accessible', async ({ page }) => {
         await loginAsVendor(page);
         
         // Check that vendor can see their reviews in dashboard
@@ -284,7 +284,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(content?.length).toBeGreaterThan(100);
     });
 
-    test('TC-SUB-12: Paid plan — WhatsApp integration field is accessible', async ({ page }) => {
+    test('TC-SUB-12: Paid plan â€” WhatsApp integration field is accessible', async ({ page }) => {
         await loginAsVendor(page);
         await page.goto(`${BASE_URL}/add-listing`);
         await page.waitForSelector('body', { timeout: 8000 });
@@ -298,7 +298,7 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
             const nearbyLock = page.locator('text=/whatsapp/i').locator('..').locator('[class*="lock"], [class*="premium"]').first();
             const isLocked = await nearbyLock.isVisible().catch(() => false);
             if (!isLocked) {
-                console.warn('⚠️ WhatsApp field visible without premium lock for free user');
+                console.warn('âš ï¸ WhatsApp field visible without premium lock for free user');
             }
         }
         
@@ -306,3 +306,4 @@ test.describe('Subscription Plans — Free vs Paid Feature Gates', () => {
         expect(content?.length).toBeGreaterThan(100);
     });
 });
+

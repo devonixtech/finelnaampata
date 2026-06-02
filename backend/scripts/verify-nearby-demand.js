@@ -1,10 +1,10 @@
-const axios = require('axios');
+﻿const axios = require('axios');
 const dotenv = require('dotenv');
 const path = require('path');
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const API_ROOT = 'http://localhost:3001/api/v1';
+const API_ROOT = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
 
 async function verifyNearbyDemand() {
     try {
@@ -28,3 +28,4 @@ async function verifyNearbyDemand() {
 }
 
 verifyNearbyDemand();
+

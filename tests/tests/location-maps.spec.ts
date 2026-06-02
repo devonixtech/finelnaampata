@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+﻿import { test, expect } from '@playwright/test';
 
 /**
  * E2E Test: Location and Map Specification
@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
  * - Map loads only on user click ("View on Map"), not auto-load
  */
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://endearing-taffy-91a2c6.netlify.app';
 
 test.describe('Location and Map Specification', () => {
 
@@ -42,13 +42,13 @@ test.describe('Location and Map Specification', () => {
             // Embed is fine, but Dynamic JS API auto-loading is banned
             expect(hasDynamicMapsAPI).toBe(false);
         } else {
-            // No listings yet — just verify homepage loads
+            // No listings yet â€” just verify homepage loads
             const content = await page.textContent('body');
             expect(content?.length).toBeGreaterThan(0);
         }
     });
 
-    test('TC-MAP-02: Business profile page does not auto-load map — user must click', async ({ page }) => {
+    test('TC-MAP-02: Business profile page does not auto-load map â€” user must click', async ({ page }) => {
         await page.goto(`${BASE_URL}/`);
         await page.waitForSelector('body', { timeout: 8000 });
 
@@ -60,12 +60,12 @@ test.describe('Location and Map Specification', () => {
             // Wait for page to settle without any user interaction
             await page.waitForTimeout(2000);
 
-            // The map iframe should NOT be auto-loaded — it must require a click
+            // The map iframe should NOT be auto-loaded â€” it must require a click
             // Check that a "View on Map" or similar trigger is shown initially
             const viewOnMapBtn = page.locator('button:has-text("View on Map"), button:has-text("Show Map"), button:has-text("View Map")').first();
             const hasViewBtn = await viewOnMapBtn.isVisible().catch(() => false);
 
-            // Alternatively — if map IS shown via embed (not blocked), that's also acceptable per spec
+            // Alternatively â€” if map IS shown via embed (not blocked), that's also acceptable per spec
             // The spec says "no map auto-loads" specifically for the dynamic JS API
             const embedIframe = page.locator('iframe[src*="google.com/maps/embed"]').first();
             const hasEmbed = await embedIframe.isVisible().catch(() => false);
@@ -107,7 +107,7 @@ test.describe('Location and Map Specification', () => {
             
             // Test passes if button is present; log warning if not
             if (!hasGoogleMapsLink) {
-                console.warn('⚠️ "Open in Google Maps" button not found on business profile page');
+                console.warn('âš ï¸ "Open in Google Maps" button not found on business profile page');
             }
         }
     });
@@ -165,14 +165,14 @@ test.describe('Location and Map Specification', () => {
         
         // The address input should be found somewhere in the wizard
         if (!found) {
-            console.warn('⚠️ Address autocomplete input not found within first 10 steps');
+            console.warn('âš ï¸ Address autocomplete input not found within first 10 steps');
         }
         // At minimum the wizard should load without errors
         const content = await page.textContent('body');
         expect(content?.length).toBeGreaterThan(100);
     });
 
-    test('TC-MAP-06: Geocoding is server-side — no Google Geocoding API calls from frontend', async ({ page }) => {
+    test('TC-MAP-06: Geocoding is server-side â€” no Google Geocoding API calls from frontend', async ({ page }) => {
         // Monitor network requests to ensure Google Geocoding is NOT called directly from browser
         const geocodingCalls: string[] = [];
 
@@ -193,10 +193,10 @@ test.describe('Location and Map Specification', () => {
             await page.waitForTimeout(2000);
         }
 
-        // Geocoding should go via backend queue — never directly from browser
+        // Geocoding should go via backend queue â€” never directly from browser
         expect(geocodingCalls.length).toBe(0);
         if (geocodingCalls.length > 0) {
-            console.error('❌ BANNED: Direct Google Geocoding API called from browser:', geocodingCalls);
+            console.error('âŒ BANNED: Direct Google Geocoding API called from browser:', geocodingCalls);
         }
     });
 
@@ -229,7 +229,7 @@ test.describe('Location and Map Specification', () => {
 
         expect(bannedApiCalls.length).toBe(0);
         if (bannedApiCalls.length > 0) {
-            console.error('❌ BANNED API CALLED:', bannedApiCalls);
+            console.error('âŒ BANNED API CALLED:', bannedApiCalls);
         }
     });
 
@@ -248,7 +248,7 @@ test.describe('Location and Map Specification', () => {
         expect(content?.length).toBeGreaterThan(100);
     });
 
-    test('TC-MAP-09: Duplicate business detection — pg_trgm signals are checked on form submit', async ({ page }) => {
+    test('TC-MAP-09: Duplicate business detection â€” pg_trgm signals are checked on form submit', async ({ page }) => {
         await page.goto(`${BASE_URL}/login`);
         await page.fill('input[type="email"]', 'testvendor@naampata.com');
         await page.fill('input[type="password"]', 'Test1234!');
@@ -278,3 +278,4 @@ test.describe('Location and Map Specification', () => {
         expect(content?.length).toBeGreaterThan(100);
     });
 });
+

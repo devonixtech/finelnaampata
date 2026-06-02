@@ -1,10 +1,10 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
 const client = new Client({
     user: 'postgres',
     password: '5432',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'your-db-host',
     port: 5432,
     database: 'business_saas_db'
 });
@@ -12,11 +12,11 @@ const client = new Client({
 async function seedData() {
     try {
         await client.connect();
-        console.log('✓ Connected to PostgreSQL');
+        console.log('âœ“ Connected to PostgreSQL');
 
         // 1. Clear existing data (optional, but good for clean seeding)
         // Order matters due to FK constraints
-        console.log('🧹 Cleaning existing data...');
+        console.log('ðŸ§¹ Cleaning existing data...');
         await client.query('DELETE FROM business_images');
         await client.query('DELETE FROM reviews');
         await client.query('DELETE FROM leads');
@@ -25,7 +25,7 @@ async function seedData() {
         await client.query('DELETE FROM users WHERE email != \'aman@gmail.com\'');
 
         // 2. Insert Users
-        console.log('👤 Seeding users...');
+        console.log('ðŸ‘¤ Seeding users...');
         const users = [
             { id: uuidv4(), email: 'vendor1@example.com', name: 'John Vendor', role: 'vendor' },
             { id: uuidv4(), email: 'vendor2@example.com', name: 'Sarah Listings', role: 'vendor' },
@@ -40,7 +40,7 @@ async function seedData() {
         }
 
         // 3. Insert Vendors
-        console.log('🏪 Seeding vendors...');
+        console.log('ðŸª Seeding vendors...');
         const vendors = [
             { id: uuidv4(), userId: users[0].id, name: 'Johns Enterprises', phone: '1234567890' },
             { id: uuidv4(), userId: users[1].id, name: 'Sarahs Boutique', phone: '9876543210' },
@@ -59,7 +59,7 @@ async function seedData() {
         catsRes.rows.forEach(c => catMap[c.slug] = c.id);
 
         // 5. Insert Businesses (Listings)
-        console.log('📍 Seeding business listings...');
+        console.log('ðŸ“ Seeding business listings...');
         const listings = [
             {
                 id: uuidv4(),
@@ -117,18 +117,19 @@ async function seedData() {
         }
 
         // 6. Insert some Reviews
-        console.log('⭐ Seeding reviews...');
+        console.log('â­ Seeding reviews...');
         await client.query(
             'INSERT INTO reviews (id, business_id, user_id, rating, comment) VALUES ($1, $2, $3, $4, $5)',
             [uuidv4(), listings[0].id, users[2].id, 5, 'Absolutely delicious! The lasagna is a must-try.']
         );
 
-        console.log('✅ Seeding completed successfully!');
+        console.log('âœ… Seeding completed successfully!');
         await client.end();
     } catch (err) {
-        console.error('❌ Seeding failed:', err);
+        console.error('âŒ Seeding failed:', err);
         process.exit(1);
     }
 }
 
 seedData();
+

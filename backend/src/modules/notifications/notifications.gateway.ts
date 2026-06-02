@@ -11,20 +11,20 @@ import { WsJwtGuard } from './ws-jwt.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
+import { DEFAULT_FRONTEND_URL, parsePublicOrigins } from '../../common/utils/public-url.util';
+
+const allowedOrigins = parsePublicOrigins(
+    process.env.FRONTEND_URL,
+    process.env.CORS_ORIGIN,
+    process.env.NEXT_PUBLIC_SITE_URL,
+);
 
 @WebSocketGateway({
     cors: {
         origin: (origin: string, callback: any) => {
-            const allowedOrigins = [
-                'https://endearing-taffy-91a2c6.netlify.app',
-                'https://singular-melomakarona-8c3308.netlify.app',
-                'http://localhost:3000',
-                'http://localhost:3001',
-                'http://127.0.0.1:3000',
-                'http://127.0.0.1:3001',
-            ];
-            
-            if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.endsWith('.railway.app')) {
+            const configuredOrigins = allowedOrigins.length > 0 ? allowedOrigins : [DEFAULT_FRONTEND_URL];
+
+            if (!origin || configuredOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.endsWith('.railway.app')) {
                 return callback(null, true);
             }
             console.warn(`❌ [SOCKET-CORS-BLOCKED] Origin: ${origin}`);

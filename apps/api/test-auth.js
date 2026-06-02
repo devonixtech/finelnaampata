@@ -1,4 +1,4 @@
-const http = require('http');
+﻿const http = require('http');
 
 async function request(options, body) {
     return new Promise((resolve, reject) => {
@@ -21,9 +21,9 @@ async function testAuth() {
     const password = 'password123';
 
     try {
-        console.log('🧪 Testing Registration...');
+        console.log('ðŸ§ª Testing Registration...');
         const regRes = await request({
-            hostname: 'localhost',
+            hostname: process.env.API_HOST || 'api.yourdomain.com',
             port: process.env.PORT || 3001,
             path: '/api/v1/auth/register',
             method: 'POST',
@@ -34,9 +34,9 @@ async function testAuth() {
         console.log('Registration Body:', regRes.body);
 
         if (regRes.statusCode === 201 || regRes.statusCode === 200) {
-            console.log('\n🧪 Testing Login...');
+            console.log('\nðŸ§ª Testing Login...');
             const loginRes = await request({
-                hostname: 'localhost',
+                hostname: process.env.API_HOST || 'api.yourdomain.com',
                 port: process.env.PORT || 3001,
                 path: '/api/v1/auth/login',
                 method: 'POST',
@@ -47,16 +47,17 @@ async function testAuth() {
             console.log('Login Body:', loginRes.body);
 
             if (loginRes.body.token && loginRes.body.user) {
-                console.log('\n✅ Auth Flow Verified Successfully!');
+                console.log('\nâœ… Auth Flow Verified Successfully!');
             } else {
-                console.log('\n❌ Auth Flow Failed: Missing token or user info');
+                console.log('\nâŒ Auth Flow Failed: Missing token or user info');
             }
         } else {
-            console.log('\n❌ Registration Failed');
+            console.log('\nâŒ Registration Failed');
         }
     } catch (err) {
-        console.error('\n❌ Test Error:', err.message);
+        console.error('\nâŒ Test Error:', err.message);
     }
 }
 
 testAuth();
+

@@ -1,8 +1,8 @@
-# 📚 Business SaaS Platform - Documentation
+﻿# ðŸ“š Business SaaS Platform - Documentation
 
 Welcome to the documentation for the Business SaaS Platform!
 
-## 📋 Table of Contents
+## ðŸ“‹ Table of Contents
 
 ### Getting Started
 1. **[DATABASE_CONNECTION_COMPLETE.md](./DATABASE_CONNECTION_COMPLETE.md)** - Complete database setup guide
@@ -11,13 +11,13 @@ Welcome to the documentation for the Business SaaS Platform!
    - Seed data information
    - TypeORM configuration
 
-2. **[API_INTEGRATION_GUIDE.md](./API_INTEGRATION_GUIDE.md)** - ⭐ **NEW!** Complete API integration
+2. **[API_INTEGRATION_GUIDE.md](./API_INTEGRATION_GUIDE.md)** - â­ **NEW!** Complete API integration
    - User, Vendor, Admin endpoints
    - Frontend integration
    - React hooks usage
    - Testing instructions
 
-3. **[ARCHITECTURE_DIAGRAM.md](./ARCHITECTURE_DIAGRAM.md)** - ⭐ **NEW!** System architecture
+3. **[ARCHITECTURE_DIAGRAM.md](./ARCHITECTURE_DIAGRAM.md)** - â­ **NEW!** System architecture
    - Visual diagrams
    - Data flow
    - User type flows
@@ -42,7 +42,7 @@ Welcome to the documentation for the Business SaaS Platform!
    - Request/response formats
 
 ### Status & Reference
-8. **[API_LINKING_COMPLETE.txt](./API_LINKING_COMPLETE.txt)** - ⭐ **NEW!** Integration status
+8. **[API_LINKING_COMPLETE.txt](./API_LINKING_COMPLETE.txt)** - â­ **NEW!** Integration status
    - User, Vendor, Admin linking complete
    - Feature summary
    - Quick reference
@@ -54,13 +54,13 @@ Welcome to the documentation for the Business SaaS Platform!
 
 ---
 
-## 🚀 Quick Start
+## ðŸš€ Quick Start
 
 ### 1. Database Connection
 ```powershell
 # Test database connection
 $env:PGPASSWORD = "5432"
-psql -h localhost -p 5432 -U postgres -d webapp
+psql -h your-db-host -p 5432 -U postgres -d webapp
 ```
 
 ### 2. Start API
@@ -75,11 +75,11 @@ npm run start:dev
 
 ---
 
-## 📊 System Overview
+## ðŸ“Š System Overview
 
 ### Database
 - **Name:** webapp
-- **Host:** localhost:5432
+- **Host:** your-db-host:5432
 - **User:** postgres
 - **Password:** 5432
 - **Tables:** 15
@@ -93,7 +93,7 @@ npm run start:dev
 
 ---
 
-## 🗄️ Database Tables
+## ðŸ—„ï¸ Database Tables
 
 | Category | Tables |
 |----------|--------|
@@ -105,7 +105,7 @@ npm run start:dev
 
 ---
 
-## 🔗 Useful Links
+## ðŸ”— Useful Links
 
 - **Production API Root:** https://local-business-listing-directory-production.up.railway.app/api/v1
 - **Local API Root:** `${process.env.NEXT_PUBLIC_API_URL}`
@@ -113,24 +113,24 @@ npm run start:dev
 
 ---
 
-## 📝 Documentation Files
+## ðŸ“ Documentation Files
 
 All documentation files are organized in this `/docs` folder:
 
 ```
 docs/
-├── README.md                           (this file)
-├── DATABASE_CONNECTION_COMPLETE.md     (complete setup guide)
-├── API_TESTING_GUIDE.md                (API testing)
-├── RESET_PASSWORD_GUIDE.md             (password reset)
-├── QUICKSTART.txt                      (quick reference)
-├── HOW_TO_RESET_PASSWORD.txt           (password reset steps)
-└── STATUS.txt                          (system status)
+â”œâ”€â”€ README.md                           (this file)
+â”œâ”€â”€ DATABASE_CONNECTION_COMPLETE.md     (complete setup guide)
+â”œâ”€â”€ API_TESTING_GUIDE.md                (API testing)
+â”œâ”€â”€ RESET_PASSWORD_GUIDE.md             (password reset)
+â”œâ”€â”€ QUICKSTART.txt                      (quick reference)
+â”œâ”€â”€ HOW_TO_RESET_PASSWORD.txt           (password reset steps)
+â””â”€â”€ STATUS.txt                          (system status)
 ```
 
 ---
 
-## 🆘 Need Help?
+## ðŸ†˜ Need Help?
 
 1. **Database Issues:** See [DATABASE_CONNECTION_COMPLETE.md](./DATABASE_CONNECTION_COMPLETE.md)
 2. **API Testing:** See [API_TESTING_GUIDE.md](./API_TESTING_GUIDE.md)
@@ -139,15 +139,16 @@ docs/
 
 ---
 
-## ✅ System Status
+## âœ… System Status
 
-- ✅ PostgreSQL 18 - Running
-- ✅ Database 'webapp' - Connected
-- ✅ Simple API (Port 3000) - Running
-- ✅ 15 Tables Created
-- ✅ Seed Data Inserted
+- âœ… PostgreSQL 18 - Running
+- âœ… Database 'webapp' - Connected
+- âœ… Simple API (Port 3000) - Running
+- âœ… 15 Tables Created
+- âœ… Seed Data Inserted
 
 ---
 
 **Last Updated:** 2026-02-07 22:20 IST  
-**Status:** ✅ OPERATIONAL
+**Status:** âœ… OPERATIONAL
+

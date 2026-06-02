@@ -1,9 +1,9 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 const client = new Client({
     user: 'postgres',
     password: '5432',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'your-db-host',
     port: 5432,
     database: 'business_saas_db'
 });
@@ -11,17 +11,17 @@ const client = new Client({
 async function setupDatabase() {
     try {
         await client.connect();
-        console.log('✓ Connected to PostgreSQL database: business_saas_db\n');
+        console.log('âœ“ Connected to PostgreSQL database: business_saas_db\n');
 
-        console.log('📋 Setting up database schema...\n');
+        console.log('ðŸ“‹ Setting up database schema...\n');
 
         // Enable UUID extension
         await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
         await client.query(`CREATE EXTENSION IF NOT EXISTS "pg_trgm";`);
-        console.log('✓ Extensions enabled');
+        console.log('âœ“ Extensions enabled');
 
         // Create ENUMs
-        console.log('✓ Creating ENUMs...');
+        console.log('âœ“ Creating ENUMs...');
         await client.query(`
             DO $$ BEGIN
                 CREATE TYPE user_role AS ENUM ('user', 'vendor', 'admin');
@@ -86,10 +86,10 @@ async function setupDatabase() {
             END $$;
         `);
 
-        console.log('✓ ENUMs created');
+        console.log('âœ“ ENUMs created');
 
         // Update existing tables to add missing columns
-        console.log('✓ Updating existing tables...');
+        console.log('âœ“ Updating existing tables...');
 
         // Update users table
         await client.query(`
@@ -260,10 +260,10 @@ async function setupDatabase() {
             );
         `);
 
-        console.log('✓ All tables created/updated');
+        console.log('âœ“ All tables created/updated');
 
         // Create indexes
-        console.log('✓ Creating indexes...');
+        console.log('âœ“ Creating indexes...');
 
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_business_id ON reviews(business_id);`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);`);
@@ -288,7 +288,7 @@ async function setupDatabase() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_analytics_business_id ON analytics_events(business_id);`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics_events(event_type);`);
 
-        console.log('✓ Indexes created');
+        console.log('âœ“ Indexes created');
 
         // Verify setup
         const tablesResult = await client.query(`
@@ -298,19 +298,20 @@ async function setupDatabase() {
             ORDER BY table_name
         `);
 
-        console.log('\n✅ Database setup completed!\n');
+        console.log('\nâœ… Database setup completed!\n');
         console.log('Tables in database:');
         tablesResult.rows.forEach(row => {
-            console.log(`  ✓ ${row.table_name}`);
+            console.log(`  âœ“ ${row.table_name}`);
         });
 
         await client.end();
-        console.log('\n🎉 Database is ready for use!');
+        console.log('\nðŸŽ‰ Database is ready for use!');
     } catch (err) {
-        console.error('❌ Error:', err.message);
+        console.error('âŒ Error:', err.message);
         console.error('\nDetails:', err);
         process.exit(1);
     }
 }
 
 setupDatabase();
+

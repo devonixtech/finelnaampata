@@ -1,4 +1,4 @@
-const http = require('http');
+﻿const http = require('http');
 
 async function testAuth() {
     const email = `test_phone_${Date.now()}@example.com`;
@@ -9,7 +9,7 @@ async function testAuth() {
     console.log(`Registering user ${email} with phone ${phone}...`);
 
     // 1. Register User
-    const regRes = await fetch('http://127.0.0.1:3001/api/v1/auth/register', {
+    const regRes = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, fullName, phone })
@@ -23,7 +23,7 @@ async function testAuth() {
     const token = regData.tokens.accessToken;
 
     // 2. Fetch Profile
-    const profRes = await fetch('http://127.0.0.1:3001/api/v1/users/profile', {
+    const profRes = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/users/profile', {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -34,7 +34,7 @@ async function testAuth() {
     // 3. Login with different phone to update it
     const newPhone = '+1987654321';
     console.log(`\nLogging in and updating phone to ${newPhone}...`);
-    const loginRes = await fetch('http://127.0.0.1:3001/api/v1/auth/login', {
+    const loginRes = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, phone: newPhone })
@@ -44,3 +44,4 @@ async function testAuth() {
 }
 
 testAuth().catch(console.error);
+

@@ -1,9 +1,9 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 const client = new Client({
     user: 'postgres',
     password: '5432',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'your-db-host',
     port: 5432,
     database: 'business_saas_db'
 });
@@ -11,7 +11,7 @@ const client = new Client({
 async function checkDatabase() {
     try {
         await client.connect();
-        console.log('✓ Connected to PostgreSQL database: business_saas_db\n');
+        console.log('âœ“ Connected to PostgreSQL database: business_saas_db\n');
 
         // Check existing tables
         const tablesResult = await client.query(`
@@ -55,3 +55,4 @@ async function checkDatabase() {
 }
 
 checkDatabase();
+

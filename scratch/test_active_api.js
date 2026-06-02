@@ -1,4 +1,4 @@
-
+﻿
 const { execSync } = require('child_process');
 
 // Note: jsonwebtoken might not be in root, but it should be in backend
@@ -11,7 +11,7 @@ try {
 }
 
 const SECRET = 'super-secret-key-change-this-in-production';
-const API_URL = 'http://localhost:3005/api/v1';
+const API_URL = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
 
 async function testActivePlanAPI() {
     const userId = '251648a1-cc80-4da2-887e-97ecb872b251';
@@ -34,9 +34,9 @@ async function testActivePlanAPI() {
         console.log('Response:', JSON.stringify(res, null, 2));
         
         if (res && res.plan && res.plan.name === 'Free') {
-            console.log('✅ Fallback to Free plan confirmed!');
+            console.log('âœ… Fallback to Free plan confirmed!');
         } else {
-            console.log('❌ Fallback failed or different plan returned.');
+            console.log('âŒ Fallback failed or different plan returned.');
         }
     } catch (error) {
         console.error('API call failed:', error.message);
@@ -44,3 +44,4 @@ async function testActivePlanAPI() {
 }
 
 testActivePlanAPI();
+

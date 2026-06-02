@@ -1,9 +1,9 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 const client = new Client({
     user: 'postgres',
     password: '5432',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'your-db-host',
     port: 5432,
     database: 'business_saas_db'
 });
@@ -11,7 +11,7 @@ const client = new Client({
 async function verifySetup() {
     try {
         await client.connect();
-        console.log('🔗 PostgreSQL Connection: ✅ CONNECTED\n');
+        console.log('ðŸ”— PostgreSQL Connection: âœ… CONNECTED\n');
 
         // Count records in each table
         const tables = [
@@ -27,7 +27,7 @@ async function verifySetup() {
             'notifications'
         ];
 
-        console.log('📊 Database Statistics:\n');
+        console.log('ðŸ“Š Database Statistics:\n');
         console.log('Table Name              | Record Count');
         console.log('------------------------|-------------');
 
@@ -46,9 +46,9 @@ async function verifySetup() {
             ORDER BY typname
         `);
 
-        console.log('\n🏷️  ENUMs Configured:');
+        console.log('\nðŸ·ï¸  ENUMs Configured:');
         enumsResult.rows.forEach(row => {
-            console.log(`  ✓ ${row.typname}`);
+            console.log(`  âœ“ ${row.typname}`);
         });
 
         // Check indexes
@@ -62,21 +62,22 @@ async function verifySetup() {
             ORDER BY tablename, indexname
         `);
 
-        console.log(`\n📇 Indexes: ${indexResult.rows.length} total`);
+        console.log(`\nðŸ“‡ Indexes: ${indexResult.rows.length} total`);
 
         await client.end();
 
-        console.log('\n✅ Database Verification Complete!');
-        console.log('\n🎉 Your PostgreSQL database is fully configured and ready to use!');
+        console.log('\nâœ… Database Verification Complete!');
+        console.log('\nðŸŽ‰ Your PostgreSQL database is fully configured and ready to use!');
         console.log('\nNext steps:');
-        console.log('  1. Backend API is running at http://localhost:3005/api/v1');
+        console.log('  1. Backend API is running at https://local-business-listing-directory-production.up.railway.app/api/v1');
         console.log('  2. All data is being stored in PostgreSQL');
         console.log('  3. Check docs/DATABASE_SETUP_COMPLETE.md for full documentation');
 
     } catch (err) {
-        console.error('❌ Error:', err.message);
+        console.error('âŒ Error:', err.message);
         process.exit(1);
     }
 }
 
 verifySetup();
+

@@ -31,6 +31,7 @@ import { AffiliateService } from '../affiliate/affiliate.service';
 import { PromotionsService } from '../promotions/promotions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import Stripe from 'stripe';
+import { DEFAULT_FRONTEND_URL, getPrimaryFrontendUrl } from '../../common/utils/public-url.util';
 
 @Injectable()
 export class SubscriptionsService implements OnModuleInit {
@@ -325,9 +326,7 @@ export class SubscriptionsService implements OnModuleInit {
     }
 
     private getCleanBaseUrl(origin?: string): string {
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || '';
-        const allowedUrls = frontendUrl ? frontendUrl.split(',').map(url => url.trim()) : [];
-        const rawUrl = origin || allowedUrls[0] || 'http://localhost:3000';
+        const rawUrl = getPrimaryFrontendUrl(this.configService, origin);
         
         try {
             const url = new URL(rawUrl);
@@ -336,7 +335,7 @@ export class SubscriptionsService implements OnModuleInit {
             return cleanUrl;
         } catch (e) {
             this.logger.error(`[getCleanBaseUrl] Failed to parse URL: ${rawUrl}`);
-            return 'http://localhost:3000';
+            return DEFAULT_FRONTEND_URL;
         }
     }
 
@@ -356,7 +355,7 @@ export class SubscriptionsService implements OnModuleInit {
 
         // Free plan — no Stripe involved
         if (plan.price === 0) {
-            const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+            const frontendUrl = this.configService.get<string>('FRONTEND_URL') || DEFAULT_FRONTEND_URL;
             const mockId = `MOCK-FREE-${Date.now()}`;
             // Auto-activate free plan inline
             await this.handleMockSubscriptionSuccess(vendor.id, plan.id, mockId);

@@ -1,10 +1,10 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
 const CONFIG = {
     user: 'postgres',
     password: '5432',
-    host: 'localhost',
+    host: process.env.DB_HOST || 'your-db-host',
     port: 5432,
     database: 'business_saas_db'
 };
@@ -36,10 +36,10 @@ async function seed() {
     const client = new Client(CONFIG);
     try {
         await client.connect();
-        console.log('🚀 Starting Advanced "Perfect" Seeding...');
+        console.log('ðŸš€ Starting Advanced "Perfect" Seeding...');
 
         // 1. Clean existing data (Optional: User asked to "add", but for "perfect" we usually clean)
-        console.log('🧹 Cleaning old data to ensure perfection...');
+        console.log('ðŸ§¹ Cleaning old data to ensure perfection...');
         await client.query('TRUNCATE reviews, leads, business_amenities, business_hours, businesses, categories, amenities, vendors, users CASCADE');
 
         // 2. Seed Amenities
@@ -52,7 +52,7 @@ async function seed() {
         }
 
         // 3. Seed Categories
-        console.log('📂 Seeding categories...');
+        console.log('ðŸ“‚ Seeding categories...');
         const catMap = {};
         for (const cat of CATEGORIES) {
             const id = uuidv4();
@@ -64,7 +64,7 @@ async function seed() {
         }
 
         // 4. Seed Users (Admin, Vendors, Customers)
-        console.log('👥 Seeding users and vendors...');
+        console.log('ðŸ‘¥ Seeding users and vendors...');
         const vendorIds = [];
         const customerIds = [];
 
@@ -94,7 +94,7 @@ async function seed() {
         }
 
         // 5. Seed Businesses (Listings)
-        console.log('📍 Seeding 100+ realistic business listings...');
+        console.log('ðŸ“ Seeding 100+ realistic business listings...');
         let totalBiz = 0;
         for (const city of CITIES) {
             for (const cat of CATEGORIES) {
@@ -157,13 +157,14 @@ async function seed() {
             }
         }
 
-        console.log(`✅ Successfully seeded ${totalBiz} businesses with full metadata!`);
+        console.log(`âœ… Successfully seeded ${totalBiz} businesses with full metadata!`);
         await client.end();
-        console.log('🎉 Advanced Seeding Complete.');
+        console.log('ðŸŽ‰ Advanced Seeding Complete.');
     } catch (err) {
-        console.error('❌ Seeding error:', err);
+        console.error('âŒ Seeding error:', err);
         process.exit(1);
     }
 }
 
 seed();
+

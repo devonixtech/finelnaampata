@@ -1,8 +1,8 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 async function updateSchema() {
     const client = new Client({
-        connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/railway'
+        connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@your-db-host:5432/railway'
     });
 
     try {
@@ -59,3 +59,4 @@ async function updateSchema() {
 }
 
 updateSchema();
+

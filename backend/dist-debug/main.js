@@ -30,10 +30,10 @@ async function bootstrap() {
     app.enableCors({
         origin: [
             configService.get('CORS_ORIGIN'),
-            'http://localhost:3000',
+            'https://endearing-taffy-91a2c6.netlify.app',
             ' https://local-business-listing-directory-production.up.railway.app',
             'http://process.env.NEXT_PUBLIC_API_URL',
-            'http://127.0.0.1:3000',
+            'https://yourdomain.com',
         ],
         credentials: true,
         methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
@@ -71,7 +71,8 @@ async function bootstrap() {
     const port = configService.get('PORT') || 3001;
     await app.listen(port, '0.0.0.0');
     console.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
-    console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+    console.log(`📚 API Documentation: https://yourdomain.com/api/docs`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
+

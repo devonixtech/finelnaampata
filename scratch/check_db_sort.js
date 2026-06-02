@@ -1,8 +1,8 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 async function checkBusinesses() {
   const client = new Client({
-    connectionString: 'postgresql://postgres:postgres@localhost:5432/local_business_listing'
+    connectionString: 'postgresql://postgres:postgres@your-db-host:5432/local_business_listing'
   });
 
   try {
@@ -17,3 +17,4 @@ async function checkBusinesses() {
 }
 
 checkBusinesses();
+

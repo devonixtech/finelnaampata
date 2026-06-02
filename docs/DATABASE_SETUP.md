@@ -1,4 +1,4 @@
-# PostgreSQL Database Setup Guide
+﻿# PostgreSQL Database Setup Guide
 
 ## Prerequisites
 - PostgreSQL installed on your system
@@ -22,7 +22,7 @@ psql --version
 ### Option A: Using pgAdmin (GUI)
 1. Open pgAdmin (installed with PostgreSQL)
 2. Connect to your PostgreSQL server
-3. Right-click on "Databases" → "Create" → "Database"
+3. Right-click on "Databases" â†’ "Create" â†’ "Database"
 4. Name: `business_saas_db`
 5. Click "Save"
 
@@ -47,10 +47,10 @@ Edit the `.env` file in `apps/api/` directory:
 
 ```env
 # Database Configuration
-DB_HOST=localhost
+DB_HOST=your-db-host
 DB_PORT=5432
 DB_USERNAME=postgres
-DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE  # ⚠️ CHANGE THIS!
+DB_PASSWORD=YOUR_ACTUAL_PASSWORD_HERE  # âš ï¸ CHANGE THIS!
 DB_DATABASE=business_saas_db
 
 # Application Configuration
@@ -58,7 +58,7 @@ PORT=3000
 NODE_ENV=development
 ```
 
-**⚠️ IMPORTANT:** Replace `YOUR_ACTUAL_PASSWORD_HERE` with your actual PostgreSQL password!
+**âš ï¸ IMPORTANT:** Replace `YOUR_ACTUAL_PASSWORD_HERE` with your actual PostgreSQL password!
 
 ## Step 4: Start the Application
 
@@ -81,7 +81,7 @@ You should see messages indicating successful database connection:
 
 #### Create a User:
 ```bash
-curl -X POST http://localhost:3000/users \
+curl -X POST https://endearing-taffy-91a2c6.netlify.app/users \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -92,7 +92,7 @@ curl -X POST http://localhost:3000/users \
 
 #### Get All Users:
 ```bash
-curl http://localhost:3000/users
+curl https://endearing-taffy-91a2c6.netlify.app/users
 ```
 
 ## Available API Endpoints
@@ -134,7 +134,7 @@ CREATE TABLE users (
 ### Error: "connection refused"
 - Ensure PostgreSQL service is running
 - Check if port 5432 is correct
-- Verify `DB_HOST` is set to `localhost`
+- Verify `DB_HOST` is set to your managed database host
 
 ### Error: "relation does not exist"
 - The tables should auto-create on first run (synchronize: true)
@@ -150,7 +150,7 @@ CREATE TABLE users (
 
 ## Production Considerations
 
-⚠️ **Before deploying to production:**
+âš ï¸ **Before deploying to production:**
 
 1. Set `synchronize: false` in `typeorm.config.ts`
 2. Use migrations for schema changes
@@ -178,3 +178,5 @@ SELECT * FROM users;
 # Exit
 \q
 ```
+
+

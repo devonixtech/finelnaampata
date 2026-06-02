@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -24,7 +24,7 @@ exports.SearchModule = SearchModule = __decorate([
             elasticsearch_1.ElasticsearchModule.registerAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: async (configService) => ({
-                    node: configService.get('ELASTICSEARCH_NODE') || 'http://localhost:9200',
+                    node: configService.get('ELASTICSEARCH_NODE') || 'https://your-elasticsearch-host:9200',
                     auth: {
                         username: configService.get('ELASTICSEARCH_USERNAME') || 'elastic',
                         password: configService.get('ELASTICSEARCH_PASSWORD') || '',

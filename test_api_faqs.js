@@ -1,8 +1,8 @@
-const fetch = require('node-fetch');
+﻿const fetch = require('node-fetch');
 require('dotenv').config({ path: './backend/.env' });
 
 async function testApi() {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://local-business-listing-directory-production.up.railway.app/api/v1';
     const slug = 'bright-future-academy-mn8n7y7p';
     
     console.log(`Testing API: ${apiBaseUrl}/businesses/slug/${slug}`);
@@ -22,3 +22,4 @@ async function testApi() {
 }
 
 testApi();
+

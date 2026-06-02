@@ -12,20 +12,20 @@ import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../notifications/ws-jwt.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/chat.dto';
+import { DEFAULT_FRONTEND_URL, parsePublicOrigins } from '../../common/utils/public-url.util';
+
+const allowedOrigins = parsePublicOrigins(
+    process.env.FRONTEND_URL,
+    process.env.CORS_ORIGIN,
+    process.env.NEXT_PUBLIC_SITE_URL,
+);
 
 @WebSocketGateway({
     cors: {
         origin: (origin: string, callback: any) => {
-            const allowedOrigins = [
-                'https://endearing-taffy-91a2c6.netlify.app',
-                'https://singular-melomakarona-8c3308.netlify.app',
-                'http://localhost:3000',
-                'http://localhost:3001',
-                'http://127.0.0.1:3000',
-                'http://127.0.0.1:3001',
-            ];
-            
-            if (!origin || allowedOrigins.includes(origin) || (origin && (origin.endsWith('.netlify.app') || origin.endsWith('.railway.app')))) {
+            const configuredOrigins = allowedOrigins.length > 0 ? allowedOrigins : [DEFAULT_FRONTEND_URL];
+
+            if (!origin || configuredOrigins.includes(origin) || (origin && (origin.endsWith('.netlify.app') || origin.endsWith('.railway.app')))) {
                 return callback(null, true);
             }
             console.warn(`❌ [CHAT-CORS-BLOCKED] Origin: ${origin}`);

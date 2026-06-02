@@ -81,7 +81,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
                 try {
                     const store = await redisStore({
                         socket: {
-                            host: configService.get('REDIS_HOST') || 'localhost',
+                            host: configService.get('REDIS_HOST') || 'your-redis-host',
                             port: parseInt(configService.get('REDIS_PORT') || '6379'),
                         },
                     });
@@ -113,7 +113,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
                 inject: [ConfigService],
                 useFactory: async (configService: ConfigService) => ({
                     connection: {
-                        host: configService.get('REDIS_HOST') || 'localhost',
+                        host: configService.get('REDIS_HOST') || 'your-redis-host',
                         port: parseInt(configService.get('REDIS_PORT') || '6379'),
                     },
                 }),

@@ -21,6 +21,7 @@ import { CalculatePriceDto, CreateBookingDto } from './dto/create-booking.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { SubscriptionPlanType } from '../../entities/subscription-plan.entity';
+import { getPrimaryFrontendUrl } from '../../common/utils/public-url.util';
 
 @Injectable()
 export class PromotionsService implements OnModuleInit {
@@ -311,9 +312,7 @@ export class PromotionsService implements OnModuleInit {
         await this.bookingRepo.save(booking);
 
         // 2. Stripe Session
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || '';
-        const allowedUrls = frontendUrl ? frontendUrl.split(',').map(url => url.trim()) : [];
-        const baseUrl = origin || allowedUrls[0] || 'http://localhost:3000';
+        const baseUrl = getPrimaryFrontendUrl(this.configService, origin);
 
         const successPath = dto.dealId
             ? '/deals/success'

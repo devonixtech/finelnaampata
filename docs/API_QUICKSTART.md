@@ -1,6 +1,6 @@
-# Quick Start: PostgreSQL Database Setup
+﻿# Quick Start: PostgreSQL Database Setup
 
-## 🚀 Fastest Way to Get Started
+## ðŸš€ Fastest Way to Get Started
 
 ### 1. **Update Your Password**
 Edit `.env` file and replace `your_password_here` with your actual PostgreSQL password:
@@ -30,44 +30,44 @@ npm run start:dev
 ### 4. **Test the Connection**
 Open your browser or use curl:
 ```bash
-curl http://localhost:3000/users
+curl https://endearing-taffy-91a2c6.netlify.app/users
 ```
 
-## 📁 What Was Created
+## ðŸ“ What Was Created
 
 ```
 apps/api/
-├── .env                          # Environment variables (UPDATE PASSWORD!)
-├── .gitignore                    # Prevents .env from being committed
-├── src/
-│   ├── config/
-│   │   └── typeorm.config.ts    # Database configuration
-│   ├── entities/
-│   │   └── user.entity.ts       # User database model
-│   ├── users/
-│   │   ├── users.module.ts      # Users feature module
-│   │   ├── users.controller.ts  # REST API endpoints
-│   │   └── users.service.ts     # Business logic
-│   └── app.module.ts            # Updated with database connection
-├── DATABASE_SETUP.md            # Detailed setup guide
-├── create-database.sql          # SQL script for manual setup
-└── setup-database.ps1           # PowerShell automation script
+â”œâ”€â”€ .env                          # Environment variables (UPDATE PASSWORD!)
+â”œâ”€â”€ .gitignore                    # Prevents .env from being committed
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ config/
+â”‚   â”‚   â””â”€â”€ typeorm.config.ts    # Database configuration
+â”‚   â”œâ”€â”€ entities/
+â”‚   â”‚   â””â”€â”€ user.entity.ts       # User database model
+â”‚   â”œâ”€â”€ users/
+â”‚   â”‚   â”œâ”€â”€ users.module.ts      # Users feature module
+â”‚   â”‚   â”œâ”€â”€ users.controller.ts  # REST API endpoints
+â”‚   â”‚   â””â”€â”€ users.service.ts     # Business logic
+â”‚   â””â”€â”€ app.module.ts            # Updated with database connection
+â”œâ”€â”€ DATABASE_SETUP.md            # Detailed setup guide
+â”œâ”€â”€ create-database.sql          # SQL script for manual setup
+â””â”€â”€ setup-database.ps1           # PowerShell automation script
 ```
 
-## 🔧 Configuration
+## ðŸ”§ Configuration
 
 ### Environment Variables (.env)
 ```env
-DB_HOST=localhost
+DB_HOST=your-db-host
 DB_PORT=5432
 DB_USERNAME=postgres
-DB_PASSWORD=YOUR_PASSWORD_HERE    # ⚠️ CHANGE THIS!
+DB_PASSWORD=YOUR_PASSWORD_HERE    # âš ï¸ CHANGE THIS!
 DB_DATABASE=business_saas_db
 PORT=3000
 NODE_ENV=development
 ```
 
-## 🎯 API Endpoints
+## ðŸŽ¯ API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -79,7 +79,7 @@ NODE_ENV=development
 
 ### Example: Create a User
 ```bash
-curl -X POST http://localhost:3000/users \
+curl -X POST https://endearing-taffy-91a2c6.netlify.app/users \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -88,27 +88,27 @@ curl -X POST http://localhost:3000/users \
   }'
 ```
 
-## ✅ Verification Checklist
+## âœ… Verification Checklist
 
 - [ ] PostgreSQL is installed and running
 - [ ] Database `business_saas_db` is created
 - [ ] `.env` file has correct password
 - [ ] Application starts without errors
-- [ ] Can access http://localhost:3000/users
+- [ ] Can access https://endearing-taffy-91a2c6.netlify.app/users
 - [ ] Can create a user via POST request
 
-## 🐛 Common Issues
+## ðŸ› Common Issues
 
 ### "password authentication failed"
-→ Check your password in `.env` file
+â†’ Check your password in `.env` file
 
 ### "database does not exist"
-→ Run `.\setup-database.ps1` or create manually
+â†’ Run `.\setup-database.ps1` or create manually
 
 ### "connection refused"
-→ Ensure PostgreSQL service is running
+â†’ Ensure PostgreSQL service is running
 
-## 📚 Next Steps
+## ðŸ“š Next Steps
 
 1. **Read DATABASE_SETUP.md** for detailed documentation
 2. **Add more entities** in `src/entities/`
@@ -116,13 +116,14 @@ curl -X POST http://localhost:3000/users \
 4. **Add authentication** (JWT, sessions, etc.)
 5. **Add validation** using class-validator
 
-## 🔐 Security Notes
+## ðŸ” Security Notes
 
-- ⚠️ Never commit `.env` file to git
-- ⚠️ Use strong passwords for production
-- ⚠️ Disable `synchronize` in production
-- ⚠️ Use migrations for schema changes in production
+- âš ï¸ Never commit `.env` file to git
+- âš ï¸ Use strong passwords for production
+- âš ï¸ Disable `synchronize` in production
+- âš ï¸ Use migrations for schema changes in production
 
 ---
 
 **Need help?** Check `DATABASE_SETUP.md` for comprehensive documentation.
+

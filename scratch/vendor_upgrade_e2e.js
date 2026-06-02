@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+﻿const { chromium } = require('playwright');
 const { Client } = require('pg');
 
 async function getLatestOtp(email) {
@@ -41,7 +41,7 @@ async function runTest() {
 
     try {
         console.log("1. Navigating to Register...");
-        await page.goto('http://localhost:3000/register');
+        await page.goto('https://endearing-taffy-91a2c6.netlify.app/register');
         await page.waitForLoadState('networkidle');
 
         console.log("2. Filling in Registration Details...");
@@ -145,7 +145,7 @@ async function runTest() {
 
         // Try /add-listing
         console.log("15. Navigating to /add-listing...");
-        await page.goto('http://localhost:3000/add-listing');
+        await page.goto('https://endearing-taffy-91a2c6.netlify.app/add-listing');
         await page.waitForLoadState('networkidle');
         await page.screenshot({ path: 'scratch/step6_add_listing.png' });
         console.log("Business Setup / Listing page loaded successfully!");
@@ -159,3 +159,4 @@ async function runTest() {
 }
 
 runTest();
+

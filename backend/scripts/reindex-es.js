@@ -1,4 +1,4 @@
-const { Client } = require('@elastic/elasticsearch');
+﻿const { Client } = require('@elastic/elasticsearch');
 const { DataSource } = require('typeorm');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -7,11 +7,11 @@ const path = require('path');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 async function run() {
-    console.log('🚀 Starting Elasticsearch Re-indexing...');
+    console.log('ðŸš€ Starting Elasticsearch Re-indexing...');
 
     // 1. Initialize Elasticsearch client
     const esClient = new Client({
-        node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
+        node: process.env.ELASTICSEARCH_NODE || 'https://your-elasticsearch-host:9200',
     });
 
     const INDEX_NAME = process.env.ELASTICSEARCH_INDEX || 'businesses';
@@ -31,7 +31,7 @@ async function run() {
 
     try {
         await AppDataSource.initialize();
-        console.log('✅ Database connected');
+        console.log('âœ… Database connected');
 
         // 3. Fetch all businesses
         const businesses = await AppDataSource.query(`
@@ -41,7 +41,7 @@ async function run() {
             WHERE b.status = 'approved'
         `);
 
-        console.log(`📊 Found ${businesses.length} approved businesses to index`);
+        console.log(`ðŸ“Š Found ${businesses.length} approved businesses to index`);
 
         // 4. Create/Recreate Index if needed (Optional, but let's just index)
         // Check if index exists
@@ -97,13 +97,14 @@ async function run() {
             if (count % 10 === 0) console.log(`Indexed ${count}/${businesses.length}...`);
         }
 
-        console.log(`✅ Finished! Indexed ${count} businesses.`);
+        console.log(`âœ… Finished! Indexed ${count} businesses.`);
 
     } catch (error) {
-        console.error('❌ Error during re-indexing:', error);
+        console.error('âŒ Error during re-indexing:', error);
     } finally {
         await AppDataSource.destroy();
     }
 }
 
 run();
+

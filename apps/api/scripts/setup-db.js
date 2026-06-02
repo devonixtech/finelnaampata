@@ -1,4 +1,4 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 async function createDatabase() {
     console.log('Connecting to PostgreSQL...');
@@ -7,7 +7,7 @@ async function createDatabase() {
     const client = new Client({
         user: 'postgres',
         password: '5432',
-        host: 'localhost',
+        host: process.env.DB_HOST || 'your-db-host',
         port: 5432,
         database: 'business_saas_db'
     });
@@ -35,3 +35,4 @@ async function createDatabase() {
 }
 
 createDatabase();
+

@@ -1,7 +1,7 @@
-const fetch = require('node-fetch');
+﻿const fetch = require('node-fetch');
 
 async function testFlow() {
-    const API_URL = 'http://localhost:3001/api/v1';
+    const API_URL = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
     const TOKEN = 'YOUR_TEST_TOKEN'; // I need a token to test
 
     // 1. Calculate price with pricingId (Preview context)
@@ -32,3 +32,4 @@ async function testFlow() {
     const bookData = await bookRes.json();
     console.log('Booking result (no pricingId):', bookData);
 }
+

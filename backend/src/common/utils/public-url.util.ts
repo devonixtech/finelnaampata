@@ -1,0 +1,43 @@
+import { ConfigService } from '@nestjs/config';
+
+export const DEFAULT_FRONTEND_URL = 'https://endearing-taffy-91a2c6.netlify.app';
+export const DEFAULT_API_URL = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
+
+const normalizeOrigin = (value: string) => {
+    try {
+        const url = new URL(value);
+        return trimTrailingSlash(`${url.protocol}//${url.host}`);
+    } catch {
+        return '';
+    }
+};
+
+export const parsePublicOrigins = (...values: Array<string | undefined>) => {
+    const origins = values
+        .flatMap((value) => (value || '').split(','))
+        .map((value) => normalizeOrigin(value.trim()))
+        .filter((value) => value.length > 0);
+
+    return [...new Set(origins)];
+};
+
+export const getFrontendOrigins = (configService: ConfigService) => {
+    const configuredOrigins = parsePublicOrigins(
+        configService.get<string>('FRONTEND_URL'),
+        configService.get<string>('CORS_ORIGIN'),
+        configService.get<string>('NEXT_PUBLIC_SITE_URL'),
+    );
+
+    return configuredOrigins.length > 0 ? configuredOrigins : [DEFAULT_FRONTEND_URL];
+};
+
+export const getPrimaryFrontendUrl = (configService: ConfigService, requestOrigin?: string) => {
+    const requestBase = requestOrigin ? normalizeOrigin(requestOrigin) : '';
+    if (requestBase) {
+        return requestBase;
+    }
+
+    return getFrontendOrigins(configService)[0] || DEFAULT_FRONTEND_URL;
+};

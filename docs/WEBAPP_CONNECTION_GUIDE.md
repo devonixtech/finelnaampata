@@ -1,18 +1,18 @@
-# 🔧 Database Connection Setup for 'webapp' Database
+﻿# ðŸ”§ Database Connection Setup for 'webapp' Database
 
 ## Current Configuration
 
 Your application is now configured to connect to the `webapp` database:
 
 ```env
-DB_HOST=localhost
+DB_HOST=your-db-host
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_DATABASE=webapp
 ```
 
-## ⚠️ Connection Issue Detected
+## âš ï¸ Connection Issue Detected
 
 The application tried to start but couldn't connect to the database. Here's how to fix it:
 
@@ -34,7 +34,7 @@ Make sure the `webapp` database exists in PostgreSQL:
 1. Open pgAdmin
 2. Connect to your PostgreSQL server
 3. Check if `webapp` database exists in the left panel
-4. If not, right-click "Databases" → "Create" → "Database" → Name it `webapp`
+4. If not, right-click "Databases" â†’ "Create" â†’ "Database" â†’ Name it `webapp`
 
 #### Using Command Line (if psql is available):
 ```sql
@@ -60,9 +60,9 @@ Make sure PostgreSQL is running:
 2. Type `services.msc` and press Enter
 3. Look for "postgresql" service
 4. Make sure it's "Running"
-5. If not, right-click → "Start"
+5. If not, right-click â†’ "Start"
 
-## 🚀 After Fixing
+## ðŸš€ After Fixing
 
 Once you've updated the password or created the database:
 
@@ -73,12 +73,12 @@ npm run start:dev
 
 Then open your browser to:
 ```
-http://localhost:3000/users
+https://endearing-taffy-91a2c6.netlify.app/users
 ```
 
 You should see: `[]` (empty array)
 
-## 🧪 Test Your Connection
+## ðŸ§ª Test Your Connection
 
 To test if the database connection works:
 
@@ -88,7 +88,7 @@ npm run test:db
 
 This will show you if the connection is successful or what the error is.
 
-## 📝 Common PostgreSQL Passwords
+## ðŸ“ Common PostgreSQL Passwords
 
 Try these common default passwords:
 - `postgres`
@@ -114,3 +114,4 @@ npm run start:dev
 ```
 
 Look for lines that say "ERROR" or "password authentication failed" or "database does not exist"
+

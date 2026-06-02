@@ -1,10 +1,10 @@
-const { DataSource } = require('typeorm');
+﻿const { DataSource } = require('typeorm');
 const { PromotionPricingRule, PromotionPlacement } = require('./backend/dist/entities/promotion-pricing-rule.entity');
 
 async function checkRules() {
     const dataSource = new DataSource({
         type: 'postgres',
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST || 'your-db-host',
         port: parseInt(process.env.DB_PORT || '5432'),
         username: process.env.DB_USERNAME || 'postgres',
         password: process.env.DB_PASSWORD || 'postgres',
@@ -27,3 +27,4 @@ async function checkRules() {
 }
 
 checkRules();
+

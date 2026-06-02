@@ -1,5 +1,5 @@
-async function verify() {
-    const baseUrl = 'http://localhost:3002/api/v1';
+﻿async function verify() {
+    const baseUrl = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
     
     try {
         console.log('Fetching heatmap data...');
@@ -23,3 +23,4 @@ async function verify() {
 }
 
 verify();
+

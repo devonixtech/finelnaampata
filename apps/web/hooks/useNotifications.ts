@@ -3,8 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import { resolveApiOrigin, resolveSocketOrigin } from '../lib/runtime-url';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')?.replace('/api', '') || '';
+const SOCKET_URL = resolveSocketOrigin(
+    process.env.NEXT_PUBLIC_SOCKET_URL ||
+    resolveApiOrigin(process.env.NEXT_PUBLIC_API_URL) ||
+    resolveApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL)
+);
 
 let notificationSocket: Socket | null = null;
 let currentToken: string | null = null;

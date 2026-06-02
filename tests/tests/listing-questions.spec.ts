@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+﻿import { test, expect } from '@playwright/test';
 
 /**
  * E2E Test: Listing Questions (Business Sign-Up Flow)
@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  * per the "Listing Questions (2)" requirements document.
  *
  * Key checks:
- * - Step 1 (Business Name) is required — cannot proceed without it
+ * - Step 1 (Business Name) is required â€” cannot proceed without it
  * - Step 8 (Address) is required
  * - Step 9 (Map Pin) is required
  * - Step 10 (Contact Details) is required
@@ -15,9 +15,9 @@ import { test, expect } from '@playwright/test';
  * - Save & Continue and Back buttons are present
  */
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://endearing-taffy-91a2c6.netlify.app';
 
-test.describe('Listing Questions — Business Sign-Up Flow', () => {
+test.describe('Listing Questions â€” Business Sign-Up Flow', () => {
 
     test.beforeEach(async ({ page }) => {
         // Intercept login to set auth token via localStorage
@@ -34,7 +34,7 @@ test.describe('Listing Questions — Business Sign-Up Flow', () => {
         await expect(page.locator('text=Business Name').first()).toBeVisible({ timeout: 8000 });
     });
 
-    test('TC-02: Step 1 — Business Name is required, cannot proceed without it', async ({ page }) => {
+    test('TC-02: Step 1 â€” Business Name is required, cannot proceed without it', async ({ page }) => {
         await page.goto(`${BASE_URL}/business-setup`);
         await page.waitForSelector('input', { timeout: 8000 });
 
@@ -42,13 +42,13 @@ test.describe('Listing Questions — Business Sign-Up Flow', () => {
         const continueBtn = page.locator('button:has-text("Continue"), button:has-text("Save & Continue"), button:has-text("Next")').first();
         await continueBtn.click();
 
-        // Should NOT advance to step 2 — error or still on step 1
+        // Should NOT advance to step 2 â€” error or still on step 1
         const businessNameInput = page.locator('input[placeholder*="business name" i], input[name="businessName"], input[id*="businessName"]').first();
         const isStillOnStep1 = await businessNameInput.isVisible();
         expect(isStillOnStep1).toBe(true);
     });
 
-    test('TC-03: Step 1 — Can fill business name and tagline and proceed', async ({ page }) => {
+    test('TC-03: Step 1 â€” Can fill business name and tagline and proceed', async ({ page }) => {
         await page.goto(`${BASE_URL}/business-setup`);
         await page.waitForSelector('input', { timeout: 8000 });
 
@@ -61,7 +61,7 @@ test.describe('Listing Questions — Business Sign-Up Flow', () => {
         await continueBtn.click();
         await page.waitForTimeout(1000);
 
-        // Should have advanced — step 1 no longer the only visible step or a progress step changed
+        // Should have advanced â€” step 1 no longer the only visible step or a progress step changed
         const pageContent = await page.textContent('body');
         expect(pageContent).toBeTruthy();
     });
@@ -103,7 +103,7 @@ test.describe('Listing Questions — Business Sign-Up Flow', () => {
         expect(hasForm).toBe(true);
     });
 
-    test('TC-07: Add Listing — Business Name (title) is required before submit', async ({ page }) => {
+    test('TC-07: Add Listing â€” Business Name (title) is required before submit', async ({ page }) => {
         await page.goto(`${BASE_URL}/add-listing`);
         await page.waitForSelector('form, button[type="submit"]', { timeout: 8000 }).catch(() => {});
 
@@ -181,3 +181,4 @@ test.describe('Listing Questions — Business Sign-Up Flow', () => {
         expect(pageContent?.toLowerCase().includes('faq') || hasFaqSection).toBe(true);
     });
 });
+

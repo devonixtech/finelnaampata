@@ -1,4 +1,4 @@
-import { createConnection } from 'typeorm';
+﻿import { createConnection } from 'typeorm';
 import { Business } from './apps/api/src/entities/business.entity';
 import { Category } from './apps/api/src/entities/category.entity';
 import { Vendor } from './apps/api/src/entities/vendor.entity';
@@ -11,7 +11,7 @@ async function check() {
     try {
         const connection = await createConnection({
             type: 'postgres',
-            host: process.env.DB_HOST || 'localhost',
+            host: process.env.DB_HOST || 'your-db-host',
             port: parseInt(process.env.DB_PORT || '5432'),
             username: process.env.DB_USERNAME || 'postgres',
             password: process.env.DB_PASSWORD || '5432',
@@ -35,3 +35,4 @@ async function check() {
 }
 
 check();
+

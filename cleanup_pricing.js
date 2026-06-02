@@ -1,7 +1,7 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 
 const client = new Client({
-  connectionString: 'postgresql://postgres:postgres@localhost:5432/local_business_directory_db'
+  connectionString: 'postgresql://postgres:postgres@your-db-host:5432/local_business_directory_db'
 });
 
 async function cleanup() {
@@ -21,3 +21,4 @@ async function cleanup() {
 }
 
 cleanup();
+

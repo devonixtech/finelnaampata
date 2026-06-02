@@ -1,7 +1,7 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const http = require('http');
 
-const url = 'http://localhost:3001/docs-json';
+const url = 'https://local-business-listing-directory-production.up.railway.app/api/docs-json';
 const targetFile = 'docs/swagger-collection.json';
 
 http.get(url, (res) => {
@@ -24,3 +24,4 @@ http.get(url, (res) => {
     console.error('Error fetching Swagger JSON:', err.message);
     process.exit(1);
 });
+

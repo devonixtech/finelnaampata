@@ -6,4 +6,5 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS    = "--legacy-peer-deps"
+  NEXT_PUBLIC_SITE_URL = "https://endearing-taffy-91a2c6.netlify.app"
   NEXT_PUBLIC_API_URL = "https://local-business-listing-directory-production.up.railway.app/api/v1"

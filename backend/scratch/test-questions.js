@@ -1,8 +1,8 @@
-const http = require('http');
+﻿const http = require('http');
 
 async function testEndpoint() {
     const options = {
-        hostname: 'localhost',
+        hostname: process.env.API_HOST || 'api.yourdomain.com',
         port: 3001,
         path: '/api/v1/business-setup/questions',
         method: 'GET',
@@ -30,3 +30,4 @@ async function testEndpoint() {
 }
 
 testEndpoint();
+

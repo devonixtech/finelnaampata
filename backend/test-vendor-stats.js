@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 
 async function testVendorStats() {
     // 1. Get a vendor user ID from the database
@@ -24,7 +24,7 @@ async function testVendorStats() {
         console.log('Generated fresh token');
 
         // 3. Call the endpoint
-        const url = 'http://127.0.0.1:3001/api/v1/vendors/dashboard-stats';
+        const url = 'https://local-business-listing-directory-production.up.railway.app/api/v1/vendors/dashboard-stats';
         console.log('Fetching:', url);
         const r = await fetch(url, {
             headers: {
@@ -44,3 +44,4 @@ async function testVendorStats() {
 }
 
 testVendorStats();
+

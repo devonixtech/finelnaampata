@@ -1,7 +1,7 @@
-const http = require('http');
+﻿const http = require('http');
 
 const options = (path, method, headers = {}) => ({
-    hostname: 'localhost',
+    hostname: process.env.API_HOST || 'api.yourdomain.com',
     port: 3001,
     path: `/api/v1${path}`,
     method,
@@ -60,3 +60,4 @@ async function testBackend() {
 }
 
 testBackend();
+

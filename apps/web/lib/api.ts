@@ -1,19 +1,20 @@
 import { Business, Category, City, SearchResponse, Review, ReviewReply } from '../types/api';
+import { PRODUCTION_API_URL, isLoopbackUrl, resolveApiBaseUrl, stripApiPath } from './runtime-url';
 
 const isProd = process.env.NODE_ENV === 'production';
 const isServer = typeof window === 'undefined';
 
 // 1. Environment Variable Extraction
-const clientApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const serverApiUrl = process.env.INTERNAL_API_URL || clientApiUrl;
+const rawClientApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const clientApiUrl = resolveApiBaseUrl(rawClientApiUrl);
+const serverApiUrl = process.env.INTERNAL_API_URL || rawClientApiUrl || PRODUCTION_API_URL;
 
 // 2. Selection based on context (SSR vs Browser)
 let envApiUrl = isServer ? serverApiUrl : clientApiUrl;
 
 // 3. Fallback and Missing URL Guard
 if (!envApiUrl) {
-    // Default to Railway Production if no environment variables are set
-    envApiUrl = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
+    envApiUrl = PRODUCTION_API_URL;
 }
 
 const API_BASE_URL = envApiUrl.replace(/\/+$/, '');
@@ -25,7 +26,7 @@ if (isServer) {
     console.log(`[Client] Initializing API with: ${API_BASE_URL}`);
 }
 
-const API_ROOT = API_BASE_URL ? API_BASE_URL.split('/api')[0] : '';
+const API_ROOT = API_BASE_URL ? stripApiPath(API_BASE_URL) : '';
 
 console.log('[api.ts] Unified API_BASE_URL:', API_BASE_URL);
 
@@ -159,8 +160,8 @@ async function fetcher<T>(endpoint: string, options?: FetcherOptions): Promise<T
             });
 
             let hint = '';
-            if (url.includes('localhost') || url.includes('127.0.0.1')) {
-                hint = ' (Local Backend Unreachable). 1. Ensure your backend is running on port 3001. 2. If it is running, try restarting it. 3. Check for ghost processes with `npm run stop` or similar.';
+            if (isLoopbackUrl(url)) {
+                hint = ' (Loopback Backend Unreachable). If you opened the app on another host or device, point NEXT_PUBLIC_API_URL/NEXT_PUBLIC_SOCKET_URL to a reachable public host.';
             } else if (url.includes('railway.app')) {
                 hint = ' (Production Backend Unreachable). Check Railway status or your internet connection.';
             }

@@ -27,7 +27,7 @@ import { DemandModule } from '../demand/demand.module';
             imports: [ConfigModule],
             useFactory: async (configService: ConfigService) => {
                 const apiKey = configService.get<string>('ELASTICSEARCH_API_KEY');
-                const node = configService.get<string>('ELASTICSEARCH_NODE') || 'http://localhost:9200';
+                const node = configService.get<string>('ELASTICSEARCH_NODE') || 'https://your-elasticsearch-host:9200';
                 
                 const auth: any = apiKey 
                     ? { apiKey } 

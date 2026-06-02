@@ -1,9 +1,9 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 require('dotenv').config();
 
 async function checkVendor() {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/local_business_listing'
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@your-db-host:5432/local_business_listing'
   });
 
   try {
@@ -30,3 +30,4 @@ async function checkVendor() {
 }
 
 checkVendor();
+

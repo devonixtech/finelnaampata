@@ -1,18 +1,18 @@
-# 🔐 PostgreSQL Password Reset Guide
+﻿# ðŸ” PostgreSQL Password Reset Guide
 
 ## Step 1: Reset Password in pgAdmin
 
 1. Open **pgAdmin**
 2. Connect to **PostgreSQL 18** server (it should connect automatically)
 3. Click on **PostgreSQL 18** in the left panel
-4. Click **Tools** → **Query Tool** (or press Alt+Shift+Q)
+4. Click **Tools** â†’ **Query Tool** (or press Alt+Shift+Q)
 5. Copy and paste this SQL (replace `YourNewPassword` with your chosen password):
 
 ```sql
 ALTER USER postgres WITH PASSWORD 'YourNewPassword';
 ```
 
-6. Click the **Execute** button (▶️) or press **F5**
+6. Click the **Execute** button (â–¶ï¸) or press **F5**
 7. You should see: `ALTER ROLE` in the output panel
 
 ## Step 2: Update .env File
@@ -33,7 +33,7 @@ Run this in PowerShell (from `apps/api` directory):
 ```powershell
 # Replace YourNewPassword with your actual password
 $env:PGPASSWORD = "YourNewPassword"
-& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h localhost -p 5432 -U postgres -d webapp -c "SELECT 'Connection successful!' as status;"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h your-db-host -p 5432 -U postgres -d webapp -c "SELECT 'Connection successful!' as status;"
 ```
 
 Expected output:
@@ -72,7 +72,7 @@ Check `pg_hba.conf` file at:
 
 Ensure this line exists:
 ```
-host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             your-db-private-ip/32            scram-sha-256
 ```
 
 ### If connection still fails
@@ -83,9 +83,9 @@ host    all             all             127.0.0.1/32            scram-sha-256
    - Find "postgresql-x64-18"
    - Status should be "Running"
 
-2. Try using IP instead of localhost in `.env`:
+2. Set your production database host in `.env`:
    ```env
-   DB_HOST=127.0.0.1
+   DB_HOST=your-db-host
    ```
 
 ## Security Notes
@@ -94,3 +94,5 @@ host    all             all             127.0.0.1/32            scram-sha-256
 - **Production**: Use strong passwords (16+ chars, mixed case, numbers, symbols)
 - **Never commit** `.env` file to Git (it's in `.gitignore`)
 - **Use environment variables** in production, not `.env` files
+
+

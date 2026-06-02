@@ -1,8 +1,8 @@
-const http = require('http');
+﻿const http = require('http');
 
 async function testPing() {
     const options = {
-        hostname: 'localhost',
+        hostname: process.env.API_HOST || 'api.yourdomain.com',
         port: 3001,
         path: '/api/v1/auth/ping',
         method: 'POST',
@@ -27,3 +27,4 @@ async function testPing() {
 }
 
 testPing();
+

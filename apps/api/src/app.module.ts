@@ -43,7 +43,7 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
 
         return {
           type: 'postgres',
-          host: configService.get<string>('DB_HOST', 'localhost'),
+          host: configService.get<string>('DB_HOST', 'your-db-host'),
           port: configService.get<number>('DB_PORT', 5432),
           username: configService.get<string>('DB_USERNAME', 'postgres'),
           password: configService.get<string>('DB_PASSWORD', '5432'),

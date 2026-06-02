@@ -274,7 +274,7 @@ export default function BusinessSetupWizard() {
     const [consentMeta, setConsentMeta] = useState({
         sessionId: '',
         deviceId: '',
-        ipAddress: '127.0.0.1' // fallback, backend overrides
+        ipAddress: ''
     });
 
     // Load initial configuration

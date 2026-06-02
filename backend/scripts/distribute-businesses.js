@@ -1,10 +1,10 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 async function updateCities() {
     const client = new Client({
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST || 'your-db-host',
         port: process.env.DB_PORT || 5432,
         user: process.env.DB_USERNAME || 'postgres',
         password: process.env.DB_PASSWORD || '5432',
@@ -35,3 +35,4 @@ async function updateCities() {
 }
 
 updateCities();
+

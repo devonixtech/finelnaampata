@@ -1,13 +1,13 @@
-# PostgreSQL Database Setup - Complete ✅
+﻿# PostgreSQL Database Setup - Complete âœ…
 
 ## Database Information
 - **Database Name**: `business_saas_db`
-- **Host**: `localhost` (127.0.0.1)
+- **Host**: `your-db-host`
 - **Port**: `5432`
 - **Username**: `postgres`
 - **Password**: `5432`
 
-## Status: FULLY CONFIGURED ✅
+## Status: FULLY CONFIGURED âœ…
 
 All data is now being stored in PostgreSQL. The application is connected and operational.
 
@@ -57,15 +57,15 @@ All data is now being stored in PostgreSQL. The application is connected and ope
 
 All entities are located in `apps/api/src/entities/`:
 
-- ✅ user.entity.ts
-- ✅ vendor.entity.ts
-- ✅ category.entity.ts
-- ✅ business.entity.ts
-- ✅ review.entity.ts
-- ✅ lead.entity.ts
-- ✅ favorite.entity.ts
-- ✅ subscription.entity.ts
-- ✅ notification.entity.ts
+- âœ… user.entity.ts
+- âœ… vendor.entity.ts
+- âœ… category.entity.ts
+- âœ… business.entity.ts
+- âœ… review.entity.ts
+- âœ… lead.entity.ts
+- âœ… favorite.entity.ts
+- âœ… subscription.entity.ts
+- âœ… notification.entity.ts
 
 ---
 
@@ -92,7 +92,7 @@ All entities are located in `apps/api/src/entities/`:
 
 ## Key Features
 
-### ✅ Completed
+### âœ… Completed
 - PostgreSQL database created and connected
 - All tables and relationships established
 - ENUMs for type safety
@@ -101,14 +101,14 @@ All entities are located in `apps/api/src/entities/`:
 - Environment variable configuration
 - WebSocket gateway for real-time notifications
 
-### 🔒 Security Features
+### ðŸ”’ Security Features
 - UUID primary keys for all tables
 - Foreign key constraints
 - Cascade delete rules
 - Unique constraints on critical fields
 - Password field added to users table (nullable for Firebase compatibility)
 
-### 📊 Data Integrity
+### ðŸ“Š Data Integrity
 - NOT NULL constraints on required fields
 - CHECK constraints for ratings (1-5)
 - Default values for status fields
@@ -120,9 +120,9 @@ All entities are located in `apps/api/src/entities/`:
 ## Backend API Status
 
 ### Running Services
-- **Backend API**: http://localhost:3005/api/v1
-- **WebSocket**: ws://localhost:3005/socket.io
-- **Database**: PostgreSQL on localhost:5432
+- **Backend API**: https://local-business-listing-directory-production.up.railway.app/api/v1
+- **WebSocket**: wss://local-business-listing-directory-production.up.railway.app/socket.io
+- **Database**: PostgreSQL on your-db-host:5432
 
 ### Available Endpoints
 
@@ -149,7 +149,7 @@ All entities are located in `apps/api/src/entities/`:
 
 ### apps/api/.env
 ```env
-DB_HOST=127.0.0.1
+DB_HOST=your-db-host
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=5432
@@ -181,7 +181,7 @@ node scripts/check-db.js
 
 ### Verify Backend is Running
 ```bash
-curl http://localhost:3005/api/v1/users
+curl https://local-business-listing-directory-production.up.railway.app/api/v1/users
 ```
 
 ### View Database Tables
@@ -199,6 +199,8 @@ The check-db.js script will show all tables and enums.
 
 ---
 
-**Status**: ✅ Database is fully configured and operational
+**Status**: âœ… Database is fully configured and operational
 **Last Updated**: 2026-02-08
 **Database Version**: PostgreSQL (compatible with 15+)
+
+

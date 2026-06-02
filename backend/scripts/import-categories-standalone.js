@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Standalone DB import + SMTP test (no Nest compile required).
  * Usage: node backend/scripts/import-categories-standalone.js
  */
@@ -102,7 +102,7 @@ async function sendTestEmail() {
     await transporter.sendMail({
         from: `"${fromName}" <${fromAddress}>`,
         to: TEST_EMAIL,
-        subject: 'NAAMPATA — test email (SMTP OK)',
+        subject: 'NAAMPATA â€” test email (SMTP OK)',
         html: `<p>If you see this, SMTP is working.</p><p>Sent ${new Date().toISOString()}</p>`,
     });
     return true;
@@ -120,7 +120,7 @@ function createDbClient() {
         });
     }
     return new Client({
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST || 'your-db-host',
         port: Number(process.env.DB_PORT || 5432),
         user: process.env.DB_USERNAME || 'postgres',
         password: process.env.DB_PASSWORD,
@@ -152,3 +152,4 @@ main().catch((err) => {
     console.error(err);
     process.exit(1);
 });
+

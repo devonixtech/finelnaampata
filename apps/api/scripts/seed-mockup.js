@@ -1,4 +1,4 @@
-const { Client } = require('pg');
+﻿const { Client } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
 const CONFIGS = [
@@ -25,7 +25,7 @@ async function tryConnect(config) {
     const client = new Client({
         user: 'postgres',
         password: config.password,
-        host: 'localhost',
+        host: process.env.DB_HOST || 'your-db-host',
         port: 5432,
         database: config.database
     });
@@ -39,25 +39,25 @@ async function tryConnect(config) {
 
 async function seed() {
     let client = null;
-    console.log('🚀 Attempting to connect to database...');
+    console.log('ðŸš€ Attempting to connect to database...');
 
     for (const config of CONFIGS) {
         console.log(`- Trying ${config.database} with password: ${config.password || '(empty)'}...`);
         client = await tryConnect(config);
         if (client) {
-            console.log(`✅ Connected successfully to ${config.database}!`);
+            console.log(`âœ… Connected successfully to ${config.database}!`);
             break;
         }
     }
 
     if (!client) {
-        console.error('❌ Could not connect to any database configuration.');
+        console.error('âŒ Could not connect to any database configuration.');
         process.exit(1);
     }
 
     try {
         // 1. Seed Categories
-        console.log('📂 Seeding categories...');
+        console.log('ðŸ“‚ Seeding categories...');
         const catMap = {};
         for (const cat of CATEGORIES) {
             const id = uuidv4();
@@ -81,7 +81,7 @@ async function seed() {
         if (existingVendors.rows.length > 0) {
             vendorId = existingVendors.rows[0].id;
         } else {
-            console.log('👤 Creating a default vendor...');
+            console.log('ðŸ‘¤ Creating a default vendor...');
             const userId = uuidv4();
             vendorId = uuidv4();
             await client.query(
@@ -95,7 +95,7 @@ async function seed() {
         }
 
         // 3. Seed Businesses
-        console.log('📍 Seeding listings...');
+        console.log('ðŸ“ Seeding listings...');
         for (const city of CITIES) {
             for (const cat of CATEGORIES) {
                 const existing = await client.query(
@@ -125,12 +125,13 @@ async function seed() {
             }
         }
 
-        console.log('🎉 Seeding complete.');
+        console.log('ðŸŽ‰ Seeding complete.');
         await client.end();
     } catch (err) {
-        console.error('❌ Seeding error:', err);
+        console.error('âŒ Seeding error:', err);
         process.exit(1);
     }
 }
 
 seed();
+

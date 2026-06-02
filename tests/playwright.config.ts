@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+﻿import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Read environment variables from file.
@@ -26,7 +26,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL pointing to the running Next.js dev server */
-    baseURL: 'http://localhost:3000',
+    baseURL: 'https://endearing-taffy-91a2c6.netlify.app',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -77,7 +77,8 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   // webServer: {
   //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
+  //   url: 'https://endearing-taffy-91a2c6.netlify.app',
   //   reuseExistingServer: !process.env.CI,
   // },
 });
+

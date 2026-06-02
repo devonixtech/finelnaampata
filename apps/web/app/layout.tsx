@@ -4,11 +4,10 @@ import { SocketProvider } from "../context/SocketContext";
 import { Toaster } from 'react-hot-toast';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { PRODUCTION_SITE_URL } from "../lib/runtime-url";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-    (process.env.NODE_ENV === 'production' 
-        ? "https://endearing-taffy-91a2c6.netlify.app"
-        : "http://localhost:3000");
+    PRODUCTION_SITE_URL;
 
 export const metadata = {
     metadataBase: new URL(baseUrl),

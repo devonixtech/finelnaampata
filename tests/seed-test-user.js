@@ -1,4 +1,4 @@
-const http = require('http');
+﻿const http = require('http');
 
 const data = JSON.stringify({
   fullName: 'Test Vendor',
@@ -7,7 +7,7 @@ const data = JSON.stringify({
   role: 'vendor'
 });
 
-const req = http.request('http://localhost:3001/api/v1/auth/register', {
+const req = http.request('https://local-business-listing-directory-production.up.railway.app/api/v1/auth/register', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -25,3 +25,4 @@ const req = http.request('http://localhost:3001/api/v1/auth/register', {
 req.on('error', console.error);
 req.write(data);
 req.end();
+

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { api } from '@/lib/api';
+import { resolveApiOrigin, resolveSocketOrigin } from '@/lib/runtime-url';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -33,17 +34,11 @@ const SocketContext = createContext<SocketContextType>({
     markChatAsRead: async () => {},
 });
 
-const isProd = process.env.NODE_ENV === 'production';
+const envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ||
+    resolveApiOrigin(process.env.NEXT_PUBLIC_API_URL) ||
+    resolveApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL);
 
-let envSocketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 
-    (process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.split('/api')[0] : '');
-
-// Hardening: Protect against localhost in production
-if (isProd && (!envSocketUrl || envSocketUrl.includes('localhost') || envSocketUrl.includes('127.0.0.1'))) {
-    envSocketUrl = 'https://local-business-listing-directory-production.up.railway.app';
-}
-
-const SOCKET_URL = (envSocketUrl || 'http://localhost:3001').replace(/\/+$/, '');
+const SOCKET_URL = resolveSocketOrigin(envSocketUrl).replace(/\/+$/, '');
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const { user, syncProfile } = useAuth();
