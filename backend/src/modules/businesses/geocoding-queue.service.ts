@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Listing } from '../../entities/business.entity';
+import { BusinessStatus, Listing } from '../../entities/business.entity';
 import { GeocoderService } from '../location/geocoder.service';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
 import { ConfigService } from '@nestjs/config';
@@ -111,20 +111,30 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
             listing.latitude = Number(existing.latitude);
             listing.longitude = Number(existing.longitude);
             listing.location = `POINT(${existing.longitude} ${existing.latitude})`;
+            listing.status = BusinessStatus.APPROVED;
+            listing.approvedAt = listing.approvedAt || new Date();
+            listing.rejectedAt = null as any;
+            listing.rejectionReason = null as any;
+            listing.recentUntil = listing.recentUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             await this.listingRepository.save(listing);
             return;
         }
 
-        // 2. Call Geocoding API if no duplicate addresses are found
-        const coords = await this.callGoogleGeocoding(canonical);
+        // 2. Call provider geocoder if no duplicate addresses are found
+        const coords = await this.geocoderService.geocodeAddress(canonical);
         if (!coords) {
-            throw new Error(`Google Geocoding returned null or empty results for address: ${canonical}`);
+            throw new Error(`Geocoding returned null or empty results for address: ${canonical}`);
         }
 
         this.logger.log(`📍 Geocoded listing "${listing.title}" successfully: (${coords.lat}, ${coords.lng})`);
         listing.latitude = coords.lat;
         listing.longitude = coords.lng;
         listing.location = `POINT(${coords.lng} ${coords.lat})`;
+        listing.status = BusinessStatus.APPROVED;
+        listing.approvedAt = listing.approvedAt || new Date();
+        listing.rejectedAt = null as any;
+        listing.rejectionReason = null as any;
+        listing.recentUntil = listing.recentUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         await this.listingRepository.save(listing);
     }
 
@@ -157,17 +167,4 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private async callGoogleGeocoding(address: string): Promise<{ lat: number; lng: number } | null> {
-        const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_GEOCODING_API_KEY;
-        if (!apiKey) return null;
-
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (!data?.results?.length) return null;
-        const location = data.results[0]?.geometry?.location;
-        if (!location) return null;
-        return { lat: Number(location.lat), lng: Number(location.lng) };
-    }
 }

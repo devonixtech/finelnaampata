@@ -1866,3 +1866,189 @@ NotFoundException: Listing not found
 [2026-04-27T09:41:17.248Z] findBySlug: test-mnh580gx - Found in DB. Status: approved
 [2026-04-27T09:41:17.532Z] findBySlug: test-mnh580gx - SUCCESS
 [2026-04-27T09:41:17.543Z] findBySlug: test-mnh580gx - SUCCESS
+[2026-06-03T06:31:21.231Z] findBySlug: restaurants-best-pizza-mnm6c77s (User: Public)
+[2026-06-03T06:31:21.238Z] findBySlug: test-mnh580gx (User: Public)
+[2026-06-03T06:31:21.945Z] findBySlug: restaurants-best-pizza-mnm6c77s - Found in DB. Status: approved
+[2026-06-03T06:31:22.065Z] findBySlug: test-mnh580gx - Found in DB. Status: approved
+[2026-06-03T06:31:22.649Z] findBySlug: restaurants-best-pizza-mnm6c77s - SUCCESS
+[2026-06-03T06:31:22.774Z] findBySlug: test-mnh580gx - SUCCESS
+[2026-06-03T06:31:23.082Z] findBySlug: test-mnh4czx8 (User: Public)
+[2026-06-03T06:31:23.134Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T06:31:23.159Z] findBySlug: test-mnh4cfax (User: Public)
+[2026-06-03T06:31:23.164Z] findBySlug: naampata-test-cafe-mpsn7g0h (User: Public)
+[2026-06-03T06:31:23.170Z] findBySlug: repair-mougzfdh (User: Public)
+[2026-06-03T06:31:23.175Z] findBySlug: bright-future-academy-mn8n7y7p (User: Public)
+[2026-06-03T06:31:23.185Z] findBySlug: ddf-moga5zbj (User: Public)
+[2026-06-03T06:31:23.192Z] findBySlug: aprin22-b-mo9z88iu (User: Public)
+[2026-06-03T06:31:23.771Z] findBySlug: test-mnh4czx8 - Found in DB. Status: approved
+[2026-06-03T06:31:23.813Z] findBySlug: naampata-test-cafe-mpsn7g0h - Found in DB. Status: approved
+[2026-06-03T06:31:23.843Z] findBySlug: repair-mougzfdh - Found in DB. Status: approved
+[2026-06-03T06:31:23.855Z] findBySlug: ddf-moga5zbj - Found in DB. Status: approved
+[2026-06-03T06:31:23.860Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T06:31:23.882Z] findBySlug: test-mnh4cfax - Found in DB. Status: approved
+[2026-06-03T06:31:23.894Z] findBySlug: aprin22-b-mo9z88iu - Found in DB. Status: approved
+[2026-06-03T06:31:23.930Z] findBySlug: bright-future-academy-mn8n7y7p - Found in DB. Status: approved
+[2026-06-03T06:31:24.588Z] findBySlug: test-mnh4czx8 - SUCCESS
+[2026-06-03T06:31:24.762Z] findBySlug: naampata-test-cafe-mpsn7g0h - SUCCESS
+[2026-06-03T06:31:24.771Z] findBySlug: repair-mougzfdh - SUCCESS
+[2026-06-03T06:31:24.829Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T06:31:24.833Z] findBySlug: ddf-moga5zbj - SUCCESS
+[2026-06-03T06:31:24.844Z] findBySlug: test-mnh4cfax - SUCCESS
+[2026-06-03T06:31:24.851Z] findBySlug: aprin22-b-mo9z88iu - SUCCESS
+[2026-06-03T06:31:24.858Z] findBySlug: bright-future-academy-mn8n7y7p - SUCCESS
+[2026-06-03T06:31:25.019Z] findBySlug: april22-mo9xllh2 (User: Public)
+[2026-06-03T06:31:25.024Z] findBySlug: bike-sell-mnw2g11t (User: Public)
+[2026-06-03T06:31:25.027Z] findBySlug: beauty-parlour-mnw25lti (User: Public)
+[2026-06-03T06:31:25.031Z] findBySlug: dev-vendor-listing2-mnvspqxo (User: Public)
+[2026-06-03T06:31:25.034Z] findBySlug: dev-vendor-listing-mnvoe07u (User: Public)
+[2026-06-03T06:31:25.039Z] findBySlug: sdf-mnz2tiga (User: Public)
+[2026-06-03T06:31:25.043Z] findBySlug: test-mnuqmwec (User: Public)
+[2026-06-03T06:31:25.047Z] findBySlug: dev-vendor-listing3-mnvuffaq (User: Public)
+[2026-06-03T06:31:25.849Z] findBySlug: april22-mo9xllh2 - Found in DB. Status: approved
+[2026-06-03T06:31:25.871Z] findBySlug: bike-sell-mnw2g11t - Found in DB. Status: approved
+[2026-06-03T06:31:25.958Z] findBySlug: beauty-parlour-mnw25lti - Found in DB. Status: approved
+[2026-06-03T06:31:25.962Z] findBySlug: dev-vendor-listing2-mnvspqxo - Found in DB. Status: approved
+[2026-06-03T06:31:25.976Z] findBySlug: dev-vendor-listing-mnvoe07u - Found in DB. Status: approved
+[2026-06-03T06:31:25.994Z] findBySlug: sdf-mnz2tiga - Found in DB. Status: approved
+[2026-06-03T06:31:25.998Z] findBySlug: dev-vendor-listing3-mnvuffaq - Found in DB. Status: approved
+[2026-06-03T06:31:26.010Z] findBySlug: test-mnuqmwec - Found in DB. Status: approved
+[2026-06-03T06:31:26.653Z] findBySlug: april22-mo9xllh2 - SUCCESS
+[2026-06-03T06:31:26.676Z] findBySlug: bike-sell-mnw2g11t - SUCCESS
+[2026-06-03T06:31:26.839Z] findBySlug: beauty-parlour-mnw25lti - SUCCESS
+[2026-06-03T06:31:26.888Z] findBySlug: dev-vendor-listing2-mnvspqxo - SUCCESS
+[2026-06-03T06:31:26.895Z] findBySlug: dev-vendor-listing-mnvoe07u - SUCCESS
+[2026-06-03T06:31:26.914Z] findBySlug: sdf-mnz2tiga - SUCCESS
+[2026-06-03T06:31:26.922Z] findBySlug: dev-vendor-listing3-mnvuffaq - SUCCESS
+[2026-06-03T06:31:26.948Z] findBySlug: test-mnuqmwec - SUCCESS
+[2026-06-03T06:31:27.199Z] findBySlug: nvendor2-lisiting-mnqepey6 (User: Public)
+[2026-06-03T06:31:27.203Z] findBySlug: nv1-listing-mnqd29z4 (User: Public)
+[2026-06-03T06:31:27.207Z] findBySlug: new-vrndor-listing-mnqa9xol (User: Public)
+[2026-06-03T06:31:27.211Z] findBySlug: the-mk-tea-stall-mnof3q0j (User: Public)
+[2026-06-03T06:31:27.215Z] findBySlug: smilecare-dental-clinic-mnd2rjh5 (User: Public)
+[2026-06-03T06:31:27.228Z] findBySlug: hair-salon-mmp8acr9 (User: Public)
+[2026-06-03T06:31:27.233Z] findBySlug: karachi-auto-care-workshop-mmgs0upa (User: Public)
+[2026-06-03T06:31:27.237Z] findBySlug: codex-pending-geocode-test-mpxostc0 (User: Public)
+[2026-06-03T06:31:27.924Z] findBySlug: nv1-listing-mnqd29z4 - Found in DB. Status: approved
+[2026-06-03T06:31:27.982Z] findBySlug: nvendor2-lisiting-mnqepey6 - Found in DB. Status: approved
+[2026-06-03T06:31:28.063Z] findBySlug: hair-salon-mmp8acr9 - Found in DB. Status: approved
+[2026-06-03T06:31:28.068Z] findBySlug: the-mk-tea-stall-mnof3q0j - Found in DB. Status: approved
+[2026-06-03T06:31:28.074Z] findBySlug: karachi-auto-care-workshop-mmgs0upa - Found in DB. Status: approved
+[2026-06-03T06:31:28.083Z] findBySlug: codex-pending-geocode-test-mpxostc0 - Found in DB. Status: approved
+[2026-06-03T06:31:28.129Z] findBySlug: new-vrndor-listing-mnqa9xol - Found in DB. Status: approved
+[2026-06-03T06:31:28.137Z] findBySlug: smilecare-dental-clinic-mnd2rjh5 - Found in DB. Status: approved
+[2026-06-03T06:31:28.763Z] findBySlug: nv1-listing-mnqd29z4 - SUCCESS
+[2026-06-03T06:31:28.773Z] findBySlug: nvendor2-lisiting-mnqepey6 - SUCCESS
+[2026-06-03T06:31:28.942Z] findBySlug: hair-salon-mmp8acr9 - SUCCESS
+[2026-06-03T06:31:28.946Z] findBySlug: the-mk-tea-stall-mnof3q0j - SUCCESS
+[2026-06-03T06:31:28.968Z] findBySlug: karachi-auto-care-workshop-mmgs0upa - SUCCESS
+[2026-06-03T06:31:28.997Z] findBySlug: codex-pending-geocode-test-mpxostc0 - SUCCESS
+[2026-06-03T06:31:29.027Z] findBySlug: smilecare-dental-clinic-mnd2rjh5 - SUCCESS
+[2026-06-03T06:31:29.033Z] findBySlug: new-vrndor-listing-mnqa9xol - SUCCESS
+[2026-06-03T06:31:29.283Z] findBySlug: 3242342-mozqxww4 (User: Public)
+[2026-06-03T06:31:29.295Z] findBySlug: grocery-service-moogz469 (User: Public)
+[2026-06-03T06:31:29.299Z] findBySlug: cv-mobvjru4 (User: Public)
+[2026-06-03T06:31:29.301Z] findBySlug: test-mnvo4a9o (User: Public)
+[2026-06-03T06:31:29.306Z] findBySlug: test-mnuqqfno (User: Public)
+[2026-06-03T06:31:29.310Z] findBySlug: pan-service-mnu0njmp (User: Public)
+[2026-06-03T06:31:29.315Z] findBySlug: facial-women-mnu0kq86 (User: Public)
+[2026-06-03T06:31:29.319Z] findBySlug: test-mnlhzqse (User: Public)
+[2026-06-03T06:31:30.012Z] findBySlug: 3242342-mozqxww4 - Found in DB. Status: approved
+[2026-06-03T06:31:30.110Z] findBySlug: cv-mobvjru4 - Found in DB. Status: approved
+[2026-06-03T06:31:30.114Z] findBySlug: grocery-service-moogz469 - Found in DB. Status: approved
+[2026-06-03T06:31:30.127Z] findBySlug: test-mnvo4a9o - Found in DB. Status: approved
+[2026-06-03T06:31:30.139Z] findBySlug: test-mnuqqfno - Found in DB. Status: approved
+[2026-06-03T06:31:30.146Z] findBySlug: pan-service-mnu0njmp - Found in DB. Status: approved
+[2026-06-03T06:31:30.222Z] findBySlug: test-mnlhzqse - Found in DB. Status: approved
+[2026-06-03T06:31:30.239Z] findBySlug: facial-women-mnu0kq86 - Found in DB. Status: approved
+[2026-06-03T06:31:30.908Z] findBySlug: 3242342-mozqxww4 - SUCCESS
+[2026-06-03T06:31:31.023Z] findBySlug: cv-mobvjru4 - SUCCESS
+[2026-06-03T06:31:31.041Z] findBySlug: grocery-service-moogz469 - SUCCESS
+[2026-06-03T06:31:31.103Z] findBySlug: test-mnvo4a9o - SUCCESS
+[2026-06-03T06:31:31.111Z] findBySlug: pan-service-mnu0njmp - SUCCESS
+[2026-06-03T06:31:31.115Z] findBySlug: test-mnuqqfno - SUCCESS
+[2026-06-03T06:31:31.130Z] findBySlug: test-mnlhzqse - SUCCESS
+[2026-06-03T06:31:31.134Z] findBySlug: facial-women-mnu0kq86 - SUCCESS
+[2026-06-03T06:31:31.242Z] findBySlug: dsczx-mnip9kwi (User: Public)
+[2026-06-03T06:31:31.245Z] findBySlug: mobile-repair-mnioktfs (User: Public)
+[2026-06-03T06:31:31.251Z] findBySlug: test2-mnhndp3n (User: Public)
+[2026-06-03T06:31:31.254Z] findBySlug: test-mnfvrz3g (User: Public)
+[2026-06-03T06:31:31.256Z] findBySlug: featured-coaching-institute-mna0aar3 (User: Public)
+[2026-06-03T06:31:31.259Z] findBySlug: sample-business (User: Public)
+[2026-06-03T06:31:31.262Z] findBySlug: pak-digital-marketing-solutions-mmkwsn3c (User: Public)
+[2026-06-03T06:31:32.101Z] findBySlug: dsczx-mnip9kwi - Found in DB. Status: approved
+[2026-06-03T06:31:32.133Z] findBySlug: sample-business - NOT FOUND IN DB
+[2026-06-03T06:31:32.135Z] findBySlug: sample-business - ERROR: Listing not found
+NotFoundException: Listing not found
+    at BusinessesService.findBySlug (C:\Users\Ahmed Bilal Khan\Desktop\business-directory\backend\dist\modules\businesses\businesses.service.js:681:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-06-03T06:31:32.175Z] findBySlug: test2-mnhndp3n - Found in DB. Status: approved
+[2026-06-03T06:31:32.197Z] findBySlug: mobile-repair-mnioktfs - Found in DB. Status: approved
+[2026-06-03T06:31:32.222Z] findBySlug: featured-coaching-institute-mna0aar3 - Found in DB. Status: approved
+[2026-06-03T06:31:32.245Z] findBySlug: pak-digital-marketing-solutions-mmkwsn3c - Found in DB. Status: approved
+[2026-06-03T06:31:32.289Z] findBySlug: test-mnfvrz3g - Found in DB. Status: approved
+[2026-06-03T06:31:32.891Z] findBySlug: dsczx-mnip9kwi - SUCCESS
+[2026-06-03T06:31:32.941Z] findBySlug: test2-mnhndp3n - SUCCESS
+[2026-06-03T06:31:32.949Z] findBySlug: mobile-repair-mnioktfs - SUCCESS
+[2026-06-03T06:31:32.953Z] findBySlug: featured-coaching-institute-mna0aar3 - SUCCESS
+[2026-06-03T06:31:32.986Z] findBySlug: pak-digital-marketing-solutions-mmkwsn3c - SUCCESS
+[2026-06-03T06:31:33.041Z] findBySlug: test-mnfvrz3g - SUCCESS
+[2026-06-03T06:33:51.461Z] findBySlug: sample-business (User: Public)
+[2026-06-03T06:33:52.222Z] findBySlug: sample-business - NOT FOUND IN DB
+[2026-06-03T06:33:52.306Z] findBySlug: sample-business - ERROR: Listing not found
+NotFoundException: Listing not found
+    at BusinessesService.findBySlug (C:\Users\Ahmed Bilal Khan\Desktop\business-directory\backend\dist\modules\businesses\businesses.service.js:681:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-06-03T13:12:51.297Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.313Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.407Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.412Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.512Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.517Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.523Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.527Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.561Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.564Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.768Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:51.772Z] findBySlug: test-mnh4bnro (User: Public)
+[2026-06-03T13:12:52.026Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:52.539Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:52.801Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:52.882Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:52.971Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.052Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.076Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.117Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.139Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.168Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.212Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.216Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.220Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.222Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.232Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.236Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.239Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.244Z] findBySlug: test-mnh4bnro - Found in DB. Status: approved
+[2026-06-03T13:12:53.296Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.302Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.308Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.318Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.324Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T13:12:53.329Z] findBySlug: test-mnh4bnro - SUCCESS
+[2026-06-03T14:51:39.996Z] findBySlug: sample-business (User: Public)
+[2026-06-03T14:51:40.133Z] findBySlug: sample-business - NOT FOUND IN DB
+[2026-06-03T14:51:40.134Z] findBySlug: sample-business - ERROR: Listing not found
+NotFoundException: Listing not found
+    at BusinessesService.findBySlug (C:\Users\Ahmed Bilal Khan\Desktop\business-directory\backend\dist\modules\businesses\businesses.service.js:680:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-06-03T15:00:44.092Z] findBySlug: sample-business (User: Public)
+[2026-06-03T15:00:45.016Z] findBySlug: sample-business - NOT FOUND IN DB
+[2026-06-03T15:00:45.016Z] findBySlug: sample-business - ERROR: Listing not found
+NotFoundException: Listing not found
+    at BusinessesService.findBySlug (C:\Users\Ahmed Bilal Khan\Desktop\business-directory\backend\dist\modules\businesses\businesses.service.js:680:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-06-03T15:08:34.685Z] findBySlug: sample-business (User: Public)
+[2026-06-03T15:08:34.795Z] findBySlug: sample-business - NOT FOUND IN DB
+[2026-06-03T15:08:34.796Z] findBySlug: sample-business - ERROR: Listing not found
+NotFoundException: Listing not found
+    at BusinessesService.findBySlug (C:\Users\Ahmed Bilal Khan\Desktop\business-directory\backend\dist\modules\businesses\businesses.service.js:680:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

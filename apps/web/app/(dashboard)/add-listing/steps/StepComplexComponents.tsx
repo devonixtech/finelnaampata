@@ -10,12 +10,15 @@ const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 round
 const selectClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer pr-10";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
 
-const toggleArrayItem = (arr: string[], item: string) => 
-    arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item];
+const toggleArrayItem = (arr: string[], item: string) => {
+    const safeArr = Array.isArray(arr) ? arr : [];
+    return safeArr.includes(item) ? safeArr.filter(i => i !== item) : [...safeArr, item];
+};
 
 export const Step5Category = ({ formData, setFormData, categories = [] }: StepProps) => {
     const { getFeatureValue } = usePlanFeature();
     const maxSubCategories = getFeatureValue('maxSubCategories') || 0;
+    const selectedSubCategories = Array.isArray(formData.subCategoryIds) ? formData.subCategoryIds : [];
     
     // Determine available subcategories based on selected category
     const relatedSubcategories = formData.categoryId && formData.categoryId !== 'other' 
@@ -61,9 +64,9 @@ export const Step5Category = ({ formData, setFormData, categories = [] }: StepPr
                                     ) : (
                                         <div className="relative">
                                             <select
-                                                value={formData.subCategoryIds[i] || ''}
+                                                value={selectedSubCategories[i] || ''}
                                                 onChange={e => {
-                                                    const newSubs = [...formData.subCategoryIds];
+                                                    const newSubs = [...selectedSubCategories];
                                                     if (e.target.value) {
                                                         newSubs[i] = e.target.value;
                                                     } else {
@@ -78,7 +81,7 @@ export const Step5Category = ({ formData, setFormData, categories = [] }: StepPr
                                                     <option 
                                                         key={sub.id} 
                                                         value={sub.id}
-                                                        disabled={formData.subCategoryIds.includes(sub.id) && formData.subCategoryIds[i] !== sub.id}
+                                                        disabled={selectedSubCategories.includes(sub.id) && selectedSubCategories[i] !== sub.id}
                                                     >
                                                         {sub.name}
                                                     </option>
@@ -122,7 +125,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-hidden">
             <div>
                 <label className={labelClass}>Contact Person Name</label>
                 <input 
@@ -135,14 +138,14 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
             </div>
             <div>
                 <label className={labelClass}>Contact Number</label>
-                <div className="flex gap-2 relative">
+                <div className="flex items-center gap-2 min-w-0">
                     <select
                         value={formData.phoneCode}
                         onChange={e => {
                             setFormData(prev => ({ ...prev, phoneCode: e.target.value }));
                             handlePhoneChange(formData.phoneNumber, 'phone');
                         }}
-                        className={`${selectClass} w-36 flex-shrink-0`}
+                        className="shrink-0 w-[140px] px-3 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer"
                     >
                         {DEFAULT_DIAL_CODES.map((d: any) => (
                             <option key={`${d.code}-${d.dialCode}`} value={d.dialCode}>
@@ -150,22 +153,22 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                             </option>
                         ))}
                     </select>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0 relative">
                         <input
                             type="tel"
                             value={formData.phoneNumber}
                             onChange={e => handlePhoneChange(e.target.value, 'phone')}
                             placeholder="300 1234567"
-                            className={`${inputClass} ${phoneError ? 'border-red-400 focus:ring-red-400' : ''}`}
+                            className={`w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400 ${phoneError ? 'border-red-400 focus:ring-red-400' : ''}`}
                         />
-                        {phoneError && <p className="text-xs text-red-500 mt-1 font-bold absolute -bottom-5 left-36">{phoneError}</p>}
+                        {phoneError && <p className="text-xs text-red-500 mt-1 font-bold">{phoneError}</p>}
                     </div>
                 </div>
             </div>
             <div className="pt-2">
                 <label className={labelClass}>WhatsApp Number (Optional)</label>
-                <div className="flex gap-2">
-                    <select className={`${selectClass} w-36 flex-shrink-0 bg-slate-100 text-slate-500`} disabled>
+                <div className="flex items-center gap-2 min-w-0">
+                    <select className="shrink-0 w-[140px] px-3 py-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold text-sm appearance-none cursor-pointer" disabled>
                         <option>{formData.phoneCode}</option>
                     </select>
                     <input
@@ -173,7 +176,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                         value={formData.whatsapp}
                         onChange={e => handlePhoneChange(e.target.value, 'whatsapp')}
                         placeholder="Same as above if empty"
-                        className={inputClass}
+                        className="flex-1 min-w-0 w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400"
                     />
                 </div>
             </div>
@@ -182,19 +185,21 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
 };
 
 export const Step13Online = ({ formData, setFormData }: StepProps) => {
+    const safeSocialLinks = Array.isArray(formData.socialLinks) ? formData.socialLinks : [];
+
     const handleSocialUpdate = (platform: string, url: string) => {
-        const existing = formData.socialLinks.find(s => s.platform === platform);
+        const existing = safeSocialLinks.find(s => s.platform === platform);
         if (url.trim() === '') {
-            setFormData(p => ({ ...p, socialLinks: p.socialLinks.filter(s => s.platform !== platform) }));
+            setFormData(p => ({ ...p, socialLinks: (Array.isArray(p.socialLinks) ? p.socialLinks : []).filter(s => s.platform !== platform) }));
         } else if (existing) {
             setFormData(p => ({
                 ...p, 
-                socialLinks: p.socialLinks.map(s => s.platform === platform ? { ...s, url } : s)
+                socialLinks: (Array.isArray(p.socialLinks) ? p.socialLinks : []).map(s => s.platform === platform ? { ...s, url } : s)
             }));
         } else {
             setFormData(p => ({
                 ...p,
-                socialLinks: [...p.socialLinks, { platform, url }]
+                socialLinks: [...(Array.isArray(p.socialLinks) ? p.socialLinks : []), { platform, url }]
             }));
         }
     };
@@ -216,7 +221,7 @@ export const Step13Online = ({ formData, setFormData }: StepProps) => {
                 <label className={labelClass}>Social Media Links</label>
                 <div className="space-y-3">
                     {SOCIAL_PLATFORMS.map((platform: any) => {
-                        const link = formData.socialLinks.find(s => s.platform === platform.key)?.url || '';
+                        const link = safeSocialLinks.find(s => s.platform === platform.key)?.url || '';
                         return (
                             <div key={platform.key} className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0" title={platform.label}>
@@ -247,7 +252,8 @@ export const Step14Amenities = ({ formData, setFormData }: StepProps) => (
                     {(options as string[]).map((opt: string) => {
                         // Dynamically resolve which array in formData to update based on the group key
                         const formKey = group as keyof Pick<ListingFormData, 'locationAccess' | 'facilities' | 'staffFeatures' | 'paymentMethods'>;
-                        const isChecked = formData[formKey].includes(opt);
+                        const selectedValues = Array.isArray(formData[formKey]) ? formData[formKey] : [];
+                        const isChecked = selectedValues.includes(opt);
                         
                         return (
                             <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${isChecked ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
@@ -255,7 +261,10 @@ export const Step14Amenities = ({ formData, setFormData }: StepProps) => (
                                     type="checkbox" 
                                     className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
                                     checked={isChecked}
-                                    onChange={() => setFormData(p => ({ ...p, [formKey]: toggleArrayItem(p[formKey], opt) }))}
+                                    onChange={() => setFormData(p => ({
+                                        ...p,
+                                        [formKey]: toggleArrayItem(Array.isArray(p[formKey]) ? p[formKey] : [], opt)
+                                    }))}
                                 />
                                 <span className="ml-3 text-sm font-semibold text-slate-800">{opt}</span>
                             </label>
@@ -266,3 +275,4 @@ export const Step14Amenities = ({ formData, setFormData }: StepProps) => (
         ))}
     </div>
 );
+

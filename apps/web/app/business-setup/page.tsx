@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { 
@@ -47,7 +47,7 @@ import {
     sortAndDedupeCountries,
     cityMatchesCountry,
     tryDetectDeviceLocation,
-    reverseGeocodeFromCoords,
+    inferLocationFromCoords,
     getBrowserTimezone,
 } from '../../lib/location-detect';
 import AddressPlacesAutocomplete from '../../components/AddressPlacesAutocomplete';
@@ -147,6 +147,7 @@ export default function BusinessSetupWizard() {
     
     // Auto-detect and duplicates states
     const [geoDetecting, setGeoDetecting] = useState(false);
+    const [geoError, setGeoError] = useState('');
     const [mapSearchQuery, setMapSearchQuery] = useState('');
     const [mapSearchResults, setMapSearchResults] = useState<Array<{ placeId: string; description: string }>>([]);
     const [mapSearchLoading, setMapSearchLoading] = useState(false);
@@ -513,14 +514,15 @@ export default function BusinessSetupWizard() {
     // GPS-only location detect (consistent with all other screens)
     const detectMyLocation = async () => {
         setGeoDetecting(true);
+        setGeoError('');
         try {
             const result = await tryDetectDeviceLocation();
             if (!result.ok) {
-                alert(result.message);
+                setGeoError(result.message);
                 return;
             }
             const coords = result.coords;
-            const geo = await reverseGeocodeFromCoords(coords.latitude, coords.longitude);
+            const geo = inferLocationFromCoords(allCities, coords.latitude, coords.longitude);
             setStepData((prev) => ({
                 ...prev,
                 latitude: String(coords.latitude),
@@ -529,10 +531,9 @@ export default function BusinessSetupWizard() {
                 ...(geo.country && { country: geo.country }),
                 ...(geo.city && { city: geo.city }),
                 ...(geo.state && { state: geo.state }),
-                ...(geo.postalCode && { zipCode: geo.postalCode }),
             }));
         } catch {
-            alert('Unable to detect location. Please enable GPS permissions or select your city manually.');
+            setGeoError('Unable to detect location. Please enable GPS permissions or select your city manually.');
         } finally {
             setGeoDetecting(false);
         }
@@ -1391,8 +1392,9 @@ export default function BusinessSetupWizard() {
                                     className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5"
                                 >
                                     {geoDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                                    Auto Detect Coordinates
+                                    Use My GPS Location
                                 </button>
+                                {geoError && <span className="self-center text-xs font-bold text-amber-600">{geoError}</span>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -1467,14 +1469,25 @@ export default function BusinessSetupWizard() {
                             <h3 className="text-xl font-black text-slate-800">Contact Details</h3>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 10 of 21 • Required</p>
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-4 overflow-hidden">
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Primary Phone Number * (E.164 Standard)</label>
-                                <div className="flex gap-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Contact Person Name *</label>
+                                <input
+                                    type="text"
+                                    value={stepData.contactPersonName}
+                                    onChange={e => setStepData({...stepData, contactPersonName: e.target.value})}
+                                    placeholder="Full name..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Primary Phone Number *</label>
+                                <div className="flex items-center gap-2 min-w-0">
                                     <select
                                         value={stepData.phoneCode}
                                         onChange={e => setStepData({...stepData, phoneCode: e.target.value})}
-                                        className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                        className="shrink-0 w-[140px] px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 text-sm"
                                     >
                                         {DIAL_CODES.map(d => (
                                             <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
@@ -1493,7 +1506,7 @@ export default function BusinessSetupWizard() {
                                             setStepData({...stepData, phoneNumber: digits});
                                         }}
                                         placeholder="e.g. 3001234567"
-                                        className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                        className="flex-1 min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                     />
                                 </div>
                             </div>
@@ -1518,11 +1531,11 @@ export default function BusinessSetupWizard() {
                                 </label>
                                 
                                 {!stepData.whatsappSameAsPhone && (
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
                                         <select
                                             value={stepData.whatsappCode}
                                             onChange={e => setStepData({...stepData, whatsappCode: e.target.value})}
-                                            className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                            className="shrink-0 w-[140px] px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 text-sm"
                                         >
                                             {DIAL_CODES.map(d => (
                                                 <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
@@ -1541,7 +1554,7 @@ export default function BusinessSetupWizard() {
                                                 setStepData({...stepData, whatsappNumber: digits});
                                             }}
                                             placeholder="e.g. 3007654321"
-                                            className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                            className="flex-1 min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                         />
                                     </div>
                                 )}

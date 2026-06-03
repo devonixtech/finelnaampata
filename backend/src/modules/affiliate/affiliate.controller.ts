@@ -6,6 +6,7 @@ import {
     Body,
     UseGuards,
     Param,
+    Query,
 } from '@nestjs/common';
 import { AffiliateService } from './affiliate.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -41,10 +42,23 @@ export class AffiliateController {
         return this.affiliateService.getReferrals(user.id);
     }
 
+    @Post('track-click')
+    @ApiOperation({ summary: 'Track a referral click for the current user or save it for later business activation' })
+    async trackClick(@CurrentUser() user: User, @Query('code') code?: string) {
+        return this.affiliateService.trackClick(user.id, code || '');
+    }
+
     @Post('apply-referral')
     @ApiOperation({ summary: 'Apply a referral code to the current user' })
-    async applyReferral(@CurrentUser() user: User, @Body() body: { code: string }) {
-        return this.affiliateService.applyReferralCode(user.id, body.code);
+    async applyReferral(
+        @CurrentUser() user: User,
+        @Body() body?: { code?: string; referralCode?: string } | string,
+    ) {
+        const code =
+            typeof body === 'string'
+                ? body
+                : body?.code ?? body?.referralCode ?? '';
+        return this.affiliateService.applyReferralCode(user.id, code);
     }
 
     @Post('payouts')

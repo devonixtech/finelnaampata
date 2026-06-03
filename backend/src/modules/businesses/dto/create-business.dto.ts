@@ -163,17 +163,21 @@ export class CreateBusinessDto {
     @MaxLength(20)
     pincode?: string;
 
-    @ApiProperty({ example: 40.7128, description: 'Latitude' })
+    @ApiPropertyOptional({ example: 40.7128, description: 'Latitude' })
+    @IsOptional()
+    @Type(() => Number)
     @IsNumber()
     @Min(-90)
     @Max(90)
-    latitude: number;
+    latitude?: number;
 
-    @ApiProperty({ example: -74.0060, description: 'Longitude' })
+    @ApiPropertyOptional({ example: -74.0060, description: 'Longitude' })
+    @IsOptional()
+    @Type(() => Number)
     @IsNumber()
     @Min(-180)
     @Max(180)
-    longitude: number;
+    longitude?: number;
 
     @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
     @IsOptional()

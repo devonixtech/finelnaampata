@@ -261,10 +261,11 @@ export const api = {
                 try {
                     const imageCompression = (await import('browser-image-compression')).default;
                     const options = {
-                        maxSizeMB: 0.75,
-                        maxWidthOrHeight: 1280,
+                        maxSizeMB: 1.0,
+                        maxWidthOrHeight: 1600,
                         useWebWorker: true,
                         fileType: 'image/jpeg',
+                        initialQuality: 0.8,
                     };
                     const compressedBlob = await imageCompression(file, options);
                     fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' });
@@ -979,7 +980,7 @@ export const api = {
             if (params.countryCode) q.set('countryCode', params.countryCode);
             return fetcher<Array<{ placeId: string; description: string }>>(`/location/places/autocomplete?${q.toString()}`, { silent: true });
         },
-        placeDetails: (placeId: string, sessionToken: string) =>
+        resolvePlace: (description: string, sessionToken: string) =>
             fetcher<{
                 placeId: string;
                 formattedAddress: string;
@@ -990,7 +991,11 @@ export const api = {
                 postalCode?: string;
                 country?: string;
                 streetAddress?: string;
-            } | null>(`/location/places/${encodeURIComponent(placeId)}?sessionToken=${encodeURIComponent(sessionToken)}`, { silent: true }),
+            } | null>('/location/places/resolve', {
+                method: 'POST',
+                body: JSON.stringify({ description, sessionToken }),
+                silent: true,
+            }),
     },
     qa: {
         getForBusiness: (businessId: string, options?: FetcherOptions) => fetcher<any[]>(`/qa/business/${businessId}`, { silent: true, ...options }),

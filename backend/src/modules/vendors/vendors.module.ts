@@ -12,6 +12,7 @@ import { Deal } from '../../entities/deal.entity';
 import { Event } from '../../entities/event.entity';
 import { DealsModule } from '../deals/deals.module';
 import { EventsModule } from '../events/events.module';
+import { AffiliateModule } from '../affiliate/affiliate.module';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { EventsModule } from '../events/events.module';
         BusinessesModule,
         DealsModule,
         EventsModule,
+        AffiliateModule,
     ],
     controllers: [BusinessProfilesController, VendorsController],
     providers: [VendorsService],

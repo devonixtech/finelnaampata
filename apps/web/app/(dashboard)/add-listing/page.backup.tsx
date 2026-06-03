@@ -16,7 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import Link from 'next/link';
 
-import { tryDetectDeviceLocation, reverseGeocodeFromCoords, sortAndDedupeCities } from '../../../lib/location-detect';
+import { tryDetectDeviceLocation, inferLocationFromCoords, sortAndDedupeCities } from '../../../lib/location-detect';
 import { DEFAULT_DIAL_CODES } from '../../../lib/phone-codes';
 import AddressPlacesAutocomplete from '../../../components/AddressPlacesAutocomplete';
 
@@ -158,7 +158,7 @@ export default function AddListingPage() {
 
     const updateLocationFromCoords = async (lat: number, lng: number) => {
         setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
-        const geo = await reverseGeocodeFromCoords(lat, lng);
+        const geo = inferLocationFromCoords(cities, lat, lng);
         setFormData(prev => ({
             ...prev,
             latitude: lat,
@@ -166,7 +166,6 @@ export default function AddListingPage() {
             ...(geo.country && { country: geo.country }),
             ...(geo.city && { city: geo.city }),
             ...(geo.state && { state: geo.state }),
-            ...(geo.postalCode && { pincode: geo.postalCode }),
         }));
     };
 

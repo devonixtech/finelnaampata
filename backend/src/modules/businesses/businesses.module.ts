@@ -19,7 +19,6 @@ import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
 import { AddressConfigModule } from '../address/address-config.module';
 import { LocationModule } from '../location/location.module';
 import { AuthModule } from '../auth/auth.module';
-import { BullModule } from '@nestjs/bullmq';
 
 import { ActivePlan } from '../../entities/active-plan.entity';
 import { DuplicateDetectionService } from './duplicate-detection.service';
@@ -48,11 +47,6 @@ import { GeocodingQueueService } from './geocoding-queue.service';
         AffiliateModule,
         SubscriptionsModule,
         AuthModule,
-        ...(process.env.REDIS_ENABLED === 'true' ? [
-            BullModule.registerQueue({
-                name: 'search-cache-invalidation',
-            })
-        ] : []),
     ],
     controllers: [BusinessesController],
     providers: [BusinessesService, DuplicateDetectionService, SearchCacheWarmService, GeocodingQueueService],

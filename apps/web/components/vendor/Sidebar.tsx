@@ -7,7 +7,7 @@ import {
     LayoutDashboard, ListTree, Plus, Heart, Star, Send, Bell,
     Settings, LogOut, ChevronDown, Shield, Phone, Megaphone,
     MessageSquare, TrendingUp, BarChart, CreditCard, Gift,
-    UserPlus, Menu, X, Clock,
+    UserPlus, Menu, X, Clock, FileText,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl, api } from '../../lib/api';
@@ -65,6 +65,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         { name: 'Following', icon: UserPlus, href: '/following', badge: null, feature: 'showFollowing', description: 'Businesses you follow for updates' },
         { name: 'Queries', icon: Send, href: '/messages', badge: newEnquiryCount > 0 ? String(newEnquiryCount) : null, feature: 'showQueries', description: 'Direct customer messages & contact requests' },
         { name: 'Live Chat', icon: MessageSquare, iconColor: 'text-emerald-500', href: '/chat', badge: unreadChatCount > 0 ? String(unreadChatCount) : null, feature: 'showChat', description: 'Real-time chat with customers' },
+        { name: 'Customer Notes', icon: FileText, href: '/notes', badge: null, feature: 'showChat', description: 'Private notes for customer follow-ups & CRM' },
         { name: 'Hot Demand Insights', icon: TrendingUp, href: '/demand', badge: null, feature: 'showDemand', description: 'Trending searches in your categories' },
         { name: 'Subscription & Billing', icon: CreditCard, href: '/subscription', badge: null, description: 'Your plan, invoices and renewals' },
         { name: 'Broadcast Feed', icon: Megaphone, href: '/broadcasts', badge: newBroadcastCount > 0 ? String(newBroadcastCount) : null, feature: 'showBroadcast', description: 'My Broadcasts — service requests from customers' },

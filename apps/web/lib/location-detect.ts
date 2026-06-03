@@ -179,6 +179,21 @@ export function findNearestCity(cities: City[], latitude: number, longitude: num
     ).city;
 }
 
+export function inferLocationFromCoords(
+    cities: City[],
+    latitude: number,
+    longitude: number,
+): { city?: string; state?: string; country?: string } {
+    const nearest = findNearestCity(cities, latitude, longitude);
+    if (!nearest) return {};
+
+    return {
+        city: nearest.name || undefined,
+        state: nearest.state || undefined,
+        country: nearest.country || undefined,
+    };
+}
+
 export async function detectNearestCityName(cities: City[]): Promise<string | null> {
     const coords = await detectDeviceLocation();
     const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
@@ -191,34 +206,4 @@ export function visibilityDayCount(start?: string, end?: string): number {
     const endMs = new Date(end).getTime();
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return 0;
     return Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24));
-}
-
-export type ReverseGeocodeResult = {
-    city?: string;
-    state?: string;
-    country?: string;
-    postalCode?: string;
-};
-
-/** Reverse geocode via BigDataCloud (more reliable in browser). */
-export async function reverseGeocodeFromCoords(
-    latitude: number,
-    longitude: number,
-): Promise<ReverseGeocodeResult> {
-    try {
-        const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-        );
-        if (!res.ok) return {};
-        const data = await res.json();
-
-        return {
-            city: data.city || data.locality,
-            state: data.principalSubdivision,
-            country: data.countryName,
-            postalCode: data.postcode || '',
-        };
-    } catch {
-        return {};
-    }
 }

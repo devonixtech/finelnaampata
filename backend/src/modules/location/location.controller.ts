@@ -1,7 +1,7 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PlacesService } from './places.service';
-import { PlaceDetailsQueryDto, PlacesAutocompleteQueryDto } from './dto/places-autocomplete.dto';
+import { PlacesAutocompleteQueryDto, ResolvePlaceDto } from './dto/places-autocomplete.dto';
 
 @ApiTags('location')
 @Controller('location')
@@ -18,9 +18,9 @@ export class LocationController {
         );
     }
 
-    @Get('places/:placeId')
-    @ApiOperation({ summary: 'Resolve place details and coordinates (closes autocomplete session)' })
-    placeDetails(@Param('placeId') placeId: string, @Query() query: PlaceDetailsQueryDto) {
-        return this.placesService.getPlaceDetails(placeId, query.sessionToken);
+    @Post('places/resolve')
+    @ApiOperation({ summary: 'Resolve a selected autocomplete address to normalized coordinates and fields' })
+    resolvePlace(@Body() body: ResolvePlaceDto) {
+        return this.placesService.resolveSelectedAddress(body.description, body.sessionToken);
     }
 }

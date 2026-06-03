@@ -76,17 +76,52 @@ export class SearchService implements OnModuleInit {
             await this.elasticsearchService.indices.create({
                 index: this.INDEX_NAME,
                 body: {
+                    settings: {
+                        analysis: {
+                            analyzer: {
+                                search_text_analyzer: {
+                                    type: 'custom',
+                                    tokenizer: 'standard',
+                                    filter: ['lowercase', 'asciifolding'],
+                                },
+                            },
+                            normalizer: {
+                                lowercase_normalizer: {
+                                    type: 'custom',
+                                    filter: ['lowercase', 'asciifolding'],
+                                },
+                            },
+                        },
+                    },
                     mappings: {
                         properties: {
                             id: { type: 'keyword' },
-                            name: { type: 'text', analyzer: 'standard' },
-                            title: { type: 'text', analyzer: 'standard' },
+                            name: {
+                                type: 'text',
+                                analyzer: 'search_text_analyzer',
+                                fields: {
+                                    raw: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+                                },
+                            },
+                            title: {
+                                type: 'text',
+                                analyzer: 'search_text_analyzer',
+                                fields: {
+                                    raw: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+                                },
+                            },
                             slug: { type: 'keyword' },
-                            description: { type: 'text' },
-                            category: { type: 'keyword' },
+                            description: { type: 'text', analyzer: 'search_text_analyzer' },
+                            category: {
+                                type: 'text',
+                                analyzer: 'search_text_analyzer',
+                                fields: {
+                                    raw: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+                                },
+                            },
                             category_slug: { type: 'keyword' },
                             city: { type: 'keyword' },
-                            address: { type: 'text' },
+                            address: { type: 'text', analyzer: 'search_text_analyzer' },
                             logoUrl: { type: 'keyword' },
                             coverImageUrl: { type: 'keyword' },
                             location: { type: 'geo_point' },
@@ -96,8 +131,8 @@ export class SearchService implements OnModuleInit {
                             isVerified: { type: 'boolean' },
                             status: { type: 'keyword' },
                             is_active: { type: 'boolean' },
-                            search_keywords: { type: 'text', analyzer: 'standard' },
-                            meta_keywords: { type: 'text', analyzer: 'standard' },
+                            search_keywords: { type: 'text', analyzer: 'search_text_analyzer' },
+                            meta_keywords: { type: 'text', analyzer: 'search_text_analyzer' },
                             followersCount: { type: 'integer' },
                             businessType: { type: 'keyword' },
                             coreBusinessNature: { type: 'keyword' },
@@ -383,19 +418,33 @@ export class SearchService implements OnModuleInit {
         }
 
         // Base query - if no text query, match all but keep filters
+        const normalizedQuery = (query || '').trim().toLowerCase();
         const baseQuery = query
             ? {
-                multi_match: {
-                    query,
-                    fields: [
-                        'search_keywords^10',
-                        'title^5',
-                        'category^3',
-                        'meta_keywords^2',
-                        'description',
-                        'address'
+                bool: {
+                    should: [
+                        { term: { 'title.raw': { value: normalizedQuery, boost: 20 } } },
+                        { term: { 'name.raw': { value: normalizedQuery, boost: 20 } } },
+                        { term: { 'category.raw': { value: normalizedQuery, boost: 12 } } },
+                        { match_phrase: { title: { query, boost: 14 } } },
+                        { match_phrase: { name: { query, boost: 14 } } },
+                        {
+                            multi_match: {
+                                query,
+                                fields: [
+                                    'title^10',
+                                    'name^10',
+                                    'category^8',
+                                    'search_keywords^6',
+                                    'meta_keywords^4',
+                                    'description^2',
+                                    'address'
+                                ],
+                                fuzziness: 'AUTO'
+                            }
+                        }
                     ],
-                    fuzziness: 'AUTO'
+                    minimum_should_match: 1,
                 }
               }
             : { match_all: {} };
@@ -496,7 +545,7 @@ export class SearchService implements OnModuleInit {
                     function_score: {
                         query: {
                             bool: {
-                                must: baseQuery,
+                                must: [baseQuery],
                                 filter: filters,
                             },
                         },
@@ -554,6 +603,7 @@ export class SearchService implements OnModuleInit {
         if (city) filters.push({ term: { city: city.toLowerCase() } });
         if (category) filters.push({ term: { category: category.toLowerCase() } });
 
+        const normalizedQuery = (query || '').trim().toLowerCase();
         const response = await this.elasticsearchService.search({
             index: this.INDEX_NAME,
             size: limit,
@@ -565,19 +615,32 @@ export class SearchService implements OnModuleInit {
                             bool: {
                                 must: query ? [
                                     {
-                                        multi_match: {
-                                            query,
-                                            fields: [
-                                                'search_keywords^10',
-                                                'title^5',
-                                                'category^3',
-                                                'meta_keywords^2',
-                                                'description',
-                                                'address'
+                                        bool: {
+                                            should: [
+                                                { term: { 'title.raw': { value: normalizedQuery, boost: 20 } } },
+                                                { term: { 'name.raw': { value: normalizedQuery, boost: 20 } } },
+                                                { term: { 'category.raw': { value: normalizedQuery, boost: 12 } } },
+                                                { match_phrase: { title: { query, boost: 14 } } },
+                                                { match_phrase: { name: { query, boost: 14 } } },
+                                                {
+                                                    multi_match: {
+                                                        query,
+                                                        fields: [
+                                                            'title^10',
+                                                            'name^10',
+                                                            'category^8',
+                                                            'search_keywords^6',
+                                                            'meta_keywords^4',
+                                                            'description^2',
+                                                            'address'
+                                                        ],
+                                                        fuzziness: 'AUTO'
+                                                    },
+                                                },
                                             ],
-                                            fuzziness: 'AUTO'
+                                            minimum_should_match: 1,
                                         },
-                                    }
+                                    },
                                 ] : [{ match_all: {} }],
                                 filter: filters,
                             },

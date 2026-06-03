@@ -111,10 +111,10 @@ export class UsersController {
     @ApiResponse({ status: 200, description: 'Notifications retrieved successfully' })
     getNotifications(
         @CurrentUser() user: User,
-        @Query('page') page?: number,
-        @Query('limit') limit?: number,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
     ) {
-        return this.usersService.getNotifications(user.id, page, limit);
+        return this.usersService.getNotifications(user.id, parseInt(page) || 1, parseInt(limit) || 20);
     }
 
     @Patch('notifications/:id/read')

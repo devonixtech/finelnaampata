@@ -1,24 +1,179 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StepProps } from '../types';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, Clock, RotateCcw } from 'lucide-react';
 import { api } from '../../../../lib/api';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
 
-const toggleArrayItem = (arr: string[], item: string) => 
-    arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item];
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
+type DayHours = { isOpen: boolean; openTime: string; closeTime: string };
+type HoursMap = Record<string, DayHours>;
+
+const DEFAULT_HOURS: HoursMap = {
+    monday:    { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    tuesday:   { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    wednesday: { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    thursday:  { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    friday:    { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    saturday:  { isOpen: true,  openTime: '09:00', closeTime: '17:00' },
+    sunday:    { isOpen: false, openTime: '09:00', closeTime: '17:00' },
+};
+
+function hoursArrayToMap(arr: any[]): HoursMap {
+    if (!arr || arr.length === 0) return { ...DEFAULT_HOURS };
+    if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'object' && arr[0].day) {
+        const map: HoursMap = { ...DEFAULT_HOURS };
+        for (const item of arr) {
+            if (item.day) {
+                map[item.day.toLowerCase()] = {
+                    isOpen: item.isOpen ?? item.isOpen ?? true,
+                    openTime: item.openTime || item.open || '09:00',
+                    closeTime: item.closeTime || item.close || '17:00',
+                };
+            }
+        }
+        return map;
+    }
+    return { ...DEFAULT_HOURS };
+}
+
+function hoursMapToArray(map: HoursMap): any[] {
+    return Object.entries(map).map(([day, record]) => ({
+        day: day.charAt(0).toUpperCase() + day.slice(1),
+        isOpen: record.isOpen,
+        openTime: record.openTime,
+        closeTime: record.closeTime,
+    }));
+}
+
+const toggleArrayItem = (arr: string[], item: string) => {
+    const safeArr = Array.isArray(arr) ? arr : [];
+    return safeArr.includes(item) ? safeArr.filter(i => i !== item) : [...safeArr, item];
+};
 
 export const Step10Hours = ({ formData, setFormData }: StepProps) => {
-    // For simplicity in this demo component, we just render a placeholder. 
-    // In production, this would use the BusinessHours arrays/controls similar to the old version.
+    const [open247, setOpen247] = useState(false);
+    const [hoursMap, setHoursMap] = useState<HoursMap>(() => {
+        if (Array.isArray(formData.businessHours) && formData.businessHours.length > 0) {
+            return hoursArrayToMap(formData.businessHours);
+        }
+        return { ...DEFAULT_HOURS };
+    });
+
+    const updateHours = (map: HoursMap) => {
+        setHoursMap(map);
+        setFormData(prev => ({ ...prev, businessHours: hoursMapToArray(map) }));
+    };
+
+    const handleOpen247 = (checked: boolean) => {
+        setOpen247(checked);
+        if (checked) {
+            const allOpen: HoursMap = {};
+            for (const d of DAYS) {
+                allOpen[d] = { isOpen: true, openTime: '00:00', closeTime: '23:59' };
+            }
+            updateHours(allOpen);
+        } else {
+            updateHours({ ...DEFAULT_HOURS });
+        }
+    };
+
+    const toggleDay = (day: string) => {
+        const updated = { ...hoursMap };
+        const current = updated[day] || { isOpen: false, openTime: '09:00', closeTime: '17:00' };
+        updated[day] = { ...current, isOpen: !current.isOpen };
+        updateHours(updated);
+    };
+
+    const setTime = (day: string, field: 'openTime' | 'closeTime', value: string) => {
+        const updated = { ...hoursMap };
+        const current = updated[day] || { isOpen: true, openTime: '09:00', closeTime: '17:00' };
+        updated[day] = { ...current, [field]: value };
+        updateHours(updated);
+    };
+
+    const applyToAll = (day: string) => {
+        const source = hoursMap[day];
+        if (!source) return;
+        const updated: HoursMap = {};
+        for (const d of DAYS) {
+            updated[d] = { ...source };
+        }
+        updateHours(updated);
+    };
+
     return (
         <div className="space-y-6">
-            <label className={labelClass}>Business Hours</label>
-            <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
-                <p className="text-sm font-bold text-slate-500">Business Hours Component</p>
-                <p className="text-xs text-slate-400 mt-2">Hours matrix will be rendered here.</p>
+            <div>
+                <label className={labelClass}>Business Hours</label>
+                <p className="text-xs text-slate-500 mb-4 ml-1">Set your operating hours for each day of the week</p>
             </div>
+
+            {/* Open 24/7 toggle */}
+            <label className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
+                <input
+                    type="checkbox"
+                    checked={open247}
+                    onChange={e => handleOpen247(e.target.checked)}
+                    className="h-4 w-4 rounded text-orange-500 border-slate-300 focus:ring-orange-500"
+                />
+                <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm font-black text-slate-700">Open 24 hours a day, 7 days a week</span>
+                </div>
+            </label>
+
+            {/* Day-by-day hours */}
+            {!open247 && (
+                <div className="space-y-2">
+                    {DAYS.map(d => {
+                        const record = hoursMap[d] || { isOpen: false, openTime: '09:00', closeTime: '17:00' };
+                        return (
+                            <div key={d} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${record.isOpen ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/50'}`}>
+                                <div className="flex items-center gap-3 w-1/3 min-w-0">
+                                    <input
+                                        type="checkbox"
+                                        checked={record.isOpen}
+                                        onChange={() => toggleDay(d)}
+                                        className="h-4 w-4 rounded text-orange-500 border-slate-300 focus:ring-orange-500 flex-shrink-0"
+                                    />
+                                    <span className={`text-sm font-black capitalize ${record.isOpen ? 'text-slate-700' : 'text-slate-400'}`}>{d}</span>
+                                </div>
+                                
+                                {record.isOpen ? (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="time"
+                                            value={record.openTime}
+                                            onChange={e => setTime(d, 'openTime', e.target.value)}
+                                            className="px-2 py-1.5 border border-slate-200 rounded-lg bg-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                        />
+                                        <span className="text-xs text-slate-400 font-bold">to</span>
+                                        <input
+                                            type="time"
+                                            value={record.closeTime}
+                                            onChange={e => setTime(d, 'closeTime', e.target.value)}
+                                            className="px-2 py-1.5 border border-slate-200 rounded-lg bg-white font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => applyToAll(d)}
+                                            className="p-1.5 text-slate-400 hover:text-orange-500 transition-colors"
+                                            title="Apply to all days"
+                                        >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Closed</span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
@@ -27,24 +182,31 @@ const INDUSTRY_SUB_TYPES = [
     'Halal Certified', 'Organic', 'Vegan', 'Eco-Friendly', 'ISO Certified', 'Handmade / Artisan'
 ];
 
-export const Step15Industry = ({ formData, setFormData }: StepProps) => (
-    <div className="space-y-4">
-        <label className={labelClass}>Industry Specific Tags</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {INDUSTRY_SUB_TYPES.map(type => (
-                <label key={type} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.industrySubType.includes(type) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
-                    <input 
-                        type="checkbox" 
-                        className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
-                        checked={formData.industrySubType.includes(type)}
-                        onChange={() => setFormData(p => ({ ...p, industrySubType: toggleArrayItem(p.industrySubType, type) }))}
-                    />
-                    <span className="ml-3 text-sm font-semibold text-slate-800">{type}</span>
-                </label>
-            ))}
+export const Step15Industry = ({ formData, setFormData }: StepProps) => {
+    const safeIndustrySubType = Array.isArray(formData.industrySubType) ? formData.industrySubType : [];
+
+    return (
+        <div className="space-y-4">
+            <label className={labelClass}>Industry Specific Tags</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {INDUSTRY_SUB_TYPES.map(type => {
+                    const selected = safeIndustrySubType.includes(type);
+                    return (
+                        <label key={type} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${selected ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                            <input 
+                                type="checkbox" 
+                                className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                checked={selected}
+                                onChange={() => setFormData(p => ({ ...p, industrySubType: toggleArrayItem(Array.isArray(p.industrySubType) ? p.industrySubType : [], type) }))}
+                            />
+                            <span className="ml-3 text-sm font-semibold text-slate-800">{type}</span>
+                        </label>
+                    );
+                })}
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export const Step18Expansion = ({ formData, setFormData }: StepProps) => (
     <div className="space-y-6">
@@ -168,3 +330,4 @@ export const Step19Media = ({ formData, setFormData }: StepProps) => {
         </div>
     );
 };
+

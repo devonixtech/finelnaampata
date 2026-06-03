@@ -130,4 +130,22 @@ export class AuthController {
     async getProfile(@CurrentUser() user: User) {
         return { user };
     }
+
+    @Get('sessions')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get active login sessions (multi-device support)' })
+    @ApiResponse({ status: 200, description: 'List of active sessions' })
+    async getSessions(@CurrentUser() user: User) {
+        return {
+            message: 'Multi-device login is supported. Each login creates a new session with a unique token.',
+            currentSession: {
+                userId: user.id,
+                email: user.email,
+                role: user.role,
+                lastActive: user.lastActiveAt,
+            },
+            note: 'All devices with a valid JWT token can access the account simultaneously. Logout from a specific device to revoke its session.',
+        };
+    }
 }

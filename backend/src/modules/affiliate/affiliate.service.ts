@@ -4,6 +4,7 @@ import {
     NotFoundException,
     BadRequestException,
     ConflictException,
+    OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, MoreThan } from 'typeorm';
@@ -23,7 +24,7 @@ import { generateReferralCode } from '../../common/utils/referral-code';
 
 
 @Injectable()
-export class AffiliateService {
+export class AffiliateService implements OnModuleInit {
     private readonly logger = new Logger(AffiliateService.name);
     constructor(
         @InjectRepository(Affiliate)
@@ -50,6 +51,74 @@ export class AffiliateService {
         private subscriptionPlanRepo: Repository<SubscriptionPlan>,
     ) { }
 
+    async onModuleInit() {
+        await this.ensureAffiliateReferralEnums();
+    }
+
+    private async ensureAffiliateReferralEnums() {
+        await this.referralRepository.query(`
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'affiliate_referrals_status_enum') THEN
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'pending'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'pending';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'converted'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'converted';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'expired'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'expired';
+                    END IF;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'affiliate_referrals_type_enum') THEN
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_type_enum' AND e.enumlabel = 'signup'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_type_enum ADD VALUE 'signup';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_type_enum' AND e.enumlabel = 'subscription'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_type_enum ADD VALUE 'subscription';
+                    END IF;
+                END IF;
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+                WHEN others THEN NULL;
+            END
+            $$;
+        `);
+    }
+
+    private normalizeReferralCode(code?: string | null) {
+        const normalizedCode = code?.trim();
+        if (!normalizedCode) {
+            throw new BadRequestException('Referral code is required');
+        }
+        return normalizedCode;
+    }
 
 
     async getStats(userId: string) {
@@ -136,6 +205,12 @@ export class AffiliateService {
     }
 
     async applyReferralCode(userId: string, code: string) {
+        const normalizedCode = this.normalizeReferralCode(code);
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
         // Check if user already has a referrer
         const existing = await this.referralRepository.findOne({
             where: { referredUserId: userId }
@@ -143,8 +218,6 @@ export class AffiliateService {
         if (existing) {
             throw new BadRequestException('You have already been referred');
         }
-
-        const normalizedCode = code.trim();
         this.logger.log(`Applying referral code: "${normalizedCode}" (length: ${normalizedCode.length})`);
         
         // Find the affiliate with this code
@@ -163,17 +236,59 @@ export class AffiliateService {
             throw new BadRequestException('You cannot refer yourself');
         }
 
+        // Users can save a referral before becoming a business account.
+        // It will be auto-applied when they activate their business profile.
+        if (user.role !== 'vendor') {
+            await this.userRepository.update(userId, { pendingReferralCode: normalizedCode });
+            return { success: true, message: 'Referral code saved. It will be applied when you activate your business account.' };
+        }
+
         // Create the referral record
         const referral = this.referralRepository.create({
             affiliateId: affiliate.id,
             referredUserId: userId,
-            type: 'signup' as any,
-            status: 'pending' as any,
+            type: ReferralType.SIGNUP,
+            status: ReferralStatus.PENDING,
         });
 
         await this.referralRepository.save(referral);
 
         return { success: true, message: 'Referral code applied successfully' };
+    }
+
+    async trackClick(userId: string, code: string) {
+        const normalizedCode = this.normalizeReferralCode(code);
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { referralCode: ILike(normalizedCode) },
+            relations: ['user'],
+        });
+
+        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor') {
+            throw new NotFoundException('Invalid referral code');
+        }
+
+        if (affiliate.user.id === userId) {
+            throw new BadRequestException('You cannot refer yourself');
+        }
+
+        const existing = await this.referralRepository.findOne({
+            where: { referredUserId: userId },
+        });
+        if (existing) {
+            return { success: true, message: 'Referral already exists' };
+        }
+
+        if (user.role === 'vendor') {
+            return this.applyReferralCode(userId, normalizedCode);
+        }
+
+        await this.userRepository.update(userId, { pendingReferralCode: normalizedCode });
+        return { success: true, message: 'Referral click tracked successfully' };
     }
 
     // --- Payout Logic ---

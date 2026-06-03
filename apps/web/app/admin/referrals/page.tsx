@@ -43,7 +43,7 @@ export default function AdminReferralsPage() {
     }, []);
 
     const handleActivate = async (id: string) => {
-        if (!confirm('Are you sure you want to manually activate this referral and grant the 30-day extension to the referrer?')) return;
+        if (!confirm('Are you sure you want to manually activate this referral and grant the extension to the referrer?')) return;
         
         setActionId(id);
         try {

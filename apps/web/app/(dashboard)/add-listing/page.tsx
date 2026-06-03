@@ -13,7 +13,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import Link from 'next/link';
 
-import { tryDetectDeviceLocation, reverseGeocodeFromCoords, sortAndDedupeCities } from '../../../lib/location-detect';
 import { DEFAULT_DIAL_CODES } from '../../../lib/phone-codes';
 
 // New Architecture Imports
@@ -56,6 +55,36 @@ const DraggablePinMap = dynamic(() => import('../../../components/DraggablePinMa
 const DIAL_CODES = DEFAULT_DIAL_CODES;
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
+
+const normalizeOptionalUrl = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+};
+
+const toE164 = (phoneCode: string, phoneNumber: string) => {
+    const code = (phoneCode || '').trim();
+    const local = (phoneNumber || '').replace(/[^\d]/g, '');
+    if (!code || !local) return '';
+    return `${code}${local}`.replace(/\s+/g, '');
+};
+
+const buildBusinessHoursPayload = (businessHours: any[]) => {
+    if (!Array.isArray(businessHours)) return undefined;
+
+    const hours = businessHours
+        .filter((entry) => entry && typeof entry === 'object')
+        .map((entry) => ({
+            dayOfWeek: String(entry.dayOfWeek || entry.day || '').toLowerCase(),
+            isOpen: entry.isOpen !== false,
+            openTime: entry.openTime || entry.open || undefined,
+            closeTime: entry.closeTime || entry.close || undefined,
+        }))
+        .filter((entry) => entry.dayOfWeek);
+
+    return hours.length ? hours : undefined;
+};
 
 export default function AddListingPage() {
     const { user } = useAuth();
@@ -175,13 +204,52 @@ export default function AddListingPage() {
         }
 
         setLoading(true);
+        setError(null);
         const rawData = formDataRef.current;
+        const phone = toE164(rawData.phoneCode, rawData.phoneNumber);
+        const whatsapp = rawData.whatsapp ? toE164(rawData.phoneCode, rawData.whatsapp) : undefined;
+        const yearEstablished = rawData.yearEstablished.trim()
+            ? Number.parseInt(rawData.yearEstablished, 10)
+            : undefined;
+        const businessHours = buildBusinessHoursPayload(rawData.businessHours);
+        const website = normalizeOptionalUrl(rawData.website);
+        const logoUrl = normalizeOptionalUrl(rawData.logoUrl);
+        const coverImageUrl = normalizeOptionalUrl(rawData.coverImageUrl);
+        const images = Array.isArray(rawData.images) && rawData.images.length ? rawData.images : undefined;
+        const faqs = Array.isArray(rawData.faqs) && rawData.faqs.length ? rawData.faqs : undefined;
+        const subCategoryIds = Array.isArray(rawData.subCategoryIds) && rawData.subCategoryIds.length
+            ? rawData.subCategoryIds
+            : undefined;
+
         const submissionData = {
-            ...rawData,
-            phone: `${rawData.phoneCode}${rawData.phoneNumber}`.replace(/\s+/g, ''),
+            title: rawData.title.trim(),
+            categoryId: rawData.categoryId || undefined,
+            subCategoryIds,
+            description: rawData.description.trim(),
+            shortDescription: rawData.shortDescription.trim() || undefined,
+            phone,
+            whatsapp,
+            website,
+            address: rawData.address.trim(),
+            addressLine2: rawData.addressLine2.trim() || undefined,
+            city: rawData.city.trim(),
+            state: rawData.state.trim(),
+            country: rawData.country.trim() || undefined,
+            pincode: rawData.pincode.trim() || undefined,
+            latitude: Number.isFinite(rawData.latitude) ? rawData.latitude : undefined,
+            longitude: Number.isFinite(rawData.longitude) ? rawData.longitude : undefined,
+            logoUrl,
+            coverImageUrl,
+            images,
+            yearEstablished: Number.isInteger(yearEstablished as number) ? yearEstablished : undefined,
+            employeeCount: rawData.employeeCount || undefined,
+            businessHours,
+            metaKeywords: Array.isArray(rawData.searchKeywords) && rawData.searchKeywords.length
+                ? rawData.searchKeywords.join(', ')
+                : undefined,
+            faqs,
             legalConsentAccepted: true,
             legalConsentAcceptedAt: new Date().toISOString(),
-            status: 'pending_geocode', // Let BullMQ handle it
         };
 
         try {

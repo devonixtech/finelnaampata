@@ -12,7 +12,7 @@ import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../notifications/ws-jwt.guard';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './dto/chat.dto';
-import { DEFAULT_FRONTEND_URL, parsePublicOrigins } from '../../common/utils/public-url.util';
+import { DEFAULT_FRONTEND_URL, isImplicitlyAllowedFrontendOrigin, parsePublicOrigins } from '../../common/utils/public-url.util';
 
 const allowedOrigins = parsePublicOrigins(
     process.env.FRONTEND_URL,
@@ -25,7 +25,7 @@ const allowedOrigins = parsePublicOrigins(
         origin: (origin: string, callback: any) => {
             const configuredOrigins = allowedOrigins.length > 0 ? allowedOrigins : [DEFAULT_FRONTEND_URL];
 
-            if (!origin || configuredOrigins.includes(origin) || (origin && (origin.endsWith('.netlify.app') || origin.endsWith('.railway.app')))) {
+            if (!origin || configuredOrigins.includes(origin) || isImplicitlyAllowedFrontendOrigin(origin)) {
                 return callback(null, true);
             }
             console.warn(`❌ [CHAT-CORS-BLOCKED] Origin: ${origin}`);

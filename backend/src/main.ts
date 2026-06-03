@@ -6,7 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import * as compression from 'compression';
 import { fixProductionSchema } from './database/schema-fixer';
-import { getFrontendOrigins } from './common/utils/public-url.util';
+import { getFrontendOrigins, isImplicitlyAllowedFrontendOrigin } from './common/utils/public-url.util';
 
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
@@ -72,9 +72,7 @@ async function bootstrap() {
             
             const cleanOrigin = origin.replace(/\/$/, '');
             
-            if (finalAllowed.includes(cleanOrigin) || 
-                cleanOrigin.endsWith('.netlify.app') || 
-                cleanOrigin.endsWith('.up.railway.app')) {
+            if (finalAllowed.includes(cleanOrigin) || isImplicitlyAllowedFrontendOrigin(cleanOrigin)) {
                 return callback(null, true);
             }
 

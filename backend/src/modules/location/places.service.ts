@@ -1,5 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GeocoderService } from './geocoder.service';
 
 export type PlaceAutocompleteItem = {
     placeId: string;
@@ -22,7 +23,10 @@ export type PlaceDetailsResult = {
 export class PlacesService {
     private readonly logger = new Logger(PlacesService.name);
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly geocoderService: GeocoderService,
+    ) {}
 
     sanitizePlaceText(value?: string | null): string {
         return (value || '').trim();
@@ -83,86 +87,24 @@ export class PlacesService {
         }));
     }
 
-    async getPlaceDetails(
-        placeId: string,
+    async resolveSelectedAddress(
+        description: string,
         sessionToken: string,
     ): Promise<PlaceDetailsResult | null> {
-        const apiKey = this.getApiKey();
-        if (!apiKey) return null;
-
-        const params = new URLSearchParams({
-            place_id: placeId,
-            sessiontoken: sessionToken,
-            key: apiKey,
-            fields: 'place_id,formatted_address,geometry,address_component',
-        });
-
-        const url = `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`;
-        const response = await fetch(url);
-        if (!response.ok) return null;
-
-        const data = await response.json();
-        if (data.status !== 'OK' || !data.result) return null;
-
-        const result = data.result;
-        const location = result.geometry?.location;
-        if (!location) return null;
-
-        const parsed = this.parseAddressComponents(result.address_components || []);
+        void sessionToken;
+        const resolved = await this.geocoderService.geocodeAddress(description);
+        if (!resolved) return null;
 
         return {
-            placeId: String(result.place_id || placeId),
-            formattedAddress: String(result.formatted_address || ''),
-            latitude: Number(location.lat),
-            longitude: Number(location.lng),
-            city: parsed.city,
-            state: parsed.state,
-            postalCode: parsed.postalCode,
-            country: parsed.country,
-            streetAddress: parsed.streetAddress,
-        };
-    }
-
-    private parseAddressComponents(components: any[]): {
-        city?: string;
-        state?: string;
-        postalCode?: string;
-        country?: string;
-        streetAddress?: string;
-    } {
-        let city = '';
-        let state = '';
-        let postalCode = '';
-        let country = '';
-        const streetParts: string[] = [];
-
-        for (const component of components) {
-            const types: string[] = component.types || [];
-            const longName = String(component.long_name || '');
-
-            if (types.includes('street_number') || types.includes('route')) {
-                streetParts.push(longName);
-            } else if (types.includes('locality')) {
-                city = longName;
-            } else if (types.includes('postal_town') && !city) {
-                city = longName;
-            } else if (types.includes('administrative_area_level_2') && !city) {
-                city = longName;
-            } else if (types.includes('administrative_area_level_1')) {
-                state = longName;
-            } else if (types.includes('postal_code')) {
-                postalCode = longName;
-            } else if (types.includes('country')) {
-                country = longName;
-            }
-        }
-
-        return {
-            city: city || undefined,
-            state: state || undefined,
-            postalCode: postalCode || undefined,
-            country: country || undefined,
-            streetAddress: streetParts.length ? streetParts.join(' ') : undefined,
+            placeId: this.sanitizePlaceText(description),
+            formattedAddress: resolved.formattedAddress || this.sanitizePlaceText(description),
+            latitude: resolved.lat,
+            longitude: resolved.lng,
+            city: resolved.city,
+            state: resolved.state,
+            postalCode: resolved.postalCode,
+            country: resolved.country,
+            streetAddress: resolved.streetAddress,
         };
     }
 }

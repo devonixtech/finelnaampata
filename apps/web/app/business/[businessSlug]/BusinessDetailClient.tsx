@@ -208,12 +208,17 @@ export default function BusinessDetailClient({
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [qaLoading, setQaLoading] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [showMapEmbed, setShowMapEmbed] = useState(false);
 
 
   const mapEmbedUrl = useMemo(
     () => (business ? getGoogleMapEmbedUrl(business) : null),
     [business],
   );
+  const openInGoogleMapsUrl = useMemo(() => {
+    if (!business?.latitude || !business?.longitude) return null;
+    return `https://www.google.com/maps?q=${business.latitude},${business.longitude}`;
+  }, [business]);
 
   useEffect(() => {
     const loadBusiness = async () => {
@@ -1049,8 +1054,30 @@ export default function BusinessDetailClient({
                             </div>
                             Location & Directions
                           </h3>
+                          <div className="flex flex-wrap gap-3">
+                            {mapEmbedUrl && !showMapEmbed && (
+                              <button
+                                type="button"
+                                onClick={() => setShowMapEmbed(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                              >
+                                <Navigation className="w-4 h-4" />
+                                View On Map
+                              </button>
+                            )}
+                            {openInGoogleMapsUrl && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(openInGoogleMapsUrl, "_blank")}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest hover:bg-blue-100 transition-colors"
+                              >
+                                <MapPin className="w-4 h-4" />
+                                Open In Google Maps
+                              </button>
+                            )}
+                          </div>
                           <div className="relative h-[400px] rounded-[20px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 bg-slate-50">
-                            {mapEmbedUrl ? (
+                            {mapEmbedUrl && showMapEmbed ? (
                               <iframe
                                 title="Business location map"
                                 src={mapEmbedUrl}
@@ -1062,10 +1089,22 @@ export default function BusinessDetailClient({
                             ) : (
                               <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
                                 <MapPin className="w-10 h-10 text-slate-300 mb-3" />
-                                <p className="font-bold text-slate-900">Map preview</p>
+                                <p className="font-bold text-slate-900">
+                                  {mapEmbedUrl ? "Map preview ready" : "Map preview"}
+                                </p>
                                 <p className="text-sm text-slate-500 mt-1 max-w-xs">
                                   {business.address}, {business.city}
                                 </p>
+                                {mapEmbedUrl && !showMapEmbed && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowMapEmbed(true)}
+                                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-colors"
+                                  >
+                                    <Navigation className="w-4 h-4" />
+                                    Load Map
+                                  </button>
+                                )}
                               </div>
                             )}
 
@@ -1084,15 +1123,10 @@ export default function BusinessDetailClient({
                                     {business.pincode}
                                   </p>
                                   <button
-                                    onClick={() =>
-                                      window.open(
-                                        `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`,
-                                        "_blank",
-                                      )
-                                    }
+                                    onClick={() => openInGoogleMapsUrl && window.open(openInGoogleMapsUrl, "_blank")}
                                     className="mt-2 md:mt-3 flex items-center gap-2 text-blue-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:text-blue-700 transition-colors"
                                   >
-                                    Get Directions{" "}
+                                    Open In Google Maps{" "}
                                     <ChevronRight className="w-3 h-3" />
                                   </button>
                                 </div>

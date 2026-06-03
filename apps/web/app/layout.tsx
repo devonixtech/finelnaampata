@@ -4,6 +4,7 @@ import { SocketProvider } from "../context/SocketContext";
 import { Toaster } from 'react-hot-toast';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import "leaflet/dist/leaflet.css";
 import { PRODUCTION_SITE_URL } from "../lib/runtime-url";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 

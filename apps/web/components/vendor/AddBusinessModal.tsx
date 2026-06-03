@@ -777,6 +777,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                         />
                                                         <datalist id="city-list">
                                                             {cities
+                                                                .filter(c => !formData.country || (c.country || '').toLowerCase() === formData.country.toLowerCase())
                                                                 .sort((a, b) => a.name.localeCompare(b.name))
                                                                 .map(city => (<option key={city.id} value={city.name} />))}
                                                         </datalist>

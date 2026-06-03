@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOptions => {
     const dbUrl = process.env.DATABASE_URL || configService.get<string>('DATABASE_URL');
+    const shouldSynchronize = configService.get<string>('DB_SYNCHRONIZE') === 'true';
     
     console.log('--- DEBUG: TYPEORM CONFIG START ---');
     
@@ -11,7 +12,7 @@ export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOption
             type: 'postgres',
             url: dbUrl,
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: shouldSynchronize,
             ssl: { rejectUnauthorized: false },
             logging: true,
         };
@@ -25,7 +26,7 @@ export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOption
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'railway'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: shouldSynchronize,
         ssl: configService.get<string>('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
         logging: true,
     };

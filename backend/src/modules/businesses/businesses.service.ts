@@ -5,7 +5,6 @@ import {
     BadRequestException,
     ConflictException,
     OnModuleInit,
-    Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not, Brackets, Like, MoreThan } from 'typeorm';
@@ -34,9 +33,6 @@ import { SearchService } from '../search/search.service';
 import { DemandService } from '../demand/demand.service';
 import { GeocodingQueueService } from './geocoding-queue.service';
 import { AffiliateService } from '../affiliate/affiliate.service';
-import { SearchLocationService } from '../location/search-location.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 
 @Injectable()
 export class BusinessesService implements OnModuleInit {
@@ -65,11 +61,8 @@ export class BusinessesService implements OnModuleInit {
         private searchService: SearchService,
         private demandService: DemandService,
         private geocodingQueueService: GeocodingQueueService,
-        private searchLocationService: SearchLocationService,
         private addressConfigService: AddressConfigService,
         private affiliateService: AffiliateService,
-        @Optional() @InjectQueue('search-cache-invalidation')
-        private searchCacheInvalidationQueue?: Queue,
     ) { }
 
     private async validatePostalForCountry(country?: string, pincode?: string | null): Promise<void> {
@@ -221,6 +214,35 @@ export class BusinessesService implements OnModuleInit {
             throw new ForbiddenException('Photo albums are available on paid plans only. Please upgrade your subscription.');
         }
     }
+
+    private hasCoordinates(input: {
+        latitude?: string | number | null;
+        longitude?: string | number | null;
+    }) {
+        return (
+            input.latitude !== undefined &&
+            input.latitude !== null &&
+            input.latitude !== '' &&
+            input.longitude !== undefined &&
+            input.longitude !== null &&
+            input.longitude !== ''
+        );
+    }
+
+    private markApproved(listing: Listing, approvedAt?: Date) {
+        const approvedOn = approvedAt || listing.approvedAt || new Date();
+        listing.status = BusinessStatus.APPROVED;
+        listing.approvedAt = approvedOn;
+        listing.rejectedAt = null as any;
+        listing.rejectionReason = null as any;
+        listing.recentUntil = listing.recentUntil || new Date(approvedOn.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    private markPendingGeocode(listing: Listing) {
+        listing.status = BusinessStatus.PENDING_GEOCODE;
+        listing.approvedAt = null as any;
+        listing.recentUntil = null as any;
+    }
     private isPostgisAvailable = false;
 
     async onModuleInit() {
@@ -233,6 +255,17 @@ export class BusinessesService implements OnModuleInit {
             this.isPostgisAvailable = false;
         }
 
+        // Keep TypeORM's runtime column mapping aligned with the actual database capability.
+        // On databases without PostGIS, persisting a geography column causes TypeORM to emit
+        // ST_SetSRID(... ) expressions that fail at runtime. We store the same POINT string in
+        // a plain text column instead and rely on lat/lng + earthdistance fallbacks for queries.
+        if (!this.isPostgisAvailable) {
+            const locationColumn = this.listingRepository.metadata.findColumnWithPropertyName('location');
+            if (locationColumn) {
+                locationColumn.type = 'text' as any;
+            }
+        }
+
         // Backfill logic for recent_until and performance indexes
         try {
             const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
@@ -240,6 +273,24 @@ export class BusinessesService implements OnModuleInit {
             await this.listingRepository.query(`
                 CREATE EXTENSION IF NOT EXISTS cube;
                 CREATE EXTENSION IF NOT EXISTS earthdistance;
+
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'businesses_status_enum') THEN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_enum e
+                            JOIN pg_type t ON t.oid = e.enumtypid
+                            WHERE t.typname = 'businesses_status_enum' AND e.enumlabel = 'pending_geocode'
+                        ) THEN
+                            ALTER TYPE businesses_status_enum ADD VALUE 'pending_geocode';
+                        END IF;
+                    END IF;
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                    WHEN others THEN NULL;
+                END
+                $$;
 
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS recent_until TIMESTAMP NULL;
                 UPDATE businesses 
@@ -362,21 +413,19 @@ export class BusinessesService implements OnModuleInit {
         ]);
         
         // --- Limit Enforcement ---
-        // Get limits from features. Priority: ActivePlan (New Engine) -> Subscription (Old Engine) -> Default (Free: 1)
-        const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxListings: 1, maxSubCategories: 0 };
-        const maxListings = planFeatures.maxListings || 1;
-        const maxSubCategories = planFeatures.maxSubCategories || 0;
-        
-        // Count existing listings
+        // One listing per business (hard cap, regardless of plan)
         const existingCount = await this.listingRepository.count({
             where: { vendorId: vendor.id }
         });
         
-        if (existingCount >= maxListings && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
-            throw new BadRequestException(`Business listing limit reached (${maxListings}). Please upgrade your plan to add more businesses.`);
+        if (existingCount >= 1 && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            throw new BadRequestException('Each business account is limited to one listing. You can edit your existing listing instead.');
         }
 
-        // Check subcategory limits
+        // Check subcategory limits (paid plan: up to 3 subcategories)
+        const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxSubCategories: 0 };
+        const maxSubCategories = planFeatures.maxSubCategories || 0;
+        
         if (createBusinessDto.subCategoryIds?.length) {
             if (createBusinessDto.subCategoryIds.length > maxSubCategories && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
                 throw new BadRequestException(`Your current plan allows a maximum of ${maxSubCategories} sub-categories. Please upgrade to add more.`);
@@ -391,19 +440,19 @@ export class BusinessesService implements OnModuleInit {
         const hasFeaturedSub = (activeSub?.plan?.isFeatured) || ((activeNewPlan?.plan?.features as any)?.isFeatured);
         const hasBoostedSub = !!referralPlan || ((activeNewPlan?.plan?.features as any)?.top_ranking);
 
-        // Auto-approve new listings — no manual admin queue
         const now = new Date();
+        const hasCoordinates = this.hasCoordinates(createBusinessDto);
         const listing = this.listingRepository.create({
             ...createBusinessDto,
             offerExpiresAt: sanitizedExpiresAt,
             vendorId: vendor.id,
             slug,
-            status: BusinessStatus.APPROVED,
+            status: hasCoordinates ? BusinessStatus.APPROVED : BusinessStatus.PENDING_GEOCODE,
             isVerified: false,
             isFeatured: hasFeaturedSub || !!referralPlan,
             isSponsored: hasBoostedSub,
-            approvedAt: now,
-            recentUntil: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days recent window
+            approvedAt: hasCoordinates ? now : (null as any),
+            recentUntil: hasCoordinates ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) : (null as any),
             location: createBusinessDto.latitude && createBusinessDto.longitude ? `POINT(${createBusinessDto.longitude} ${createBusinessDto.latitude})` : null,
             subcategories: createBusinessDto.subCategoryIds?.length ? createBusinessDto.subCategoryIds.map(id => ({ id } as any)) : [],
         });
@@ -457,12 +506,6 @@ export class BusinessesService implements OnModuleInit {
 
         // Index in Elasticsearch (async, don't wait to complete to return response)
         this.searchService.indexBusiness(result).catch(err => console.error('ES Index Error:', err));
-
-        // Queue cache invalidation
-        this.searchCacheInvalidationQueue.add('invalidate', { 
-            city: result.city, 
-            categorySlug: result.category?.slug 
-        }).catch(err => console.error('Cache invalidation queue error:', err));
 
         return result;
     }
@@ -1048,20 +1091,18 @@ export class BusinessesService implements OnModuleInit {
 
         if (listing.latitude && listing.longitude) {
             listing.location = `POINT(${listing.longitude} ${listing.latitude})`;
+            if (listing.status === BusinessStatus.PENDING_GEOCODE) {
+                this.markApproved(listing);
+            }
         } else {
             listing.location = null as any;
+            if (listing.address && listing.status === BusinessStatus.APPROVED) {
+                this.markPendingGeocode(listing);
+            }
         }
 
         await this.listingRepository.save(listing);
         log('Listing saved to database');
-
-        // Invalidate cache via BullMQ worker
-        if (listing.city) {
-            this.searchCacheInvalidationQueue.add('invalidate', {
-                city: listing.city,
-                categorySlug: listing.category?.slug,
-            }).catch(err => console.error('Cache invalidation queue error:', err));
-        }
 
         if ((!listing.latitude || !listing.longitude) && listing.address) {
             await this.geocodingQueueService.enqueue({
@@ -1102,14 +1143,6 @@ export class BusinessesService implements OnModuleInit {
 
         // Remove from Elasticsearch
         this.searchService.remove(id).catch(err => console.error('ES Remove Error:', err));
-
-        // Queue cache invalidation
-        if (listing.city) {
-            this.searchCacheInvalidationQueue.add('invalidate', {
-                city: listing.city,
-                categorySlug: listing.category?.slug,
-            }).catch(err => console.error('Cache invalidation queue error:', err));
-        }
     }
 
     /**

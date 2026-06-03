@@ -4,6 +4,7 @@ export interface JwtPayload {
     sub: string; // User ID
     email: string;
     role: UserRole;
+    jti?: string; // Unique token ID for session tracking
     iat?: number;
     exp?: number;
 }

@@ -361,7 +361,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
                         <FileText className="w-2.5 h-2.5 text-blue-500" />
                     </div>
                     <span className="font-black text-slate-700 text-sm">
-                        {plan.maxListings >= 999 ? 'Unlimited Listings' : `${plan.maxListings} Listing${plan.maxListings !== 1 ? 's' : ''}`}
+                        {(plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0) >= 999 ? 'Unlimited Listings' : `${plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0} Listing${(plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0) !== 1 ? 's' : ''}`}
                     </span>
                 </div>
             </div>
@@ -409,7 +409,7 @@ export default function BusinessSubscriptionPage() {
         setLoadingPage(true);
         try {
             const [p, s, inv] = await Promise.all([
-                api.subscriptions.getPricingPlans('subscription'),
+                api.subscriptions.getPlans(),
                 api.subscriptions.getActive().catch(() => null),
                 api.subscriptions.getMyInvoices().catch(() => []),
             ]);
@@ -671,7 +671,14 @@ export default function BusinessSubscriptionPage() {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                                     {plans
-                                        .filter(plan => plan.planType === 'free' || plan.billingCycle?.toLowerCase() === billingCycleFilter.toLowerCase())
+                                        .filter(plan => {
+                                            if (plan.planType === 'free') return true;
+                                            return plan.billingCycle?.toLowerCase() === billingCycleFilter.toLowerCase();
+                                        })
+                                        .filter(plan => {
+                                            if (plan.planType === 'free' && plan.billingCycle?.toLowerCase() === 'yearly') return false;
+                                            return true;
+                                        })
                                         .map(plan => (
                                         <PlanCard
                                             key={plan.id}

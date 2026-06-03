@@ -78,7 +78,7 @@ export default function AddressPlacesAutocomplete({
         setLoading(true);
         setError('');
         try {
-            const details = await api.location.placeDetails(placeId, sessionRef.current);
+            const details = await api.location.resolvePlace(description, sessionRef.current);
             resetPlacesSessionToken(sessionRef);
             if (details) {
                 onPlaceSelected({

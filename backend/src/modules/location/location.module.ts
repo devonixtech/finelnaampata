@@ -7,7 +7,6 @@ import { PlacesService } from './places.service';
 import { MapProviderService } from './map-provider.service';
 import { SearchLocationService } from './search-location.service';
 import { LocationController } from './location.controller';
-import { GeocodingProcessor } from './geocoding.processor';
 
 @Module({
     imports: [
@@ -19,7 +18,7 @@ import { GeocodingProcessor } from './geocoding.processor';
         ] : []),
     ],
     controllers: [LocationController],
-    providers: [GeocoderService, PlacesService, MapProviderService, SearchLocationService, ...(process.env.REDIS_ENABLED === 'true' ? [GeocodingProcessor] : [])],
+    providers: [GeocoderService, PlacesService, MapProviderService, SearchLocationService],
     exports: [GeocoderService, PlacesService, MapProviderService, SearchLocationService, ...(process.env.REDIS_ENABLED === 'true' ? [BullModule] : [])],
 })
 export class LocationModule {}

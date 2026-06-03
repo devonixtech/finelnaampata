@@ -134,8 +134,6 @@ export default function HomePage() {
           api.categories.getPopular(8),
           api.listings.getFeatured(1, 12),
           api.cities.getPopular(),
-          api.categories.getAll(),
-          api.cities.getAll(),
           Promise.allSettled([
             api.deals.search({ limit: 10 }),
             api.events.search({ limit: 10 }),
@@ -149,12 +147,10 @@ export default function HomePage() {
         const cats = getValue(results[0], []);
         const featured = getValue(results[1], { data: [], meta: {} });
         const cities = getValue(results[2], []);
-        const allCats = getValue(results[3], []);
-        const allCities = getValue(results[4], []);
-        const offerBundles = getValue(results[5], []);
+        const offerBundles = getValue(results[3], []);
         const dealsData = offerBundles[0]?.status === 'fulfilled' ? offerBundles[0].value : { data: [] };
         const eventsData = offerBundles[1]?.status === 'fulfilled' ? offerBundles[1].value : { data: [] };
-        const reviewsData = getValue(results[6], { data: [] });
+        const reviewsData = getValue(results[4], { data: [] });
 
         setCategories(cats || []);
         setFeaturedBusinesses(featured?.data || []);
@@ -162,8 +158,8 @@ export default function HomePage() {
           setPaginationMetadata((prev) => ({ ...prev, ...featured.meta }));
         }
         setPopularCities(cities || []);
-        setCategoriesList(allCats || []);
-        setCitiesList(allCities || []);
+        setCategoriesList(cats || []);
+        setCitiesList(cities || []);
         setStatsComments(reviewsData?.data || []);
         setLatestOffers(
           [...(dealsData?.data || []).map((d: any) => ({ ...d, type: 'offer' as const })),
@@ -177,10 +173,34 @@ export default function HomePage() {
         setLoading(false);
       }
     };
+
+    const loadSearchMetadata = async () => {
+      try {
+        const metadataResults = await Promise.allSettled([
+          api.categories.getAll({ timeout: 15000 }),
+          api.cities.getAll({ timeout: 15000 }),
+        ]);
+
+        const allCats = metadataResults[0].status === "fulfilled" ? metadataResults[0].value : [];
+        const allCities = metadataResults[1].status === "fulfilled" ? metadataResults[1].value : [];
+
+        if (allCats.length > 0) {
+          setCategoriesList(allCats);
+        }
+
+        if (allCities.length > 0) {
+          setCitiesList(allCities);
+        }
+      } catch (err) {
+        console.warn("Search metadata loaded with fallbacks only:", err);
+      }
+    };
+
     loadInitialData().then(() => {
       // Mark initial mount as done so the page-change effect can run freely
       isInitialMount.current = false;
     });
+    loadSearchMetadata();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch only businesses when pagination page changes
@@ -346,7 +366,7 @@ export default function HomePage() {
                 <div className="flex flex-col items-start text-left flex-1">
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Your Area</span>
                   <CitySearchSelect
-                    cities={citiesList}
+                    cities={citiesList.length > 0 ? citiesList : popularCities}
                     value={selectedCity}
                     onChange={setSelectedCity}
                     minimal

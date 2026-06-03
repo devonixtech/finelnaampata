@@ -516,10 +516,13 @@ export class AuthService {
      * Generate JWT tokens
      */
     private async generateTokens(user: User): Promise<JwtTokens> {
+        const { v4: uuidv4 } = await import('uuid');
+        const jti = uuidv4();
         const payload: JwtPayload = {
             sub: user.id,
             email: user.email,
             role: user.role,
+            jti,
         };
 
         const [accessToken, refreshToken] = await Promise.all([
@@ -527,7 +530,7 @@ export class AuthService {
                 secret: this.configService.get<string>('JWT_SECRET') || 'your_super_secret_jwt_key_that_is_long_enough',
                 expiresIn: (this.configService.get<string>('JWT_EXPIRATION') || '24h') as any,
             }),
-            this.jwtService.signAsync(payload as any, {
+            this.jwtService.signAsync({ ...payload, jti } as any, {
                 secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'your_super_secret_jwt_refresh_key_that_is_long_enough',
                 expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d') as any,
             }),

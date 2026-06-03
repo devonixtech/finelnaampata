@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { StepProps } from '../types';
-import { Loader2, MapPin, ImagePlus, Plus, Trash2, HelpCircle } from 'lucide-react';
+import { Loader2, MapPin, ImagePlus, Plus, Trash2, HelpCircle, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddressPlacesAutocomplete from '../../../../components/AddressPlacesAutocomplete';
 import { FeatureGate } from '../../../../components/business/FeatureGate';
+import { useAddressConfig } from '../../../../hooks/useAddressConfig';
+import { tryDetectDeviceLocation } from '../../../../lib/location-detect';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
@@ -11,18 +13,24 @@ const labelClass = "block text-xs font-black uppercase tracking-widest text-slat
 const DraggablePinMap = dynamic(() => import('../../../../components/DraggablePinMap'), { ssr: false });
 
 export const Step7Address = ({ formData, setFormData }: StepProps) => {
+    const { config: addressConfig } = useAddressConfig(formData.country || null);
     const handlePlaceSelected = (place: any) => {
         setFormData(prev => ({
             ...prev,
-            address: place.address || prev.address,
+            address: place.streetAddress || place.formattedAddress || prev.address,
             city: place.city || prev.city,
             state: place.state || prev.state,
             country: place.country || prev.country,
-            pincode: place.pincode || prev.pincode,
-            latitude: place.lat || prev.latitude,
-            longitude: place.lng || prev.longitude
+            pincode: place.postalCode || prev.pincode,
+            latitude: place.latitude || prev.latitude,
+            longitude: place.longitude || prev.longitude
         }));
     };
+
+    const stateLabel = addressConfig?.administrativeArea?.label || 'State / Province';
+    const stateRequired = addressConfig?.administrativeArea?.required || false;
+    const postalLabel = addressConfig?.postalCode?.label || 'Postal Code';
+    const postalRequired = addressConfig?.postalCode?.required || false;
 
     return (
         <div className="space-y-6">
@@ -39,7 +47,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClass}>City</label>
+                    <label className={labelClass}>City *</label>
                     <input 
                         type="text" 
                         value={formData.city} 
@@ -49,23 +57,25 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     />
                 </div>
                 <div>
-                    <label className={labelClass}>State / Province</label>
+                    <label className={labelClass}>{stateLabel}{stateRequired ? ' *' : ''}</label>
                     <input 
                         type="text" 
                         value={formData.state} 
                         onChange={e => setFormData(p => ({ ...p, state: e.target.value }))}
                         className={inputClass}
-                        required
+                        required={stateRequired}
                     />
                 </div>
             </div>
             <div>
-                <label className={labelClass}>Postal Code / Pincode</label>
+                <label className={labelClass}>{postalLabel}{postalRequired ? ' *' : ''}</label>
                 <input 
                     type="text" 
                     value={formData.pincode} 
                     onChange={e => setFormData(p => ({ ...p, pincode: e.target.value }))}
                     className={inputClass}
+                    required={postalRequired}
+                    placeholder={postalRequired ? '' : '(Optional)'}
                 />
             </div>
         </div>
@@ -73,10 +83,46 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
 };
 
 export const Step8Map = ({ formData, setFormData }: StepProps) => {
+    const [geoDetecting, setGeoDetecting] = useState(false);
+    const [geoError, setGeoError] = useState('');
+
+    const detectMyLocation = async () => {
+        setGeoDetecting(true);
+        setGeoError('');
+        try {
+            const result = await tryDetectDeviceLocation();
+            if (!result.ok) {
+                setGeoError(result.message);
+                return;
+            }
+
+            setFormData((prev) => ({
+                ...prev,
+                latitude: result.coords.latitude,
+                longitude: result.coords.longitude,
+            }));
+        } finally {
+            setGeoDetecting(false);
+        }
+    };
+
     return (
         <div className="space-y-4">
             <label className={labelClass}>Pinpoint Your Location</label>
             <p className="text-xs text-slate-500 mb-2">Drag the pin to your exact storefront or office entrance. This helps customers find you easily.</p>
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    onClick={detectMyLocation}
+                    disabled={geoDetecting}
+                    className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5"
+                >
+                    {geoDetecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                    Use My GPS Location
+                </button>
+                <span className="text-[11px] text-slate-500 font-medium">We will ask for browser permission and set the pin automatically.</span>
+            </div>
+            {geoError && <p className="text-xs font-bold text-amber-600">{geoError}</p>}
             <div className="h-96 w-full rounded-2xl overflow-hidden border border-slate-200">
                 <DraggablePinMap
                     latitude={formData.latitude || 30.3753}
@@ -90,16 +136,17 @@ export const Step8Map = ({ formData, setFormData }: StepProps) => {
 
 export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
     const [input, setInput] = useState('');
+    const safeKeywords = Array.isArray(formData.searchKeywords) ? formData.searchKeywords : [];
 
     const addKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
             const tag = input.trim().toLowerCase().replace(/[,]+$/, '');
-            if (tag && !formData.searchKeywords.includes(tag) && formData.searchKeywords.length < 20) {
+            if (tag && !safeKeywords.includes(tag) && safeKeywords.length < 20) {
                 setFormData(p => ({
                     ...p, 
-                    searchKeywords: [...p.searchKeywords, tag],
-                    metaKeywords: [...p.searchKeywords, tag].join(', ')
+                    searchKeywords: [...safeKeywords, tag],
+                    metaKeywords: [...safeKeywords, tag].join(', ')
                 }));
             }
             setInput('');
@@ -127,7 +174,7 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
                 className={inputClass}
             />
             <div className="flex flex-wrap gap-2 mt-4">
-                {formData.searchKeywords.map(kw => (
+                {safeKeywords.map(kw => (
                     <span key={kw} className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full text-xs font-bold border border-orange-100 flex items-center gap-2">
                         {kw}
                         <button type="button" onClick={() => removeKeyword(kw)} className="text-orange-400 hover:text-orange-600">
@@ -144,10 +191,11 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
 export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
     const [q, setQ] = useState('');
     const [a, setA] = useState('');
+    const safeFaqs = Array.isArray(formData.faqs) ? formData.faqs : [];
 
     const addFaq = () => {
         if (q.trim() && a.trim()) {
-            setFormData(p => ({ ...p, faqs: [...p.faqs, { question: q, answer: a }] }));
+            setFormData(p => ({ ...p, faqs: [...(Array.isArray(p.faqs) ? p.faqs : []), { question: q, answer: a }] }));
             setQ('');
             setA('');
         }
@@ -177,7 +225,7 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
             </div>
 
             <div className="space-y-3">
-                {formData.faqs.map((faq, idx) => (
+                {safeFaqs.map((faq, idx) => (
                     <div key={idx} className="p-4 border border-slate-200 rounded-xl relative group pr-12">
                         <h4 className="font-bold text-sm text-slate-900">{faq.question}</h4>
                         <p className="text-sm text-slate-600 mt-1">{faq.answer}</p>
@@ -195,5 +243,4 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
         </FeatureGate>
     );
 };
-import { X } from 'lucide-react';
 

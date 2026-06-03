@@ -30,6 +30,21 @@ function RegisterForm() {
     const { register, googleLogin } = useAuth();
     const searchParams = useSearchParams();
 
+    // Real-time validation
+    const passwordValidation = {
+        minLength: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password),
+    };
+    const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+    const isEmailValid = email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPhoneValid = phone.length === 0 || (phone.length >= 7 && phone.length <= 15);
+    const fullNameValid = fullName.trim().length >= 2;
+    const confirmPasswordValid = confirmPassword.length > 0 && password === confirmPassword;
+    const isFormValid = isPasswordValid && isEmailValid && isPhoneValid && fullNameValid && confirmPasswordValid && agreedToTerms;
+
     useEffect(() => {
         const ref = searchParams.get('ref');
         if (ref) {
@@ -183,10 +198,17 @@ function RegisterForm() {
                                             className={inputClass}
                                             placeholder="3001234567"
                                             value={phone}
-                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                                            maxLength={15}
+                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 15))}
                                         />
                                     </div>
                                 </div>
+                                {phone.length > 0 && phone.length < 7 && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Phone number must be at least 7 digits</p>
+                                )}
+                                {phone.length > 15 && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Phone number cannot exceed 15 digits</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -204,6 +226,9 @@ function RegisterForm() {
                                         onChange={(e) => setEmail(e.target.value)}
                                     />
                                 </div>
+                                {email.length > 0 && !isEmailValid && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Please enter a valid email address</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -228,23 +253,21 @@ function RegisterForm() {
                                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
-                                {password && (
-                                    <div className="mt-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs font-medium text-slate-500">
-                                        <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-1">Password Strength</p>
-                                        {[
-                                            { label: 'At least 8 characters', check: password.length >= 8 },
-                                            { label: 'At least one uppercase letter', check: /[A-Z]/.test(password) },
-                                            { label: 'At least one lowercase letter', check: /[a-z]/.test(password) },
-                                            { label: 'At least one number', check: /[0-9]/.test(password) },
-                                            { label: 'At least one special character (!@#$%^&*)', check: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password) },
-                                        ].map(({ label, check }) => (
-                                            <div key={label} className="flex items-center gap-2">
-                                                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${check ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                                                <span className={check ? 'text-slate-900 font-semibold' : 'text-slate-400'}>{label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <div className="mt-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs font-medium text-slate-500">
+                                    <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-1">Password Strength</p>
+                                    {[
+                                        { label: 'At least 8 characters', check: passwordValidation.minLength },
+                                        { label: 'At least one uppercase letter', check: passwordValidation.uppercase },
+                                        { label: 'At least one lowercase letter', check: passwordValidation.lowercase },
+                                        { label: 'At least one number', check: passwordValidation.number },
+                                        { label: 'At least one special character (!@#$%^&*)', check: passwordValidation.special },
+                                    ].map(({ label, check }) => (
+                                        <div key={label} className="flex items-center gap-2">
+                                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${check ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                                            <span className={check ? 'text-slate-900 font-semibold' : 'text-slate-400'}>{label}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -315,9 +338,9 @@ function RegisterForm() {
                             </div>
 
                             <button
-                                disabled={loading}
+                                disabled={loading || !isFormValid}
                                 type="submit"
-                                className="w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 text-white shadow-lg bg-[#112D4E] hover:bg-black shadow-slate-900/10"
+                                className="w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg bg-[#112D4E] hover:bg-black shadow-slate-900/10"
                             >
                                 {loading ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -328,6 +351,15 @@ function RegisterForm() {
                                     </>
                                 )}
                             </button>
+                            {!isFormValid && !loading && (
+                                <p className="text-[10px] font-bold text-slate-400 text-center mt-2">
+                                    {!fullNameValid && 'Enter your full name'}
+                                    {fullNameValid && !isEmailValid && 'Enter a valid email'}
+                                    {fullNameValid && isEmailValid && !isPasswordValid && 'Password does not meet requirements'}
+                                    {fullNameValid && isEmailValid && isPasswordValid && !confirmPasswordValid && 'Passwords must match'}
+                                    {fullNameValid && isEmailValid && isPasswordValid && confirmPasswordValid && !agreedToTerms && 'Agree to terms to continue'}
+                                </p>
+                            )}
                         </form>
 
                         <div className="relative my-8">

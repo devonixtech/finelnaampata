@@ -21,3 +21,12 @@ export class PlaceDetailsQueryDto {
     @IsString()
     countryCode?: string;
 }
+
+export class ResolvePlaceDto {
+    @IsString()
+    @MinLength(3)
+    description: string;
+
+    @IsString()
+    sessionToken: string;
+}

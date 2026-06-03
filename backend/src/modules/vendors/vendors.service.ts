@@ -18,6 +18,7 @@ import { Lead } from '../../entities/lead.entity';
 import { SearchLog } from '../../entities/search-log.entity';
 import { Category } from '../../entities/category.entity';
 import { generateSlug, generateUniqueSlug } from '../../common/utils/slug.util';
+import { AffiliateService } from '../affiliate/affiliate.service';
 
 @Injectable()
 export class VendorsService {
@@ -36,6 +37,7 @@ export class VendorsService {
         private eventRepository: Repository<Event>,
         @InjectEntityManager()
         private readonly entityManager: EntityManager,
+        private readonly affiliateService: AffiliateService,
     ) { }
 
     private async ensureUniqueSlug(name: string, currentId?: string): Promise<string> {
@@ -57,6 +59,11 @@ export class VendorsService {
      * Register a user as a vendor
      */
     async becomeVendor(userId: string, createVendorDto: CreateVendorDto): Promise<Vendor> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
         // Check if user already has a vendor profile
         let vendor = await this.vendorRepository.findOne({ where: { userId } });
         if (vendor) {
@@ -75,6 +82,16 @@ export class VendorsService {
 
         // Update user role to VENDOR
         await this.userRepository.update(userId, { role: UserRole.VENDOR });
+
+        if (user.pendingReferralCode) {
+            try {
+                await this.affiliateService.applyReferralCode(userId, user.pendingReferralCode);
+                await this.userRepository.update(userId, { pendingReferralCode: null });
+            } catch (error: any) {
+                // Referral application should never block vendor onboarding.
+                console.warn(`[VendorsService] Pending referral apply skipped for ${userId}: ${error.message}`);
+            }
+        }
 
         return savedVendor;
     }
