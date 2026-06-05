@@ -936,6 +936,9 @@ export class SubscriptionsService implements OnModuleInit {
         const maxCategories = Number(features.maxCategories ?? 0);
         const derivedMaxSubCategories = maxCategories > 0 ? Math.max(0, maxCategories - 1) : 0;
         const isPaidMembership = (planName || '').toLowerCase() !== 'free';
+        const normalizedMaxSubCategories = Number(features.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        const paidFallbackSubCategories =
+            isPaidMembership && normalizedMaxSubCategories <= 0 && maxCategories <= 0 ? 3 : normalizedMaxSubCategories;
 
         return {
             showAnalytics: !!features.showAnalytics,
@@ -962,7 +965,7 @@ export class SubscriptionsService implements OnModuleInit {
                 isPaidMembership && Number(features.maxListings || 0) <= 1
                     ? 999
                     : Number(features.maxListings || 0),
-            maxSubCategories: Number(features.maxSubCategories ?? derivedMaxSubCategories ?? 0),
+            maxSubCategories: paidFallbackSubCategories,
             maxNamedPhoneNumbers: Number(features.maxNamedPhoneNumbers ?? features.maxAdditionalPhones ?? 0),
             showCustomerNotes:
                 features.showCustomerNotes !== undefined
@@ -987,6 +990,7 @@ export class SubscriptionsService implements OnModuleInit {
         const legacyFeatures = (result.plan?.dashboardFeatures || {}) as Record<string, any>;
         const legacyMaxCategories = Number(legacyFeatures.maxCategories ?? 0);
         const legacyDerivedMaxSubCategories = legacyMaxCategories > 0 ? Math.max(0, legacyMaxCategories - 1) : 0;
+        const legacyResolvedMaxSubCategories = Number(legacyFeatures.maxSubCategories ?? legacyDerivedMaxSubCategories ?? 0);
 
         const plan = result.plan ? {
             ...result.plan,
@@ -1029,7 +1033,10 @@ export class SubscriptionsService implements OnModuleInit {
                         legacyIsPaid && Number(legacyFeatures.maxListings ?? 0) <= 1
                             ? 999
                             : Number(legacyFeatures.maxListings ?? 0),
-                    maxSubCategories: Number(legacyFeatures.maxSubCategories ?? legacyDerivedMaxSubCategories ?? 0),
+                    maxSubCategories:
+                        legacyIsPaid && legacyResolvedMaxSubCategories <= 0 && legacyMaxCategories <= 0
+                            ? 3
+                            : legacyResolvedMaxSubCategories,
                     maxNamedPhoneNumbers: Number(legacyFeatures.maxNamedPhoneNumbers ?? legacyFeatures.maxAdditionalPhones ?? 0),
                     ...(result.plan.dashboardFeatures || {})
                 }

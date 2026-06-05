@@ -34,6 +34,7 @@ import { DemandService } from '../demand/demand.service';
 import { GeocodingQueueService } from './geocoding-queue.service';
 import { AffiliateService } from '../affiliate/affiliate.service';
 import { BusinessConsentLog } from '../../entities/business-consent-log.entity';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class BusinessesService implements OnModuleInit {
@@ -80,11 +81,16 @@ export class BusinessesService implements OnModuleInit {
         const raw = features as Record<string, any>;
         const maxCategories = Number(raw.maxCategories ?? 0);
         const derivedMaxSubCategories = maxCategories > 0 ? Math.max(0, maxCategories - 1) : 0;
+        const normalizedMaxSubCategories = Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        const paidFallbackSubCategories =
+            Number(raw.maxListings || 0) > 1 && normalizedMaxSubCategories <= 0 && maxCategories <= 0
+                ? 3
+                : normalizedMaxSubCategories;
 
         return {
             ...raw,
             maxListings: Number(raw.maxListings || 0) <= 1 ? 999 : Number(raw.maxListings || 0),
-            maxSubCategories: Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0),
+            maxSubCategories: paidFallbackSubCategories,
             maxNamedPhoneNumbers: Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0),
             showCustomerNotes:
                 raw.showCustomerNotes !== undefined
@@ -357,7 +363,7 @@ export class BusinessesService implements OnModuleInit {
             `);
             await this.listingRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
-                    id uuid PRIMARY KEY,
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id uuid NULL,
                     vendor_id uuid NOT NULL,
                     listing_id uuid NULL,
@@ -470,19 +476,25 @@ export class BusinessesService implements OnModuleInit {
             })
         ]);
         
+        const planFeaturesRaw =
+            (activeNewPlan?.plan?.features as any) ||
+            activeSub?.plan?.dashboardFeatures ||
+            { maxListings: 1, maxSubCategories: 0 };
+        const planFeatures = this.normalizeModernPlanFeatures(planFeaturesRaw);
+
         // --- Limit Enforcement ---
-        // One listing per business (hard cap, regardless of plan)
+        // Enforce listing capacity from the resolved plan instead of a hard one-listing cap.
         const existingCount = await this.listingRepository.count({
             where: { vendorId: vendor.id }
         });
-        
-        if (existingCount >= 1 && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
-            throw new BadRequestException('Each business account is limited to one listing. You can edit your existing listing instead.');
+
+        const maxListings = Math.max(1, Number(planFeatures.maxListings || 1));
+        if (existingCount >= maxListings && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            throw new BadRequestException(`Your current plan allows a maximum of ${maxListings} listing(s). Please upgrade to add more.`);
         }
 
-        // Check subcategory limits (paid plan: up to 3 subcategories)
-        const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxSubCategories: 0 };
-        const maxSubCategories = planFeatures.maxSubCategories || 0;
+        // Check subcategory limits from the resolved plan features.
+        const maxSubCategories = Number(planFeatures.maxSubCategories || 0);
         
         if (createBusinessDto.subCategoryIds?.length) {
             if (createBusinessDto.subCategoryIds.length > maxSubCategories && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
@@ -526,6 +538,7 @@ export class BusinessesService implements OnModuleInit {
 
             await this.consentLogRepository.save(
                 this.consentLogRepository.create({
+                    id: randomUUID(),
                     userId: user.id,
                     vendorId: vendor.id,
                     listingId: savedListing.id,

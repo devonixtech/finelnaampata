@@ -13,6 +13,7 @@ import { SaveAnswersDto } from './dto/save-answers.dto';
 import { DuplicateCheckDto } from './dto/duplicate-check.dto';
 import { normalizeGlobalPhone } from '../../common/utils/phone.util';
 import { BUSINESS_QUESTIONS_SEED } from './business-questions.seed';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class BusinessSetupService implements OnModuleInit {
@@ -59,7 +60,7 @@ export class BusinessSetupService implements OnModuleInit {
         try {
             await this.consentLogRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
-                    id uuid PRIMARY KEY,
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
                     user_id uuid NULL,
                     vendor_id uuid NOT NULL,
                     listing_id uuid NULL,
@@ -130,11 +131,16 @@ export class BusinessSetupService implements OnModuleInit {
         const raw = features as Record<string, any>;
         const maxCategories = Number(raw.maxCategories ?? 0);
         const derivedMaxSubCategories = maxCategories > 0 ? Math.max(0, maxCategories - 1) : 0;
+        const normalizedMaxSubCategories = Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        const paidFallbackSubCategories =
+            Number(raw.maxListings || 0) > 1 && normalizedMaxSubCategories <= 0 && maxCategories <= 0
+                ? 3
+                : normalizedMaxSubCategories;
 
         return {
             ...raw,
             maxListings: Number(raw.maxListings || 0) <= 1 ? 999 : Number(raw.maxListings || 0),
-            maxSubCategories: Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0),
+            maxSubCategories: paidFallbackSubCategories,
             maxNamedPhoneNumbers: Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0),
             showCustomerNotes:
                 raw.showCustomerNotes !== undefined
@@ -545,6 +551,7 @@ export class BusinessSetupService implements OnModuleInit {
                 .select('l.id')
                 .where('l.phone = :phone AND l.vendorId != :vendorId', {
                     phone: normalizedPhone,
+                    id: randomUUID(),
                     vendorId: vendor.id,
                 })
                 .limit(1)

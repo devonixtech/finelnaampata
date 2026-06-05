@@ -94,7 +94,9 @@ export const usePlanFeature = () => {
             if (featureName === 'maxSubCategories') {
                 const numeric = Number(value ?? 0);
                 const fallbackFromCategories = Number((features as any).maxCategories ?? 0);
-                return numeric > 0 ? numeric : Math.max(0, fallbackFromCategories - 1);
+                if (numeric > 0) return numeric;
+                if (fallbackFromCategories > 0) return Math.max(0, fallbackFromCategories - 1);
+                return isPaidPlan ? 3 : 0;
             }
             if (featureName === 'maxNamedPhoneNumbers') {
                 return Number(value ?? (features as any).maxAdditionalPhones ?? 0);
