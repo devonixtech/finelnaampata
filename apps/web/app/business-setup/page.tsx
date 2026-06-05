@@ -450,7 +450,10 @@ export default function BusinessSetupWizard() {
     // Filter cities based on country, de-duplicate, and sort alphabetically
     useEffect(() => {
         const countryName = stepData.country;
-        const filtered = allCities.filter((city) => cityMatchesCountry(city, countryName));
+        const filtered = allCities.filter((city) =>
+            cityMatchesCountry(city, countryName) &&
+            (!stepData.state || !city.state || city.state.toLowerCase() === stepData.state.toLowerCase()),
+        );
         const uniqueCities = sortAndDedupeCities(filtered);
         setFilteredCities(uniqueCities);
 
@@ -472,7 +475,46 @@ export default function BusinessSetupWizard() {
             }
         };
         fetchAddressConfig();
-    }, [stepData.country, allCities, countryOptions]);
+    }, [stepData.country, stepData.state, allCities, countryOptions]);
+
+    const stateOptions = React.useMemo(() => {
+        const countryName = stepData.country;
+        return Array.from(
+            new Set(
+                allCities
+                    .filter((city) => cityMatchesCountry(city, countryName))
+                    .map((city) => city.state)
+                    .filter(Boolean) as string[],
+            ),
+        ).sort((a, b) => a.localeCompare(b));
+    }, [allCities, stepData.country]);
+
+    const applySelectedCity = (cityName: string) => {
+        const normalized = cityName.trim().toLowerCase();
+        if (!normalized) return;
+
+        const matchedCity =
+            allCities.find(
+                (city) =>
+                    cityMatchesCountry(city, stepData.country) &&
+                    city.name.toLowerCase() === normalized &&
+                    (!stepData.state || city.state?.toLowerCase() === stepData.state.toLowerCase()),
+            ) ||
+            allCities.find(
+                (city) => cityMatchesCountry(city, stepData.country) && city.name.toLowerCase() === normalized,
+            );
+
+        if (!matchedCity) return;
+
+        setStepData((prev) => ({
+            ...prev,
+            city: matchedCity.name,
+            state: matchedCity.state || prev.state,
+            zipCode: matchedCity.postalCode || prev.zipCode,
+            latitude: matchedCity.latitude ? String(matchedCity.latitude) : prev.latitude,
+            longitude: matchedCity.longitude ? String(matchedCity.longitude) : prev.longitude,
+        }));
+    };
 
     const handleActivateBusiness = async () => {
         setActivationError(null);
@@ -579,6 +621,7 @@ export default function BusinessSetupWizard() {
             country: city.country,
             state: city.state || '',
             city: city.name,
+            zipCode: city.postalCode || prev.zipCode,
             latitude: city.latitude ? city.latitude.toFixed(7) : prev.latitude,
             longitude: city.longitude ? city.longitude.toFixed(7) : prev.longitude,
             mapConfirmed: true
@@ -1268,7 +1311,7 @@ export default function BusinessSetupWizard() {
                                         required
                                         list="country-list"
                                         value={stepData.country}
-                                        onChange={e => setStepData({...stepData, country: e.target.value, city: ''})}
+                                        onChange={e => setStepData({...stepData, country: e.target.value, city: '', state: '', zipCode: ''})}
                                         placeholder="Type or select a country"
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                     />
@@ -1284,7 +1327,11 @@ export default function BusinessSetupWizard() {
                                         required
                                         list="city-list"
                                         value={stepData.city}
-                                        onChange={e => setStepData({...stepData, city: e.target.value})}
+                                        onChange={e => {
+                                            const nextCity = e.target.value;
+                                            setStepData({...stepData, city: nextCity});
+                                            applySelectedCity(nextCity);
+                                        }}
                                         placeholder="Type or select a city"
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                     />
@@ -1305,11 +1352,17 @@ export default function BusinessSetupWizard() {
                                         </label>
                                         <input
                                             type="text"
+                                            list="state-list"
                                             value={stepData.state}
-                                            onChange={e => setStepData({...stepData, state: e.target.value})}
+                                            onChange={e => setStepData({...stepData, state: e.target.value, city: '', zipCode: ''})}
                                             placeholder="e.g. Punjab, Dubai, New York..."
                                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                         />
+                                        <datalist id="state-list">
+                                            {stateOptions.map((state) => (
+                                                <option key={state} value={state} />
+                                            ))}
+                                        </datalist>
                                     </div>
                                 )}
                                 {(!addressConfig || addressConfig.postalCode?.label) && (
@@ -2515,7 +2568,7 @@ export default function BusinessSetupWizard() {
                                     <input
                                         list="business-setup-country-list"
                                         value={stepData.country}
-                                        onChange={(e) => setStepData((prev) => ({ ...prev, country: e.target.value, city: '' }))}
+                                        onChange={(e) => setStepData((prev) => ({ ...prev, country: e.target.value, city: '', state: '', zipCode: '' }))}
                                         className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                         placeholder="Type or select a country"
                                     />
@@ -2532,7 +2585,11 @@ export default function BusinessSetupWizard() {
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City</label>
                                     <select
                                         value={stepData.city}
-                                        onChange={(e) => setStepData((prev) => ({ ...prev, city: e.target.value }))}
+                                        onChange={(e) => {
+                                            const nextCity = e.target.value;
+                                            setStepData((prev) => ({ ...prev, city: nextCity }));
+                                            applySelectedCity(nextCity);
+                                        }}
                                         className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                     >
                                         <option value="">Select a city</option>
@@ -2542,6 +2599,36 @@ export default function BusinessSetupWizard() {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                        {addressConfig?.administrativeArea?.label || 'State / Province'}
+                                    </label>
+                                    <input
+                                        list="business-setup-state-list"
+                                        value={stepData.state}
+                                        onChange={(e) => setStepData((prev) => ({ ...prev, state: e.target.value, city: '', zipCode: '' }))}
+                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder={addressConfig?.administrativeArea?.label || 'State / Province'}
+                                    />
+                                    <datalist id="business-setup-state-list">
+                                        {stateOptions.map((state) => (
+                                            <option key={state} value={state} />
+                                        ))}
+                                    </datalist>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                                        {addressConfig?.postalCode?.label || 'Zip / Postal Code'}
+                                    </label>
+                                    <input
+                                        value={stepData.zipCode}
+                                        onChange={(e) => setStepData((prev) => ({ ...prev, zipCode: e.target.value }))}
+                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder={addressConfig?.postalCode?.label || 'Zip / Postal Code'}
+                                    />
                                 </div>
 
                                 <div className="md:col-span-2">

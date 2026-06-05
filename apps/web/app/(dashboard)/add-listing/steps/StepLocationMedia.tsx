@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StepProps } from '../types';
 import { Loader2, MapPin, ImagePlus, Plus, Trash2, HelpCircle, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -6,6 +6,8 @@ import AddressPlacesAutocomplete from '../../../../components/AddressPlacesAutoc
 import { FeatureGate } from '../../../../components/business/FeatureGate';
 import { useAddressConfig } from '../../../../hooks/useAddressConfig';
 import { tryDetectDeviceLocation } from '../../../../lib/location-detect';
+import { api } from '../../../../lib/api';
+import { City } from '../../../../types/api';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
@@ -14,6 +16,64 @@ const DraggablePinMap = dynamic(() => import('../../../../components/DraggablePi
 
 export const Step7Address = ({ formData, setFormData }: StepProps) => {
     const { config: addressConfig } = useAddressConfig(formData.country || null);
+    const [countryCities, setCountryCities] = useState<City[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCities = async () => {
+            if (!formData.country?.trim()) {
+                setCountryCities([]);
+                return;
+            }
+
+            const cities = await api.cities.getAll({ country: formData.country.trim(), silent: true }).catch(() => []);
+            if (!cancelled) {
+                setCountryCities(Array.isArray(cities) ? cities : []);
+            }
+        };
+
+        loadCities();
+        return () => {
+            cancelled = true;
+        };
+    }, [formData.country]);
+
+    const stateOptions = useMemo(
+        () =>
+            Array.from(new Set(countryCities.map((city) => city.state).filter(Boolean) as string[])).sort((a, b) =>
+                a.localeCompare(b),
+            ),
+        [countryCities],
+    );
+
+    const autoFillFromCity = (cityName: string) => {
+        const normalized = cityName.trim().toLowerCase();
+        if (!normalized) {
+            return;
+        }
+
+        const matchedCity =
+            countryCities.find(
+                (city) =>
+                    city.name.toLowerCase() === normalized &&
+                    (!formData.state || city.state?.toLowerCase() === formData.state.trim().toLowerCase()),
+            ) || countryCities.find((city) => city.name.toLowerCase() === normalized);
+
+        if (!matchedCity) {
+            return;
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            city: matchedCity.name,
+            state: matchedCity.state || prev.state,
+            pincode: matchedCity.postalCode || prev.pincode,
+            latitude: matchedCity.latitude || prev.latitude,
+            longitude: matchedCity.longitude || prev.longitude,
+        }));
+    };
+
     const handlePlaceSelected = (place: any) => {
         setFormData(prev => ({
             ...prev,
@@ -50,21 +110,41 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     <label className={labelClass}>City *</label>
                     <input 
                         type="text" 
+                        list="listing-city-list"
                         value={formData.city} 
-                        onChange={e => setFormData(p => ({ ...p, city: e.target.value }))}
+                        onChange={e => {
+                            const nextCity = e.target.value;
+                            setFormData(p => ({ ...p, city: nextCity }));
+                            autoFillFromCity(nextCity);
+                        }}
                         className={inputClass}
+                        placeholder={countryCities.length ? 'Type or select a city' : 'Select country first'}
                         required
                     />
+                    <datalist id="listing-city-list">
+                        {countryCities.map((city) => (
+                            <option key={city.id} value={city.name}>
+                                {city.state ? `${city.name}, ${city.state}` : city.name}
+                            </option>
+                        ))}
+                    </datalist>
                 </div>
                 <div>
                     <label className={labelClass}>{stateLabel}{stateRequired ? ' *' : ''}</label>
                     <input 
                         type="text" 
+                        list="listing-state-list"
                         value={formData.state} 
-                        onChange={e => setFormData(p => ({ ...p, state: e.target.value }))}
+                        onChange={e => setFormData(p => ({ ...p, state: e.target.value, city: '', pincode: '' }))}
                         className={inputClass}
+                        placeholder={stateOptions.length ? `Select ${stateLabel.toLowerCase()}` : stateLabel}
                         required={stateRequired}
                     />
+                    <datalist id="listing-state-list">
+                        {stateOptions.map((state) => (
+                            <option key={state} value={state} />
+                        ))}
+                    </datalist>
                 </div>
             </div>
             <div>

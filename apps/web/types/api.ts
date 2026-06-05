@@ -19,6 +19,7 @@ export interface City {
     name: string;
     slug: string;
     state?: string;
+    postalCode?: string;
     country: string;
     description?: string;
     heroImageUrl?: string;

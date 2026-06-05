@@ -4,8 +4,69 @@ import { Repository } from 'typeorm';
 import { City } from '../../entities/city.entity';
 import { ISO_COUNTRIES } from '../../common/data/iso-countries';
 
+type CityDatasetRow = {
+    name: string;
+    state: string;
+    country: string;
+    isPopular: boolean;
+    displayOrder: number;
+    latitude?: number;
+    longitude?: number;
+};
+
+const CITY_POSTAL_LOOKUPS: Record<string, string> = {
+    'Pakistan|Punjab|Lahore': '54000',
+    'Pakistan|Punjab|Faisalabad': '38000',
+    'Pakistan|Punjab|Rawalpindi': '46000',
+    'Pakistan|Punjab|Gujranwala': '52250',
+    'Pakistan|Punjab|Multan': '60000',
+    'Pakistan|Punjab|Bahawalpur': '63100',
+    'Pakistan|Sindh|Karachi': '74000',
+    'Pakistan|Sindh|Hyderabad': '71000',
+    'Pakistan|Sindh|Sukkur': '65200',
+    'Pakistan|KPK|Peshawar': '25000',
+    'Pakistan|KPK|Abbottabad': '22010',
+    'Pakistan|Balochistan|Quetta': '87300',
+    'Pakistan|ICT|Islamabad': '44000',
+    'Pakistan|AJK|Muzaffarabad': '13100',
+    'Pakistan|Gilgit-Baltistan|Gilgit': '15100',
+    'India|Maharashtra|Mumbai': '400001',
+    'India|Delhi|Delhi': '110001',
+    'India|Karnataka|Bangalore': '560001',
+    'India|Telangana|Hyderabad': '500001',
+    'India|Tamil Nadu|Chennai': '600001',
+    'India|West Bengal|Kolkata': '700001',
+    'India|Maharashtra|Pune': '411001',
+    'India|Gujarat|Ahmedabad': '380001',
+    'India|Rajasthan|Jaipur': '302001',
+    'India|Gujarat|Surat': '395003',
+    'Saudi Arabia|Riyadh|Riyadh': '11564',
+    'Saudi Arabia|Makkah|Jeddah': '21577',
+    'Saudi Arabia|Makkah|Mecca': '24231',
+    'Saudi Arabia|Medina|Medina': '42311',
+    'Saudi Arabia|Eastern Province|Dammam': '32242',
+    'United Kingdom|England|London': 'SW1A 1AA',
+    'United Kingdom|England|Birmingham': 'B1 1AA',
+    'United Kingdom|England|Manchester': 'M1 1AE',
+    'United Kingdom|Scotland|Glasgow': 'G1 1XQ',
+    'United States|New York|New York': '10001',
+    'United States|California|Los Angeles': '90001',
+    'United States|Illinois|Chicago': '60601',
+    'United States|Texas|Houston': '77001',
+    'United States|Arizona|Phoenix': '85001',
+    'United States|Pennsylvania|Philadelphia': '19019',
+    'Canada|Ontario|Toronto': 'M5H 2N2',
+    'Canada|British Columbia|Vancouver': 'V5K 0A1',
+    'Canada|Quebec|Montreal': 'H1A 0A1',
+    'Canada|Alberta|Calgary': 'T1X 0L3',
+    'Australia|New South Wales|Sydney': '2000',
+    'Australia|Victoria|Melbourne': '3000',
+    'Australia|Queensland|Brisbane': '4000',
+    'Australia|Western Australia|Perth': '6000',
+};
+
 // Comprehensive city dataset organized by country
-const CITY_DATASETS: Record<string, { name: string; state: string; country: string; isPopular: boolean; displayOrder: number; latitude?: number; longitude?: number }[]> = {
+const CITY_DATASETS: Record<string, CityDatasetRow[]> = {
     'Pakistan': [
         // Punjab
         { name: 'Lahore', state: 'Punjab', country: 'Pakistan', isPopular: true, displayOrder: 1, latitude: 31.5204, longitude: 74.3587 },
@@ -233,6 +294,22 @@ export class CitiesService {
         private readonly cityRepository: Repository<City>,
     ) { }
 
+    private getCityLookupKey(city: Pick<City, 'country' | 'state' | 'name'>) {
+        return `${city.country}|${city.state || ''}|${city.name}`;
+    }
+
+    private enrichCity<T extends City | Partial<City>>(city: T): T & { postalCode?: string } {
+        const postalCode = CITY_POSTAL_LOOKUPS[this.getCityLookupKey(city as City)];
+        return {
+            ...city,
+            ...(postalCode ? { postalCode } : {}),
+        };
+    }
+
+    private enrichCities<T extends City | Partial<City>>(cities: T[]) {
+        return cities.map((city) => this.enrichCity(city));
+    }
+
     private async importCitiesFromCountriesNow(country: string): Promise<number> {
         try {
             const response = await fetch('https://countriesnow.space/api/v0.1/countries/cities', {
@@ -301,19 +378,23 @@ export class CitiesService {
 
         // Deduplicate by name and country
         const seen = new Set();
-        return cities.filter(c => {
+        const deduped = cities.filter(c => {
             const key = `${c.name}-${c.country}`;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
         });
+
+        return this.enrichCities(deduped);
     }
 
     async findPopular() {
-        return this.cityRepository.find({
+        const cities = await this.cityRepository.find({
             where: { isPopular: true },
             order: { displayOrder: 'ASC' },
         });
+
+        return this.enrichCities(cities);
     }
 
     async findBySlug(slug: string) {
@@ -325,7 +406,7 @@ export class CitiesService {
             throw new NotFoundException(`City with slug ${slug} not found`);
         }
 
-        return city;
+        return this.enrichCity(city);
     }
 
     async create(data: Partial<City>) {
@@ -376,7 +457,7 @@ export class CitiesService {
             .take(limit)
             .getManyAndCount();
 
-        return { data, total };
+        return { data: this.enrichCities(data), total };
     }
 
     async remove(id: string) {
