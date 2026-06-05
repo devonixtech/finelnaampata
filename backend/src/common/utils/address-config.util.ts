@@ -5,6 +5,11 @@ export type AddressFieldKey =
     | 'state'
     | 'pincode';
 
+export type AddressSubdivisionOption = {
+    code: string;
+    name: string;
+};
+
 export type AddressFieldConfig = {
     key: AddressFieldKey;
     label: string;
@@ -12,6 +17,7 @@ export type AddressFieldConfig = {
     order: number;
     used: boolean;
     regex?: string | null;
+    options?: AddressSubdivisionOption[];
 };
 
 export type PostalCodeConfig = {
@@ -33,6 +39,22 @@ export type CountryAddressConfig = {
     addressLines: AddressFieldConfig;
     locality: AddressFieldConfig;
     administrativeArea: AddressFieldConfig;
+};
+
+export type LibAddressInputRecord = {
+    id?: string;
+    key?: string;
+    name?: string;
+    fmt?: string;
+    lfmt?: string;
+    require?: string;
+    zip?: string;
+    zip_name_type?: string;
+    state_name_type?: string;
+    locality_name_type?: string;
+    sub_keys?: string;
+    sub_names?: string;
+    sub_lnames?: string;
 };
 
 type AddressConfigSeed = {
@@ -153,6 +175,35 @@ const COUNTRY_ALIASES: Record<string, string> = {
     PAKISTAN: 'PK',
 };
 
+const STATE_LABEL_OVERRIDES: Record<string, string> = {
+    emirate: 'Emirate',
+    province: 'Province',
+    county: 'County',
+    state: 'State',
+    island: 'Island',
+    district: 'District',
+    prefecture: 'Prefecture',
+    oblast: 'Oblast',
+    region: 'Region',
+    department: 'Department',
+};
+
+const CITY_LABEL_OVERRIDES: Record<string, string> = {
+    city: 'City',
+    town: 'Town / City',
+    post_town: 'Post Town',
+    suburb: 'Suburb / City',
+    district: 'District / City',
+};
+
+const POSTAL_LABEL_OVERRIDES: Record<string, string> = {
+    zip: 'ZIP Code',
+    postcode: 'Postcode',
+    postal: 'Postal Code',
+    eircode: 'Eircode',
+    pin: 'PIN Code',
+};
+
 function buildFieldConfig(
     key: AddressFieldKey,
     seed: AddressConfigSeed,
@@ -167,6 +218,109 @@ function buildFieldConfig(
         used: true,
         regex: isPostal ? seed.postalCode?.regex ?? null : null,
     };
+}
+
+function normalizeLabel(value: string | undefined, fallback: string): string {
+    if (!value?.trim()) return fallback;
+    return value
+        .trim()
+        .split(/[_\s-]+/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+}
+
+function parseSubdivisionOptions(record: LibAddressInputRecord): AddressSubdivisionOption[] {
+    const codes = (record.sub_keys || '').split('~').filter(Boolean);
+    const longNames = (record.sub_lnames || '').split('~').filter(Boolean);
+    const names = (longNames.length ? longNames : (record.sub_names || '').split('~')).filter(Boolean);
+
+    return names.map((name, index) => ({
+        code: codes[index] || name,
+        name,
+    }));
+}
+
+function mapFmtToFieldOrder(fmt?: string): AddressFieldKey[] {
+    const pattern = fmt || '%A%n%C%n%S%n%Z';
+    const seen = new Set<AddressFieldKey>();
+    const order: AddressFieldKey[] = [];
+    const tokenMap: Record<string, AddressFieldKey | null> = {
+        A: 'address',
+        C: 'city',
+        S: 'state',
+        Z: 'pincode',
+        D: 'city',
+        X: null,
+        N: null,
+        O: null,
+    };
+
+    for (const match of pattern.matchAll(/%([A-Z])/g)) {
+        const mapped = tokenMap[match[1]] ?? null;
+        if (mapped && !seen.has(mapped)) {
+            seen.add(mapped);
+            order.push(mapped);
+        }
+    }
+
+    if (!seen.has('address')) order.unshift('address');
+    if (!seen.has('city')) order.push('city');
+    if (!seen.has('state')) order.push('state');
+    if (!seen.has('pincode')) order.push('pincode');
+
+    const addressLineInsertAt = order.indexOf('address') >= 0 ? order.indexOf('address') + 1 : 1;
+    order.splice(addressLineInsertAt, 0, 'addressLine2');
+
+    return order.filter((key, index, list) => list.indexOf(key) === index);
+}
+
+export function buildCountryAddressConfigFromLibAddressInput(
+    countryCode: string,
+    countryName: string,
+    record: LibAddressInputRecord,
+): CountryAddressConfig {
+    const fallback = ADDRESS_CONFIGS[countryCode] || DEFAULT_SEED;
+    const subdivisions = parseSubdivisionOptions(record);
+    const fieldOrder = mapFmtToFieldOrder(record.lfmt || record.fmt || fallback.fieldOrder.join(','));
+    const requiredTokens = (record.require || '').toUpperCase();
+    const stateType = (record.state_name_type || '').trim().toLowerCase();
+    const localityType = (record.locality_name_type || '').trim().toLowerCase();
+    const zipType = (record.zip_name_type || '').trim().toLowerCase();
+
+    const seed: AddressConfigSeed = {
+        countryCode,
+        countryName,
+        fieldLabels: {
+            address: fallback.fieldLabels.address,
+            addressLine2: fallback.fieldLabels.addressLine2,
+            city: CITY_LABEL_OVERRIDES[localityType] || fallback.fieldLabels.city,
+            state:
+                STATE_LABEL_OVERRIDES[stateType] ||
+                normalizeLabel(record.state_name_type, fallback.fieldLabels.state),
+            pincode:
+                POSTAL_LABEL_OVERRIDES[zipType] ||
+                normalizeLabel(record.zip_name_type, fallback.fieldLabels.pincode),
+        },
+        fieldOrder,
+        requiredFields: [
+            'address',
+            ...(requiredTokens.includes('C') || requiredTokens.includes('D') ? (['city'] as AddressFieldKey[]) : []),
+            ...(requiredTokens.includes('S') ? (['state'] as AddressFieldKey[]) : []),
+        ],
+        postalCode: {
+            label:
+                POSTAL_LABEL_OVERRIDES[zipType] ||
+                normalizeLabel(record.zip_name_type, fallback.postalCode?.label || fallback.fieldLabels.pincode),
+            required: requiredTokens.includes('Z'),
+            regex: record.zip || fallback.postalCode?.regex,
+        },
+    };
+
+    const built = buildCountryAddressConfig(seed);
+    built.administrativeArea.options = subdivisions;
+    built.fieldMap.state.options = subdivisions;
+
+    return built;
 }
 
 function buildCountryAddressConfig(seed: AddressConfigSeed): CountryAddressConfig {

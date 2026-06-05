@@ -4,7 +4,7 @@ import { Loader2, MapPin, ImagePlus, Plus, Trash2, HelpCircle, X } from 'lucide-
 import dynamic from 'next/dynamic';
 import AddressPlacesAutocomplete from '../../../../components/AddressPlacesAutocomplete';
 import { FeatureGate } from '../../../../components/business/FeatureGate';
-import { useAddressConfig } from '../../../../hooks/useAddressConfig';
+import { fetchCountries, useAddressConfig } from '../../../../hooks/useAddressConfig';
 import { tryDetectDeviceLocation } from '../../../../lib/location-detect';
 import { api } from '../../../../lib/api';
 import { City } from '../../../../types/api';
@@ -17,6 +17,23 @@ const DraggablePinMap = dynamic(() => import('../../../../components/DraggablePi
 export const Step7Address = ({ formData, setFormData }: StepProps) => {
     const { config: addressConfig } = useAddressConfig(formData.country || null);
     const [countryCities, setCountryCities] = useState<City[]>([]);
+    const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        fetchCountries()
+            .then((rows) => {
+                if (!cancelled) setCountries(rows || []);
+            })
+            .catch(() => {
+                if (!cancelled) setCountries([]);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -45,6 +62,15 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                 a.localeCompare(b),
             ),
         [countryCities],
+    );
+
+    const subdivisionOptions = useMemo(
+        () =>
+            (addressConfig?.administrativeArea?.options || [])
+                .map((option) => option.name)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b)),
+        [addressConfig],
     );
 
     const autoFillFromCity = (cityName: string) => {
@@ -95,6 +121,23 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
     return (
         <div className="space-y-6">
             <div>
+                <label className={labelClass}>Country *</label>
+                <input
+                    type="text"
+                    list="listing-country-list"
+                    value={formData.country}
+                    onChange={e => setFormData(p => ({ ...p, country: e.target.value, city: '', state: '', pincode: '' }))}
+                    className={inputClass}
+                    placeholder="Type or select a country"
+                    required
+                />
+                <datalist id="listing-country-list">
+                    {countries.map((country) => (
+                        <option key={`${country.code}-${country.name}`} value={country.name} />
+                    ))}
+                </datalist>
+            </div>
+            <div>
                 <label className={labelClass}>Search Address *</label>
                 <AddressPlacesAutocomplete
                     value={formData.address}
@@ -118,7 +161,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                             autoFillFromCity(nextCity);
                         }}
                         className={inputClass}
-                        placeholder={countryCities.length ? 'Type or select a city' : 'Select country first'}
+                        placeholder={formData.country ? 'Type or select a city' : 'Select country first'}
                         required
                     />
                     <datalist id="listing-city-list">
@@ -137,11 +180,11 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                         value={formData.state} 
                         onChange={e => setFormData(p => ({ ...p, state: e.target.value, city: '', pincode: '' }))}
                         className={inputClass}
-                        placeholder={stateOptions.length ? `Select ${stateLabel.toLowerCase()}` : stateLabel}
+                        placeholder={(subdivisionOptions.length || stateOptions.length) ? `Select ${stateLabel.toLowerCase()}` : stateLabel}
                         required={stateRequired}
                     />
                     <datalist id="listing-state-list">
-                        {stateOptions.map((state) => (
+                        {(subdivisionOptions.length ? subdivisionOptions : stateOptions).map((state) => (
                             <option key={state} value={state} />
                         ))}
                     </datalist>

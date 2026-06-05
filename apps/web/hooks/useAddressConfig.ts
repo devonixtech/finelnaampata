@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { resolveApiOrigin } from '../lib/runtime-url';
+import { api } from '../lib/api';
 
 export interface AddressFieldConfig {
   used: boolean;
   required: boolean;
   label: string;
+  order?: number;
+  key?: string;
   options?: { code: string; name: string }[];
   regex?: string | null;
 }
 
 export interface CountryAddressConfig {
+  countryCode?: string;
+  countryName?: string;
+  fieldOrder?: string[];
+  fields?: AddressFieldConfig[];
   addressLines: AddressFieldConfig;
   locality: AddressFieldConfig;
   administrativeArea: AddressFieldConfig;
@@ -27,8 +33,6 @@ const DEFAULT_CONFIG: CountryAddressConfig = {
   administrativeArea: { used: true, required: false, label: 'State / Province', options: [] },
   postalCode: { used: true, required: false, label: 'Postal Code' },
 };
-
-const BASE_URL = resolveApiOrigin(process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL);
 
 const cache = new Map<string, CountryAddressConfig>();
 let countriesCache: Country[] | null = null;
@@ -50,11 +54,7 @@ export function useAddressConfig(countryCode: string | null) {
     }
 
     setLoading(true);
-    fetch(`${BASE_URL}/api/address-config/${cacheKey}`)
-      .then(r => {
-        if (!r.ok) throw new Error('fetch failed');
-        return r.json();
-      })
+    api.addressConfig.get(cacheKey)
       .then(data => {
         cache.set(cacheKey, data);
         setConfig(data);
@@ -83,9 +83,7 @@ export function useAddressConfig(countryCode: string | null) {
 export async function fetchCountries(): Promise<Country[]> {
   if (countriesCache) return countriesCache;
   try {
-    const res = await fetch(`${BASE_URL}/api/address-config/countries`);
-    if (!res.ok) throw new Error('failed');
-    const data = await res.json();
+    const data = await api.addressConfig.getCountries();
     countriesCache = data;
     return data;
   } catch {
