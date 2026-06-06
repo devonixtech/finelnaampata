@@ -1003,6 +1003,7 @@ export class SubscriptionsService implements OnModuleInit {
             dashboardFeatures: isNewSystem
                 ? this.normalizeModernPlanFeatures(result.plan.features || {}, result.plan.name)
                 : {
+                    ...(result.plan.dashboardFeatures || {}),
                     showAnalytics: !!result.plan.dashboardFeatures?.showAnalytics,
                     showLeads: !!result.plan.dashboardFeatures?.showLeads,
                     showOffers: !!result.plan.dashboardFeatures?.showOffers || !!result.plan.dashboardFeatures?.maxOffers,
@@ -1038,7 +1039,6 @@ export class SubscriptionsService implements OnModuleInit {
                             ? 3
                             : legacyResolvedMaxSubCategories,
                     maxNamedPhoneNumbers: Number(legacyFeatures.maxNamedPhoneNumbers ?? legacyFeatures.maxAdditionalPhones ?? 0),
-                    ...(result.plan.dashboardFeatures || {})
                 }
         } : null;
 

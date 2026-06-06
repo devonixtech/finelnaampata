@@ -80,7 +80,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
     const activeSub = user?.vendor?.subscriptions?.find((sub: any) => sub.status === 'active');
     const { getFeatureValue, planName, isFree } = usePlanFeature();
-    const maxListings = getFeatureValue('maxListings') || 1;
+    const maxListings = Math.max(1, Number(getFeatureValue('maxListings') || 1));
     const maxNamedPhoneNumbers = getFeatureValue('maxNamedPhoneNumbers') || 0;
     const maxImages = isFree ? 3 : 999;
     
