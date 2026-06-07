@@ -81,11 +81,15 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
     const activeSub = user?.vendor?.subscriptions?.find((sub: any) => sub.status === 'active');
     const { getFeatureValue, planName, isFree } = usePlanFeature();
     const maxListings = Math.max(1, Number(getFeatureValue('maxListings') || 1));
+    const maxKeywords = Number(getFeatureValue('maxKeywords') || 0);
+    const maxFaqs = Number(getFeatureValue('maxFaqs') || 0);
     const maxNamedPhoneNumbers = getFeatureValue('maxNamedPhoneNumbers') || 0;
     const maxImages = isFree ? 3 : 999;
     
     const [myListingsCount, setMyListingsCount] = useState<number | null>(null);
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    const canUseKeywords = maxKeywords > 0 || isAdmin;
+    const canUseFaqs = maxFaqs > 0 || isAdmin;
     const canAddListing = isAdmin || (myListingsCount !== null && myListingsCount < maxListings);
 
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
@@ -930,7 +934,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                 <div className="space-y-3 relative">
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 flex items-center justify-between">
                                                         Search Keywords
-                                                        {isFree ? (
+                                                        {!canUseKeywords ? (
                                                             <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                                                                 <Lock className="w-2.5 h-2.5" /> Premium Only
                                                             </span>
@@ -938,7 +942,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                             <span className="text-[9px] text-slate-300 normal-case tracking-normal">Press Enter after each keyword</span>
                                                         )}
                                                     </label>
-                                                    {isFree ? (
+                                                    {!canUseKeywords ? (
                                                         <div className="p-6 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40 flex flex-col items-center gap-3 text-center">
                                                             <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center">
                                                                 <Lock className="w-5 h-5 text-amber-600" />
@@ -1107,7 +1111,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
                                         {activeTab === 'faqs' && (
                                             <motion.div key="faqs" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-6">
-                                                {isFree ? (
+                                                {!canUseFaqs ? (
                                                     <div className="p-8 rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/40 flex flex-col items-center gap-4 text-center">
                                                         <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
                                                             <Lock className="w-6 h-6 text-amber-600" />

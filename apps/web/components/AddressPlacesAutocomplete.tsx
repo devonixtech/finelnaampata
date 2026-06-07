@@ -68,11 +68,7 @@ export default function AddressPlacesAutocomplete({
                 setOpen(safeResults.length > 0);
 
                 if (safeResults.length === 0) {
-                    setError(
-                        countryCode
-                            ? 'No address matches found. Type your street/building address.'
-                            : 'Select a country first, then type your street/building address.',
-                    );
+                    setError('No address matches found. Type a more complete street/building address.');
                 }
             } catch {
                 setSuggestions([]);
@@ -136,7 +132,7 @@ export default function AddressPlacesAutocomplete({
                 className={className}
                 autoComplete="off"
             />
-            {!disabled && !!countryCode && trimmedValue.length > 0 && trimmedValue.length < 3 && (
+            {!disabled && trimmedValue.length > 0 && trimmedValue.length < 3 && (
                 <p className="text-[10px] text-slate-500 font-bold mt-1">Type at least 3 characters of your street/building address.</p>
             )}
             {loading ? (

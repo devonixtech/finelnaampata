@@ -67,19 +67,6 @@ export const usePlanFeature = () => {
     const features: DashboardFeatures = activeSub?.plan?.dashboardFeatures || defaultFeatures;
     const isPaidPlan = !!activeSub && !(activeSub.plan?.planType?.toLowerCase() === 'free' || activeSub.plan?.name?.toLowerCase().includes('free'));
 
-    const hasFeature = (featureName: keyof DashboardFeatures): boolean => {
-        // Admins/Superadmins bypass all gating
-        if (user?.role === 'admin' || user?.role === 'superadmin') return true;
-        
-        // Standard users bypass gating for core community features
-        if (user?.role === 'user' && ['showChat', 'showSaved', 'showFollowing', 'showReviews'].includes(featureName as string)) {
-            return true;
-        }
-
-        // If it's a vendor, check their active plan features
-        return !!features[featureName];
-    };
-
     const getFeatureValue = (featureName: string): any => {
         if (user?.role === 'admin' || user?.role === 'superadmin') {
             if (featureName.startsWith('max')) return 999999;
@@ -90,6 +77,14 @@ export const usePlanFeature = () => {
             if (featureName === 'maxListings') {
                 const numeric = Number(value ?? 0);
                 return isPaidPlan && numeric <= 1 ? 999 : numeric;
+            }
+            if (featureName === 'maxKeywords') {
+                const numeric = Number(value ?? 0);
+                return isPaidPlan && numeric <= 0 ? 10 : numeric;
+            }
+            if (featureName === 'maxFaqs') {
+                const numeric = Number(value ?? 0);
+                return isPaidPlan && numeric <= 0 ? 10 : numeric;
             }
             if (featureName === 'maxSubCategories') {
                 const numeric = Number(value ?? 0);
@@ -104,6 +99,29 @@ export const usePlanFeature = () => {
             return Number(value ?? 0);
         }
         return value;
+    };
+
+    const hasFeature = (featureName: keyof DashboardFeatures): boolean => {
+        // Admins/Superadmins bypass all gating
+        if (user?.role === 'admin' || user?.role === 'superadmin') return true;
+
+        // Standard users bypass gating for core community features
+        if (user?.role === 'user' && ['showChat', 'showSaved', 'showFollowing', 'showReviews'].includes(featureName as string)) {
+            return true;
+        }
+
+        const key = featureName as string;
+        if (key.startsWith('max')) {
+            return Number(getFeatureValue(key) || 0) > 0;
+        }
+
+        // Paid plans sometimes arrive with stale boolean feature flags from older seeds.
+        if (isPaidPlan && ['showCustomerNotes', 'showChat', 'showAnalytics', 'showDemand', 'canReplyReviews', 'canRespondBroadcast'].includes(key)) {
+            return true;
+        }
+
+        // If it's a vendor, check their active plan features
+        return !!features[featureName];
     };
 
     return {

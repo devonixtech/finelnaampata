@@ -15,9 +15,9 @@ const labelClass = "block text-xs font-black uppercase tracking-widest text-slat
 const DraggablePinMap = dynamic(() => import('../../../../components/DraggablePinMap'), { ssr: false });
 
 export const Step7Address = ({ formData, setFormData }: StepProps) => {
-    const { config: addressConfig } = useAddressConfig(formData.country || null);
     const [countryCities, setCountryCities] = useState<City[]>([]);
     const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
+    const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
     const selectedCountryCode = useMemo(() => {
         const rawCountry = (formData.country || '').trim();
@@ -32,6 +32,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
 
         return matchedCountry?.code || (rawCountry.length === 2 ? rawCountry.toUpperCase() : '');
     }, [countries, formData.country]);
+    const { config: addressConfig } = useAddressConfig(selectedCountryCode || null);
 
     useEffect(() => {
         let cancelled = false;
@@ -77,6 +78,18 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
             ),
         [countryCities],
     );
+
+    const countryMatches = useMemo(() => {
+        const query = (formData.country || '').trim().toLowerCase();
+        const matches = query
+            ? countries.filter((country) =>
+                country.name.toLowerCase().includes(query) ||
+                country.code.toLowerCase().includes(query),
+            )
+            : countries;
+
+        return matches.slice(0, 12);
+    }, [countries, formData.country]);
 
     const subdivisionOptions = useMemo(
         () =>
@@ -127,6 +140,15 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
         }));
     };
 
+    const updateCountry = (countryName: string) => {
+        setFormData((prev) => ({ ...prev, country: countryName, city: '', state: '', pincode: '' }));
+    };
+
+    const selectCountry = (country: { code: string; name: string }) => {
+        setCountryDropdownOpen(false);
+        updateCountry(country.name);
+    };
+
     const stateLabel = addressConfig?.administrativeArea?.label || 'State / Province';
     const stateRequired = addressConfig?.administrativeArea?.required || false;
     const postalLabel = addressConfig?.postalCode?.label || 'Postal Code';
@@ -136,20 +158,38 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
         <div className="space-y-6">
             <div>
                 <label className={labelClass}>Country *</label>
-                <input
-                    type="text"
-                    list="listing-country-list"
-                    value={formData.country}
-                    onChange={e => setFormData(p => ({ ...p, country: e.target.value, city: '', state: '', pincode: '' }))}
-                    className={inputClass}
-                    placeholder="Type or select a country"
-                    required
-                />
-                <datalist id="listing-country-list">
-                    {countries.map((country) => (
-                        <option key={`${country.code}-${country.name}`} value={country.name} />
-                    ))}
-                </datalist>
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={formData.country}
+                        onFocus={() => setCountryDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setCountryDropdownOpen(false), 150)}
+                        onChange={e => {
+                            updateCountry(e.target.value);
+                            setCountryDropdownOpen(true);
+                        }}
+                        className={inputClass}
+                        placeholder="Search or select country"
+                        autoComplete="off"
+                        required
+                    />
+                    {countryDropdownOpen && countryMatches.length > 0 && (
+                        <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                            {countryMatches.map((country) => (
+                                <button
+                                    key={`${country.code}-${country.name}`}
+                                    type="button"
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => selectCountry(country)}
+                                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50"
+                                >
+                                    <span>{country.name}</span>
+                                    <span className="text-xs font-black text-slate-400">{country.code}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
             <div>
                 <label className={labelClass}>Search Address *</label>
@@ -158,9 +198,8 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     onChange={(val: string) => setFormData(p => ({ ...p, address: val }))}
                     onPlaceSelected={handlePlaceSelected}
                     countryCode={selectedCountryCode || undefined}
-                    placeholder={selectedCountryCode ? "Start typing your street address..." : "Select country first, then type street address"}
+                    placeholder={selectedCountryCode ? "Start typing your street/building address..." : "Type street/building address; select country above for better results"}
                     className={inputClass}
-                    disabled={!selectedCountryCode}
                     required
                 />
             </div>
@@ -382,4 +421,5 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
         </FeatureGate>
     );
 };
+
 

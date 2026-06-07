@@ -21,9 +21,13 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     description = "This feature is available on higher plans. Upgrade your subscription to unlock professional tools and insights.",
     isPage = true 
 }) => {
-    const { hasFeature, planName } = usePlanFeature();
+    const { hasFeature, getFeatureValue, planName } = usePlanFeature();
+    const featureKey = feature as string;
+    const hasAccess = featureKey.startsWith('max')
+        ? Number(getFeatureValue(featureKey) || 0) > 0
+        : hasFeature(feature);
 
-    if (hasFeature(feature)) {
+    if (hasAccess) {
         return <>{children}</>;
     }
 
