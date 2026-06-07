@@ -3,61 +3,11 @@ import { Metadata } from 'next';
 import BusinessDetailClient from './BusinessDetailClient';
 import { api } from '../../../lib/api';
 
-export const dynamic = 'force-static';
-export const dynamicParams = false;
+
+
 
 // Static Export Requirement: Must pre-generate all possible paths
-export async function generateStaticParams() {
-  try {
-    // For a static export, we need to fetch the slugs we want to pre-render.
-    // In a large directory, you might only pre-render popular ones or fetch all.
-    // Here we fetch a reasonable number of listings to avoid long build times while ensuring coverage.
-    const response = await api.listings.search({ limit: 100 });
-    const listings = response.data || [];
-    
-    // Fallback if no listings found
-    if (listings.length === 0) {
-      return [
-        { businessSlug: 'sample-business' },
-        { businessSlug: 'test-mnh4czx8' },
-        { businessSlug: 'test-mnh4bnro' },
-        { businessSlug: 'bright-future-academy-mn8n7y7p' },
-        { businessSlug: 'template' }
-      ];
-    }
 
-    const params = listings.map((business: any) => ({
-      businessSlug: business.slug,
-    }));
-
-    // Ensure our important test slugs and template are always included
-    const essentialSlugs = [
-      'sample-business', 
-      'test-mnh4czx8', 
-      'test-mnh4bnro', 
-      'bright-future-academy-mn8n7y7p', 
-      'template'
-    ];
-    essentialSlugs.forEach(slug => {
-      if (!params.some(p => p.businessSlug === slug)) {
-        params.push({ businessSlug: slug });
-      }
-    });
-
-    return params;
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [
-      { businessSlug: 'sample-business' },
-      { businessSlug: 'test-mnh4czx8' },
-      { businessSlug: 'test-mnh4bnro' },
-      { businessSlug: 'bright-future-academy-mn8n7y7p' },
-      { businessSlug: 'template' }
-    ];
-  }
-}
-
-// 1. Generate Metadata for SEO
 export async function generateMetadata({ 
   params 
 }: { 
