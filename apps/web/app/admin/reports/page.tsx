@@ -191,7 +191,7 @@ export default function AdminReportsPage() {
                                                         <div className="flex items-center justify-between pt-4 border-t border-slate-200/50">
                                                             <div className="flex items-center gap-4">
                                                                 <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                                                                    <Store className="w-3 h-3" /> {review.business?.name || 'Unknown Business'}
+                                                                    <Store className="w-3 h-3" /> {review.business?.title || review.business?.name || 'Unknown Business'}
                                                                 </span>
                                                                 {review.suspicionReason && (
                                                                     <span className="text-[10px] font-bold text-orange-500 flex items-center gap-1.5">

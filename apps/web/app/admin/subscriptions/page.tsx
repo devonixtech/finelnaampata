@@ -99,7 +99,7 @@ export default function SubscriptionsPage() {
     };
 
     const filteredVendors = vendors.filter(v => 
-        (v.user?.firstName || '').toLowerCase().includes(searchVendor.toLowerCase()) || 
+        (v.businessName || v.user?.fullName || '').toLowerCase().includes(searchVendor.toLowerCase()) || 
         (v.user?.email || '').toLowerCase().includes(searchVendor.toLowerCase())
     );
 
@@ -170,7 +170,7 @@ export default function SubscriptionsPage() {
                                     <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="font-black text-slate-900">{sub.vendor?.user?.firstName || 'Unknown Business'}</p>
+                                                <p className="font-black text-slate-900">{sub.vendor?.businessName || sub.vendor?.user?.fullName || 'Unknown Business'}</p>
                                                 <p className="text-xs font-bold text-slate-500">{sub.vendor?.user?.email || 'N/A'}</p>
                                             </div>
                                         </td>
@@ -252,7 +252,7 @@ export default function SubscriptionsPage() {
                                     >
                                         <option value="" disabled>Select Business</option>
                                         {filteredVendors.map(v => (
-                                            <option key={v.id} value={v.id}>{v.user?.firstName || ''} ({v.user?.email || 'No email'})</option>
+                                            <option key={v.id} value={v.id}>{v.businessName || v.user?.fullName || 'Unknown Business'} ({v.user?.email || 'No email'})</option>
                                         ))}
                                     </select>
                                 </div>
