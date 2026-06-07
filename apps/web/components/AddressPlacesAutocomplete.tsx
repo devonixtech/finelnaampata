@@ -68,7 +68,7 @@ export default function AddressPlacesAutocomplete({
                 setOpen(safeResults.length > 0);
 
                 if (safeResults.length === 0) {
-                    setError('No address matches found. Type a more complete street/building address.');
+                    setError('No automatic suggestions found. You can still proceed with this exact address!');
                 }
             } catch {
                 setSuggestions([]);
@@ -140,7 +140,7 @@ export default function AddressPlacesAutocomplete({
             ) : (
                 <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             )}
-            {error && <p className="text-[10px] text-amber-600 font-bold mt-1">{error}</p>}
+            {error && <p className="text-[10px] text-blue-600 font-bold mt-1">{error}</p>}
             {open && suggestions.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full border border-slate-200 rounded-xl bg-white overflow-hidden shadow-lg">
                     {suggestions.map((item) => (
