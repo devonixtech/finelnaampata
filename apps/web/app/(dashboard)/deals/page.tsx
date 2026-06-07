@@ -350,6 +350,18 @@ export default function BusinessDealsPage() {
       let offerId = editingId;
       if (editingId) {
         await api.deals.update(editingId, offerPayload);
+        const existingOffer = offers.find(o => o.id === editingId);
+        if (existingOffer && existingOffer.isActive === false && estimatedPrice > 0) {
+          const checkout = await checkoutVisibilityPayment({
+            dealId: editingId,
+            startTime: form.startDate,
+            endTime: form.endDate,
+          });
+          if (checkout.checkoutUrl) {
+            window.location.href = checkout.checkoutUrl;
+            return;
+          }
+        }
         setSuccess("Offer updated successfully!");
       } else {
         const res = await api.deals.create(offerPayload);
@@ -396,16 +408,32 @@ export default function BusinessDealsPage() {
     }
   };
 
-  const handlePublish = async (offerId: string) => {
-    setPublishingId(offerId);
+  const handlePublish = async (offer: OfferItem) => {
+    setPublishingId(offer.id);
     setError(null);
     try {
-      await api.deals.publish(offerId);
+      await api.deals.publish(offer.id);
       setSuccess("Listing published successfully.");
       await loadOffers(page);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.message || "Publish failed. Please complete required add-on payment first.");
+      if (err.message && err.message.toLowerCase().includes('payment')) {
+        try {
+          const checkout = await checkoutVisibilityPayment({
+            dealId: offer.id,
+            startTime: offer.startDate!,
+            endTime: offer.endDate!,
+          });
+          if (checkout.checkoutUrl) {
+            window.location.href = checkout.checkoutUrl;
+            return;
+          }
+        } catch (checkoutErr: any) {
+          setError(checkoutErr.message || "Failed to initiate payment");
+        }
+      } else {
+        setError(err.message || "Publish failed. Please complete required add-on payment first.");
+      }
     } finally {
       setPublishingId(null);
     }
@@ -569,12 +597,12 @@ export default function BusinessDealsPage() {
                     <div className="mt-auto flex items-center gap-2 pt-4 border-t border-slate-100">
                       {offer.isActive === false && (
                         <button
-                          onClick={() => handlePublish(offer.id)}
+                          onClick={() => handlePublish(offer)}
                           disabled={publishingId === offer.id}
                           className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all active:scale-95 disabled:opacity-60"
                         >
                           {publishingId === offer.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                          Publish
+                          Publish / Pay
                         </button>
                       )}
                       <button
