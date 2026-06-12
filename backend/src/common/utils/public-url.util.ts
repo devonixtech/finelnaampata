@@ -51,7 +51,10 @@ export const isImplicitlyAllowedFrontendOrigin = (origin: string) => {
     return (
         LOCAL_FRONTEND_ORIGINS.includes(cleanOrigin) ||
         cleanOrigin.endsWith('.netlify.app') ||
-        cleanOrigin.endsWith('.up.railway.app')
+        cleanOrigin.endsWith('.up.railway.app') ||
+        cleanOrigin === 'https://naampata.com' ||
+        cleanOrigin === 'http://naampata.com' ||
+        cleanOrigin.endsWith('.naampata.com')
     );
 };
 
