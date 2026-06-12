@@ -7,6 +7,26 @@ import { api } from '../../../lib/api';
 
 
 // Static Export Requirement: Must pre-generate all possible paths
+export async function generateStaticParams() {
+    try {
+        const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/businesses/search?limit=100');
+        const data = await res.json();
+        const results = data.results || [];
+        // Add 'template' and 'sample-business' just in case
+        const paths = [
+            { businessSlug: 'template' },
+            { businessSlug: 'sample-business' },
+            ...results.map((b: any) => ({ businessSlug: b.slug }))
+        ];
+        return paths;
+    } catch (error) {
+        console.error("Error generating static params for business details:", error);
+        return [
+            { businessSlug: 'template' },
+            { businessSlug: 'sample-business' }
+        ];
+    }
+}
 
 export async function generateMetadata({ 
   params 

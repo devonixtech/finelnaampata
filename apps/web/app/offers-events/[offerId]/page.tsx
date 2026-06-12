@@ -3,6 +3,27 @@ import { Metadata } from 'next';
 import OfferEventDetailClient from './OfferEventDetailClient';
 import { api } from '../../../lib/api';
 
+export async function generateStaticParams() {
+    try {
+        const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/offers/public/search?limit=100');
+        const data = await res.json();
+        const offers = data.data || [];
+        // Add 'template' and 'placeholder' just in case as well
+        const paths = [
+            { offerId: 'template' },
+            { offerId: 'placeholder' },
+            ...offers.map((o: any) => ({ offerId: o.id }))
+        ];
+        return paths;
+    } catch (error) {
+        console.error("Error generating static params for offers:", error);
+        return [
+            { offerId: 'template' },
+            { offerId: 'placeholder' }
+        ];
+    }
+}
+
 
 
 

@@ -6,6 +6,24 @@ import { api } from '../../../lib/api';
 
 
 
+export async function generateStaticParams() {
+    try {
+        const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/categories');
+        const categories = await res.json();
+        return [
+            { categorySlug: 'template' },
+            { categorySlug: 'default' },
+            ...categories.map((c: any) => ({ categorySlug: c.slug }))
+        ];
+    } catch (error) {
+        console.error("Error generating static params for categories:", error);
+        return [
+            { categorySlug: 'template' },
+            { categorySlug: 'default' }
+        ];
+    }
+}
+
 // Dynamic route handling for categories
 
 export async function generateMetadata({ 
