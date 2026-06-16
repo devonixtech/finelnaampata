@@ -37,9 +37,12 @@ const replaceLoopbackHost = (value: string) => {
         if (isLoopbackHostname(url.hostname) && browserHost && !isLoopbackHostname(browserHost)) {
             url.hostname = browserHost;
 
-            if (!url.port && window.location.port) {
-                url.port = window.location.port;
-            }
+            // When replacing loopback with a real hostname, clear the dev port
+            // so we don't get naampata.com:3001 on production.
+            // Only keep the port if the browser itself is on a non-standard port.
+            const browserPort = window.location.port;
+            const isStandardPort = !browserPort || browserPort === '80' || browserPort === '443';
+            url.port = isStandardPort ? '' : browserPort;
         }
 
         return trimTrailingSlashes(url.toString());
@@ -47,6 +50,7 @@ const replaceLoopbackHost = (value: string) => {
         return trimTrailingSlashes(value);
     }
 };
+
 
 export const getBrowserOriginForPort = (port: number) => {
     if (typeof window === 'undefined') {
