@@ -28,8 +28,7 @@ function SearchResults() {
     const onlineNow = searchParams.get('onlineNow') === 'true';
     const experience = searchParams.get('experience') === 'true';
     const mostContacted = searchParams.get('mostContacted') === 'true';
-    const filter = searchParams.get('filter') || '';
-    const featuredOnly = filter === 'featured';
+    const sortBy = searchParams.get('sortBy') || 'relevance';
 
     const [results, setResults] = useState<Business[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,6 +55,7 @@ function SearchResults() {
                         experience: experience || undefined,
                         mostContacted: mostContacted || undefined,
                         filter: filter || undefined,
+                        sortBy: sortBy || undefined,
                         limit: 20
                     }),
                     api.categories.getAll()
@@ -79,7 +79,7 @@ function SearchResults() {
             }
         };
         loadData();
-    }, [query, city, categorySlug, minRating, radius, latitude, longitude, openNow, verifiedOnly, fastResponse, onlineNow, experience, mostContacted, featuredOnly, filter]);
+    }, [query, city, categorySlug, minRating, radius, latitude, longitude, openNow, verifiedOnly, fastResponse, onlineNow, experience, mostContacted, sortBy]);
 
     const handleNearMe = async () => {
         setGeoLoading(true);
@@ -129,9 +129,7 @@ function SearchResults() {
                                 <span className="text-white">Search Results</span>
                             </div>
                             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.9] mb-4">
-                                {filter === 'featured' ? (
-                                    <>Premier <span className="text-primary italic">Selection</span></>
-                                ) : filter === 'new' ? (
+                                {sortBy === 'newest' ? (
                                     <>Latest <span className="text-primary italic">Arrivals</span></>
                                 ) : city ? (
                                     <>Best in <span className="text-primary italic">{city}</span></>
@@ -172,37 +170,6 @@ function SearchResults() {
                         </div>
 
                         <div className={`${showFilters ? 'block' : 'hidden lg:block'} space-y-12 animate-in fade-in duration-500`}>
-                            {/* Sort Filter - NEW */}
-                            <div>
-                                <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8">Sort By</h4>
-                                <div className="grid grid-cols-1 gap-2">
-                                    <button
-                                        onClick={() => updateFilter('filter', filter === 'new' ? null : 'new')}
-                                        className={`py-4 px-6 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-between group ${filter === 'new' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-900'}`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg transition-colors ${filter === 'new' ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-900'}`}>
-                                                <Clock className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span>Recent Listings</span>
-                                        </div>
-                                        {filter === 'new' && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />}
-                                    </button>
-
-                                    <button
-                                        onClick={() => updateFilter('filter', filter === 'featured' ? null : 'featured')}
-                                        className={`py-4 px-6 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-between group ${filter === 'featured' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-900'}`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg transition-colors ${filter === 'featured' ? 'bg-orange-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-900'}`}>
-                                                <Star className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span>Featured</span>
-                                        </div>
-                                        {filter === 'featured' && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]" />}
-                                    </button>
-                                </div>
-                            </div>
                             {/* Rating Filter */}
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6">Performance</h4>
@@ -339,8 +306,7 @@ function SearchResults() {
                             if (city) chips.push({ key: 'city', label: city, value: city });
                             if (categorySlug) chips.push({ key: 'category', label: categorySlug, value: categorySlug });
                             if (minRating && minRating !== '0') chips.push({ key: 'minRating', label: `${minRating}+ Stars`, value: minRating });
-                            if (filter === 'new') chips.push({ key: 'filter', label: 'Recent', value: 'new' });
-                            if (filter === 'featured') chips.push({ key: 'filter', label: 'Featured', value: 'featured' });
+                            if (sortBy && sortBy !== 'relevance') chips.push({ key: 'sortBy', label: sortBy.charAt(0).toUpperCase() + sortBy.slice(1), value: sortBy });
                             if (openNow) chips.push({ key: 'openNow', label: 'Open Now', value: 'true' });
                             if (verifiedOnly) chips.push({ key: 'verifiedOnly', label: 'Verified', value: 'true' });
                             if (fastResponse) chips.push({ key: 'fastResponse', label: 'Fast Response', value: 'true' });
@@ -377,16 +343,16 @@ function SearchResults() {
                         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-2 shrink-0">Sort:</span>
                             {[
-                                { label: 'Relevance', key: 'sortBy', value: 'relevance', active: !filter || filter === 'featured' },
-                                { label: 'Nearest', key: 'sortBy', value: 'distance', active: false },
-                                { label: 'Top Rated', key: 'sortBy', value: 'rating', active: false },
-                                { label: 'Newest', key: 'filter', value: 'new', active: filter === 'new' },
+                                { label: 'Relevance', value: 'relevance' },
+                                { label: 'Nearest', value: 'distance' },
+                                { label: 'Top Rated', value: 'rating' },
+                                { label: 'Newest', value: 'newest' },
                             ].map(sort => (
                                 <button
-                                    key={sort.label}
-                                    onClick={() => updateFilter(sort.key, sort.active ? null : sort.value)}
+                                    key={sort.value}
+                                    onClick={() => updateFilter('sortBy', sortBy === sort.value ? null : sort.value)}
                                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
-                                        sort.active
+                                        sortBy === sort.value
                                             ? 'bg-slate-900 text-white'
                                             : 'bg-white border border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-900'
                                     }`}

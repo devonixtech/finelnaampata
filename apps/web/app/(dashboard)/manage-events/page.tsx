@@ -443,7 +443,6 @@ export default function BusinessEventsPage() {
       : "—";
 
   return (
-    <FeatureGate feature="showOffers">
       <div className="max-w-6xl mx-auto pb-16">
         {/* Header */}
         <div className="relative mb-8 rounded-3xl overflow-hidden bg-gradient-to-br from-[#0B2244] via-[#0D2E61] to-[#1a3a70] p-8 shadow-2xl">
@@ -1103,7 +1102,6 @@ export default function BusinessEventsPage() {
           }}
         />
       )}
-    </FeatureGate>
   );
 }
 

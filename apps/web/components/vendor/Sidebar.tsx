@@ -80,16 +80,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const filteredItems = menuItems.filter(item => {
         // Show all items to admins except upgrade CTA
         if (user?.role === 'admin' || user?.role === 'superadmin') {
-            return item.name !== 'List My Business';
+            return item.name !== 'Sign Up';
         }
 
         if (user?.role === 'vendor') {
-            if (item.name === 'List My Business') return false;
+            if (item.name === 'Sign Up') return false;
             return item.feature ? hasFeature(item.feature) : true;
         }
 
         // For regular users/customers, show a limited subset
-        const allowedForUsers = ['Dashboard', 'List My Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
+        const allowedForUsers = ['Dashboard', 'Sign Up', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
         if (!allowedForUsers) return false;
         return item.feature ? hasFeature(item.feature) : true;
     });
