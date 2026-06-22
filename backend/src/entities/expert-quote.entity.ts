@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from './user.entity';
-import { Business } from './business.entity';
+import { Listing } from './business.entity';
 
 @Entity('expert_quotes')
 export class ExpertQuote {
@@ -17,9 +17,9 @@ export class ExpertQuote {
     @Column({ name: 'business_id', nullable: true })
     businessId: string;
 
-    @ManyToOne(() => Business, { nullable: true })
+    @ManyToOne(() => Listing, { nullable: true })
     @JoinColumn({ name: 'business_id' })
-    business: Business;
+    business: Listing;
 
     @Column({ name: 'customer_name', length: 150 })
     customerName: string;
