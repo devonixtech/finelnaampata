@@ -17,6 +17,8 @@ export enum SearchSortBy {
     DISTANCE = 'distance',
     RATING = 'rating',
     NEWEST = 'newest',
+    MOST_REVIEWED = 'reviews',
+    MOST_CONTACTED = 'contacted',
 }
 
 export class SearchBusinessDto extends PaginationDto {
@@ -58,6 +60,11 @@ export class SearchBusinessDto extends PaginationDto {
     @IsOptional()
     @IsString()
     city?: string;
+
+    @ApiPropertyOptional({ example: 'Pakistan' })
+    @IsOptional()
+    @IsString()
+    country?: string;
 
     @ApiPropertyOptional({ example: 'restaurants' })
     @IsOptional()

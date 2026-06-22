@@ -322,15 +322,18 @@ export class VendorsService {
         // Calculate Profile Completion
         let completionScore = 0;
         const fields = [
-            { val: vendor.businessName, weight: 15 },
-            { val: vendor.bio, weight: 15 },
-            { val: vendor.businessEmail, weight: 10 },
+            { val: vendor.businessName, weight: 10 },
             { val: vendor.businessPhone, weight: 10 },
             { val: vendor.businessAddress, weight: 10 },
             { val: vendor.city, weight: 10 },
-            { val: vendor.socialLinks?.length > 0, weight: 10 },
+            { val: vendor.country, weight: 5 },
+            { val: vendor.bio, weight: 10 },
+            { val: vendor.businessEmail, weight: 5 },
+            { val: vendor.socialLinks?.length > 0, weight: 5 },
             { val: vendor.businessHours && Object.keys(vendor.businessHours).length > 0, weight: 10 },
-            { val: businessCount > 0, weight: 10 },
+            { val: businessCount > 0, weight: 15 },
+            { val: vendor.logoUrl, weight: 5 },
+            { val: vendor.coverImageUrl, weight: 5 },
         ];
 
         fields.forEach(f => {

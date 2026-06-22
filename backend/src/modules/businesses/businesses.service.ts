@@ -682,6 +682,7 @@ export class BusinessesService implements OnModuleInit {
             longitude,
             radius,
             city,
+            country,
             categoryId,
             categorySlug,
             minRating,
@@ -784,6 +785,13 @@ export class BusinessesService implements OnModuleInit {
         if (city) {
             queryBuilder.andWhere('listing.city ILIKE :city', {
                 city: `%${city}%`,
+            });
+        }
+
+        // Country filter
+        if (country) {
+            queryBuilder.andWhere('listing.country ILIKE :country', {
+                country: `%${country}%`,
             });
         }
 
@@ -935,6 +943,10 @@ export class BusinessesService implements OnModuleInit {
             queryBuilder.addOrderBy('distance_meters', 'ASC');
         } else if (sortBy === SearchSortBy.RATING) {
             queryBuilder.addOrderBy('listing.averageRating', 'DESC');
+        } else if (sortBy === SearchSortBy.MOST_REVIEWED) {
+            queryBuilder.addOrderBy('listing.totalReviews', 'DESC');
+        } else if (sortBy === SearchSortBy.MOST_CONTACTED) {
+            queryBuilder.addOrderBy('listing.totalLeads', 'DESC');
         } else if (searchDto.query) {
             // 100-point weighted relevance scoring
             const textWeight = searchDto.query ? 35 : 0;

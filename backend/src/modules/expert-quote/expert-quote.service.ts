@@ -16,9 +16,10 @@ export class ExpertQuoteService {
 
     async create(dto: CreateExpertQuoteDto, user?: User): Promise<ExpertQuote> {
         // Check daily limit for users (3/day) and businesses (10/day)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         if (user) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
             const count = await this.quoteRepository.count({
                 where: { userId: user.id, createdAt: MoreThan(today) },
             });
@@ -28,6 +29,14 @@ export class ExpertQuoteService {
             }
             if (!isBusiness && count >= 3) {
                 throw new BadRequestException('Daily limit reached. Users can submit up to 3 quotes per day.');
+            }
+        } else if (dto.customerEmail) {
+            // Anonymous rate limit: 3 per email per day
+            const count = await this.quoteRepository.count({
+                where: { customerEmail: dto.customerEmail, userId: undefined as any, createdAt: MoreThan(today) },
+            });
+            if (count >= 3) {
+                throw new BadRequestException('Daily limit reached. You can submit up to 3 quotes per day.');
             }
         }
 
