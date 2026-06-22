@@ -8,7 +8,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import BusinessCard from '../../components/BusinessCard';
 import { api } from '../../lib/api';
-import { Business, Category } from '../../types/api';
+import { Business } from '../../types/api';
 import Link from 'next/link';
 
 function SearchResults() {
@@ -32,7 +32,6 @@ function SearchResults() {
     const featuredOnly = filter === 'featured';
 
     const [results, setResults] = useState<Business[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [geoLoading, setGeoLoading] = useState(false);
@@ -41,7 +40,7 @@ function SearchResults() {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [searchRes, cats] = await Promise.all([
+                const [searchRes] = await Promise.all([
                     api.listings.search({
                         query: query,
                         city: city,
@@ -62,7 +61,6 @@ function SearchResults() {
                     api.categories.getAll()
                 ]);
                 setResults(searchRes.data);
-                setCategories(cats);
 
                 // Log demand if there's a query or category
                 if (query || categorySlug) {
@@ -205,32 +203,6 @@ function SearchResults() {
                                     </button>
                                 </div>
                             </div>
-                            {/* Category Filter */}
-                            <div>
-                                <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6">Department</h4>
-                                <div className="space-y-3">
-                                    {categories.slice(0, 8).map(cat => (
-                                        <label key={cat.id} className="flex items-center group cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded-lg border-slate-200 text-blue-600 focus:ring-blue-500/10 w-4 h-4 mr-3 transition-all cursor-pointer"
-                                                checked={categorySlug === cat.slug}
-                                                onChange={() => {
-                                                    const params = new URLSearchParams(searchParams.toString());
-                                                    if (categorySlug === cat.slug) {
-                                                        params.delete('category');
-                                                    } else {
-                                                        params.set('category', cat.slug);
-                                                    }
-                                                    router.push(`/search?${params.toString()}`);
-                                                }}
-                                            />
-                                            <span className={`text-xs font-bold transition-all ${categorySlug === cat.slug ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-900'}`}>{cat.name}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* Rating Filter */}
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6">Performance</h4>
@@ -360,6 +332,70 @@ function SearchResults() {
 
                     {/* Results Area */}
                     <div className="lg:col-span-9 w-full">
+                        {/* Active Filter Chips */}
+                        {(() => {
+                            const chips: { key: string; label: string; value: string }[] = [];
+                            if (query) chips.push({ key: 'q', label: `"${query}"`, value: query });
+                            if (city) chips.push({ key: 'city', label: city, value: city });
+                            if (categorySlug) chips.push({ key: 'category', label: categorySlug, value: categorySlug });
+                            if (minRating && minRating !== '0') chips.push({ key: 'minRating', label: `${minRating}+ Stars`, value: minRating });
+                            if (filter === 'new') chips.push({ key: 'filter', label: 'Recent', value: 'new' });
+                            if (filter === 'featured') chips.push({ key: 'filter', label: 'Featured', value: 'featured' });
+                            if (openNow) chips.push({ key: 'openNow', label: 'Open Now', value: 'true' });
+                            if (verifiedOnly) chips.push({ key: 'verifiedOnly', label: 'Verified', value: 'true' });
+                            if (fastResponse) chips.push({ key: 'fastResponse', label: 'Fast Response', value: 'true' });
+                            if (onlineNow) chips.push({ key: 'onlineNow', label: 'Online', value: 'true' });
+                            if (radius && latitude) chips.push({ key: 'radius', label: `${radius}km radius`, value: radius });
+
+                            if (chips.length === 0) return null;
+
+                            return (
+                                <div className="flex flex-wrap gap-2 mb-6">
+                                    {chips.map(chip => (
+                                        <button
+                                            key={chip.key}
+                                            onClick={() => updateFilter(chip.key, null)}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-bold text-slate-600 transition-colors"
+                                        >
+                                            {chip.label}
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    ))}
+                                    {chips.length > 1 && (
+                                        <button
+                                            onClick={() => router.push('/search')}
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded-full text-xs font-bold text-red-500 transition-colors"
+                                        >
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })()}
+
+                        {/* Sort Bar */}
+                        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+                            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-2 shrink-0">Sort:</span>
+                            {[
+                                { label: 'Relevance', key: 'sortBy', value: 'relevance', active: !filter || filter === 'featured' },
+                                { label: 'Nearest', key: 'sortBy', value: 'distance', active: false },
+                                { label: 'Top Rated', key: 'sortBy', value: 'rating', active: false },
+                                { label: 'Newest', key: 'filter', value: 'new', active: filter === 'new' },
+                            ].map(sort => (
+                                <button
+                                    key={sort.label}
+                                    onClick={() => updateFilter(sort.key, sort.active ? null : sort.value)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${
+                                        sort.active
+                                            ? 'bg-slate-900 text-white'
+                                            : 'bg-white border border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-900'
+                                    }`}
+                                >
+                                    {sort.label}
+                                </button>
+                            ))}
+                        </div>
+
                         {loading ? (
                             <div className="grid sm:grid-cols-2 gap-x-10 gap-y-16">
                                 {Array(6).fill(0).map((_, i) => (

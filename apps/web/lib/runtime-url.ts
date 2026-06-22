@@ -32,8 +32,16 @@ const replaceLoopbackHost = (value: string) => {
 
     try {
         const url = new URL(value);
-        const browserHost = window.location.hostname;
 
+        // CRITICAL FIX: If the URL is already pointing to a real external host
+        // (not loopback), do NOT replace it. This prevents Railway URLs from
+        // being replaced with the browser's current hostname (naampata.com).
+        if (!isLoopbackHostname(url.hostname)) {
+            return trimTrailingSlashes(value);
+        }
+
+        // Only replace loopback if we're accessing from a non-loopback browser host
+        const browserHost = window.location.hostname;
         if (isLoopbackHostname(url.hostname) && browserHost && !isLoopbackHostname(browserHost)) {
             url.hostname = browserHost;
 

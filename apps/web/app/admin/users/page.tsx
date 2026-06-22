@@ -673,7 +673,7 @@ export default function AdminUsersPage() {
                                             <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest border-l-4 border-violet-500 pl-3">Private Notes</h4>
                                             <div className="rounded-3xl border border-violet-100 bg-violet-50/40 p-5 space-y-5">
                                                 <p className="text-xs font-bold text-slate-500">
-                                                    Admin can review and add conversation notes that remain visible only to business owners and admin staff.
+                                                    Conversation notes visible only to the business owner.
                                                 </p>
 
                                                 {adminConversations.length === 0 ? (
@@ -726,7 +726,8 @@ export default function AdminUsersPage() {
                                                                 <div>
                                                                     <p className="text-sm font-black text-slate-900">Conversation Notes</p>
                                                                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                                                        Visible only to business and admin
+                                                                        Visible only to business
+
                                                                     </p>
                                                                 </div>
                                                                 {selectedConversationId && (

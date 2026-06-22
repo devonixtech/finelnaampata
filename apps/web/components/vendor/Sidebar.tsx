@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const menuItems: { name: string; icon: any; href: string; badge: string | null; feature?: keyof DashboardFeatures; iconColor?: string; description?: string }[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null, description: 'Overview of your activity' },
-        { name: 'List My Business', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
+        { name: 'Sign Up', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
         { name: 'My Listings', icon: ListTree, href: '/listings', badge: null, feature: 'showListings', description: 'Manage your published businesses' },
         { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing', description: 'Add a new business listing' },
         { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },

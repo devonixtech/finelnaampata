@@ -210,7 +210,7 @@ export default function AboutPage() {
                                 href="/register"
                                 className="inline-flex items-center gap-4 px-12 py-8 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-[24px] hover:shadow-2xl hover:shadow-primary/40 transition-all active:scale-95 group"
                             >
-                                List Your Business 
+                                Sign Up
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                             </Link>
                             <Link

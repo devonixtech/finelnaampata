@@ -6,6 +6,7 @@ import { api, getImageUrl } from '../../../lib/api';
 import BusinessAvatar from '../../../components/BusinessAvatar';
 import { useAuth } from '../../../context/AuthContext';
 import { City } from '../../../types/api';
+import { COUNTRIES_STATES, CountryData } from '../../../lib/data/countries-states';
 
 export default function AccountSettings() {
     const { user, loading: authLoading, updateUser } = useAuth();
@@ -564,15 +565,9 @@ export default function AccountSettings() {
                                         onChange={handleSelectChange}
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
                                     >
-                                        <option value="Pakistan">Pakistan</option>
-                                        <option value="India">India</option>
-                                        <option value="United Arab Emirates">United Arab Emirates</option>
-                                        <option value="Saudi Arabia">Saudi Arabia</option>
-                                        <option value="United Kingdom">United Kingdom</option>
-                                        <option value="United States">United States</option>
-                                        <option value="Canada">Canada</option>
-                                        <option value="Australia">Australia</option>
-                                        <option value="Other">Other</option>
+                                        {COUNTRIES_STATES.map(c => (
+                                            <option key={c.code} value={c.name}>{c.name}</option>
+                                        ))}
                                     </select>
                                     <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                 </div>
@@ -583,33 +578,21 @@ export default function AccountSettings() {
                                     <Globe className="w-3.5 h-3.5" /> State / Province
                                 </label>
                                 <div className="relative">
-                                    <input
-                                        list="settings-state-list"
+                                    <select
                                         name="state"
                                         value={formData.state}
-                                        onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                                        placeholder="Type or select a state"
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
-                                    />
-                                    <datalist id="settings-state-list">
-                                        {formData.country === 'Pakistan' ? (
-                                            availableStates.map(state => (
-                                                <option key={state} value={state} />
-                                            ))
-                                        ) : (() => {
-                                            const FALLBACK_STATES: Record<string, string[]> = {
-                                                'India': ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu & Kashmir', 'Ladakh'],
-                                                'United Arab Emirates': ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Fujairah', 'Ras Al Khaimah', 'Umm Al Quwain'],
-                                                'Saudi Arabia': ['Riyadh', 'Makkah', 'Madinah', 'Eastern Province', 'Asir', 'Tabuk', 'Qassim', 'Hail', 'Jizan', 'Najran', 'Al Jawf', 'Al Bahah', 'Northern Borders'],
-                                                'United Kingdom': ['England', 'Scotland', 'Wales', 'Northern Ireland', 'Greater London', 'West Midlands', 'Greater Manchester', 'West Yorkshire'],
-                                                'United States': ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'],
-                                                'Canada': ['Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Nova Scotia', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Northwest Territories', 'Nunavut', 'Yukon'],
-                                                'Australia': ['New South Wales', 'Victoria', 'Queensland', 'South Australia', 'Western Australia', 'Tasmania', 'Australian Capital Territory', 'Northern Territory'],
-                                            };
-                                            const opts = FALLBACK_STATES[formData.country] || [];
-                                            return opts.map(s => <option key={s} value={s} />);
+                                        onChange={handleSelectChange}
+                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Select state / province</option>
+                                        {(() => {
+                                            const country = COUNTRIES_STATES.find(c => c.name === formData.country);
+                                            return country ? country.states.map(s => (
+                                                <option key={s.code} value={s.name}>{s.name}</option>
+                                            )) : [];
                                         })()}
-                                    </datalist>
+                                    </select>
+                                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
 
@@ -634,16 +617,7 @@ export default function AccountSettings() {
                                                 .map(city => (
                                                     <option key={city.id} value={city.name} />
                                                 ))
-                                        ) : (() => {
-                                            const FALLBACK_CITIES: Record<string, string[]> = {
-                                                'Punjab': ['Amritsar', 'Ludhiana', 'Jalandhar', 'Patiala'],
-                                                'Delhi': ['New Delhi', 'Old Delhi', 'Gurugram', 'Noida', 'Faridabad', 'Ghaziabad'],
-                                                'Dubai': ['Deira', 'Bur Dubai', 'Marina', 'Downtown'],
-                                                'Abu Dhabi': ['Khalifa City', 'Al Reem Island'],
-                                            };
-                                            const opts = FALLBACK_CITIES[formData.state] || [];
-                                            return opts.map(c => <option key={c} value={c} />);
-                                        })()}
+                                        ) : []}
                                     </datalist>
                                 </div>
                             </div>

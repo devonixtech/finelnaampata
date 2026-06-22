@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { StepProps, ListingFormData } from '../types';
-import { Layers, ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock } from 'lucide-react';
+import { ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock } from 'lucide-react';
 import { DEFAULT_DIAL_CODES } from '../../../../lib/phone-codes';
 import { SOCIAL_PLATFORMS, AMENITIES } from '../../../../lib/constants/listing-options';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
 import { usePlanFeature } from '../../../../hooks/usePlanFeature';
+import CategorySearchSelect from '../../../../components/CategorySearchSelect';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const selectClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer pr-10";
@@ -29,20 +30,12 @@ export const Step5Category = ({ formData, setFormData, categories = [] }: StepPr
         <div className="space-y-6">
             <div>
                 <label className={labelClass}>Main Category</label>
-                <div className="relative">
-                    <select
-                        required
-                        value={formData.categoryId}
-                        onChange={e => setFormData(p => ({ ...p, categoryId: e.target.value, subCategoryIds: [] }))}
-                        className={selectClass}
-                    >
-                        <option value="" disabled>-- Select Category --</option>
-                        {categories.filter(c => !c.parentId).map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
-                    <Layers className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                </div>
+                <CategorySearchSelect
+                    categories={categories.filter(c => !c.parentId)}
+                    value={formData.categoryId}
+                    onChange={catId => setFormData(p => ({ ...p, categoryId: catId, subCategoryIds: [] }))}
+                    loading={false}
+                />
             </div>
 
             {relatedSubcategories.length > 0 && (
@@ -293,6 +286,8 @@ export const Step13Online = ({ formData, setFormData }: StepProps) => {
         }
     };
 
+    const customLinks = safeSocialLinks.filter(s => !SOCIAL_PLATFORMS.find((p: any) => p.key === s.platform));
+
     return (
         <div className="space-y-6">
             <div>
@@ -326,6 +321,58 @@ export const Step13Online = ({ formData, setFormData }: StepProps) => {
                             </div>
                         );
                     })}
+                </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                    <label className={labelClass}>Additional Links</label>
+                    <button
+                        type="button"
+                        onClick={() => setFormData(p => ({
+                            ...p,
+                            socialLinks: [...(Array.isArray(p.socialLinks) ? p.socialLinks : []), { platform: 'custom', url: '', label: '' }]
+                        }))}
+                        className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                        + Add More Link
+                    </button>
+                </div>
+                <div className="space-y-3">
+                    {customLinks.map((link: any, i: number) => (
+                        <div key={`custom-${i}`} className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder="Label"
+                                value={link.label || ''}
+                                onChange={e => {
+                                    const updated = safeSocialLinks.map(s => s === link ? { ...s, label: e.target.value } : s);
+                                    setFormData(p => ({ ...p, socialLinks: updated }));
+                                }}
+                                className={`${inputClass} w-1/3`}
+                            />
+                            <input
+                                type="url"
+                                placeholder="https://..."
+                                value={link.url}
+                                onChange={e => {
+                                    const updated = safeSocialLinks.map(s => s === link ? { ...s, url: e.target.value } : s);
+                                    setFormData(p => ({ ...p, socialLinks: updated }));
+                                }}
+                                className={inputClass}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setFormData(p => ({
+                                    ...p,
+                                    socialLinks: (Array.isArray(p.socialLinks) ? p.socialLinks : []).filter(s => s !== link)
+                                }))}
+                                className="p-3 text-red-400 hover:text-red-600 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

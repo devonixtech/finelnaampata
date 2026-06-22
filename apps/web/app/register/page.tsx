@@ -168,14 +168,8 @@ function RegisterForm() {
                         )}
 
                         {referralCode && (
-                            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between">
-                                <div>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Referred By Affiliate</p>
-                                    <p className="text-sm font-bold text-emerald-900 mt-0.5">Code: {referralCode}</p>
-                                </div>
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                                    <Sparkles className="w-4 h-4 text-emerald-600" />
-                                </div>
+                            <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                                <p className="text-xs font-bold text-emerald-700 text-center">Referral code applied</p>
                             </div>
                         )}
 

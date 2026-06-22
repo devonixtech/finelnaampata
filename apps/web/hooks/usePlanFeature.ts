@@ -105,6 +105,9 @@ export const usePlanFeature = () => {
         // Admins/Superadmins bypass all gating
         if (user?.role === 'admin' || user?.role === 'superadmin') return true;
 
+        // Core features always available for all roles
+        if (['showCustomerNotes'].includes(featureName as string)) return true;
+
         // Standard users bypass gating for core community features
         if (user?.role === 'user' && ['showChat', 'showSaved', 'showFollowing', 'showReviews'].includes(featureName as string)) {
             return true;

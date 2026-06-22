@@ -2,11 +2,28 @@ import { City } from '../types/api';
 
 export type GeoCoords = { latitude: number; longitude: number };
 
-/** Device GPS only - consistent across all location pickers (no IP fallback). */
+/**
+ * IP-based fallback location detection.
+ * Used when GPS is denied, times out, or is unavailable.
+ */
+async function detectLocationByIp(): Promise<GeoCoords> {
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) {
+        throw new Error('IP geolocation lookup failed');
+    }
+    const data = await response.json();
+    if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+        return { latitude: data.latitude, longitude: data.longitude };
+    }
+    throw new Error('IP geolocation returned no coordinates');
+}
+
+/** Device GPS with IP fallback - consistent across all location pickers. */
 export function detectDeviceLocation(): Promise<GeoCoords> {
     return new Promise((resolve, reject) => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
-            reject(new Error('Geolocation is not supported by your browser'));
+            // Fall back to IP
+            detectLocationByIp().then(resolve).catch(() => reject(new Error('Geolocation is not supported by your browser')));
             return;
         }
 
@@ -17,7 +34,10 @@ export function detectDeviceLocation(): Promise<GeoCoords> {
                     longitude: position.coords.longitude,
                 });
             },
-            (error) => reject(error),
+            () => {
+                // GPS failed, try IP fallback
+                detectLocationByIp().then(resolve).catch(() => reject(new Error('Unable to detect location')));
+            },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         );
     });

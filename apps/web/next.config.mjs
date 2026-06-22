@@ -1,4 +1,4 @@
-const isStaticExport = process.env.STATIC_EXPORT === 'true';
+const isStaticExport = process.env.STATIC_EXPORT === 'true' && process.env.NODE_ENV !== 'development';
 
 const nextConfig = {
     allowedDevOrigins: ['127.0.0.1', 'localhost'],

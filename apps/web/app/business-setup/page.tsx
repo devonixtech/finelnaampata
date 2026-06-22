@@ -58,9 +58,7 @@ const DraggablePinMap = dynamic(() => import('../../components/DraggablePinMap')
 
 const DIAL_CODES = DEFAULT_DIAL_CODES;
 
-const BUSINESS_LANGUAGE_OPTIONS = [
-    'English', 'Urdu', 'Arabic', 'Hindi', 'Punjabi', 'Pashto', 'Sindhi', 'Balochi', 'Other'
-];
+
 
 const EMPLOYEE_SIZE_OPTIONS = [
     'Just Me (Solo)', '2 – 5', '6 – 10', '11 – 25', '26 – 50', '51 – 100', '101 – 250', '251 – 500', '501 – 1,000', '1,000+', 'Prefer not to say'
@@ -232,8 +230,7 @@ export default function BusinessSetupWizard() {
             twitter: '',
             pinterest: '',
             snapchat: '',
-            customLabel: '',
-            customUrl: ''
+            customLinks: [] as Array<{ label: string; url: string }>
         },
 
         // Step 15: Amenities & Facilities
@@ -312,7 +309,7 @@ export default function BusinessSetupWizard() {
                         ...prev,
                         businessName: prev.businessName || user.vendor?.businessName || user.fullName || '',
                         businessEmail: prev.businessEmail || user.email || '',
-                        phoneNumber: prev.phoneNumber || (user.phone || '').replace(/^\+\d{1,4}/, ''),
+                        phoneNumber: prev.phoneNumber || (user.phone || '').replace(/^\+\d{1,3}/, ''),
                         address: prev.address || user.vendor?.businessAddress || '',
                         country: prev.country || user.country || options[0]?.name || '',
                         city: prev.city || user.city || '',
@@ -1687,7 +1684,7 @@ export default function BusinessSetupWizard() {
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
-                                                    placeholder="E.164 number"
+                                                    placeholder="+923001234567"
                                                     value={p.number}
                                                     onChange={e => {
                                                         const updated = [...stepData.namedPhoneNumbers];
@@ -1833,23 +1830,15 @@ export default function BusinessSetupWizard() {
                             </div>
 
                             <div className="pt-2 border-t border-slate-100">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Spoken / Supported Languages</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {BUSINESS_LANGUAGE_OPTIONS.map(opt => {
-                                        const selected = stepData.languages.includes(opt);
-                                        return (
-                                            <button
-                                                key={opt}
-                                                type="button"
-                                                onClick={() => toggleMultiSelectOption('languages', opt)}
-                                                className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all font-bold text-left ${selected ? 'border-blue-600 bg-blue-50/50 text-blue-700' : 'border-slate-100 bg-slate-50/50 hover:bg-white text-slate-500'}`}
-                                            >
-                                                <span className="text-xs">{opt}</span>
-                                                {selected && <Check className="w-3.5 h-3.5 text-blue-600" />}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Spoken / Supported Languages</label>
+                                <p className="text-[10px] text-slate-400 font-medium mb-2 ml-1">Enter languages separated by commas (e.g. English, Urdu, Arabic)</p>
+                                <input
+                                    type="text"
+                                    value={stepData.languages.join(', ')}
+                                    onChange={e => setStepData({...stepData, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
+                                    placeholder="English, Urdu, Arabic, Hindi..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                />
                             </div>
                         </div>
                     </div>
@@ -1866,16 +1855,15 @@ export default function BusinessSetupWizard() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Year Established</label>
-                                    <select
+                                    <input
+                                        type="number"
+                                        min="1900"
+                                        max={new Date().getFullYear()}
+                                        placeholder="e.g. 2015"
                                         value={stepData.yearEstablished}
                                         onChange={e => setStepData({...stepData, yearEstablished: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 cursor-pointer"
-                                    >
-                                        <option value="">-- Select Year --</option>
-                                        {yearsList.map(y => (
-                                            <option key={y} value={y}>{y}</option>
-                                        ))}
-                                    </select>
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Team Size (Employees)</label>
@@ -1930,47 +1918,126 @@ export default function BusinessSetupWizard() {
                                 />
                             </div>
 
-                            <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Facebook Page</label>
-                                    <input
-                                        type="url"
-                                        value={stepData.socialLinks.facebook}
-                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, facebook: e.target.value}})}
-                                        placeholder="https://facebook.com/..."
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
-                                    />
+                            <div className="pt-2 border-t border-slate-100">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Social Media Links</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Facebook Page</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.facebook}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, facebook: e.target.value}})}
+                                            placeholder="https://facebook.com/..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Instagram Profile</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.instagram}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, instagram: e.target.value}})}
+                                            placeholder="https://instagram.com/..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">TikTok</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.tiktok}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, tiktok: e.target.value}})}
+                                            placeholder="https://tiktok.com/@..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Twitter / X</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.twitter}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, twitter: e.target.value}})}
+                                            placeholder="https://x.com/..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">LinkedIn Profile</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.linkedin}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, linkedin: e.target.value}})}
+                                            placeholder="https://linkedin.com/in/..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">YouTube Channel</label>
+                                        <input
+                                            type="url"
+                                            value={stepData.socialLinks.youtube}
+                                            onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, youtube: e.target.value}})}
+                                            placeholder="https://youtube.com/c/..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Instagram Profile</label>
-                                    <input
-                                        type="url"
-                                        value={stepData.socialLinks.instagram}
-                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, instagram: e.target.value}})}
-                                        placeholder="https://instagram.com/..."
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
-                                    />
+                            </div>
+
+                            {/* Custom Additional Links */}
+                            <div className="pt-2 border-t border-slate-100">
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Additional Links</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStepData({
+                                            ...stepData,
+                                            socialLinks: {
+                                                ...stepData.socialLinks,
+                                                customLinks: [...(stepData.socialLinks.customLinks || []), { label: '', url: '' }]
+                                            }
+                                        })}
+                                        className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                        + Add More Link
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">LinkedIn Profile</label>
-                                    <input
-                                        type="url"
-                                        value={stepData.socialLinks.linkedin}
-                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, linkedin: e.target.value}})}
-                                        placeholder="https://linkedin.com/in/..."
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">YouTube Channel</label>
-                                    <input
-                                        type="url"
-                                        value={stepData.socialLinks.youtube}
-                                        onChange={e => setStepData({...stepData, socialLinks: {...stepData.socialLinks, youtube: e.target.value}})}
-                                        placeholder="https://youtube.com/c/..."
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
-                                    />
-                                </div>
+                                {(stepData.socialLinks.customLinks || []).map((link: { label: string; url: string }, i: number) => (
+                                    <div key={i} className="flex items-center gap-2 mb-2">
+                                        <input
+                                            type="text"
+                                            value={link.label}
+                                            onChange={e => {
+                                                const links = [...(stepData.socialLinks.customLinks || [])];
+                                                links[i] = { ...links[i], label: e.target.value };
+                                                setStepData({...stepData, socialLinks: {...stepData.socialLinks, customLinks: links}});
+                                            }}
+                                            placeholder="Label (e.g. Discord)"
+                                            className="w-1/3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                        <input
+                                            type="url"
+                                            value={link.url}
+                                            onChange={e => {
+                                                const links = [...(stepData.socialLinks.customLinks || [])];
+                                                links[i] = { ...links[i], url: e.target.value };
+                                                setStepData({...stepData, socialLinks: {...stepData.socialLinks, customLinks: links}});
+                                            }}
+                                            placeholder="https://..."
+                                            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-xs text-slate-700"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const links = (stepData.socialLinks.customLinks || []).filter((_: any, idx: number) => idx !== i);
+                                                setStepData({...stepData, socialLinks: {...stepData.socialLinks, customLinks: links}});
+                                            }}
+                                            className="p-3 text-red-400 hover:text-red-600 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
 
                             {isFree && (

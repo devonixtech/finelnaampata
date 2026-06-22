@@ -10,12 +10,14 @@ import Footer from '@/components/Footer';
 import { LayoutGrid, List, Filter, ChevronRight, Star, ShieldCheck, Search, MapPin, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface CategoryDetailClientProps {
     slug: string;
 }
 
 export default function CategoryDetailClient({ slug }: CategoryDetailClientProps) {
+    const router = useRouter();
     const [businesses, setBusinesses] = useState<Business[]>([]);
     const [category, setCategory] = useState<Category | null>(null);
     const [cities, setCities] = useState<City[]>([]);
@@ -207,7 +209,7 @@ export default function CategoryDetailClient({ slug }: CategoryDetailClientProps
                                     >
                                         <OfferCard
                                             offer={offer}
-                                            onEnquire={() => window.location.href = `/offers-events/${offer.id}`}
+                                            onEnquire={() => router.push(`/offers-events/${offer.id}`)}
                                         />
                                     </motion.div>
                                 ))}

@@ -119,6 +119,9 @@ function LoginForm() {
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                         Password
                                     </label>
+                                    <Link href="/forgot-password" className="text-[10px] font-black text-blue-500 hover:text-blue-600 uppercase tracking-widest">
+                                        Forgot Password?
+                                    </Link>
                                 </div>
 
                                 <div className="relative">

@@ -226,6 +226,18 @@ export default function BusinessDetailClient({
       ),
     [business?.namedPhoneNumbers]
   );
+  const businessProfileHref = useMemo(() => {
+    if (business?.vendor?.slug) {
+      return `/businesses/${encodeURIComponent(business.vendor.slug)}`;
+    }
+
+    const vendorIdentifier = business?.vendor?.id || business?.vendorId;
+    if (vendorIdentifier) {
+      return `/businesses/${encodeURIComponent(vendorIdentifier)}`;
+    }
+
+    return "#";
+  }, [business?.vendor?.slug, business?.vendor?.id, business?.vendorId]);
 
   useEffect(() => {
     const loadBusiness = async () => {
@@ -1062,26 +1074,6 @@ export default function BusinessDetailClient({
                             Location & Directions
                           </h3>
                           <div className="flex flex-wrap gap-3">
-                            {mapEmbedUrl && !showMapEmbed && (
-                              <button
-                                type="button"
-                                onClick={() => setShowMapEmbed(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
-                              >
-                                <Navigation className="w-4 h-4" />
-                                View On Map
-                              </button>
-                            )}
-                            {openInGoogleMapsUrl && (
-                              <button
-                                type="button"
-                                onClick={() => window.open(openInGoogleMapsUrl, "_blank")}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest hover:bg-blue-100 transition-colors"
-                              >
-                                <MapPin className="w-4 h-4" />
-                                Open In Google Maps
-                              </button>
-                            )}
                           </div>
                           <div className="relative h-[400px] rounded-[20px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 bg-slate-50">
                             {mapEmbedUrl && showMapEmbed ? (
@@ -1114,31 +1106,6 @@ export default function BusinessDetailClient({
                                 )}
                               </div>
                             )}
-
-                            {/* Floating Info Overlay */}
-                            <div className="absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-auto md:w-80 p-4 md:p-6 bg-white/90 backdrop-blur-xl border border-white/20 rounded-[16px] shadow-2xl">
-                              <div className="flex items-start gap-3 md:gap-4">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 shrink-0">
-                                  <MapPin className="w-5 h-5 md:w-6 md:h-6" />
-                                </div>
-                                <div>
-                                  <p className="text-xs md:text-sm font-black text-slate-900 leading-tight mb-1">
-                                    {business.address}
-                                  </p>
-                                  <p className="text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                    {business.city}, {business.state}{" "}
-                                    {business.pincode}
-                                  </p>
-                                  <button
-                                    onClick={() => openInGoogleMapsUrl && window.open(openInGoogleMapsUrl, "_blank")}
-                                    className="mt-2 md:mt-3 flex items-center gap-2 text-blue-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:text-blue-700 transition-colors"
-                                  >
-                                    Open In Google Maps{" "}
-                                    <ChevronRight className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -2097,8 +2064,8 @@ export default function BusinessDetailClient({
 
                 <div className="flex flex-col items-center text-center">
                   <Link
-                    href={business.vendor?.slug ? `/businesses/${business.vendor.slug}` : "#"}
-                    className={`flex flex-col items-center text-center group/vendor ${!(business.vendor?.slug || business.vendorId || business.vendor?.id) ? "pointer-events-none" : "cursor-pointer"}`}
+                    href={businessProfileHref}
+                    className={`flex flex-col items-center text-center group/vendor ${businessProfileHref === "#" ? "pointer-events-none" : "cursor-pointer"}`}
                   >
                     <div className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-400 font-bold overflow-hidden shadow-inner mb-6 relative group border-4 border-white ring-1 ring-slate-100">
                       {(business.logoUrl || business.vendor?.user?.avatarUrl) ? (
@@ -2215,7 +2182,7 @@ export default function BusinessDetailClient({
                       <button
                         type="button"
                         onClick={() => {
-                          window.location.href = `/business/${business.slug || business.vendor?.slug || ''}`;
+                          window.location.href = businessProfileHref;
                         }}
                         className="group/btn relative w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 overflow-hidden hover:bg-blue-600 transition-all duration-300 shadow-lg shadow-slate-900/10 active:scale-[0.98] mt-6 cursor-pointer z-20"
                       >

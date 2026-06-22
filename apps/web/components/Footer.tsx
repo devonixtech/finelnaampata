@@ -38,7 +38,7 @@ export default function Footer() {
             <h4 className="text-[#112D4E] font-black uppercase tracking-widest text-xs mb-8">For businesses</h4>
             <ul className="space-y-4">
               {[
-                { label: 'List My Business', href: '/register' },
+                { label: 'Sign Up', href: '/register' },
                 { label: 'Business Login', href: '/login' },
                 { label: 'Pricing Plans', href: '/pricing' }
               ].map((item) => (

@@ -216,6 +216,9 @@ export class Listing {
     @Column({ name: 'contact_person_name', nullable: true, length: 150 })
     contactPersonName: string;
 
+    @Column({ name: 'timezone', nullable: true, length: 64 })
+    timezone: string;
+
     @Column({ name: 'business_type', type: 'jsonb', default: '[]' })
     businessType: string[];
 

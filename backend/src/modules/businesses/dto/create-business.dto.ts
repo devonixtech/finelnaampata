@@ -163,6 +163,12 @@ export class CreateBusinessDto {
     @MaxLength(20)
     pincode?: string;
 
+    @ApiPropertyOptional({ example: 'Asia/Karachi', description: 'IANA timezone for business hours' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(64)
+    timezone?: string;
+
     @ApiPropertyOptional({ example: 40.7128, description: 'Latitude' })
     @IsOptional()
     @Type(() => Number)

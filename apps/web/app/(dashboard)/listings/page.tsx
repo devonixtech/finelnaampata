@@ -380,18 +380,6 @@ export default function BusinessListings() {
                     </div>
                 </div>
 
-                {/* Boost Banner */}
-                <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-4 flex flex-col sm:flex-row items-center gap-4">
-                    {/* <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 text-xl"></div> */}
-                    <div className="flex-1 text-center sm:text-left">
-                        <p className="font-black text-slate-900 text-sm">Boost Offers & Events on Your Listings</p>
-                        <p className="text-xs font-bold text-slate-500 mt-0.5">Feature your deals on the homepage, category pages & search results with a plan starting from PKR 100</p>
-                    </div>
-                    <Link href="/offer-plans" className="flex-shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-xs transition-colors whitespace-nowrap">
-                        View Plans →
-                    </Link>
-                </div>
-
                 {/* Listings Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {loading ? (

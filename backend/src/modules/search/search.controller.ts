@@ -61,10 +61,11 @@ export class SearchController {
     }
 
     @Post('sync')
-    @Public()
+    @Roles(UserRole.ADMIN)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Re-index all businesses (Admin only)' })
     @ApiResponse({ status: 201, description: 'Sync completed' })
+    @ApiResponse({ status: 403, description: 'Admin access required' })
     async sync() {
         return this.searchService.reindexAll();
     }

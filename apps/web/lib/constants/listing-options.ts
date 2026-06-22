@@ -1,19 +1,22 @@
 export const BUSINESS_TYPES = [
-    'Physical Store / Retail',
-    'Service Provider',
-    'Online / E-Commerce Only',
+    'Physical Location (Store, Office, Clinic, etc.)',
     'Home-Based Business',
-    'Franchise / Chain',
-    'Manufacturer / Factory',
-    'Wholesaler / Distributor',
-    'Professional Services (Office-based)'
+    'Online / Digital Only',
+    'On-Site at Client Location',
+    'Mobile Unit (Food Truck, Van, Pop-Up, etc.)',
 ];
 
 export const CORE_BUSINESS_NATURE = [
-    'B2B (Business to Business)',
-    'B2C (Business to Consumer)',
-    'D2C (Direct to Consumer)',
-    'B2B2C (Business to Business to Consumer)'
+    'We sell physical products',
+    'We sell digital products',
+    'We provide in-person services',
+    'We provide online or remote services',
+    'We rent out products, spaces, or equipment',
+    'We offer bookings or appointments',
+    'We organise events, classes, or experiences',
+    'We offer delivery to customers',
+    'We operate as a marketplace or multi-vendor platform',
+    'We offer subscriptions or memberships',
 ];
 
 export const OPERATIONAL_STRUCTURE = [
@@ -22,46 +25,81 @@ export const OPERATIONAL_STRUCTURE = [
     'Franchise Owner',
     'Master Franchisee',
     'Mobile / Roving Service (No fixed location)',
-    'Kiosk / Stall'
+    'Kiosk / Stall',
 ];
+
+export const OPERATIONAL_STRUCTURE_SECTIONS = {
+    producer: {
+        label: 'Producer',
+        options: [
+            'Manufacturer', 'Assembler', 'Fabricator', 'Farmer / Agricultural Producer',
+            'Extractor / Mining', 'OEM (Original Equipment Manufacturer)',
+            'Private Label Producer', 'Garment / Textile Factory',
+        ],
+    },
+    salesDistribution: {
+        label: 'Sales & Distribution',
+        options: [
+            'Retailer', 'Wholesaler', 'Distributor', 'Importer', 'Exporter',
+            'Dealer / Authorised Seller', 'Reseller', 'Franchise',
+        ],
+    },
+    intermediary: {
+        label: 'Intermediary',
+        options: [
+            'Broker', 'Agent / Representative', 'Auctioneer',
+            'Commission-Based Facilitator', 'Marketplace Operator', 'Franchisee',
+        ],
+    },
+    serviceFunction: {
+        label: 'Service Function',
+        options: [
+            'Consulting / Advisory', 'Installation', 'Repair & Maintenance', 'Design',
+            'Training / Education', 'Technical Support', 'Operations Management',
+            'Cleaning / Hygiene', 'Security Services', 'Logistics / Transport',
+            'Healthcare / Medical', 'Legal / Compliance',
+        ],
+    },
+    organisational: {
+        label: 'Organisational Structure',
+        options: [
+            'Individual / Freelancer', 'Partnership', 'Private Company', 'Public Company',
+            'Government Entity', 'Nonprofit / NGO', 'Cooperative', 'Other',
+        ],
+    },
+};
 
 export const TARGET_MARKET = [
-    'Local Neighborhood',
-    'City-Wide',
-    'State / Provincial',
-    'National (All over Pakistan)',
-    'International / Exports'
+    'B2C — Individual Consumers',
+    'B2B — Other Businesses',
+    'B2G — Government & Public Sector',
+    'D2C — Direct to Consumer (own brand)',
+    'Wholesale Buyers',
+    'International Clients',
 ];
 
-// Amenities are grouped into categories as per spec
 export const AMENITIES = {
     locationAccess: [
-        'Wheelchair Accessible',
-        'Street Parking',
-        'Valet Parking',
-        'Paid Parking Garage',
-        'Near Public Transit'
+        'Physical Location', 'Online Business', 'Mobile / Home Service',
+        'Delivery Available', 'Online Consultation', 'Emergency Service',
+        '24/7 Open', 'Appointment Only',
     ],
     facilities: [
-        'Free Wi-Fi',
-        'Restrooms Available',
-        'Waiting Area',
-        'Air Conditioned',
-        'Prayer Room / Masjid nearby',
-        'Kid-Friendly Area',
-        'Pet-Friendly'
+        'Free Wi-Fi', 'Parking Available', 'Air Conditioned', 'Waiting Area',
+        'Wheelchair Accessible', 'Elevator / Lift', 'Kids Area', 'Pet Friendly',
+        'Washroom / Toilet', 'Prayer Area', 'CCTV / Security',
+        'Generator / Backup Power', 'Family Seating', 'EV Charging', 'Locker / Storage',
     ],
     staff: [
-        'Female Staff Available',
-        'Multilingual Staff'
+        'Female Staff Available', 'Male Staff Available', 'Bilingual Staff',
+        'Sign Language Support', 'Trained / Certified Staff', 'Uniformed Staff',
+        'Dedicated Customer Support',
     ],
     paymentMethods: [
-        'Cash Only',
-        'Credit/Debit Cards',
-        'Bank Transfer',
-        'Mobile Wallets (JazzCash, EasyPaisa)',
-        'Installment Plans Available'
-    ]
+        'Cash Accepted', 'Card Accepted', 'Bank Transfer', 'Mobile Wallet',
+        'Advance Payment Required', 'Cryptocurrency',
+        'Instalment / Buy Now Pay Later', 'Online Payment',
+    ],
 };
 
 export const SOCIAL_PLATFORMS = [
@@ -70,35 +108,32 @@ export const SOCIAL_PLATFORMS = [
     { key: 'twitter', label: 'Twitter / X', emoji: '🐦', color: '#1DA1F2', placeholder: 'https://twitter.com/yourbusiness' },
     { key: 'linkedin', label: 'LinkedIn', emoji: '💼', color: '#0A66C2', placeholder: 'https://linkedin.com/company/yourbusiness' },
     { key: 'youtube', label: 'YouTube', emoji: '▶️', color: '#FF0000', placeholder: 'https://youtube.com/@yourbusiness' },
+    { key: 'tiktok', label: 'TikTok', emoji: '🎵', color: '#000000', placeholder: 'https://tiktok.com/@yourbusiness' },
 ];
 
 export const EMPLOYEE_COUNT_OPTIONS = [
-    '1-10 (Micro)',
-    '11-50 (Small)',
-    '51-200 (Medium)',
-    '201-500 (Large)',
-    '500+ (Enterprise)'
+    '1-10 (Micro)', '11-50 (Small)', '51-200 (Medium)', '201-500 (Large)', '500+ (Enterprise)',
 ];
 
 export const STEPS = [
     { id: 1, label: 'Name & Tagline', description: 'What is your business called?' },
-    { id: 2, label: 'Business Type', description: 'How do you operate?' },
-    { id: 3, label: 'Nature of Business', description: 'Who do you sell to?' },
-    { id: 4, label: 'Structure', description: 'What is your setup?' },
-    { id: 5, label: 'Category', description: 'Choose your industry.' },
-    { id: 6, label: 'Target Market', description: 'Who are your customers?' },
-    { id: 7, label: 'Address', description: 'Where are you located?' },
-    { id: 8, label: 'Map Location', description: 'Pinpoint on map.' },
-    { id: 9, label: 'Contact', description: 'How to reach you?' },
+    { id: 2, label: 'Business Type', description: 'Where does your business operate?' },
+    { id: 3, label: 'Nature of Business', description: 'What does your business primarily do?' },
+    { id: 4, label: 'Structure', description: 'How does your business operate?' },
+    { id: 5, label: 'Category', description: 'What category best describes your business?' },
+    { id: 6, label: 'Target Market', description: 'Who are your primary customers?' },
+    { id: 7, label: 'Address', description: 'Where is your business located?' },
+    { id: 8, label: 'Map Location', description: 'Confirm your location on the map.' },
+    { id: 9, label: 'Contact', description: 'How can customers reach you?' },
     { id: 10, label: 'Hours', description: 'When are you open?' },
-    { id: 11, label: 'Description', description: 'Tell your story.' },
-    { id: 12, label: 'Experience & Team', description: 'Background info.' },
-    { id: 13, label: 'Online Presence', description: 'Website & Socials.' },
-    { id: 14, label: 'Amenities', description: 'Facilities you offer.' },
-    { id: 15, label: 'Industry Sub-Type', description: 'Specific tags.' },
-    { id: 16, label: 'Keywords', description: 'For search visibility.' },
-    { id: 17, label: 'FAQs', description: 'Common questions.' },
-    { id: 18, label: 'Expansion', description: 'Franchising / B2B.' },
-    { id: 19, label: 'Media', description: 'Logo & Photos.' },
-    { id: 20, label: 'Review & Submit', description: 'Final confirmation.' }
+    { id: 11, label: 'Description', description: 'Tell customers about your business.' },
+    { id: 12, label: 'Experience & Team', description: 'Tell us a bit more about your business.' },
+    { id: 13, label: 'Online Presence', description: 'Where else can customers find you?' },
+    { id: 14, label: 'Amenities', description: 'What does your location offer?' },
+    { id: 15, label: 'Industry Sub-Type', description: 'Specialised sectors.' },
+    { id: 16, label: 'Keywords', description: 'Add keywords that describe your business.' },
+    { id: 17, label: 'FAQs', description: 'Common questions and answers.' },
+    { id: 18, label: 'Expansion', description: 'Franchise or distribution opportunities.' },
+    { id: 19, label: 'Media', description: 'Logo & photos.' },
+    { id: 20, label: 'Review & Submit', description: 'Final confirmation.' },
 ];

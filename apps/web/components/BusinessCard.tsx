@@ -42,21 +42,25 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
         <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full hover:shadow-md transition">
 
             {/* Image */}
-            <div className="relative h-[220px] w-full overflow-hidden">
-                <ListingImage
-                    src={business.coverImageUrl}
-                    alt={business.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition"
-                />
-            </div>
+            <Link href={businessUrl}>
+                <div className="relative h-[220px] w-full overflow-hidden">
+                    <ListingImage
+                        src={business.coverImageUrl}
+                        alt={business.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                </div>
+            </Link>
 
             {/* Content */}
             <div className="p-5 flex flex-col gap-4 flex-grow">
 
                 {/* Title */}
-                <h3 className="text-lg font-medium text-[#1a0dab] group-hover:underline line-clamp-1">
-                    {business.title}
-                </h3>
+                <Link href={businessUrl}>
+                    <h3 className="text-lg font-medium text-[#1a0dab] group-hover:underline line-clamp-1 hover:underline">
+                        {business.title}
+                    </h3>
+                </Link>
 
                 {/* Status */}
                 <div className="flex gap-2 flex-wrap">

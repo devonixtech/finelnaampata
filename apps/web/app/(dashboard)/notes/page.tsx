@@ -186,7 +186,7 @@ export default function NotesPage() {
                         Customer Notes
                     </h1>
                     <p className="mt-2 text-gray-600">
-                        Private notes for follow-ups and relationship management. Only your business team and admin can see these notes.
+                        Private notes for follow-ups and relationship management.
                     </p>
                 </div>
 
@@ -202,10 +202,6 @@ export default function NotesPage() {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 />
-                            </div>
-                            <div className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
-                                <Lock className="h-4 w-4" />
-                                Private to business and admin
                             </div>
                         </div>
 

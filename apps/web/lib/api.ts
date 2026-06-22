@@ -1,23 +1,17 @@
 import { Business, Category, City, SearchResponse, Review, ReviewReply } from '../types/api';
-import { PRODUCTION_API_URL, isLoopbackUrl, resolveApiBaseUrl, stripApiPath } from './runtime-url';
+import { isLoopbackUrl, stripApiPath } from './runtime-url';
 
 const isProd = process.env.NODE_ENV === 'production';
 const isServer = typeof window === 'undefined';
 
-// 1. Environment Variable Extraction
-const rawClientApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || '';
-const clientApiUrl = resolveApiBaseUrl(rawClientApiUrl);
-const serverApiUrl = process.env.INTERNAL_API_URL || rawClientApiUrl || PRODUCTION_API_URL;
+// DIRECT fix: Always use Railway URL in production.
+// No runtime hostname replacement - prevents naampata.com/api/v1 bug.
+const RAILWAY_API_URL = 'https://local-business-listing-directory-production.up.railway.app/api/v1';
 
-// 2. Selection based on context (SSR vs Browser)
-let envApiUrl = isServer ? serverApiUrl : clientApiUrl;
+const API_BASE_URL = isProd
+    ? RAILWAY_API_URL
+    : (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || RAILWAY_API_URL).replace(/\/+$/, '');
 
-// 3. Fallback and Missing URL Guard
-if (!envApiUrl) {
-    envApiUrl = PRODUCTION_API_URL;
-}
-
-const API_BASE_URL = envApiUrl.replace(/\/+$/, '');
 
 // 5. Debugging (visible in server logs and browser console in dev)
 if (isServer) {
@@ -253,6 +247,7 @@ export const api = {
             const query = new URLSearchParams(sanitizedParams).toString();
             return fetcher<SearchResponse>(`/businesses/search?${query}`);
         },
+        getSuggestions: (q: string) => fetcher<string[]>(`/businesses/search/suggestions?q=${encodeURIComponent(q)}`),
         getBySlug: (slug: string, options?: FetcherOptions) => fetcher<Business>(`/businesses/slug/${slug}`, options),
         getFeatured: (page = 1, limit = 12, options?: FetcherOptions) => fetcher<SearchResponse>(`/businesses/search?featuredOnly=true&page=${page}&limit=${limit}`, options),
         uploadImage: async (file: File) => {
@@ -452,6 +447,14 @@ export const api = {
         removeFavorite: (businessId: string) => fetcher<void>(`/users/favorites/${businessId}`, {
             method: 'DELETE',
         }),
+        getSavedOfferEvents: (page = 1, limit = 20) =>
+            fetcher<{ data: any[]; meta: any }>(`/users/saved-offers-events?page=${page}&limit=${limit}`),
+        addSavedOfferEvent: (offerEventId: string) => fetcher<void>(`/users/saved-offers-events/${offerEventId}`, {
+            method: 'POST',
+        }),
+        removeSavedOfferEvent: (offerEventId: string) => fetcher<void>(`/users/saved-offers-events/${offerEventId}`, {
+            method: 'DELETE',
+        }),
         getNotifications: (params: any = {}) => {
             const query = new URLSearchParams(params).toString();
             return fetcher<{ data: any[], meta: any }>(`/users/notifications?${query}`);
@@ -568,6 +571,22 @@ export const api = {
         }),
         logout: () => fetcher<void>('/auth/logout', { method: 'POST', silent: true }),
         ping: () => fetcher<{ online: boolean }>('/auth/ping', { method: 'POST', silent: true }),
+        forgotPassword: (email: string) => fetcher<{ message: string }>('/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
+        resetPassword: (email: string, code: string, newPassword: string) => fetcher<{ message: string }>('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, newPassword }),
+        }),
+    },
+    expertQuote: {
+        create: (data: any) => fetcher<any>('/expert-quote', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        getAll: (page = 1, limit = 20) => fetcher<any>(`/expert-quote?page=${page}&limit=${limit}`),
+        getOne: (id: string) => fetcher<any>(`/expert-quote/${id}`),
     },
     admin: {
         getStats: () => fetcher<any>('/admin/stats'),

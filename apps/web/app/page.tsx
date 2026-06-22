@@ -43,6 +43,7 @@ import { Category, Business, City } from "../types/api";
 import Slider from "react-slick";
 import CitySearchSelect from "../components/CitySearchSelect";
 import { useAuth } from "../context/AuthContext";
+import { COUNTRIES_STATES } from "../lib/data/countries-states";
 // Script is removed to avoid multiple loads (already in layout.tsx)
 
 export default function HomePage() {
@@ -63,7 +64,9 @@ export default function HomePage() {
   const [latestOffers, setLatestOffers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -288,6 +291,22 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [searchQuery, selectedCity, userLocation]);
 
+  // Debounced search suggestions
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      api.listings.getSuggestions(searchQuery)
+        .then((suggestions) => setSearchSuggestions(suggestions))
+        .catch(() => setSearchSuggestions([]));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Detect when Google Maps API is ready
   useEffect(() => {
     if ((window as any).google) {
@@ -381,13 +400,29 @@ export default function HomePage() {
             className="max-w-5xl mx-auto mb-12"
           >
             <div className="bg-white rounded-[32px]  border border-gray-100 p-3 flex flex-col md:flex-row items-center gap-2">
+              {/* Country Filter */}
+              <div className="w-full md:w-auto flex items-center px-4 py-4 md:border-r border-gray-100 group">
+                <Globe className="w-5 h-5 text-slate-300 mr-3 group-hover:text-orange-500 transition-colors shrink-0" />
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => { setSelectedCountry(e.target.value); setSelectedCity(''); }}
+                  className="bg-transparent border-none outline-none text-slate-900 text-sm font-bold cursor-pointer pr-4 max-w-[140px]"
+                >
+                  <option value="">All Countries</option>
+                  {COUNTRIES_STATES.map(c => (
+                    <option key={c.code} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* City Selection */}
               <div className="flex-1 w-full flex items-center px-6 py-4 md:border-r border-gray-100 group">
-                {/* <MapPin className="w-5 h-5 text-slate-300 mr-4 group-hover:text-orange-500 transition-colors" /> */}
                 <div className="flex flex-col items-start text-left flex-1">
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Your Area</span>
                   <CitySearchSelect
-                    cities={citiesList.length > 0 ? citiesList : popularCities}
+                    cities={(citiesList.length > 0 ? citiesList : popularCities)
+                      .filter(c => !selectedCountry || c.country === selectedCountry)
+                    }
                     value={selectedCity}
                     onChange={setSelectedCity}
                     minimal
@@ -396,7 +431,7 @@ export default function HomePage() {
               </div>
 
               {/* Search Input */}
-              <div className="flex-[1.5] w-full flex items-center px-6 py-4 group">
+              <div className="flex-[1.5] w-full flex items-center px-6 py-4 group relative">
                 <Search className="w-5 h-5 text-slate-300 mr-4 group-hover:text-orange-500 transition-colors" />
                 <input
                   type="text"
@@ -407,9 +442,28 @@ export default function HomePage() {
                     setIsSuggestionsOpen(true);
                   }}
                   onFocus={() => setIsSuggestionsOpen(true)}
+                  onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="w-full bg-transparent border-none outline-none text-slate-900 text-lg font-medium placeholder:text-slate-300"
                 />
+                {isSuggestionsOpen && searchSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden">
+                    {searchSuggestions.map((suggestion, idx) => (
+                      <button
+                        key={idx}
+                        onMouseDown={() => {
+                          setSearchQuery(suggestion);
+                          setIsSuggestionsOpen(false);
+                          handleSearch();
+                        }}
+                        className="w-full text-left px-6 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm font-medium text-slate-700"
+                      >
+                        <Search className="w-4 h-4 text-slate-300" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -440,7 +494,7 @@ export default function HomePage() {
 
             {/* Get Expert Quotes */}
             <Link
-              href="/broadcast-request"
+              href="/expert-quote"
               onClick={handleBroadcastClick}
               className="bg-white rounded-[28px] border border-gray-50 shadow-[0_15px_45px_rgba(0,0,0,0.04)] p-8 flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all group"
             >
@@ -718,9 +772,7 @@ export default function HomePage() {
                 >
                   <OfferCard
                     offer={offer}
-                    onEnquire={() => {
-                      window.location.href = `/offers-events/${offer.id}`;
-                    }}
+                    onEnquire={() => router.push(`/offers-events/${offer.id}`)}
                   />
                 </motion.div>
               ))

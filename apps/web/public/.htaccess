@@ -1,18 +1,17 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
+RewriteEngine On
 
-  # Let real files and folders resolve normally.
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
+# Serve existing files and directories directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
-  # Hostinger/Apache fallback for static-exported dynamic routes.
-  RewriteRule ^business/[^/]+/?$ /business/template/ [L]
-  RewriteRule ^vendors/[^/]+/?$ /vendors/template/ [L]
-  RewriteRule ^cities/[^/]+/?$ /cities/template/ [L]
-  RewriteRule ^categories/[^/]+/?$ /categories/template/ [L]
-  RewriteRule ^offers-events/[^/]+/?$ /offers-events/template/ [L]
+# Static export route fallbacks.
+RewriteRule ^business/(.*)$ /business/template/index.html [L]
+RewriteRule ^businesses/(.*)$ /businesses/template/index.html [L]
+RewriteRule ^vendors/(.*)$ /vendors/template/index.html [L]
+RewriteRule ^cities/(.*)$ /cities/template/index.html [L]
+RewriteRule ^categories/(.*)$ /categories/template/index.html [L]
+RewriteRule ^offers-events/(.*)$ /offers-events/template/index.html [L]
 
-  # SPA-style fallback for top-level pages handled by Next export.
-  RewriteRule ^[^/]+/?$ /index.html [L]
-</IfModule>
+# Final SPA fallback.
+RewriteRule ^.*$ /index.html [L]

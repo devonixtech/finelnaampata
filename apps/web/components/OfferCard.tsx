@@ -29,13 +29,15 @@ const OfferCard: React.FC<OfferCardProps> = React.memo(({ offer, onEnquire }) =>
             <div className="h-1.5 w-full bg-gradient-to-r  to-rose-500" />
             {/* Offer Banner Image */}
             {offer.imageUrl && (
-                <div className="h-40 overflow-hidden bg-slate-100">
-                    <img
-                        src={offer.imageUrl}
-                        alt={offer.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                </div>
+                <Link href={`/offers-events/${offer.id}`}>
+                    <div className="h-40 overflow-hidden bg-slate-100">
+                        <img
+                            src={offer.imageUrl}
+                            alt={offer.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                    </div>
+                </Link>
             )}
 
             <div className="p-6 flex flex-col flex-1 gap-3">
@@ -65,7 +67,9 @@ const OfferCard: React.FC<OfferCardProps> = React.memo(({ offer, onEnquire }) =>
                 )
                 }
 
-                <h3 className="font-black text-slate-900 text-lg leading-tight group-hover:text-orange-500 transition-colors">{offer.title}</h3>
+                <Link href={`/offers-events/${offer.id}`}>
+                    <h3 className="font-black text-slate-900 text-lg leading-tight group-hover:text-orange-500 transition-colors">{offer.title}</h3>
+                </Link>
 
                 {offer.description && (
                     <p className="text-slate-500 text-sm leading-relaxed line-clamp-2">{offer.description}</p>

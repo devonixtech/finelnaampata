@@ -909,64 +909,111 @@ export class BusinessesService implements OnModuleInit {
             queryBuilder.addOrderBy('listing.totalViews', 'DESC');
         }
 
-        // Open Now filter
+        // Open Now filter — timezone-aware
         if (openNow) {
-            const now = new Date();
-            const day = now
-                .toLocaleDateString('en-US', { weekday: 'long' })
-                .toLowerCase();
-            const time = now.toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-
-            // Using existing 'businessHours' join from line 302
-            queryBuilder
-                .andWhere('businessHours.dayOfWeek = :day', { day })
+            // Use business's own timezone if set, otherwise fallback to server timezone
+            queryBuilder.andWhere(new Brackets((qb) => {
+                qb.where(
+                    `businessHours.dayOfWeek = LOWER(TO_CHAR(NOW() AT TIME ZONE COALESCE("listing"."timezone", 'UTC'), 'Day'))`
+                )
                 .andWhere('businessHours.isOpen = :isOpen', { isOpen: true })
-                .andWhere(':time BETWEEN businessHours.openTime AND businessHours.closeTime', {
-                    time,
-                });
+                .andWhere(
+                    `TO_CHAR(NOW() AT TIME ZONE COALESCE("listing"."timezone", 'UTC'), 'HH24:MI') BETWEEN businessHours.openTime AND businessHours.closeTime`
+                );
+            }));
         }
 
         // Sorting
-        // 1) Keyword boost: if the query matches a vendor's metaKeywords, rank that listing first
-        if (searchDto.query) {
-            queryBuilder.addSelect(
-                'CASE WHEN "listing"."search_keywords"::text ILIKE :queryBoost THEN 0 WHEN "listing"."meta_keywords" ILIKE :queryBoost THEN 1 ELSE 2 END',
-                'boost',
-            );
-            queryBuilder.setParameter('queryBoost', `%${searchDto.query}%`);
-            queryBuilder.addOrderBy('boost', 'ASC');
-        }
-
-        // 2) Secondary sort (user-selected or default relevance)
+        // 100-point weighted scoring for relevance (DB fallback)
         if (filter === 'new' || (sortBy as any) === 'newest' || sortBy === SearchSortBy.NEWEST) {
-            // For "New" sort, we prioritize createdAt above all else (after query boost if present)
             queryBuilder
                 .addOrderBy('listing.createdAt', 'DESC')
                 .addOrderBy('listing.isSponsored', 'DESC')
                 .addOrderBy('listing.isFeatured', 'DESC')
                 .addOrderBy('listing.averageRating', 'DESC');
-        } else {
-            switch (sortBy) {
-                case SearchSortBy.DISTANCE:
-                    if (latitude && longitude) {
-                        queryBuilder.addOrderBy('distance_meters', 'ASC');
-                    }
-                    break;
-                case SearchSortBy.RATING:
-                    queryBuilder.addOrderBy('listing.averageRating', 'DESC');
-                    break;
-                default:
-                    // Relevance (sponsored > featured > newest > rating)
-                    queryBuilder
-                        .addOrderBy('listing.isSponsored', 'DESC')
-                        .addOrderBy('listing.isFeatured', 'DESC')
-                        .addOrderBy('listing.createdAt', 'DESC')
-                        .addOrderBy('listing.averageRating', 'DESC');
+        } else if (sortBy === SearchSortBy.DISTANCE && latitude && longitude) {
+            queryBuilder.addOrderBy('distance_meters', 'ASC');
+        } else if (sortBy === SearchSortBy.RATING) {
+            queryBuilder.addOrderBy('listing.averageRating', 'DESC');
+        } else if (searchDto.query) {
+            // 100-point weighted relevance scoring
+            const textWeight = searchDto.query ? 35 : 0;
+            const verifiedWeight = 4;
+            const featuredWeight = 4;
+            const freshnessWeight = 10;
+            const ratingWeight = 10;
+            const reviewsWeight = 8;
+            const profileWeight = 6;
+
+            const scoreParts: string[] = [];
+
+            // Text relevance (35pts) — exact name match > partial name > description > keywords
+            if (searchDto.query) {
+                scoreParts.push(
+                    `CASE WHEN "listing"."name" ILIKE :exactName THEN ${textWeight}`
+                    + ` WHEN "listing"."name" ILIKE :nameContains THEN ${Math.round(textWeight * 0.7)}`
+                    + ` WHEN "listing"."description" ILIKE :queryLike THEN ${Math.round(textWeight * 0.4)}`
+                    + ` WHEN "listing"."search_keywords"::text ILIKE :queryLike THEN ${Math.round(textWeight * 0.3)}`
+                    + ` WHEN "listing"."meta_keywords" ILIKE :queryLike THEN ${Math.round(textWeight * 0.2)}`
+                    + ` WHEN "vendor"."business_name" ILIKE :queryLike THEN ${Math.round(textWeight * 0.15)}`
+                    + ` WHEN "category"."name" ILIKE :queryLike THEN ${Math.round(textWeight * 0.1)}`
+                    + ' ELSE 0 END'
+                );
+                queryBuilder.setParameter('exactName', searchDto.query);
+                queryBuilder.setParameter('nameContains', `%${searchDto.query}%`);
+                queryBuilder.setParameter('queryLike', `%${searchDto.query}%`);
             }
+
+            // Verified (4pts)
+            scoreParts.push(
+                `CASE WHEN "listing"."isVerified" = true THEN ${verifiedWeight} ELSE 0 END`
+            );
+
+            // Featured (4pts)
+            scoreParts.push(
+                `CASE WHEN "listing"."isFeatured" = true THEN ${featuredWeight} ELSE 0 END`
+            );
+
+            // Freshness (10pts) — newer = higher score, decay over 30 days
+            scoreParts.push(
+                `CASE WHEN "listing"."recentUntil" > NOW() THEN ${freshnessWeight}`
+                + ` WHEN "listing"."createdAt" > NOW() - INTERVAL '7 days' THEN ${Math.round(freshnessWeight * 0.8)}`
+                + ` WHEN "listing"."createdAt" > NOW() - INTERVAL '30 days' THEN ${Math.round(freshnessWeight * 0.4)}`
+                + ' ELSE 0 END'
+            );
+
+            // Rating (10pts) — scaled 0-5 to 0-10
+            scoreParts.push(
+                `COALESCE("listing"."averageRating", 0) * 2`
+            );
+
+            // Reviews (8pts) — log-scale, max at 50 reviews
+            scoreParts.push(
+                `LEAST(COALESCE("listing"."totalReviews", 0) * 0.16, ${reviewsWeight})`
+            );
+
+            // Profile completeness (6pts)
+            scoreParts.push(
+                `(CASE WHEN "listing"."description" IS NOT NULL AND LENGTH("listing"."description") > 50 THEN 2 ELSE 0 END`
+                + ` + CASE WHEN "listing"."logoUrl" IS NOT NULL THEN 1.5 ELSE 0 END`
+                + ` + CASE WHEN "listing"."coverImageUrl" IS NOT NULL THEN 1.5 ELSE 0 END`
+                + ` + CASE WHEN "listing"."address" IS NOT NULL THEN 1 ELSE 0 END)`
+            );
+
+            const totalScore = scoreParts.length > 0
+                ? scoreParts.join(' + ')
+                : '0';
+
+            queryBuilder.addSelect(`(${totalScore})`, 'relevance_score');
+            queryBuilder.addOrderBy('relevance_score', 'DESC');
+            queryBuilder.addOrderBy('listing.averageRating', 'DESC');
+        } else {
+            // No query — default sort
+            queryBuilder
+                .addOrderBy('listing.isSponsored', 'DESC')
+                .addOrderBy('listing.isFeatured', 'DESC')
+                .addOrderBy('listing.createdAt', 'DESC')
+                .addOrderBy('listing.averageRating', 'DESC');
         }
 
         try {

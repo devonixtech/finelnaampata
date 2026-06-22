@@ -65,13 +65,13 @@ export default function OfferEventDetailClient() {
                         .then(res => setIsFollowing(res.isFollowing))
                         .catch(err => console.error('Follow check failed:', err));
 
-                    // Check initial saved status (as a favorite business)
-                    api.users.getFavorites()
+                    // Check initial saved status
+                    api.users.getSavedOfferEvents(1, 50)
                         .then(res => {
-                            const found = res.data.some((b: any) => b.id === data.business.id);
+                            const found = (res.data || []).some((o: any) => o.id === data.id);
                             setIsSaved(found);
                         })
-                        .catch(err => console.error('Favorites check failed:', err));
+                        .catch(err => console.error('Saved offers check failed:', err));
                 }
             } catch (err: any) {
                 console.error(err);
@@ -157,20 +157,20 @@ export default function OfferEventDetailClient() {
             router.push('/login?redirect=' + window.location.pathname);
             return;
         }
-        if (!offer?.business?.id || interactionLoading) return;
+        if (!offer?.id || interactionLoading) return;
 
         setInteractionLoading(true);
         try {
             const wasSaved = isSaved;
-            setIsSaved(!wasSaved); // Optimistic UI
+            setIsSaved(!wasSaved);
             if (wasSaved) {
-                await api.users.removeFavorite(offer.business.id);
+                await api.users.removeSavedOfferEvent(offer.id);
             } else {
-                await api.users.addFavorite(offer.business.id);
+                await api.users.addSavedOfferEvent(offer.id);
             }
         } catch (err) {
             console.error('Save toggle failed:', err);
-            setIsSaved(isSaved); // Rollback
+            setIsSaved(isSaved);
         } finally {
             setInteractionLoading(false);
         }
