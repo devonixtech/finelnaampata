@@ -131,6 +131,25 @@ export class AuthController {
         return { user };
     }
 
+    @Public()
+    @Post('forgot-password')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Request a password reset email' })
+    @ApiResponse({ status: 200, description: 'If the email exists, a reset code has been sent' })
+    async forgotPassword(@Body('email') email: string) {
+        return this.authService.forgotPassword(email);
+    }
+
+    @Public()
+    @Post('reset-password')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Reset password using the code from email' })
+    @ApiResponse({ status: 200, description: 'Password reset successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid or expired code' })
+    async resetPassword(@Body() body: { email: string; code: string; newPassword: string }) {
+        return this.authService.resetPassword(body.email, body.code, body.newPassword);
+    }
+
     @Get('sessions')
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()

@@ -619,6 +619,59 @@ export class BusinessesService implements OnModuleInit {
     }
 
     /**
+     * Search suggestions - text-only, no PostGIS, 2-char minimum, returns 8 max
+     */
+    async getSuggestions(query: string): Promise<string[]> {
+        const trimmed = (query || '').trim();
+        if (trimmed.length < 2) return [];
+
+        const searchTerm = `%${trimmed}%`;
+
+        const nameResults = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('DISTINCT listing.name', 'suggestion')
+            .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.name ILIKE :term', { term: searchTerm })
+            .orderBy('listing.name', 'ASC')
+            .limit(4)
+            .getRawMany();
+
+        const categoryResults = await this.listingRepository
+            .createQueryBuilder('listing')
+            .leftJoin('listing.category', 'category')
+            .select('DISTINCT category.name', 'suggestion')
+            .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('category.name ILIKE :term', { term: searchTerm })
+            .orderBy('category.name', 'ASC')
+            .limit(3)
+            .getRawMany();
+
+        const cityResults = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('DISTINCT listing.city', 'suggestion')
+            .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.city ILIKE :term', { term: searchTerm })
+            .andWhere('listing.city IS NOT NULL')
+            .orderBy('listing.city', 'ASC')
+            .limit(3)
+            .getRawMany();
+
+        const seen = new Set<string>();
+        const results: string[] = [];
+
+        for (const r of [...nameResults, ...categoryResults, ...cityResults]) {
+            const val = r.suggestion;
+            if (val && !seen.has(val.toLowerCase())) {
+                seen.add(val.toLowerCase());
+                results.push(val);
+            }
+            if (results.length >= 8) break;
+        }
+
+        return results;
+    }
+
+    /**
      * Search businesses with filters and geo-location
      */
     async search(searchDto: SearchBusinessDto) {
@@ -694,23 +747,24 @@ export class BusinessesService implements OnModuleInit {
                 queryBuilder.orderBy(`array_position(ARRAY[${quotedIds}]::uuid[], listing.id)`, 'ASC');
             }
         } else if (searchDto.query) {
-            // Text search fallback — matches title, description and vendor/admin-added search keywords
+            // Text search fallback — matches name, description, category name, keywords, and vendor business name
             const searchTerms = searchDto.query.toLowerCase().split(' ').filter(term => term.length > 0);
-            queryBuilder.andWhere(new Brackets((qb) => {
-                for (let i = 0; i < searchTerms.length; i++) {
-                    const term = searchTerms[i];
-                    qb.andWhere(
-                        new Brackets((innerQb) => {
-                            innerQb.where(`"listing"."name" ILIKE :term${i}`)
-                                .orWhere(`"listing"."description" ILIKE :term${i}`)
-                                .orWhere(`"listing"."meta_keywords" ILIKE :term${i}`)
-                                .orWhere(`"listing"."search_keywords"::text ILIKE :term${i}`)
-                                .orWhere(`"vendor"."business_name" ILIKE :term${i}`);
-                        }),
-                        { [`term${i}`]: `%${term}%` }
-                    );
-                }
-            }));
+            for (let i = 0; i < searchTerms.length; i++) {
+                const term = searchTerms[i];
+                const paramName = `searchTerm${i}`;
+                queryBuilder.andWhere(
+                    new Brackets((innerQb) => {
+                        innerQb.where(`"listing"."name" ILIKE :${paramName}`)
+                            .orWhere(`"listing"."description" ILIKE :${paramName}`)
+                            .orWhere(`"listing"."meta_keywords" ILIKE :${paramName}`)
+                            .orWhere(`"listing"."search_keywords"::text ILIKE :${paramName}`)
+                            .orWhere(`"vendor"."business_name" ILIKE :${paramName}`)
+                            .orWhere(`"category"."name" ILIKE :${paramName}`)
+                            .orWhere(`"category"."slug" ILIKE :${paramName}`);
+                    }),
+                    { [paramName]: `%${term}%` }
+                );
+            }
         }
 
         // Category filter
@@ -767,6 +821,13 @@ export class BusinessesService implements OnModuleInit {
         }
         if (verifiedOnly) {
             queryBuilder.andWhere('listing.isVerified = :verified', { verified: true });
+        }
+
+        // Business Type filter
+        if (searchDto.businessType) {
+            queryBuilder.andWhere('listing.businessType @> :businessType', {
+                businessType: JSON.stringify([searchDto.businessType]),
+            });
         }
 
         // Distance Filter & Selection using PostGIS or earthdistance fallback

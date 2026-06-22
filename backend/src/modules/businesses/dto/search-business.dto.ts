@@ -130,6 +130,11 @@ export class SearchBusinessDto extends PaginationDto {
     @IsEnum(SearchSortBy)
     sortBy?: SearchSortBy = SearchSortBy.RELEVANCE;
 
+    @ApiPropertyOptional({ example: 'Restaurant', description: 'Business type filter' })
+    @IsOptional()
+    @IsString()
+    businessType?: string;
+
     @ApiPropertyOptional({ description: 'The ID of the user performing the search (internal use)' })
     @IsOptional()
     @IsUUID()

@@ -203,24 +203,20 @@ export class ChatService implements OnModuleInit {
         );
     }
 
-    private async assertBusinessOrAdminAccess(conversationId: string, user: User) {
+    private async assertBusinessAccess(conversationId: string, user: User) {
         const conversation = await this.conversationRepository.findOne({ where: { id: conversationId } });
         if (!conversation) throw new NotFoundException('Conversation not found');
 
-        if (user.role === 'admin' || user.role === 'superadmin') {
-            return conversation;
-        }
-
         const vendor = await this.vendorRepository.findOne({ where: { id: conversation.vendorId } });
         if (!vendor || vendor.userId !== user.id) {
-            throw new ForbiddenException('Only the business and admin can manage private notes for this customer');
+            throw new ForbiddenException('Only the business owner can manage notes');
         }
 
         return conversation;
     }
 
     async getNotes(conversationId: string, user: User) {
-        await this.assertBusinessOrAdminAccess(conversationId, user);
+        await this.assertBusinessAccess(conversationId, user);
         return this.noteRepository.find({
             where: { conversationId },
             relations: ['createdByUser'],
@@ -232,7 +228,7 @@ export class ChatService implements OnModuleInit {
         const cleanContent = content?.trim();
         if (!cleanContent) throw new BadRequestException('Note content is required');
 
-        const conversation = await this.assertBusinessOrAdminAccess(conversationId, user);
+        const conversation = await this.assertBusinessAccess(conversationId, user);
         const note = this.noteRepository.create({
             conversationId,
             vendorId: conversation.vendorId,

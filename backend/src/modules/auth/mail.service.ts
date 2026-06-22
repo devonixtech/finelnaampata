@@ -271,4 +271,127 @@ export class MailService {
             return false;
         }
     }
+
+    async sendPasswordResetEmail(email: string, fullName: string, otp: string): Promise<boolean> {
+        const fromAddress = this.configService.get<string>('MAIL_FROM_ADDRESS', 'no-reply@naampata.com');
+        const fromName = this.configService.get<string>('MAIL_FROM_NAME', 'naampata');
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset Your Password</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background-color: #f8fafc;
+                    margin: 0;
+                    padding: 0;
+                    -webkit-font-smoothing: antialiased;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 40px auto;
+                    background-color: #ffffff;
+                    border-radius: 24px;
+                    box-shadow: 0 10px 30px rgba(17, 45, 78, 0.05);
+                    border: 1px solid #e2e8f0;
+                    overflow: hidden;
+                }
+                .header {
+                    background: linear-gradient(135deg, #112D4E 0%, #1e40af 100%);
+                    padding: 40px 20px;
+                    text-align: center;
+                }
+                .header h1 {
+                    color: #ffffff;
+                    margin: 0;
+                    font-size: 28px;
+                    font-weight: 800;
+                    letter-spacing: -0.5px;
+                }
+                .content {
+                    padding: 40px 50px;
+                    color: #334155;
+                }
+                .content p {
+                    font-size: 16px;
+                    line-height: 1.6;
+                    margin: 0 0 24px 0;
+                }
+                .otp-box {
+                    background: #fef2f2;
+                    border: 2px dashed #fca5a5;
+                    border-radius: 16px;
+                    padding: 24px;
+                    text-align: center;
+                    margin: 32px 0;
+                }
+                .otp-code {
+                    font-size: 38px;
+                    font-weight: 900;
+                    color: #dc2626;
+                    letter-spacing: 6px;
+                    margin: 0;
+                }
+                .footer {
+                    background-color: #f8fafc;
+                    padding: 24px;
+                    text-align: center;
+                    border-top: 1px solid #f1f5f9;
+                    font-size: 12px;
+                    color: #94a3b8;
+                }
+                .footer p {
+                    margin: 4px 0;
+                }
+                .accent-link {
+                    color: #1e40af;
+                    text-decoration: none;
+                    font-weight: 600;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>naampata</h1>
+                </div>
+                <div class="content">
+                    <p>Hello <strong>${fullName}</strong>,</p>
+                    <p>We received a request to reset your password. Use the code below to create a new password. If you did not request this, please ignore this email.</p>
+                    <div class="otp-box">
+                        <p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8;">Password Reset Code</p>
+                        <h2 class="otp-code">${otp}</h2>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">This code is valid for <strong>15 minutes</strong>. If you did not request a password reset, please ignore this email or contact support.</p>
+                </div>
+                <div class="footer">
+                    <p>&copy; ${new Date().getFullYear()} naampata. All rights reserved.</p>
+                    <p>Need help? Contact us at <a class="accent-link" href="mailto:support@naampata.com">support@naampata.com</a></p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        try {
+            await this.ensureTransportReady();
+            await this.transporter.sendMail({
+                from: `"${fromName}" <${fromAddress}>`,
+                to: email,
+                subject: 'Reset Your Password - naampata',
+                html: htmlContent,
+            });
+            this.logger.log(`Password reset email successfully sent to ${email}`);
+            return true;
+        } catch (error: any) {
+            this.transportVerified = false;
+            this.verifyPromise = null;
+            this.logger.error(`Failed to send password reset email to ${email}: ${error.message}`, error.stack);
+            return false;
+        }
+    }
 }

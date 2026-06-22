@@ -112,6 +112,15 @@ export class BusinessesController {
     }
 
     @Public()
+    @UseInterceptors(CacheInterceptor)
+    @Get('search/suggestions')
+    @ApiOperation({ summary: 'Search suggestions (text-only, no PostGIS)' })
+    @ApiResponse({ status: 200, description: 'Suggestions returned' })
+    async searchSuggestions(@Query('q') query: string) {
+        return this.businessesService.getSuggestions(query || '');
+    }
+
+    @Public()
     @UseGuards(OptionalJwtAuthGuard)
     @UseInterceptors(CacheInterceptor)
     @Get('slug/:slug')

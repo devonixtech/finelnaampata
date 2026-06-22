@@ -106,6 +106,39 @@ export class UsersController {
         return this.usersService.removeFavorite(user.id, businessId);
     }
 
+    @Get('saved-offers-events')
+    @ApiOperation({ summary: 'Get current user saved offers/events' })
+    @ApiResponse({ status: 200, description: 'Saved offers/events retrieved successfully' })
+    getSavedOfferEvents(
+        @CurrentUser() user: User,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.usersService.getSavedOfferEvents(user.id, parseInt(page) || 1, parseInt(limit) || 20);
+    }
+
+    @Post('saved-offers-events/:offerEventId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Save an offer/event' })
+    @ApiResponse({ status: 204, description: 'Offer/Event saved successfully' })
+    addSavedOfferEvent(
+        @CurrentUser() user: User,
+        @Param('offerEventId', ParseUuidPipe) offerEventId: string,
+    ) {
+        return this.usersService.addSavedOfferEvent(user.id, offerEventId);
+    }
+
+    @Delete('saved-offers-events/:offerEventId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({ summary: 'Remove saved offer/event' })
+    @ApiResponse({ status: 204, description: 'Saved offer/event removed successfully' })
+    removeSavedOfferEvent(
+        @CurrentUser() user: User,
+        @Param('offerEventId', ParseUuidPipe) offerEventId: string,
+    ) {
+        return this.usersService.removeSavedOfferEvent(user.id, offerEventId);
+    }
+
     @Get('notifications')
     @ApiOperation({ summary: 'Get current user notifications' })
     @ApiResponse({ status: 200, description: 'Notifications retrieved successfully' })

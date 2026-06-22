@@ -9,8 +9,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual } from 'typeorm';
 import { User, UserRole } from '../../entities/user.entity';
 import { SavedListing } from '../../entities/favorite.entity';
+import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Listing } from '../../entities/business.entity';
+import { OfferEvent } from '../../entities/offer-event.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
     createPaginatedResponse,
@@ -28,10 +30,14 @@ export class UsersService {
         private userRepository: Repository<User>,
         @InjectRepository(SavedListing)
         private savedListingRepository: Repository<SavedListing>,
+        @InjectRepository(SavedOfferEvent)
+        private savedOfferEventRepository: Repository<SavedOfferEvent>,
         @InjectRepository(Notification)
         private notificationRepository: Repository<Notification>,
         @InjectRepository(Listing)
         private businessRepository: Repository<Listing>,
+        @InjectRepository(OfferEvent)
+        private offerEventRepository: Repository<OfferEvent>,
         private subscriptionsService: SubscriptionsService,
         private adminService: AdminService,
     ) { }
@@ -226,6 +232,52 @@ export class UsersService {
 
         return createPaginatedResponse(
             savedListings.map((f) => f.business),
+            page,
+            limit,
+            total,
+        );
+    }
+
+    /**
+     * Add saved offer/event
+     */
+    async addSavedOfferEvent(userId: string, offerEventId: string): Promise<void> {
+        const offerEvent = await this.offerEventRepository.findOne({ where: { id: offerEventId } });
+        if (!offerEvent) throw new NotFoundException('Offer/Event not found');
+
+        const existing = await this.savedOfferEventRepository.findOne({ where: { userId, offerEventId } });
+        if (existing) return;
+
+        const saved = this.savedOfferEventRepository.create({ userId, offerEventId });
+        await this.savedOfferEventRepository.save(saved);
+    }
+
+    /**
+     * Remove saved offer/event
+     */
+    async removeSavedOfferEvent(userId: string, offerEventId: string): Promise<void> {
+        const saved = await this.savedOfferEventRepository.findOne({ where: { userId, offerEventId } });
+        if (!saved) throw new NotFoundException('Saved offer/event not found');
+
+        await this.savedOfferEventRepository.remove(saved);
+    }
+
+    /**
+     * Get saved offers/events
+     */
+    async getSavedOfferEvents(userId: string, page = 1, limit = 20) {
+        const skip = calculateSkip(page, limit);
+
+        const [savedItems, total] = await this.savedOfferEventRepository.findAndCount({
+            where: { userId },
+            relations: ['offerEvent', 'offerEvent.business'],
+            skip,
+            take: limit,
+            order: { createdAt: 'DESC' },
+        });
+
+        return createPaginatedResponse(
+            savedItems.map((s) => s.offerEvent),
             page,
             limit,
             total,

@@ -23,7 +23,7 @@ export class SearchCacheWarmService implements OnModuleInit, OnModuleDestroy {
     ) {}
 
     onModuleInit() {
-        const host = this.configService.get<string>('REDIS_HOST', 'your-redis-host');
+        const host = this.configService.get<string>('REDIS_HOST', 'localhost');
         const port = this.configService.get<number>('REDIS_PORT', 6379);
         const connection = { host, port };
 

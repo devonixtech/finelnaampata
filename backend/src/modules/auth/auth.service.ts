@@ -517,6 +517,83 @@ export class AuthService {
     }
 
     /**
+     * Forgot Password — send a 6-digit reset code to email
+     */
+    async forgotPassword(email: string): Promise<{ message: string }> {
+        if (!email) {
+            throw new BadRequestException('Email is required');
+        }
+
+        const user = await this.userRepository.findOne({ where: { email: email.toLowerCase().trim() } });
+
+        // Always return success to prevent email enumeration
+        if (!user) {
+            return { message: 'If the email exists, a reset code has been sent.' };
+        }
+
+        // Generate 6-digit OTP (reuses the same pattern as email verification)
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        await this.userRepository.update(user.id, {
+            verificationOtp: otp,
+            otpExpiresAt: otpExpiry,
+        });
+
+        try {
+            await this.mailService.sendPasswordResetEmail(user.email, user.fullName || 'there', otp);
+            this.logger.log(`Password reset email sent to ${user.email}`);
+        } catch (error) {
+            this.logger.error(`Failed to send password reset email to ${user.email}: ${error.message}`);
+        }
+
+        return { message: 'If the email exists, a reset code has been sent.' };
+    }
+
+    /**
+     * Reset Password using the code from email
+     */
+    async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+        if (!email || !code || !newPassword) {
+            throw new BadRequestException('Email, code, and new password are required');
+        }
+
+        if (newPassword.length < 8) {
+            throw new BadRequestException('Password must be at least 8 characters long');
+        }
+
+        const user = await this.userRepository.findOne({
+            where: { email: email.toLowerCase().trim() },
+        });
+
+        if (!user) {
+            throw new BadRequestException('Invalid request');
+        }
+
+        if (!user.verificationOtp || user.verificationOtp !== code) {
+            throw new BadRequestException('Invalid or expired reset code');
+        }
+
+        if (user.otpExpiresAt && new Date() > user.otpExpiresAt) {
+            throw new BadRequestException('Reset code has expired. Please request a new one.');
+        }
+
+        // Hash the new password
+        const bcrypt = await import('bcrypt');
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        await this.userRepository.update(user.id, {
+            password: hashedPassword,
+            verificationOtp: null,
+            otpExpiresAt: null,
+        });
+
+        this.logger.log(`Password reset successfully for ${user.email}`);
+        return { message: 'Password reset successfully. You can now sign in with your new password.' };
+    }
+
+    /**
      * Generate JWT tokens
      */
     private async generateTokens(user: User): Promise<JwtTokens> {

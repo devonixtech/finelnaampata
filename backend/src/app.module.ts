@@ -38,6 +38,7 @@ import { QaModule } from './modules/qa/qa.module';
 import { SearchAnalyticsModule } from './modules/search-analytics/search-analytics.module';
 import { AddressConfigModule } from './modules/address/address-config.module';
 import { LocationModule } from './modules/location/location.module';
+import { ExpertQuoteModule } from './modules/expert-quote/expert-quote.module';
 
 import { typeOrmConfig } from './config/typeorm.config';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -81,7 +82,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
                 try {
                     const store = await redisStore({
                         socket: {
-                            host: configService.get('REDIS_HOST') || 'your-redis-host',
+                            host: configService.get('REDIS_HOST') || 'localhost',
                             port: parseInt(configService.get('REDIS_PORT') || '6379'),
                         },
                     });
@@ -113,7 +114,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
                 inject: [ConfigService],
                 useFactory: async (configService: ConfigService) => ({
                     connection: {
-                        host: configService.get('REDIS_HOST') || 'your-redis-host',
+                        host: configService.get('REDIS_HOST') || 'localhost',
                         port: parseInt(configService.get('REDIS_PORT') || '6379'),
                     },
                 }),
@@ -150,6 +151,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
         SearchAnalyticsModule,
         AddressConfigModule,
         LocationModule,
+        ExpertQuoteModule,
     ],
 
 

@@ -13,6 +13,7 @@ import { BusinessHours } from '../../entities/business-hours.entity';
 import { BusinessAmenity } from '../../entities/business-amenity.entity';
 import { Lead } from '../../entities/lead.entity';
 import { SavedListing } from '../../entities/favorite.entity';
+import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
 import { Comment } from '../../entities/comment.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Subscription } from '../../entities/subscription.entity';
@@ -41,6 +42,7 @@ import { ChatConversation } from '../../entities/chat-conversation.entity';
             BusinessAmenity,
             Lead,
             SavedListing,
+            SavedOfferEvent,
             Comment,
             Notification,
             Subscription,

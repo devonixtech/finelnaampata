@@ -5,6 +5,7 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     ManyToOne,
+    OneToMany,
     JoinColumn,
     Index,
     BeforeInsert,
@@ -12,6 +13,7 @@ import {
 } from 'typeorm';
 import { Vendor } from './vendor.entity';
 import { Listing } from './business.entity';
+import { SavedOfferEvent } from './saved-offer-event.entity';
 
 export enum OfferType {
     OFFER = 'offer',
@@ -112,6 +114,9 @@ export class OfferEvent {
     @ManyToOne(() => Listing, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'business_id' })
     business: Listing;
+
+    @OneToMany(() => SavedOfferEvent, (saved) => saved.offerEvent)
+    savedByUsers: SavedOfferEvent[];
 
     // Auto-compute status based on dates
     @BeforeInsert()
