@@ -63,8 +63,6 @@ export default function GenericDashboard() {
         if (!vendor?.socialLinks?.length) missing.push('Social Links');
         if (!vendor?.businessHours || Object.keys(vendor.businessHours).length === 0) missing.push('Business Hours');
         if (!stats?.totalBusinesses) missing.push('First Listing');
-        if (!vendor?.logoUrl) missing.push('Logo');
-        if (!vendor?.coverImageUrl) missing.push('Cover Image');
         return { percent, missing };
     }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor]);
 
