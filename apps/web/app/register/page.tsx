@@ -167,12 +167,6 @@ function RegisterForm() {
                             </div>
                         )}
 
-                        {referralCode && (
-                            <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                <p className="text-xs font-bold text-emerald-700 text-center">Referral code applied</p>
-                            </div>
-                        )}
-
                         <form className="space-y-5" onSubmit={handleSubmit}>
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -321,22 +315,6 @@ function RegisterForm() {
                                 {confirmPassword && password === confirmPassword && (
                                     <p className="text-[10px] font-bold text-emerald-500 ml-1 mt-1">✓ Passwords match</p>
                                 )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                                    Referral Code (Optional)
-                                </label>
-                                <div className="relative">
-                                    <Megaphone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                                    <input
-                                        type="text"
-                                        className="w-full pl-14 pr-6 py-4 bg-blue-50/30 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none uppercase placeholder:normal-case"
-                                        placeholder="Enter referral code (if you have one)"
-                                        value={referralCode}
-                                        onChange={(e) => setReferralCode(e.target.value)}
-                                    />
-                                </div>
                             </div>
 
                             <div className="flex items-start gap-3 px-1 leading-5 pt-1">

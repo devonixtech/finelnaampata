@@ -39,32 +39,6 @@ export class JobLeadsService {
         const category = await this.categoryRepository.findOne({ where: { id: dto.categoryId } });
         if (!category) throw new NotFoundException('Category not found');
 
-        // Validation: A business cannot broadcast for a category where it already has a listing.
-        const vendor = await this.vendorRepository.findOne({
-            where: { userId },
-            select: ['id'],
-        });
-
-        if (vendor) {
-            const conflictCount = await this.listingRepository
-                .createQueryBuilder('listing')
-                .leftJoin('listing.subcategories', 'subcategory')
-                .where('listing.vendor_id = :vendorId', { vendorId: vendor.id })
-                .andWhere('listing.status IN (:...statuses)', {
-                    statuses: [BusinessStatus.PENDING, BusinessStatus.APPROVED],
-                })
-                .andWhere('(listing.category_id = :categoryId OR subcategory.id = :categoryId)', {
-                    categoryId: dto.categoryId,
-                })
-                .getCount();
-
-            if (conflictCount > 0) {
-                throw new BadRequestException(
-                    'You cannot send a broadcast for a category where your business is already listed.',
-                );
-            }
-        }
-
         const lead = this.jobLeadRepository.create({
             ...dto,
             userId,
