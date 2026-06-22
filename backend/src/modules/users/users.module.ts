@@ -6,6 +6,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { User } from '../../entities/user.entity';
 import { SavedListing } from '../../entities/favorite.entity';
 import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
+import { OfferEvent } from '../../entities/offer-event.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Listing } from '../../entities/business.entity';
 
@@ -15,7 +16,7 @@ import { TrustService } from './trust.service';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, SavedListing, SavedOfferEvent, Notification, Listing, Review]),
+        TypeOrmModule.forFeature([User, SavedListing, SavedOfferEvent, OfferEvent, Notification, Listing, Review]),
         SubscriptionsModule,
         AdminModule,
     ],
