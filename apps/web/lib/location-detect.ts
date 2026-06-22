@@ -94,15 +94,24 @@ export async function tryDetectDeviceLocation(): Promise<GpsDetectResult> {
             },
             (error) => {
                 const denied = error.code === error.PERMISSION_DENIED;
-                resolve({
-                    ok: false,
-                    reason: denied ? 'denied' : error.code === error.TIMEOUT ? 'timeout' : 'error',
-                    message: denied
-                        ? 'Location permission denied. Enable location access for this site and try again.'
-                        : error.code === error.TIMEOUT
+                if (denied) {
+                    resolve({
+                        ok: false,
+                        reason: 'denied',
+                        message: 'Location permission denied. Enable location access for this site and try again.',
+                    });
+                    return;
+                }
+                // For timeout or other GPS errors, try IP fallback
+                detectLocationByIp()
+                    .then((coords) => resolve({ ok: true, coords }))
+                    .catch(() => resolve({
+                        ok: false,
+                        reason: error.code === error.TIMEOUT ? 'timeout' : 'error',
+                        message: error.code === error.TIMEOUT
                             ? 'Location lookup timed out. Please try again or select your city manually.'
                             : 'Unable to detect GPS location. Please try again or select your city manually.',
-                });
+                    }));
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         );

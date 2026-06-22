@@ -10,6 +10,7 @@ import { useSocket } from '../context/SocketContext';
 import { api } from '../lib/api';
 import BusinessAvatar from './BusinessAvatar';
 import { Category, City } from '../types/api';
+import { COUNTRIES_STATES } from '../lib/data/countries-states';
 import { usePushNotifications } from '../lib/usePushNotifications';
 
 export default function Navbar() {
@@ -317,6 +318,58 @@ export default function Navbar() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Countries Dropdown */}
+                            <div
+                                className="relative group"
+                                onMouseEnter={() => setActiveDropdown('countries')}
+                                onMouseLeave={() => setActiveDropdown(null)}
+                            >
+                                <button
+                                    onClick={() => handleDropdownToggle('countries')}
+                                    className="flex items-center gap-1 text-sm font-medium text-[#70757a] hover:bg-gray-100 px-4 py-2 rounded-md transition-colors"
+                                >
+                                    Countries <ChevronDown className="w-3 h-3 opacity-60" />
+                                </button>
+
+                                {activeDropdown === 'countries' && (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-4 w-[600px] animate-in fade-in slide-in-from-top-4 duration-500 ease-out-expo" style={{ zIndex: "1000" }}>
+                                        <div className="bg-white rounded-[32px] shadow-premium border border-slate-100 p-8">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-300">All Countries</h3>
+                                                <Link href="/cities" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline" onClick={() => setActiveDropdown(null)}>View All →</Link>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar">
+                                                <Link
+                                                    href="/search"
+                                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group"
+                                                    onClick={() => setActiveDropdown(null)}
+                                                >
+                                                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-500">
+                                                        <Globe className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">All Countries</span>
+                                                </Link>
+                                                {COUNTRIES_STATES.map((country) => (
+                                                    <Link
+                                                        key={country.code}
+                                                        href={`/search?country=${encodeURIComponent(country.name)}`}
+                                                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group"
+                                                        onClick={() => setActiveDropdown(null)}
+                                                    >
+                                                        <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center text-[#FF7A30]">
+                                                            <Globe className="w-4 h-4" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">
+                                                            {country.name}
+                                                        </span>
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -547,6 +600,28 @@ export default function Navbar() {
                                             {cities.map((city) => (
                                                 <Link key={city.id} href={`/cities/${city.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all">
                                                     <span className="text-sm font-semibold text-slate-700">{city.name}</span>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="space-y-1">
+                                    <button
+                                        onClick={() => setMobileDropdown(mobileDropdown === 'countries' ? null : 'countries')}
+                                        className={`w-full flex items-center justify-between p-4 rounded-2xl border border-slate-100 font-bold transition-all ${mobileDropdown === 'countries' ? 'text-[#FF7A30] bg-orange-50/50 border-orange-100' : 'text-slate-700 bg-white'}`}
+                                    >
+                                        <span>Countries</span>
+                                        <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${mobileDropdown === 'countries' ? 'rotate-180' : '-rotate-90 opacity-40'}`} />
+                                    </button>
+                                    {mobileDropdown === 'countries' && (
+                                        <div className="grid grid-cols-1 gap-2 p-2 bg-slate-50/50 rounded-2xl mt-1 border border-slate-100 max-h-[300px] overflow-y-auto">
+                                            <Link href="/search" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all">
+                                                <span className="text-sm font-semibold text-slate-700">All Countries</span>
+                                            </Link>
+                                            {COUNTRIES_STATES.map((country) => (
+                                                <Link key={country.code} href={`/search?country=${encodeURIComponent(country.name)}`} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all">
+                                                    <span className="text-sm font-semibold text-slate-700">{country.name}</span>
                                                 </Link>
                                             ))}
                                         </div>

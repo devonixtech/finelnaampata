@@ -74,4 +74,5 @@ export interface StepProps {
     onNext: () => void;
     onPrev: () => void;
     categories?: Category[];
+    categoriesLoading?: boolean;
 }

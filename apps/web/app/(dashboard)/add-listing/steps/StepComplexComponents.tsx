@@ -16,7 +16,7 @@ const toggleArrayItem = (arr: string[], item: string) => {
     return safeArr.includes(item) ? safeArr.filter(i => i !== item) : [...safeArr, item];
 };
 
-export const Step5Category = ({ formData, setFormData, categories = [] }: StepProps) => {
+export const Step5Category = ({ formData, setFormData, categories = [], categoriesLoading }: StepProps) => {
     const { getFeatureValue } = usePlanFeature();
     const maxSubCategories = getFeatureValue('maxSubCategories') || 0;
     const selectedSubCategories = Array.isArray(formData.subCategoryIds) ? formData.subCategoryIds : [];
@@ -34,7 +34,7 @@ export const Step5Category = ({ formData, setFormData, categories = [] }: StepPr
                     categories={categories.filter(c => !c.parentId)}
                     value={formData.categoryId}
                     onChange={catId => setFormData(p => ({ ...p, categoryId: catId, subCategoryIds: [] }))}
-                    loading={false}
+                    loading={categoriesLoading}
                 />
             </div>
 

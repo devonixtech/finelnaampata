@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Loader2, CheckCircle, ArrowLeft, ArrowRight, Lock
 } from 'lucide-react';
@@ -86,9 +86,10 @@ const buildBusinessHoursPayload = (businessHours: any[]) => {
     return hours.length ? hours : undefined;
 };
 
-export default function AddListingPage() {
+function AddListingContent() {
     const { user } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [catsLoading, setCatsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -96,6 +97,16 @@ export default function AddListingPage() {
     
     // Core Wizard State
     const [activeStep, setActiveStep] = useState(1);
+
+    useEffect(() => {
+        const stepParam = searchParams.get('step');
+        if (stepParam) {
+            const stepNum = parseInt(stepParam, 10);
+            if (stepNum >= 1 && stepNum <= STEPS.length) {
+                setActiveStep(stepNum);
+            }
+        }
+    }, [searchParams]);
     
     // Data States
     const [categories, setCategories] = useState<Category[]>([]);
@@ -186,6 +197,35 @@ export default function AddListingPage() {
         };
         fetchInitialData();
     }, []);
+
+    // Pre-fill owner contact details from authenticated user profile
+    useEffect(() => {
+        if (!user) return;
+        setFormData(prev => {
+            if (prev.phoneNumber || prev.contactPersonName) return prev;
+            const fullPhone = user.phone || '';
+            let phoneCode = prev.phoneCode;
+            let phoneNumber = '';
+            if (fullPhone) {
+                const dial = DEFAULT_DIAL_CODES.find(d => fullPhone.startsWith(d.dialCode));
+                if (dial) {
+                    phoneCode = dial.dialCode;
+                    phoneNumber = fullPhone.slice(dial.dialCode.length);
+                } else if (fullPhone.startsWith('+')) {
+                    phoneCode = fullPhone.slice(0, fullPhone.length - 10) || prev.phoneCode;
+                    phoneNumber = fullPhone.slice(phoneCode.length);
+                } else {
+                    phoneNumber = fullPhone;
+                }
+            }
+            return {
+                ...prev,
+                contactPersonName: prev.contactPersonName || user.fullName || '',
+                phoneCode,
+                phoneNumber: prev.phoneNumber || phoneNumber.replace(/\D/g, ''),
+            };
+        });
+    }, [user]);
 
     const validateStep = (step: number): boolean => {
         setError(null);
@@ -315,6 +355,29 @@ export default function AddListingPage() {
                 ? rawData.searchKeywords.join(', ')
                 : undefined,
             faqs,
+            businessType: Array.isArray(rawData.businessType) && rawData.businessType.length ? rawData.businessType : undefined,
+            coreBusinessNature: Array.isArray(rawData.coreBusinessNature) && rawData.coreBusinessNature.length ? rawData.coreBusinessNature : undefined,
+            operationalStructure: Array.isArray(rawData.operationalStructure) && rawData.operationalStructure.length ? rawData.operationalStructure : undefined,
+            targetMarket: Array.isArray(rawData.targetMarket) && rawData.targetMarket.length ? rawData.targetMarket : undefined,
+            industrySubType: Array.isArray(rawData.industrySubType) && rawData.industrySubType.length ? rawData.industrySubType : undefined,
+            socialLinks: Array.isArray(rawData.socialLinks) && rawData.socialLinks.length
+                ? rawData.socialLinks.filter((s: any) => s.url?.trim())
+                : undefined,
+            contactPersonName: rawData.contactPersonName?.trim() || undefined,
+            locationAccess: Array.isArray(rawData.locationAccess) && rawData.locationAccess.length ? rawData.locationAccess : undefined,
+            facilities: Array.isArray(rawData.facilities) && rawData.facilities.length ? rawData.facilities : undefined,
+            staffFeatures: Array.isArray(rawData.staffFeatures) && rawData.staffFeatures.length ? rawData.staffFeatures : undefined,
+            paymentMethods: Array.isArray(rawData.paymentMethods) && rawData.paymentMethods.length ? rawData.paymentMethods : undefined,
+            areasServed: Array.isArray(rawData.areasServed) && rawData.areasServed.length ? rawData.areasServed : undefined,
+            businessLanguages: Array.isArray(rawData.businessLanguages) && rawData.businessLanguages.length ? rawData.businessLanguages : undefined,
+            franchiseOpportunities: rawData.franchiseOpportunities || undefined,
+            franchiseAvailableIn: Array.isArray(rawData.franchiseAvailableIn) && rawData.franchiseAvailableIn.length ? rawData.franchiseAvailableIn : undefined,
+            franchiseInvestmentRange: rawData.franchiseInvestmentRange?.trim() || undefined,
+            franchiseSupport: Array.isArray(rawData.franchiseSupport) && rawData.franchiseSupport.length ? rawData.franchiseSupport : undefined,
+            franchiseMinSpace: rawData.franchiseMinSpace?.trim() || undefined,
+            lookingForDealers: rawData.lookingForDealers || undefined,
+            isImporterExporter: rawData.isImporterExporter || undefined,
+            chainOrMultipleBranches: rawData.chainOrMultipleBranches || undefined,
             legalConsentAccepted: true,
             legalConsentAcceptedAt: new Date().toISOString(),
             legalConsentSessionId: typeof window !== 'undefined'
@@ -348,7 +411,7 @@ export default function AddListingPage() {
 
     // Render Logic Mapper
     const renderStepContent = () => {
-        const props = { formData, setFormData, onNext: handleNext, onPrev: handlePrev, categories };
+        const props = { formData, setFormData, onNext: handleNext, onPrev: handlePrev, categories, categoriesLoading: catsLoading };
         switch (activeStep) {
             case 1: return <Step1NameTagline {...props} />;
             case 2: return <Step2BusinessType {...props} />;
@@ -518,6 +581,19 @@ export default function AddListingPage() {
                 </div>
             </form>
         </div>
+    );
+}
+
+export default function AddListingPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+                <div className="w-12 h-12 border-t-2 border-orange-500 rounded-full animate-spin mb-6" />
+                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">Loading</p>
+            </div>
+        }>
+            <AddListingContent />
+        </Suspense>
     );
 }
 

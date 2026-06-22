@@ -305,11 +305,21 @@ export default function BusinessSetupWizard() {
                 setCategories(cats || []);
 
                 if (user.role !== 'vendor') {
+                    const phone = user.phone || '';
+                    let parsedCode = '+92';
+                    let parsedNum = phone;
+                    const sorted = [...DIAL_CODES].sort((a, b) => b.dialCode.length - a.dialCode.length);
+                    const match = sorted.find(d => phone.startsWith(d.dialCode));
+                    if (match) {
+                        parsedCode = match.dialCode;
+                        parsedNum = phone.slice(match.dialCode.length);
+                    }
                     setStepData((prev) => ({
                         ...prev,
                         businessName: prev.businessName || user.vendor?.businessName || user.fullName || '',
                         businessEmail: prev.businessEmail || user.email || '',
-                        phoneNumber: prev.phoneNumber || (user.phone || '').replace(/^\+\d{1,3}/, ''),
+                        phoneCode: prev.phoneCode || parsedCode,
+                        phoneNumber: prev.phoneNumber || parsedNum.replace(/\D/g, ''),
                         address: prev.address || user.vendor?.businessAddress || '',
                         country: prev.country || user.country || options[0]?.name || '',
                         city: prev.city || user.city || '',
@@ -860,11 +870,11 @@ export default function BusinessSetupWizard() {
                 const fullPhone = `${stepData.phoneCode}${stepData.phoneNumber}`;
                 const parsedNumber = phoneUtil.parseAndKeepRawInput(fullPhone);
                 if (!phoneUtil.isValidNumber(parsedNumber)) {
-                    alert('Please enter a valid E.164 phone number (8-15 digits).');
+                    alert('Please enter a valid phone number (8-15 digits).');
                     return;
                 }
             } catch (e) {
-                alert('Please enter a valid E.164 phone number (8-15 digits).');
+                alert('Please enter a valid phone number (8-15 digits).');
                 return;
             }
 

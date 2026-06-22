@@ -47,40 +47,26 @@ export default function GenericDashboard() {
     const isVendor = user?.role === 'vendor';
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
     const profileCompletion = useMemo(() => {
-        if (!isVendor || !setupStatus) return null;
-        const backendPercent = typeof stats?.profileCompletion === 'number'
+        if (!isVendor) return null;
+        const percent = typeof stats?.profileCompletion === 'number'
             ? Math.max(0, Math.min(100, Math.round(stats.profileCompletion)))
-            : null;
-        const answers = setupStatus.answers || {};
-        const requiredChecks = [
-            Boolean(user?.vendor?.businessName),
-            Boolean(user?.vendor?.businessPhone),
-            Boolean(user?.vendor?.businessAddress),
-            Boolean(answers['country']?.[0]),
-            Boolean(answers['city']?.[0]),
-            Boolean(answers['manualPinConfirmed']?.[0] === 'true'),
-            Boolean(answers['legalConsentAccepted']?.[0] === 'true'),
-        ];
-        const optionalChecks = [
-            Boolean(answers['Website & Social Media']?.length),
-            Boolean(answers['Amenities & Facilities']?.length),
-            Boolean(answers['Industry Sub-Type']?.length),
-            Boolean(answers['Keywords']?.length),
-            Boolean(answers['FAQs']?.length),
-            Boolean(answers['Business Opportunities & Expansion']?.length),
-        ];
-        const completed = [...requiredChecks, ...optionalChecks].filter(Boolean).length;
-        const total = requiredChecks.length + optionalChecks.length;
-        const derivedPercent = Math.round((completed / Math.max(total, 1)) * 100);
-        const missing = [
-            !answers['manualPinConfirmed']?.[0] ? 'Map Confirmation' : null,
-            !answers['legalConsentAccepted']?.[0] ? 'Legal Consent' : null,
-            !answers['Website & Social Media']?.length ? 'Website & Social Media' : null,
-            !answers['Amenities & Facilities']?.length ? 'Amenities & Facilities' : null,
-            !answers['Keywords']?.length ? 'Keywords' : null,
-        ].filter(Boolean) as string[];
-        return { percent: backendPercent ?? derivedPercent, missing };
-    }, [isVendor, setupStatus, stats?.profileCompletion, user?.vendor?.businessAddress, user?.vendor?.businessName, user?.vendor?.businessPhone]);
+            : 0;
+        const vendor = user?.vendor;
+        const missing: string[] = [];
+        if (!vendor?.businessName) missing.push('Business Name');
+        if (!vendor?.businessPhone) missing.push('Business Phone');
+        if (!vendor?.businessAddress) missing.push('Business Address');
+        if (!vendor?.city) missing.push('City');
+        if (!vendor?.country) missing.push('Country');
+        if (!vendor?.bio) missing.push('Business Bio');
+        if (!vendor?.businessEmail) missing.push('Business Email');
+        if (!vendor?.socialLinks?.length) missing.push('Social Links');
+        if (!vendor?.businessHours || Object.keys(vendor.businessHours).length === 0) missing.push('Business Hours');
+        if (!stats?.totalBusinesses) missing.push('First Listing');
+        if (!vendor?.logoUrl) missing.push('Logo');
+        if (!vendor?.coverImageUrl) missing.push('Cover Image');
+        return { percent, missing };
+    }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -339,15 +325,36 @@ export default function GenericDashboard() {
                         <div className="h-full bg-blue-600" style={{ width: `${profileCompletion.percent}%` }} />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {profileCompletion.missing.slice(0, 4).map((item) => (
-                            <Link
-                                key={item}
-                                href="/business-setup"
-                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-50 text-amber-700 border border-amber-200"
-                            >
-                                Complete {item}
-                            </Link>
-                        ))}
+                        {(() => {
+                            const stepMap: Record<string, number> = {
+                                'Business Name': 1,
+                                'Business Bio': 11,
+                                'Business Email': 9,
+                                'Business Phone': 9,
+                                'Business Address': 7,
+                                'City': 7,
+                                'Country': 7,
+                                'Social Links': 13,
+                                'Business Hours': 10,
+                                'First Listing': 1,
+                                'Logo': 17,
+                                'Cover Image': 17,
+                                'Map Confirmation': 8,
+                                'Legal Consent': 20,
+                                'Website & Social Media': 13,
+                                'Amenities & Facilities': 14,
+                                'Keywords': 16,
+                            };
+                            return profileCompletion.missing.slice(0, 4).map((item) => (
+                                <Link
+                                    key={item}
+                                    href={stepMap[item] ? `/add-listing?step=${stepMap[item]}` : '/add-listing'}
+                                    className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-50 text-amber-700 border border-amber-200"
+                                >
+                                    Complete {item}
+                                </Link>
+                            ));
+                        })()}
                     </div>
                 </motion.div>
             )}

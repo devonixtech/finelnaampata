@@ -1094,17 +1094,29 @@ export default function BusinessDetailClient({
                                 <p className="text-sm text-slate-500 mt-1 max-w-xs">
                                   {business.address}, {business.city}
                                 </p>
-                                {mapEmbedUrl && !showMapEmbed && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowMapEmbed(true)}
-                                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-colors"
-                                  >
-                                    <Navigation className="w-4 h-4" />
-                                    Load Map
-                                  </button>
-                                )}
                               </div>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-3">
+                            {mapEmbedUrl && !showMapEmbed && (
+                              <button
+                                type="button"
+                                onClick={() => setShowMapEmbed(true)}
+                                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-900 text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-colors"
+                              >
+                                <Navigation className="w-4 h-4" />
+                                Load Map
+                              </button>
+                            )}
+                            {openInGoogleMapsUrl && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(openInGoogleMapsUrl, '_blank')}
+                                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-primary transition-colors"
+                              >
+                                <MapPin className="w-4 h-4" />
+                                Get Directions
+                              </button>
                             )}
                           </div>
                         </div>

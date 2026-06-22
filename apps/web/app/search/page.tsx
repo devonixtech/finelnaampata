@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, MapPin, Sliders, Star, X, Filter, Navigation, CheckCircle2, Clock } from 'lucide-react';
+import { Search, MapPin, Sliders, Star, X, Filter, Navigation, CheckCircle2, Clock, Layers } from 'lucide-react';
 import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -17,6 +17,7 @@ function SearchResults() {
 
     const query = searchParams.get('q') || '';
     const city = searchParams.get('city') || '';
+    const country = searchParams.get('country') || '';
     const categorySlug = searchParams.get('category') || '';
     const minRating = searchParams.get('minRating') || '';
     const radius = searchParams.get('radius') || '';
@@ -34,39 +35,42 @@ function SearchResults() {
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [geoLoading, setGeoLoading] = useState(false);
+    const [categories, setCategories] = useState<any[]>([]);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [searchRes] = await Promise.all([
-                    api.listings.search({
-                        query: query,
-                        city: city,
-                        categorySlug: categorySlug,
-                        minRating: minRating,
-                        radius: radius ? Number(radius) : undefined,
-                        latitude: latitude ? Number(latitude) : undefined,
-                        longitude: longitude ? Number(longitude) : undefined,
-                        openNow: openNow || undefined,
-                        verifiedOnly: verifiedOnly || undefined,
-                        fastResponse: fastResponse || undefined,
-                        onlineNow: onlineNow || undefined,
-                        experience: experience || undefined,
-                        mostContacted: mostContacted || undefined,
-                        filter: filter || undefined,
-                        sortBy: sortBy || undefined,
-                        limit: 20
-                    }),
-                    api.categories.getAll()
+                const [searchRes, catsData] = await Promise.all([
+                        api.listings.search({
+                            query: query,
+                            city: city,
+                            country: country,
+                            categorySlug: categorySlug,
+                            minRating: minRating,
+                            radius: radius ? Number(radius) : undefined,
+                            latitude: latitude ? Number(latitude) : undefined,
+                            longitude: longitude ? Number(longitude) : undefined,
+                            openNow: openNow || undefined,
+                            verifiedOnly: verifiedOnly || undefined,
+                            fastResponse: fastResponse || undefined,
+                            onlineNow: onlineNow || undefined,
+                            experience: experience || undefined,
+                            mostContacted: mostContacted || undefined,
+                            sortBy: sortBy || undefined,
+                            limit: 20
+                        }),
+                        api.categories.getAll()
                 ]);
                 setResults(searchRes.data);
+                setCategories(Array.isArray(catsData) ? catsData : (catsData as any)?.data || []);
 
                 // Log demand if there's a query or category
                 if (query || categorySlug) {
                     api.demand.logSearch({
-                        keyword: query || "", // Literal keyword only
+                        keyword: query || "",
                         city: city || undefined,
+                        country: country || undefined,
                         categorySlug: categorySlug || undefined,
                         latitude: latitude ? Number(latitude) : undefined,
                         longitude: longitude ? Number(longitude) : undefined,
@@ -79,7 +83,7 @@ function SearchResults() {
             }
         };
         loadData();
-    }, [query, city, categorySlug, minRating, radius, latitude, longitude, openNow, verifiedOnly, fastResponse, onlineNow, experience, mostContacted, sortBy]);
+    }, [query, city, country, categorySlug, minRating, radius, latitude, longitude, openNow, verifiedOnly, fastResponse, onlineNow, experience, mostContacted, sortBy]);
 
     const handleNearMe = async () => {
         setGeoLoading(true);
@@ -133,6 +137,8 @@ function SearchResults() {
                                     <>Latest <span className="text-primary italic">Arrivals</span></>
                                 ) : city ? (
                                     <>Best in <span className="text-primary italic">{city}</span></>
+                                ) : country ? (
+                                    <>Explore <span className="text-primary italic">{country}</span></>
                                 ) : query ? (
                                     <>Finding <span className="text-primary italic">"{query}"</span></>
                                 ) : (
@@ -170,6 +176,30 @@ function SearchResults() {
                         </div>
 
                         <div className={`${showFilters ? 'block' : 'hidden lg:block'} space-y-12 animate-in fade-in duration-500`}>
+                            {/* Categories */}
+                            {categories.length > 0 && (
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                                        <Layers className="w-3.5 h-3.5" /> Categories
+                                    </h4>
+                                    <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                        {categories
+                                            .filter(c => !c.parentId)
+                                            .slice(0, 20)
+                                            .map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => updateFilter('category', categorySlug === cat.slug ? null : cat.slug)}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all ${categorySlug === cat.slug ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                                                >
+                                                    {cat.name}
+                                                </button>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Rating Filter */}
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6">Performance</h4>
@@ -303,6 +333,7 @@ function SearchResults() {
                         {(() => {
                             const chips: { key: string; label: string; value: string }[] = [];
                             if (query) chips.push({ key: 'q', label: `"${query}"`, value: query });
+                            if (country) chips.push({ key: 'country', label: country, value: country });
                             if (city) chips.push({ key: 'city', label: city, value: city });
                             if (categorySlug) chips.push({ key: 'category', label: categorySlug, value: categorySlug });
                             if (minRating && minRating !== '0') chips.push({ key: 'minRating', label: `${minRating}+ Stars`, value: minRating });
@@ -343,10 +374,11 @@ function SearchResults() {
                         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-2 shrink-0">Sort:</span>
                             {[
-                                { label: 'Relevance', value: 'relevance' },
+                                { label: 'Recommended', value: 'relevance' },
                                 { label: 'Nearest', value: 'distance' },
                                 { label: 'Top Rated', value: 'rating' },
-                                { label: 'Newest', value: 'newest' },
+                                { label: 'Most Reviewed', value: 'reviews' },
+                                { label: 'Most Contacted', value: 'contacted' },
                             ].map(sort => (
                                 <button
                                     key={sort.value}

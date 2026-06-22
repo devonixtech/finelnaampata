@@ -36,8 +36,7 @@ export default function AccountSettings() {
         businessEmail: '',
         businessPhone: '',
         businessAddress: '',
-        gstNumber: '',
-        ntnNumber: '',
+        timezone: '',
         businessHours: {} as Record<string, { isOpen: boolean, openTime: string, closeTime: string }>,
         socialLinks: [] as { platform: string, url: string }[],
         notificationSettings: {
@@ -118,8 +117,7 @@ export default function AccountSettings() {
                         businessEmail: profile.vendor?.businessEmail || '',
                         businessPhone: profile.vendor?.businessPhone || '',
                         businessAddress: profile.vendor?.businessAddress || '',
-                        gstNumber: profile.vendor?.gstNumber || '',
-                        ntnNumber: profile.vendor?.ntnNumber || '',
+                        timezone: profile.vendor?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         businessHours: profile.vendor?.businessHours || {
                             monday: { isOpen: true, openTime: '09:00', closeTime: '18:00' },
                             tuesday: { isOpen: true, openTime: '09:00', closeTime: '18:00' },
@@ -267,8 +265,7 @@ export default function AccountSettings() {
                     businessEmail: formData.businessEmail || undefined,
                     businessPhone: formData.businessPhone || undefined,
                     businessAddress: formData.businessAddress || undefined,
-                    gstNumber: formData.gstNumber || undefined,
-                    ntnNumber: formData.ntnNumber || undefined,
+                    timezone: formData.timezone || undefined,
                     businessHours: formData.businessHours,
                     socialLinks: formData.socialLinks,
                 };
@@ -302,8 +299,7 @@ export default function AccountSettings() {
                 businessEmail: finalFullProfile.vendor?.businessEmail || '',
                 businessPhone: finalFullProfile.vendor?.businessPhone || '',
                 businessAddress: finalFullProfile.vendor?.businessAddress || '',
-                gstNumber: finalFullProfile.vendor?.gstNumber || '',
-                ntnNumber: finalFullProfile.vendor?.ntnNumber || '',
+                timezone: finalFullProfile.vendor?.timezone || formData.timezone,
                 businessHours: finalFullProfile.vendor?.businessHours || formData.businessHours,
                 socialLinks: finalFullProfile.vendor?.socialLinks || [],
                 notificationSettings: finalFullProfile.notificationSettings || formData.notificationSettings
@@ -586,9 +582,13 @@ export default function AccountSettings() {
                                     >
                                         <option value="">Select state / province</option>
                                         {(() => {
-                                            const country = COUNTRIES_STATES.find(c => c.name === formData.country);
+                                            const country = COUNTRIES_STATES.find(c =>
+                                                c.name === formData.country ||
+                                                c.name.toLowerCase() === (formData.country || '').toLowerCase() ||
+                                                c.code === (formData.country || '')
+                                            );
                                             return country ? country.states.map(s => (
-                                                <option key={s.code} value={s.name}>{s.name}</option>
+                                                <option key={s.code || s.name} value={s.name}>{s.name}</option>
                                             )) : [];
                                         })()}
                                     </select>
@@ -611,13 +611,14 @@ export default function AccountSettings() {
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <datalist id="settings-city-list">
-                                        {formData.country === 'Pakistan' ? (
-                                            allCities
-                                                .filter(c => c.state === formData.state)
-                                                .map(city => (
-                                                    <option key={city.id} value={city.name} />
-                                                ))
-                                        ) : []}
+                                        {allCities
+                                            .filter(c =>
+                                                c.country === formData.country &&
+                                                (!formData.state || c.state === formData.state)
+                                            )
+                                            .map(city => (
+                                                <option key={city.id} value={city.name} />
+                                            ))}
                                     </datalist>
                                 </div>
                             </div>
@@ -646,7 +647,7 @@ export default function AccountSettings() {
                 </div>
 
                 {/* Business Information (Business Only) */}
-                {(user?.role === 'vendor' || user?.vendor) && (
+                {user?.role === 'vendor' && (
                     <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30">
                             <h3 className="text-xl font-black text-slate-900 mb-2">Business Information</h3>
@@ -704,37 +705,23 @@ export default function AccountSettings() {
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="pt-8 border-t border-slate-100 mt-8">
-                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Tax Information</h4>
-                                <div className="grid md:grid-cols-2 gap-8">
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                                            GST Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="gstNumber"
-                                            value={formData.gstNumber}
-                                            onChange={handleChange}
-                                            placeholder="Optional"
-                                            className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
-                                        />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                                            National Tax Number (NTN)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="ntnNumber"
-                                            value={formData.ntnNumber}
-                                            onChange={handleChange}
-                                            placeholder="1234567-8"
-                                            className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
-                                        />
-                                    </div>
+                                <div className="space-y-3 md:col-span-2">
+                                    <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                                        Timezone
+                                    </label>
+                                    <select
+                                        name="timezone"
+                                        value={formData.timezone}
+                                        onChange={handleSelectChange}
+                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
+                                    >
+                                        {['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].map(tz => (
+                                            <option key={tz} value={tz}>{tz.replace(/_/g,' ')}</option>
+                                        ))}
+                                        {!['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].includes(formData.timezone) && formData.timezone && (
+                                            <option value={formData.timezone}>{formData.timezone.replace(/_/g,' ')}</option>
+                                        )}
+                                    </select>
                                 </div>
                             </div>
 
@@ -752,7 +739,7 @@ export default function AccountSettings() {
                 )}
 
                 {/* Business Hours (Business Only) */}
-                {(user?.role === 'vendor' || user?.vendor) && (
+                {user?.role === 'vendor' && (
                     <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
                         <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
                             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
@@ -819,7 +806,7 @@ export default function AccountSettings() {
                 )}
 
             {/* Social Media Profiles (Business Only) */}
-            {(user?.role === 'vendor' || user?.vendor) && (
+            {user?.role === 'vendor' && (
                 <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden relative">
                     {/* PREMIUM GATE FOR SOCIAL LINKS */}
                     {(!user?.vendor?.subscriptions?.some((sub: any) => sub.status === 'active' && sub.plan?.name?.toLowerCase() !== 'free')) && (

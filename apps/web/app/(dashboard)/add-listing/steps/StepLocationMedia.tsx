@@ -32,7 +32,8 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
 
         return matchedCountry?.code || (rawCountry.length === 2 ? rawCountry.toUpperCase() : '');
     }, [countries, formData.country]);
-    const { config: addressConfig } = useAddressConfig(selectedCountryCode || null);
+    const { config: addressConfig, validatePostalCode } = useAddressConfig(selectedCountryCode || null);
+    const postalInvalid = formData.pincode ? !validatePostalCode(formData.pincode) : false;
 
     useEffect(() => {
         let cancelled = false;
@@ -72,10 +73,16 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
     }, [formData.country]);
 
     const stateOptions = useMemo(
-        () =>
-            Array.from(new Set(countryCities.map((city) => city.state).filter(Boolean) as string[])).sort((a, b) =>
-                a.localeCompare(b),
-            ),
+        () => {
+            const seen = new Map<string, string>();
+            for (const city of countryCities) {
+                const raw = (city.state || '').trim();
+                if (!raw) continue;
+                const key = raw.toLowerCase();
+                if (!seen.has(key)) seen.set(key, raw);
+            }
+            return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+        },
         [countryCities],
     );
 
@@ -182,12 +189,14 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                         required
                     />
                     {countryDropdownOpen && countryMatches.length > 0 && (
-                        <div className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <div
+                            className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+                            onMouseDown={(e) => e.preventDefault()}
+                        >
                             {countryMatches.map((country) => (
                                 <button
                                     key={`${country.code}-${country.name}`}
                                     type="button"
-                                    onMouseDown={(event) => event.preventDefault()}
                                     onClick={() => selectCountry(country)}
                                     className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50"
                                 >
@@ -259,10 +268,13 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     type="text" 
                     value={formData.pincode} 
                     onChange={e => setFormData(p => ({ ...p, pincode: e.target.value }))}
-                    className={inputClass}
+                    className={`${inputClass} ${postalInvalid ? 'border-red-400 focus:ring-red-400' : ''}`}
                     required={postalRequired}
                     placeholder={postalRequired ? '' : '(Optional)'}
                 />
+                {postalInvalid && (
+                    <p className="text-xs text-red-500 font-bold mt-1">Invalid {postalLabel.toLowerCase()} format for {formData.country || 'this country'}.</p>
+                )}
             </div>
         </div>
     );
@@ -328,7 +340,7 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
             const tag = input.trim().toLowerCase().replace(/[,]+$/, '');
-            if (tag && !safeKeywords.includes(tag) && safeKeywords.length < 20) {
+            if (tag && !safeKeywords.includes(tag) && safeKeywords.length < 10) {
                 setFormData(p => ({
                     ...p, 
                     searchKeywords: [...safeKeywords, tag],
@@ -347,10 +359,9 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
     };
 
     return (
-        <FeatureGate feature="maxKeywords" isPage={false} title="SEO Keywords Locked" description="Add targeted search keywords to help customers find your business easily. Upgrade to a professional plan to unlock SEO tools.">
-            <div className="space-y-4">
-            <label className={labelClass}>Search Keywords</label>
-            <p className="text-xs text-slate-500 mb-2">Press enter or comma to add a keyword. Maximum 20 allowed.</p>
+        <div className="space-y-4">
+            <label className={labelClass}>Add keywords that describe your business</label>
+            <p className="text-xs text-slate-500 mb-2">Press enter or comma to add a keyword. Maximum 10 allowed.</p>
             <input 
                 type="text" 
                 value={input}
@@ -370,7 +381,6 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
                 ))}
             </div>
         </div>
-        </FeatureGate>
     );
 };
 

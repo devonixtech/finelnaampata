@@ -5,7 +5,6 @@ import { Heart, Tag, Calendar, Bookmark } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { FeatureGate } from '../../../components/business/FeatureGate';
 import BusinessCard from '../../../components/BusinessCard';
 import OfferCard from '../../../components/OfferCard';
 import { Business } from '../../../types/api';
@@ -79,8 +78,7 @@ export default function SavedPage() {
     }
 
     return (
-        <FeatureGate feature="showSaved" title="Unlock Saved Items" description="Save your favorite businesses, offers, and events for quick access.">
-            <div className="space-y-12 pb-20">
+        <div className="space-y-12 pb-20">
                 <div>
                     <h1 className="text-4xl lg:text-5xl font-black text-slate-900 mb-3 tracking-tight flex items-center gap-4">
                         Saved Items <Bookmark className="w-8 h-8 text-rose-500 fill-rose-500" />
@@ -178,6 +176,5 @@ export default function SavedPage() {
                     )
                 )}
             </div>
-        </FeatureGate>
     );
 }

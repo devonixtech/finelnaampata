@@ -1,9 +1,9 @@
 export const BUSINESS_TYPES = [
-    'Physical Location (Store, Office, Clinic, etc.)',
+    'Physical Location',
     'Home-Based Business',
     'Online / Digital Only',
     'On-Site at Client Location',
-    'Mobile Unit (Food Truck, Van, Pop-Up, etc.)',
+    'Mobile Unit',
 ];
 
 export const CORE_BUSINESS_NATURE = [
@@ -17,15 +17,6 @@ export const CORE_BUSINESS_NATURE = [
     'We offer delivery to customers',
     'We operate as a marketplace or multi-vendor platform',
     'We offer subscriptions or memberships',
-];
-
-export const OPERATIONAL_STRUCTURE = [
-    'Independent Business (Single Location)',
-    'Multi-Branch Business',
-    'Franchise Owner',
-    'Master Franchisee',
-    'Mobile / Roving Service (No fixed location)',
-    'Kiosk / Stall',
 ];
 
 export const OPERATIONAL_STRUCTURE_SECTIONS = {
@@ -68,6 +59,28 @@ export const OPERATIONAL_STRUCTURE_SECTIONS = {
         ],
     },
 };
+
+export type OperationalStructureSectionKey = keyof typeof OPERATIONAL_STRUCTURE_SECTIONS;
+
+export const INDUSTRY_SUB_TYPES_SECTIONS = {
+    industrial: {
+        label: 'Industrial, Manufacturing & B2B',
+        options: [
+            'Manufacturer', 'OEM / Original Equipment Manufacturer', 'Fabricator',
+            'Wholesale / B2B Supplier', 'Industrial Services', 'Exporter', 'Importer',
+            'Distributor', 'Supplier', 'Contract Manufacturer',
+        ],
+    },
+    agriculture: {
+        label: 'Agriculture, Farming & Rural Businesses',
+        options: [
+            'Farmer / Agricultural Producer', 'Livestock / Dairy', 'Organic Farming',
+            'Rural Services', 'Agri-Tech', 'Food Processing', 'Farm Equipment',
+        ],
+    },
+};
+
+export type IndustrySubTypeSectionKey = keyof typeof INDUSTRY_SUB_TYPES_SECTIONS;
 
 export const TARGET_MARKET = [
     'B2C — Individual Consumers',

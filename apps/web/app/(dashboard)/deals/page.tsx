@@ -19,20 +19,18 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Zap,
-  Star,
   Layout,
   FileText,
   Receipt,
   History,
   Clock,
   Download,
+  Zap,
 } from "lucide-react";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FeatureGate } from '../../../components/business/FeatureGate';
 import { usePlanFeature } from "../../../hooks/usePlanFeature";
 import { PlacementPaymentModal } from "../../../components/business/PlacementPaymentModal";
 
@@ -646,7 +644,7 @@ export default function BusinessDealsPage() {
           >
             <div className="p-8 border-b border-slate-100 bg-slate-50/50">
               <h2 className="text-xl font-black text-slate-900">Billing History</h2>
-              <p className="text-sm font-bold text-slate-500 mt-1">Review your promotion and boost payments</p>
+              <p className="text-sm font-bold text-slate-500 mt-1">Review your payment history</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -672,11 +670,11 @@ export default function BusinessDealsPage() {
                       </td>
                       <td className="px-8 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-lg ${invoice.metadata?.type === 'promotion_boost' ? 'bg-orange-50' : 'bg-blue-50'}`}>
-                            {invoice.metadata?.type === 'promotion_boost' ? <Zap className="w-3 h-3 text-orange-500" /> : <Receipt className="w-3 h-3 text-blue-500" />}
+                          <div className="p-1.5 rounded-lg bg-blue-50">
+                            <Receipt className="w-3 h-3 text-blue-500" />
                           </div>
                           <span className="text-xs font-black text-slate-700">
-                            {invoice.subscription?.plan?.name || (invoice.metadata?.type === 'promotion_boost' ? 'Promotion Boost' : 'Subscription Plan')}
+                            {invoice.subscription?.plan?.name || 'Payment'}
                           </span>
                         </div>
                       </td>
@@ -1035,7 +1033,7 @@ export default function BusinessDealsPage() {
                       ) : (
                         <Zap className="w-5 h-5" />
                       )}
-                      {editingId ? "Update Listing" : estimatedPrice > 0 ? "Create Draft + Boost" : "Create Draft"}
+                      {editingId ? "Update Listing" : estimatedPrice > 0 ? "Create & Pay" : "Create Draft"}
                     </button>
                   </div>
                 </div>
@@ -1086,18 +1084,18 @@ export default function BusinessDealsPage() {
             </div>
           )}
         </AnimatePresence>
-      </div>
 
-      {paymentModalOffer && (
-        <PlacementPaymentModal
-          offerItem={paymentModalOffer}
-          onClose={() => setPaymentModalOffer(null)}
-          onSuccess={() => {
-            setPaymentModalOffer(null);
-            loadOffers(page);
-          }}
-        />
-      )}
+        {paymentModalOffer && (
+          <PlacementPaymentModal
+            offerItem={paymentModalOffer}
+            onClose={() => setPaymentModalOffer(null)}
+            onSuccess={() => {
+              setPaymentModalOffer(null);
+              loadOffers(page);
+            }}
+          />
+        )}
+      </div>
   );
 }
 

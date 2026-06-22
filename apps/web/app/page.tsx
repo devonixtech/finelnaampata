@@ -62,6 +62,7 @@ export default function HomePage() {
   const [popularCities, setPopularCities] = useState<City[]>([]);
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [citiesList, setCitiesList] = useState<City[]>([]);
+  const [countryCities, setCountryCities] = useState<City[]>([]);
   const [latestOffers, setLatestOffers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
@@ -213,6 +214,24 @@ export default function HomePage() {
     loadSearchMetadata();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load cities filtered by selected country for the city dropdown
+  useEffect(() => {
+    const loadCountryCities = async () => {
+      if (!selectedCountry) {
+        setCountryCities(citiesList.length > 0 ? citiesList : popularCities);
+        return;
+      }
+      try {
+        const cities = await api.cities.getAll({ country: selectedCountry });
+        setCountryCities(cities || []);
+      } catch (err) {
+        console.error('Failed to load country cities:', err);
+        setCountryCities([]);
+      }
+    };
+    loadCountryCities();
+  }, [selectedCountry, citiesList, popularCities]);
+
   // Fetch only businesses when pagination page changes
   // Skip the very first mount since initial data is already loaded above
   useEffect(() => {
@@ -255,6 +274,7 @@ export default function HomePage() {
     if (!searchQuery.trim() && !selectedCity) return;
     const params = new URLSearchParams();
     if (searchQuery.trim()) params.append("q", searchQuery);
+    if (selectedCountry) params.append("country", selectedCountry);
     if (selectedCity) params.append("city", selectedCity);
     if (userLocation) {
       params.append("latitude", String(userLocation.lat));
@@ -421,9 +441,7 @@ export default function HomePage() {
                 <div className="flex flex-col items-start text-left flex-1">
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Your Area</span>
                   <CitySearchSelect
-                    cities={(citiesList.length > 0 ? citiesList : popularCities)
-                      .filter(c => !selectedCountry || c.country === selectedCountry)
-                    }
+                    cities={countryCities}
                     value={selectedCity}
                     onChange={setSelectedCity}
                     minimal
@@ -1050,7 +1068,7 @@ export default function HomePage() {
                 href="/register"
                 className="bg-[#FF7A30] hover:bg-[#E86920] text-white px-10 py-5 rounded-[16px] font-black text-lg transition-all shadow-[0_10px_30px_rgba(255,122,48,0.3)] active:scale-95 whitespace-nowrap block text-center"
               >
-                Add Your Business
+                Sign Up
               </Link>
             </div>
           </div>

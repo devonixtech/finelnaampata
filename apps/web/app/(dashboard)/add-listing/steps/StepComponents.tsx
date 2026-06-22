@@ -1,6 +1,6 @@
 import React from 'react';
 import { StepProps } from '../types';
-import { BUSINESS_TYPES, CORE_BUSINESS_NATURE, OPERATIONAL_STRUCTURE, TARGET_MARKET, AMENITIES, EMPLOYEE_COUNT_OPTIONS } from '../../../../lib/constants/listing-options';
+import { BUSINESS_TYPES, CORE_BUSINESS_NATURE, OPERATIONAL_STRUCTURE_SECTIONS, TARGET_MARKET, AMENITIES, EMPLOYEE_COUNT_OPTIONS } from '../../../../lib/constants/listing-options';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
@@ -76,21 +76,25 @@ export const Step3BusinessNature = ({ formData, setFormData }: StepProps) => (
 );
 
 export const Step4OperationalStructure = ({ formData, setFormData }: StepProps) => (
-    <div className="space-y-4">
-        <label className={labelClass}>Operational Structure</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {OPERATIONAL_STRUCTURE.map(struct => (
-                <label key={struct} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.operationalStructure.includes(struct) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
-                    <input 
-                        type="checkbox" 
-                        className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
-                        checked={formData.operationalStructure.includes(struct)}
-                        onChange={() => setFormData(p => ({ ...p, operationalStructure: toggleArrayItem(p.operationalStructure, struct) }))}
-                    />
-                    <span className="ml-3 text-sm font-semibold text-slate-800">{struct}</span>
-                </label>
-            ))}
-        </div>
+    <div className="space-y-8">
+        {Object.entries(OPERATIONAL_STRUCTURE_SECTIONS).map(([key, section]) => (
+            <div key={key}>
+                <h3 className="text-sm font-black text-slate-900 mb-3">{section.label}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {section.options.map(struct => (
+                        <label key={struct} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.operationalStructure.includes(struct) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                            <input 
+                                type="checkbox" 
+                                className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                checked={formData.operationalStructure.includes(struct)}
+                                onChange={() => setFormData(p => ({ ...p, operationalStructure: toggleArrayItem(p.operationalStructure, struct) }))}
+                            />
+                            <span className="ml-3 text-sm font-semibold text-slate-800">{struct}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        ))}
     </div>
 );
 
@@ -158,6 +162,19 @@ export const Step12Experience = ({ formData, setFormData }: StepProps) => (
                     </label>
                 ))}
             </div>
+        </div>
+        <div>
+            <label className={labelClass}>Business Languages</label>
+            <input 
+                type="text" 
+                className={inputClass} 
+                placeholder="e.g., English, Urdu, Arabic (comma-separated)"
+                value={Array.isArray(formData.businessLanguages) ? formData.businessLanguages.join(', ') : ''}
+                onChange={e => {
+                    const langs = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                    setFormData(p => ({ ...p, businessLanguages: langs }));
+                }}
+            />
         </div>
     </div>
 );
