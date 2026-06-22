@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing', description: 'Add a new business listing' },
         { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },
         { name: 'Deals', icon: Megaphone, href: '/deals', badge: null, feature: 'showOffers', description: 'Promotional offers you have published' },
-        { name: 'Events', icon: Clock, href: '/events', badge: null, feature: 'showOffers', description: 'Upcoming events you are hosting' },
+        { name: 'Events', icon: Clock, href: '/manage-events', badge: null, feature: 'showOffers', description: 'Upcoming events you are hosting' },
         { name: 'Reviews', icon: Star, href: '/reviews', badge: null, feature: 'showReviews', description: 'My Reviews — ratings left by customers' },
         { name: 'Analytics', icon: BarChart, href: '/analytics', badge: null, feature: 'showAnalytics', description: 'Performance and traffic insights' },
         { name: 'Saved Businesses', icon: Heart, href: '/saved', badge: null, feature: 'showSaved', description: 'Businesses you have bookmarked' },

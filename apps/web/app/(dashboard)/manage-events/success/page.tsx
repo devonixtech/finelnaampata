@@ -239,8 +239,8 @@ function OfferSuccessContent() {
                             </div>
 
                             <div className="pt-10 flex gap-4">
-                                <Link href="/events" className="flex-1 text-center py-4 bg-white/10 dark:bg-slate-50 rounded-2xl font-black text-sm hover:bg-white/20 dark:hover:bg-slate-100 transition-all">
-                                    Manage Boosts
+                                <Link href="/manage-events" className="flex-1 text-center py-4 bg-white/10 dark:bg-slate-50 rounded-2xl font-black text-sm hover:bg-white/20 dark:hover:bg-slate-100 transition-all">
+                                    Manage Events
                                 </Link>
                                 <Link href="/dashboard" className="flex-1 text-center py-4 bg-primary rounded-2xl font-black text-sm text-white hover:opacity-90 transition-all">
                                     Dashboard
