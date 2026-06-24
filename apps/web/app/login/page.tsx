@@ -22,7 +22,14 @@ function GoogleSignInButton({ loading, onError, onSuccess }: { loading: boolean;
                 onError(err.message || 'Google sign-in failed. Please try again.');
             }
         },
-        onError: () => onError('Google sign-in failed. Please try again.'),
+        onError: (error) => {
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            onError(
+                'Google sign-in blocked. The domain "' + origin + '" is not registered in Google Cloud Console. ' +
+                'Go to console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client IDs → ' +
+                'add "' + origin + '" to Authorized JavaScript origins.'
+            );
+        },
     });
 
     return (

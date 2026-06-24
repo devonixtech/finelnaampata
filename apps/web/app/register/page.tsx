@@ -27,7 +27,14 @@ function GoogleSignupButton({ loading, onError, onSuccess }: { loading: boolean;
                 onError(err.message || 'Google registration failed. Please try again.');
             }
         },
-        onError: () => onError('Google registration failed. Please try again.'),
+        onError: () => {
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            onError(
+                'Google sign-up blocked. The domain "' + origin + '" is not registered in Google Cloud Console. ' +
+                'Go to console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client IDs → ' +
+                'add "' + origin + '" to Authorized JavaScript origins.'
+            );
+        },
     });
 
     return (
