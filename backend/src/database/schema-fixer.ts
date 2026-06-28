@@ -53,6 +53,15 @@ export async function fixProductionSchema(dataSource: DataSource) {
             }
         }
 
+        // --- VENDORS ---
+        const vendorsTable = await queryRunner.getTable('vendors');
+        if (vendorsTable) {
+            if (!vendorsTable.findColumnByName('timezone')) {
+                logger.log('➕ Adding timezone to vendors');
+                await queryRunner.query('ALTER TABLE vendors ADD COLUMN timezone VARCHAR(64)');
+            }
+        }
+
         // --- BUSINESSES (LISTINGS) ---
         const bizTable = await queryRunner.getTable('businesses');
         if (bizTable) {
@@ -80,6 +89,7 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 { name: 'suggested_category_name', type: 'text', nullable: true },
                 { name: 'address_line_2', type: 'text', nullable: true },
                 { name: 'contact_person_name', type: 'varchar(150)', nullable: true },
+                { name: 'timezone', type: 'varchar(64)', nullable: true },
                 { name: 'business_type', type: 'jsonb', default: '\'[]\'' },
                 { name: 'core_business_nature', type: 'jsonb', default: '\'[]\'' },
                 { name: 'operational_structure', type: 'jsonb', default: '\'[]\'' },

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     Check, 
     ChevronRight, 
@@ -51,7 +51,9 @@ import {
     tryDetectDeviceLocation,
     inferLocationFromCoords,
     getBrowserTimezone,
+    cleanAndDedupeStates,
 } from '../../lib/location-detect';
+import { validatePostalCode } from '../../lib/validatePostalCode';
 import AddressPlacesAutocomplete from '../../components/AddressPlacesAutocomplete';
 import { PhoneNumberUtil } from 'google-libphonenumber';
 import { parsePhoneWithLib, cleanPastedPhone } from '../../lib/phone-parser';
@@ -132,6 +134,7 @@ const OPERATIONAL_STRUCTURE_SECTIONS = {
 export default function BusinessSetupWizard() {
     const { user, syncProfile } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { isFree } = usePlanFeature();
 
     const [categories, setCategories] = useState<Category[]>([]);
@@ -154,6 +157,19 @@ export default function BusinessSetupWizard() {
     const [mapSearchResults, setMapSearchResults] = useState<Array<{ placeId: string; description: string }>>([]);
     const [mapSearchLoading, setMapSearchLoading] = useState(false);
     const [mapSearchError, setMapSearchError] = useState('');
+
+    useEffect(() => {
+        const stepParam = searchParams.get('step');
+        if (!stepParam) return;
+
+        const parsed = Number.parseInt(stepParam, 10);
+        if (!Number.isFinite(parsed)) return;
+
+        const zeroBasedStep = parsed - 1;
+        if (zeroBasedStep >= 0 && zeroBasedStep <= 20) {
+            setCurrentStep(zeroBasedStep);
+        }
+    }, [searchParams]);
 
     // Dynamic states for 21 steps
     const [stepData, setStepData] = useState({
@@ -215,6 +231,7 @@ export default function BusinessSetupWizard() {
         // Step 12: Business Description
         bio: '',
         languages: [] as string[],
+        languagesText: '',
 
         // Step 13: Year Established & Team
         yearEstablished: '',
@@ -394,6 +411,7 @@ export default function BusinessSetupWizard() {
 
                         bio: profile?.bio || ans['bio']?.[0] || '',
                         languages: ans['businessLanguages'] || [],
+                        languagesText: (ans['businessLanguages'] || []).join(', '),
 
                         yearEstablished: ans['yearEstablished']?.[0] || '',
                         employeeSize: ans['employeeSize']?.[0] || '',
@@ -478,16 +496,16 @@ export default function BusinessSetupWizard() {
         if (!countryName) return [];
         const matchedCountry = COUNTRIES_STATES.find(c => c.name.toLowerCase() === countryName.trim().toLowerCase());
         if (matchedCountry && matchedCountry.states && matchedCountry.states.length > 0) {
-            return matchedCountry.states.map(s => s.name).sort((a, b) => a.localeCompare(b));
+            return cleanAndDedupeStates(matchedCountry.states, countryName);
         }
-        return Array.from(
+        return cleanAndDedupeStates(Array.from(
             new Set(
                 allCities
                     .filter((city) => cityMatchesCountry(city, countryName))
                     .map((city) => city.state)
                     .filter(Boolean) as string[],
             ),
-        ).sort((a, b) => a.localeCompare(b));
+        ), countryName);
     }, [allCities, stepData.country]);
 
     const applySelectedCity = (cityName: string) => {
@@ -851,6 +869,13 @@ export default function BusinessSetupWizard() {
                 if (pc.required && !value) {
                     alert(`Please enter a valid ${pc.label || 'Postal/ZIP Code'}.`);
                     return;
+                }
+                if (value) {
+                    const postalVal = validatePostalCode(stepData.country, value);
+                    if (!postalVal.valid) {
+                        alert(`Please enter a valid ${pc.label || 'Postal/ZIP Code'} format for ${stepData.country}. Example: ${postalVal.example || '12345'}`);
+                        return;
+                    }
                 }
                 if (value && pc.regex) {
                     try {
@@ -1868,8 +1893,8 @@ export default function BusinessSetupWizard() {
                                 <p className="text-[10px] text-slate-400 font-medium mb-2 ml-1">Enter languages separated by commas (e.g. English, Urdu, Arabic)</p>
                                 <input
                                     type="text"
-                                    value={stepData.languages.join(', ')}
-                                    onChange={e => setStepData({...stepData, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
+                                    value={stepData.languagesText}
+                                    onChange={e => setStepData({...stepData, languagesText: e.target.value, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
                                     placeholder="English, Urdu, Arabic, Hindi..."
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700"
                                 />
@@ -2875,4 +2900,3 @@ export default function BusinessSetupWizard() {
         </div>
     );
 }
-

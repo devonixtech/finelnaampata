@@ -190,8 +190,8 @@ export default function BroadcastFeed() {
                             <div>
                                 <label className="block text-sm font-black text-slate-700 mb-3 uppercase tracking-widest text-[10px]">Price Estimate (PKR)</label>
                                 <div className="relative group">
-                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300">
-                                        <DollarSign className="w-5 h-5" />
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">
+                                        PKR
                                     </span>
                                     <input
                                         type="number"

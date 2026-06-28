@@ -223,7 +223,9 @@ export default function HomePage() {
       }
       try {
         const cities = await api.cities.getAll({ country: selectedCountry });
-        setCountryCities(cities || []);
+        const allCities = cities || [];
+        const filtered = allCities.filter(c => c.country?.toLowerCase() === selectedCountry.toLowerCase());
+        setCountryCities(filtered);
       } catch (err) {
         console.error('Failed to load country cities:', err);
         setCountryCities([]);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Heart, Tag, Calendar, Bookmark } from 'lucide-react';
+import { Heart, Tag, Calendar, Bookmark, Zap, ArrowRight } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -10,12 +10,13 @@ import OfferCard from '../../../components/OfferCard';
 import { Business } from '../../../types/api';
 import Link from 'next/link';
 
-type SavedTab = 'businesses' | 'offers' | 'events';
+type SavedTab = 'businesses' | 'offers' | 'events' | 'jobs';
 
 const TABS: { id: SavedTab; label: string; icon: React.ElementType }[] = [
     { id: 'businesses', label: 'Businesses', icon: Heart },
     { id: 'offers', label: 'Offers', icon: Tag },
     { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'jobs', label: 'Jobs', icon: Zap },
 ];
 
 export default function SavedPage() {
@@ -24,6 +25,7 @@ export default function SavedPage() {
     const [activeTab, setActiveTab] = useState<SavedTab>('businesses');
     const [savedBusinesses, setSavedBusinesses] = useState<Business[]>([]);
     const [savedOfferEvents, setSavedOfferEvents] = useState<any[]>([]);
+    const [jobRequests, setJobRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,13 +36,15 @@ export default function SavedPage() {
             }
             setLoading(true);
             try {
-                const [bizRes, oeRes] = await Promise.all([
+                const [bizRes, oeRes, jobsRes] = await Promise.all([
                     api.users.getFavorites(),
                     api.users.getSavedOfferEvents(1, 50),
+                    api.broadcasts.getMyLeads().catch(() => []),
                 ]);
                 setSavedBusinesses(bizRes.data || []);
                 const all = oeRes?.data || [];
                 setSavedOfferEvents(all);
+                setJobRequests(Array.isArray(jobsRes) ? jobsRes : []);
             } catch (error) {
                 console.error('Error fetching saved items:', error);
             } finally {
@@ -89,7 +93,14 @@ export default function SavedPage() {
                 {/* Tabs */}
                 <div className="flex gap-2 border-b border-slate-100 pb-0">
                     {TABS.map((tab) => {
-                        const count = tab.id === 'businesses' ? savedBusinesses.length : tab.id === 'offers' ? savedOffers.length : savedEvents.length;
+                        const count =
+                            tab.id === 'businesses'
+                                ? savedBusinesses.length
+                                : tab.id === 'offers'
+                                  ? savedOffers.length
+                                  : tab.id === 'events'
+                                    ? savedEvents.length
+                                    : jobRequests.length;
                         return (
                             <button
                                 key={tab.id}
@@ -144,7 +155,7 @@ export default function SavedPage() {
                             </div>
                             <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">No saved offers</h3>
                             <p className="text-slate-400 font-bold max-w-sm mb-10">Browse offers and click the bookmark icon to save them for later.</p>
-                            <Link href="/offers" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all active:scale-95">
+                            <Link href="/offers-events?type=offer" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all active:scale-95">
                                 Browse Offers
                             </Link>
                         </div>
@@ -169,8 +180,52 @@ export default function SavedPage() {
                             </div>
                             <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">No saved events</h3>
                             <p className="text-slate-400 font-bold max-w-sm mb-10">Browse events and click the bookmark icon to save them for later.</p>
-                            <Link href="/events" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all active:scale-95">
+                            <Link href="/offers-events?type=event" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all active:scale-95">
                                 Browse Events
+                            </Link>
+                        </div>
+                    )
+                )}
+
+                {activeTab === 'jobs' && (
+                    jobRequests.length > 0 ? (
+                        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+                            {jobRequests.map((job: any) => (
+                                <button
+                                    key={job.id}
+                                    type="button"
+                                    onClick={() => router.push('/dashboard')}
+                                    className="text-left bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-lg transition-all"
+                                >
+                                    <div className="flex items-center justify-between gap-3 mb-4">
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest">
+                                            <Zap className="w-3.5 h-3.5" />
+                                            {job.category?.name || 'Broadcast'}
+                                        </span>
+                                        <ArrowRight className="w-4 h-4 text-slate-300" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2 line-clamp-2">
+                                        {job.title || 'Untitled request'}
+                                    </h3>
+                                    <p className="text-sm text-slate-500 font-medium line-clamp-3 mb-4">
+                                        {job.description || job.message || 'Open your dashboard to review this request and expert responses.'}
+                                    </p>
+                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 pt-4 border-t border-slate-100">
+                                        <span>{job.status || 'Open'}</span>
+                                        <span>{job.responses?.length || 0} responses</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200 text-center px-4">
+                            <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-6">
+                                <Zap className="w-10 h-10 text-blue-200" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">No job requests yet</h3>
+                            <p className="text-slate-400 font-bold max-w-sm mb-10">Your broadcast and job requests will appear here once you create them.</p>
+                            <Link href="/broadcast-request" className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all active:scale-95">
+                                Create Request
                             </Link>
                         </div>
                     )

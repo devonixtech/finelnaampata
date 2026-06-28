@@ -237,7 +237,7 @@ export default function AdminOfferPricingPage() {
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Price (PKR)</label>
                                             <div className="relative">
-                                                <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-xs text-slate-400">PKR</span>
                                                 <input 
                                                     required
                                                     type="number"

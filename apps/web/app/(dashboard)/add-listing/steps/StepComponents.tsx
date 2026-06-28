@@ -169,10 +169,9 @@ export const Step12Experience = ({ formData, setFormData }: StepProps) => (
                 type="text" 
                 className={inputClass} 
                 placeholder="e.g., English, Urdu, Arabic (comma-separated)"
-                value={Array.isArray(formData.businessLanguages) ? formData.businessLanguages.join(', ') : ''}
+                value={Array.isArray(formData.businessLanguages) ? formData.businessLanguages.join(',') : ''}
                 onChange={e => {
-                    const langs = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                    setFormData(p => ({ ...p, businessLanguages: langs }));
+                    setFormData(p => ({ ...p, businessLanguages: e.target.value.split(',') }));
                 }}
             />
         </div>

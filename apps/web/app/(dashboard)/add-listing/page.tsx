@@ -207,15 +207,28 @@ function AddListingContent() {
             let phoneCode = prev.phoneCode;
             let phoneNumber = '';
             if (fullPhone) {
-                const dial = DEFAULT_DIAL_CODES.find(d => fullPhone.startsWith(d.dialCode));
+                let cleanPhone = fullPhone.trim();
+                if (cleanPhone.startsWith('0')) {
+                    cleanPhone = cleanPhone.slice(1);
+                }
+                if (!cleanPhone.startsWith('+')) {
+                    cleanPhone = '+' + cleanPhone;
+                }
+                // Sort dial codes by length descending so longer match first
+                const sortedDials = [...DEFAULT_DIAL_CODES].sort((a, b) => b.dialCode.length - a.dialCode.length);
+                const dial = sortedDials.find(d => cleanPhone.startsWith(d.dialCode));
                 if (dial) {
                     phoneCode = dial.dialCode;
-                    phoneNumber = fullPhone.slice(dial.dialCode.length);
-                } else if (fullPhone.startsWith('+')) {
-                    phoneCode = fullPhone.slice(0, fullPhone.length - 10) || prev.phoneCode;
-                    phoneNumber = fullPhone.slice(phoneCode.length);
+                    phoneNumber = cleanPhone.slice(dial.dialCode.length);
                 } else {
-                    phoneNumber = fullPhone;
+                    // Extract up to first 3 digits after + as phoneCode
+                    const match = cleanPhone.match(/^(\+\d{1,3})(\d+)$/);
+                    if (match) {
+                        phoneCode = match[1];
+                        phoneNumber = match[2];
+                    } else {
+                        phoneNumber = fullPhone;
+                    }
                 }
             }
             return {
@@ -369,7 +382,7 @@ function AddListingContent() {
             staffFeatures: Array.isArray(rawData.staffFeatures) && rawData.staffFeatures.length ? rawData.staffFeatures : undefined,
             paymentMethods: Array.isArray(rawData.paymentMethods) && rawData.paymentMethods.length ? rawData.paymentMethods : undefined,
             areasServed: Array.isArray(rawData.areasServed) && rawData.areasServed.length ? rawData.areasServed : undefined,
-            businessLanguages: Array.isArray(rawData.businessLanguages) && rawData.businessLanguages.length ? rawData.businessLanguages : undefined,
+            businessLanguages: Array.isArray(rawData.businessLanguages) && rawData.businessLanguages.length ? rawData.businessLanguages.map(s => s.trim()).filter(Boolean) : undefined,
             franchiseOpportunities: rawData.franchiseOpportunities || undefined,
             franchiseAvailableIn: Array.isArray(rawData.franchiseAvailableIn) && rawData.franchiseAvailableIn.length ? rawData.franchiseAvailableIn : undefined,
             franchiseInvestmentRange: rawData.franchiseInvestmentRange?.trim() || undefined,

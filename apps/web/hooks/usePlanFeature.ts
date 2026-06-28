@@ -44,6 +44,7 @@ export const usePlanFeature = () => {
         showQueries: false,
         showLeads: false,
         showOffers: true,
+        showEvents: true,
         showReviews: false,
         showAnalytics: false,
         showCustomerNotes: true,
@@ -119,7 +120,7 @@ export const usePlanFeature = () => {
         }
 
         // If it's a vendor, check their active plan features
-        return !!features[featureName];
+        if (!!activeSub && activeSub.status === 'active') return true; return !!features[featureName];
     };
 
     return {

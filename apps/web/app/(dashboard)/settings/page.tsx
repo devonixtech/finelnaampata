@@ -7,6 +7,7 @@ import BusinessAvatar from '../../../components/BusinessAvatar';
 import { useAuth } from '../../../context/AuthContext';
 import { City } from '../../../types/api';
 import { COUNTRIES_STATES, CountryData } from '../../../lib/data/countries-states';
+import { cleanAndDedupeStates, getCanonicalCountryName } from '../../../lib/location-detect';
 
 export default function AccountSettings() {
     const { user, loading: authLoading, updateUser } = useAuth();
@@ -215,18 +216,17 @@ export default function AccountSettings() {
             return { ...prev, socialLinks: newLinks };
         });
     };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setAvatarFile(file);
-            // Use URL.createObjectURL for instant preview
             const objectUrl = URL.createObjectURL(file);
             setPreviewImage(objectUrl);
 
             if (success) setSuccess(false);
             if (error) setError(null);
 
-            // Important:Revoke the URL when the component unmounts or image changes
             return () => URL.revokeObjectURL(objectUrl);
         }
     };
@@ -259,7 +259,6 @@ export default function AccountSettings() {
 
             // 3. Update business profile — ONLY if the user is explicitly a business
             if (user?.role === 'vendor') {
-                // Strip empty strings — @IsOptional() only skips undefined/null, not ""
                 const vendorPayload: any = {
                     businessName: formData.businessName || undefined,
                     businessEmail: formData.businessEmail || undefined,
@@ -269,7 +268,6 @@ export default function AccountSettings() {
                     businessHours: formData.businessHours,
                     socialLinks: formData.socialLinks,
                 };
-                // Remove undefined keys so they aren't serialised to JSON as null
                 Object.keys(vendorPayload).forEach(k => {
                     if (vendorPayload[k] === undefined) delete vendorPayload[k];
                 });
@@ -279,7 +277,7 @@ export default function AccountSettings() {
             // 4. Update Notification Settings
             await api.users.updateNotificationSettings(formData.notificationSettings);
 
-            // 4. BIG SYNC: Re-fetch the entire profile from the backend to ensure a source of truth
+            // 5. BIG SYNC: Re-fetch the entire profile from the backend to ensure a source of truth
             const finalFullProfile = await api.users.getProfile();
 
             // Sync AuthContext and local form state with the re-fetched data
@@ -388,7 +386,6 @@ export default function AccountSettings() {
         try {
             await api.users.requestDeletion();
             setDeletionStatus({ type: 'success', message: 'Account deletion scheduled. You have 30 days to cancel this request.' });
-            // Re-sync profile to show deletion info
             const updatedProfile = await api.users.getProfile();
             if (updateUser) updateUser(updatedProfile);
         } catch (err: any) {
@@ -404,7 +401,6 @@ export default function AccountSettings() {
         try {
             await api.users.cancelDeletion();
             setDeletionStatus({ type: 'success', message: 'Account deletion cancelled.' });
-            // Re-sync profile
             const updatedProfile = await api.users.getProfile();
             if (updateUser) updateUser(updatedProfile);
         } catch (err: any) {
@@ -452,9 +448,6 @@ export default function AccountSettings() {
             </header>
 
             <div className="space-y-12">
-                {/* Reputation & Trust Score */}
-
-
                 {/* General Profile Info */}
                 <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden group">
                     <div className="p-10 lg:p-12 border-b border-slate-50 bg-slate-50/30 relative overflow-hidden">
@@ -582,14 +575,15 @@ export default function AccountSettings() {
                                     >
                                         <option value="">Select state / province</option>
                                         {(() => {
-                                            const country = COUNTRIES_STATES.find(c =>
+                                            const country = COUNTRIES_STATES.find(c => getCanonicalCountryName(c.name) === getCanonicalCountryName(formData.country) ||
                                                 c.name === formData.country ||
                                                 c.name.toLowerCase() === (formData.country || '').toLowerCase() ||
                                                 c.code === (formData.country || '')
                                             );
-                                            return country ? country.states.map(s => (
-                                                <option key={s.code || s.name} value={s.name}>{s.name}</option>
-                                            )) : [];
+                                            const statesList = country ? cleanAndDedupeStates(country.states, formData.country) : cleanAndDedupeStates(availableStates.map(name => ({ name })), formData.country);
+                                            return statesList.map((s: any) => (
+                                                <option key={s} value={s}>{s}</option>
+                                            ));
                                         })()}
                                     </select>
                                     <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -628,7 +622,7 @@ export default function AccountSettings() {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black  shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                             >
                                 {saving ? (
                                     <>
@@ -677,7 +671,7 @@ export default function AccountSettings() {
                                         name="businessEmail"
                                         value={formData.businessEmail}
                                         onChange={handleChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
+                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold text-slate-900 transition-all outline-none"
                                     />
                                 </div>
                                 <div className="space-y-3">
@@ -729,7 +723,7 @@ export default function AccountSettings() {
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black  shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                    className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                                 >
                                     {saving ? 'Updating...' : 'Save Business Info'}
                                 </button>
@@ -747,16 +741,14 @@ export default function AccountSettings() {
                             </div>
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 mb-2">Business Hours</h3>
-                                <p className="text-sm text-slate-500 font-medium">Set your weekly availability. This will be shown to customers on your listings.</p>
+                                <p className="text-sm text-slate-500 font-medium">Set your weekly operating hours for customers.</p>
                             </div>
                         </div>
 
                         <div className="p-8 lg:p-12 space-y-6">
-                            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
-                                <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4 border-b border-slate-50 last:border-0">
-                                    <div className="w-32">
-                                        <span className="text-sm font-black text-slate-900 uppercase tracking-widest">{day}</span>
-                                    </div>
+                            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                                <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <span className="font-bold text-slate-900 capitalize w-28">{day}</span>
                                     <div className="flex items-center gap-6">
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
@@ -796,7 +788,7 @@ export default function AccountSettings() {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={saving}
-                                    className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black  shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                    className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                                 >
                                     {saving ? 'Updating...' : 'Save Business Hours'}
                                 </button>
@@ -805,27 +797,27 @@ export default function AccountSettings() {
                     </div>
                 )}
 
-            {/* Social Media Profiles (Business Only) */}
-            {user?.role === 'vendor' && (
-                <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden relative">
-                    {/* PREMIUM GATE FOR SOCIAL LINKS */}
-                    {(!user?.vendor?.subscriptions?.some((sub: any) => sub.status === 'active' && sub.plan?.name?.toLowerCase() !== 'free')) && (
-                        <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-white/60 flex flex-col items-center justify-center p-6 text-center rounded-[20px] border border-orange-100/50">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-orange-500/20">
-                                <Lock className="w-6 h-6 text-white" />
+                {/* Social Media Profiles (Business Only) */}
+                {user?.role === 'vendor' && (
+                    <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden relative">
+                        {/* PREMIUM GATE FOR SOCIAL LINKS */}
+                        {(!user?.vendor?.subscriptions?.some((sub: any) => sub.status === 'active' && sub.plan?.name?.toLowerCase() !== 'free')) && (
+                            <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-white/60 flex flex-col items-center justify-center p-6 text-center rounded-[20px] border border-orange-100/50">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-orange-500/20">
+                                    <Lock className="w-6 h-6 text-white" />
+                                </div>
+                                <h4 className="text-lg font-black text-slate-900 mb-2">Premium Feature</h4>
+                                <p className="text-sm font-bold text-slate-600 mb-4 max-w-sm">Upgrade your plan to add social media links to your listing.</p>
+                                <a href="/subscription" className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-slate-900/20">
+                                    Upgrade Plan
+                                </a>
                             </div>
-                            <h4 className="text-lg font-black text-slate-900 mb-2">Premium Feature</h4>
-                            <p className="text-sm font-bold text-slate-600 mb-4 max-w-sm">Upgrade your plan to add social media links to your listing.</p>
-                            <a href="/subscription" className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-slate-900/20">
-                                Upgrade Plan
-                            </a>
-                        </div>
-                    )}
+                        )}
 
-                    <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
-                        <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center shrink-0">
-                            <Share2 className="w-6 h-6" />
-                        </div>
+                        <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
+                            <div className="w-12 h-12 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center shrink-0">
+                                <Share2 className="w-6 h-6" />
+                            </div>
                             <div className="flex-1">
                                 <div className="flex items-center justify-between gap-4 flex-wrap">
                                     <div>
@@ -928,7 +920,7 @@ export default function AccountSettings() {
                                     <button
                                         onClick={handleSubmit}
                                         disabled={saving}
-                                        className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black  shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                        className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                                     >
                                         {saving ? 'Updating...' : 'Save Social Links'}
                                     </button>
@@ -1012,7 +1004,7 @@ export default function AccountSettings() {
                             <button
                                 type="submit"
                                 disabled={pwdSaving || !pwdData.oldPassword || !pwdData.newPassword || !pwdData.confirmPassword}
-                                className="flex items-center justify-center gap-3 px-10 py-4 bg-[#FF7A30] text-white rounded-2xl font-black  shadow-orange-500/20 hover:bg-[#E86920] transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                className="flex items-center justify-center gap-3 px-10 py-4 bg-[#FF7A30] text-white rounded-2xl font-black shadow-orange-500/20 hover:bg-[#E86920] transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
                             >
                                 {pwdSaving ? (
                                     <>
@@ -1030,8 +1022,6 @@ export default function AccountSettings() {
                     </form>
                 </div>
 
-
-
                 {/* Danger Zone: Account Deletion */}
                 <div className="bg-white rounded-[20px] border border-rose-100 shadow-sm overflow-hidden">
                     <div className="p-8 lg:p-12 border-b border-rose-50 bg-rose-50/30 flex items-start gap-4">
@@ -1046,8 +1036,9 @@ export default function AccountSettings() {
 
                     <div className="p-8 lg:p-12 space-y-6">
                         {deletionStatus && (
-                            <div className={`flex items-center gap-3 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2 ${deletionStatus.type === 'success' ? 'bg-emerald-50 border border-emerald-100 text-emerald-600' : 'bg-rose-50 border border-rose-100 text-rose-600'
-                                }`}>
+                            <div className={`flex items-center gap-3 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2 ${
+                                deletionStatus.type === 'success' ? 'bg-emerald-50 border border-emerald-100 text-emerald-600' : 'bg-rose-50 border border-rose-100 text-rose-600'
+                            }`}>
                                 {deletionStatus.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                                 <span className="font-bold text-sm">{deletionStatus.message}</span>
                             </div>
@@ -1102,4 +1093,3 @@ export default function AccountSettings() {
         </div>
     );
 }
-

@@ -159,7 +159,7 @@ export class DealsService {
             rawLimit === undefined || rawLimit === null ? null : Number(rawLimit);
 
         if (numericLimit !== null && !Number.isNaN(numericLimit)) {
-            return numericLimit;
+            return numericLimit > 0 ? numericLimit : 999;
         }
 
         if (activeSub?.plan?.planType === SubscriptionPlanType.FREE || activeSub?.plan?.name?.toLowerCase() === 'free') {

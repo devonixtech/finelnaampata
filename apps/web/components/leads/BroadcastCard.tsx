@@ -41,8 +41,8 @@ export default function BroadcastCard({ lead, canRespond = true, onRespond }: Br
                             {lead.city || 'Anywhere'}
                         </span>
                         {lead.budget && (
-                            <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg">
-                                <DollarSign className="w-3 h-3" />
+                            <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">
+                                <span>PKR</span>
                                 {lead.budget.toLocaleString()}
                             </span>
                         )}

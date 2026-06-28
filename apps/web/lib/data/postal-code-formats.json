@@ -1,0 +1,1738 @@
+{
+  "AF": {
+    "name": "Afghanistan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "AX": {
+    "name": "Aland Islands",
+    "hasPostalCode": true,
+    "regex": "^(AX)?[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "AL": {
+    "name": "Albania",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "DZ": {
+    "name": "Algeria",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "AS": {
+    "name": "American Samoa",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "AD": {
+    "name": "Andorra",
+    "hasPostalCode": true,
+    "regex": "^AD[0-9]{3}$",
+    "stripChars": " -",
+    "example": "AD123"
+  },
+  "AO": {
+    "name": "Angola",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "AI": {
+    "name": "Anguilla",
+    "hasPostalCode": true,
+    "regex": "^AI2640$",
+    "stripChars": " -",
+    "example": "AI2640"
+  },
+  "AQ": {
+    "name": "Antarctica",
+    "hasPostalCode": true,
+    "regex": "^BIQQ1ZZ$",
+    "stripChars": " -",
+    "example": "BIQQ 1ZZ"
+  },
+  "AG": {
+    "name": "Antigua and Barbuda",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "AR": {
+    "name": "Argentina",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "AM": {
+    "name": "Armenia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "AW": {
+    "name": "Aruba",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "AU": {
+    "name": "Australia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "AT": {
+    "name": "Austria",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "AZ": {
+    "name": "Azerbaijan",
+    "hasPostalCode": true,
+    "regex": "^AZ[0-9]{4}$",
+    "stripChars": " -",
+    "example": "AZ1234"
+  },
+  "BS": {
+    "name": "Bahamas",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BH": {
+    "name": "Bahrain",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3,4}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "BD": {
+    "name": "Bangladesh",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "BB": {
+    "name": "Barbados",
+    "hasPostalCode": true,
+    "regex": "^(BB)?[0-9]{5}$",
+    "stripChars": " -",
+    "example": "BB12345"
+  },
+  "BY": {
+    "name": "Belarus",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "BE": {
+    "name": "Belgium",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "BZ": {
+    "name": "Belize",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BJ": {
+    "name": "Benin",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BM": {
+    "name": "Bermuda",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BT": {
+    "name": "Bhutan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "BO": {
+    "name": "Bolivia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "BA": {
+    "name": "Bosnia and Herzegovina",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "BW": {
+    "name": "Botswana",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BV": {
+    "name": "Bouvet Island",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BR": {
+    "name": "Brazil",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{8}$",
+    "stripChars": " -",
+    "example": "12345678"
+  },
+  "VG": {
+    "name": "British Virgin Islands",
+    "hasPostalCode": true,
+    "regex": "^(VG)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "IO": {
+    "name": "British Indian Ocean Territory",
+    "hasPostalCode": true,
+    "regex": "^BBND1ZZ$",
+    "stripChars": " -",
+    "example": "BBND 1ZZ"
+  },
+  "BN": {
+    "name": "Brunei Darussalam",
+    "hasPostalCode": true,
+    "regex": "^[a-zA-Z]{2}[0-9]{4}$",
+    "stripChars": " -",
+    "example": "AB1234"
+  },
+  "BG": {
+    "name": "Bulgaria",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "BF": {
+    "name": "Burkina Faso",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BI": {
+    "name": "Burundi",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "KH": {
+    "name": "Cambodia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CM": {
+    "name": "Cameroon",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CA": {
+    "name": "Canada",
+    "hasPostalCode": true,
+    "regex": "^[ABCEGHJKLMNPRSTVXY]\\d[ABCEGHJ-NPRSTV-Z][\\s\\-]?\\d[ABCEGHJ-NPRSTV-Z]\\d$",
+    "stripChars": " -",
+    "example": "A4B5X5"
+  },
+  "CV": {
+    "name": "Cape Verde",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "KY": {
+    "name": "Cayman Islands",
+    "hasPostalCode": true,
+    "regex": "^KY[0-9]{5}$",
+    "stripChars": " -",
+    "example": "KY1-1234"
+  },
+  "CF": {
+    "name": "Central African Republic",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TD": {
+    "name": "Chad",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CL": {
+    "name": "Chile",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{7}$",
+    "stripChars": " -",
+    "example": "1234567"
+  },
+  "CN": {
+    "name": "China",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "HK": {
+    "name": "Hong Kong, Special Administrative Region of China",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "MO": {
+    "name": "Macao, Special Administrative Region of China",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CX": {
+    "name": "Christmas Island",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "CC": {
+    "name": "Cocos (Keeling) Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "CO": {
+    "name": "Colombia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "KM": {
+    "name": "Comoros",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CG": {
+    "name": "Congo (Brazzaville)",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CD": {
+    "name": "Congo, Democratic Republic of the",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CK": {
+    "name": "Cook Islands",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "CR": {
+    "name": "Costa Rica",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CI": {
+    "name": "Côte d'Ivoire",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "HR": {
+    "name": "Croatia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CU": {
+    "name": "Cuba",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CY": {
+    "name": "Cyprus",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "CZ": {
+    "name": "Czech Republic",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "DK": {
+    "name": "Denmark",
+    "hasPostalCode": true,
+    "regex": "^(DK){0,1}\\d{4}$",
+    "stripChars": " -",
+    "example": "1124"
+  },
+  "DJ": {
+    "name": "Djibouti",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "DM": {
+    "name": "Dominica",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "DO": {
+    "name": "Dominican Republic",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "EC": {
+    "name": "Ecuador",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "EG": {
+    "name": "Egypt",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SV": {
+    "name": "El Salvador",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "GQ": {
+    "name": "Equatorial Guinea",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "ER": {
+    "name": "Eritrea",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "EE": {
+    "name": "Estonia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "ET": {
+    "name": "Ethiopia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "FK": {
+    "name": "Falkland Islands (Malvinas)",
+    "hasPostalCode": true,
+    "regex": "^FIQQ1ZZ$",
+    "stripChars": " -",
+    "example": "FIQQ 1ZZ"
+  },
+  "FO": {
+    "name": "Faroe Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "FJ": {
+    "name": "Fiji",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "FI": {
+    "name": "Finland",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "FR": {
+    "name": "France",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "GF": {
+    "name": "French Guiana",
+    "hasPostalCode": true,
+    "regex": "^973[0-9]{2}$",
+    "stripChars": " -",
+    "example": "97300"
+  },
+  "PF": {
+    "name": "French Polynesia",
+    "hasPostalCode": true,
+    "regex": "^987[0-9]{2}$",
+    "stripChars": " -",
+    "example": "98700"
+  },
+  "TF": {
+    "name": "French Southern Territories",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GA": {
+    "name": "Gabon",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GM": {
+    "name": "Gambia",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GE": {
+    "name": "Georgia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "DE": {
+    "name": "Germany",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "GH": {
+    "name": "Ghana",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GI": {
+    "name": "Gibraltar",
+    "hasPostalCode": true,
+    "regex": "^GX111AA$",
+    "stripChars": " -",
+    "example": "GX111AA"
+  },
+  "GR": {
+    "name": "Greece",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "GL": {
+    "name": "Greenland",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "GD": {
+    "name": "Grenada",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GP": {
+    "name": "Guadeloupe",
+    "hasPostalCode": true,
+    "regex": "^971[0-9]{2}$",
+    "stripChars": " -",
+    "example": "97100"
+  },
+  "GU": {
+    "name": "Guam",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "GT": {
+    "name": "Guatemala",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "GG": {
+    "name": "Guernsey",
+    "hasPostalCode": true,
+    "regex": "^GY[0-9]{2,3}[A-Za-z]{2}$",
+    "stripChars": " -",
+    "example": "GY1 1AA"
+  },
+  "GN": {
+    "name": "Guinea",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "GW": {
+    "name": "Guinea-Bissau",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "GY": {
+    "name": "Guyana",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "HT": {
+    "name": "Haiti",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "HM": {
+    "name": "Heard Island and Mcdonald Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "VA": {
+    "name": "Holy See (Vatican City State)",
+    "hasPostalCode": true,
+    "regex": "^00120$",
+    "stripChars": " -",
+    "example": "00120"
+  },
+  "HN": {
+    "name": "Honduras",
+    "hasPostalCode": true,
+    "regex": "^(HN)?[0-9]{5}$",
+    "stripChars": " -",
+    "example": "HN12345"
+  },
+  "HU": {
+    "name": "Hungary",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "IS": {
+    "name": "Iceland",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "IN": {
+    "name": "India",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "IC": {
+    "name": "Canary Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "ID": {
+    "name": "Indonesia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "IR": {
+    "name": "Iran, Islamic Republic of",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{10}$",
+    "stripChars": " -",
+    "example": "1234567890"
+  },
+  "IQ": {
+    "name": "Iraq",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "IE": {
+    "name": "Ireland",
+    "hasPostalCode": true,
+    "regex": "^[AaC-Fc-fHhKkNnPpRrTtV-Yv-y]\\d[0-9Ww][ -]?[0-9AaC-Fc-fHhKkNnPpRrTtV-Yv-y]{4}$",
+    "stripChars": "",
+    "example": "D6W1234"
+  },
+  "IM": {
+    "name": "Isle of Man",
+    "hasPostalCode": true,
+    "regex": "^IM[0-9]{2,3}[A-Za-z]{2}$",
+    "stripChars": " -",
+    "example": "IM1 1AA"
+  },
+  "IL": {
+    "name": "Israel",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{7}$",
+    "stripChars": " -",
+    "example": "1234567"
+  },
+  "IT": {
+    "name": "Italy",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "JM": {
+    "name": "Jamaica",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{2}$",
+    "stripChars": " -",
+    "example": "12"
+  },
+  "JP": {
+    "name": "Japan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{7}$",
+    "stripChars": " -",
+    "example": "1234567"
+  },
+  "JE": {
+    "name": "Jersey",
+    "hasPostalCode": true,
+    "regex": "^JE[0-9]{2,3}[A-Za-z]{2}$",
+    "stripChars": " -",
+    "example": "JE1 1AA"
+  },
+  "JO": {
+    "name": "Jordan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "KZ": {
+    "name": "Kazakhstan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "KE": {
+    "name": "Kenya",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "KI": {
+    "name": "Kiribati",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "KP": {
+    "name": "Korea, Democratic People's Republic of",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "KR": {
+    "name": "Korea, Republic of",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "KW": {
+    "name": "Kuwait",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "KG": {
+    "name": "Kyrgyzstan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "LA": {
+    "name": "Lao PDR",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "LV": {
+    "name": "Latvia",
+    "hasPostalCode": true,
+    "regex": "^(LV)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "LB": {
+    "name": "Lebanon",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}(?:[0-9]{4})?$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "LS": {
+    "name": "Lesotho",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "LR": {
+    "name": "Liberia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "LY": {
+    "name": "Libya",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "LI": {
+    "name": "Liechtenstein",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "LT": {
+    "name": "Lithuania",
+    "hasPostalCode": true,
+    "regex": "^(LT)?[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "LU": {
+    "name": "Luxembourg",
+    "hasPostalCode": true,
+    "regex": "^(L){0,1}\\d{4}$",
+    "stripChars": " -",
+    "example": "1124"
+  },
+  "MK": {
+    "name": "Macedonia, Republic of",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "MG": {
+    "name": "Madagascar",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "MW": {
+    "name": "Malawi",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "MY": {
+    "name": "Malaysia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MV": {
+    "name": "Maldives",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "ML": {
+    "name": "Mali",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "MT": {
+    "name": "Malta",
+    "hasPostalCode": true,
+    "regex": "^[A-Z]{3}[0-9]{4}$",
+    "stripChars": " -",
+    "example": "abc1234"
+  },
+  "MH": {
+    "name": "Marshall Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MQ": {
+    "name": "Martinique",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MR": {
+    "name": "Mauritania",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "MU": {
+    "name": "Mauritius",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "YT": {
+    "name": "Mayotte",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MX": {
+    "name": "Mexico",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "FM": {
+    "name": "Micronesia, Federated States of",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MD": {
+    "name": "Moldova",
+    "hasPostalCode": true,
+    "regex": "^(MD)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "MC": {
+    "name": "Monaco",
+    "hasPostalCode": true,
+    "regex": "^980[0-9]{2}$",
+    "stripChars": " -",
+    "example": "98000"
+  },
+  "MN": {
+    "name": "Mongolia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "ME": {
+    "name": "Montenegro",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MS": {
+    "name": "Montserrat",
+    "hasPostalCode": true,
+    "regex": "^(MSR)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "MSR 1110"
+  },
+  "MA": {
+    "name": "Morocco",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "MZ": {
+    "name": "Mozambique",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "MM": {
+    "name": "Myanmar",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "NA": {
+    "name": "Namibia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "NR": {
+    "name": "Nauru",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "NP": {
+    "name": "Nepal",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "NL": {
+    "name": "Netherlands",
+    "hasPostalCode": true,
+    "regex": "^[1-9][0-9]{3}(?!SA|SD|SS)[A-Z]{2}$",
+    "stripChars": " -",
+    "example": "1235DF"
+  },
+  "AN": {
+    "name": "Netherlands Antilles",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "NC": {
+    "name": "New Caledonia",
+    "hasPostalCode": true,
+    "regex": "^988[0-9]{2}$",
+    "stripChars": " -",
+    "example": "98800"
+  },
+  "NZ": {
+    "name": "New Zealand",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "NI": {
+    "name": "Nicaragua",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "NE": {
+    "name": "Niger",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "NG": {
+    "name": "Nigeria",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "NU": {
+    "name": "Niue",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "NF": {
+    "name": "Norfolk Island",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "MP": {
+    "name": "Northern Mariana Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "NO": {
+    "name": "Norway",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "OM": {
+    "name": "Oman",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "PK": {
+    "name": "Pakistan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "PW": {
+    "name": "Palau",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "PS": {
+    "name": "Palestinian Territory, Occupied",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "PA": {
+    "name": "Panama",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "PG": {
+    "name": "Papua New Guinea",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "PY": {
+    "name": "Paraguay",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "PE": {
+    "name": "Peru",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "PH": {
+    "name": "Philippines",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "PN": {
+    "name": "Pitcairn",
+    "hasPostalCode": true,
+    "regex": "^PCRN1ZZ$",
+    "stripChars": " -",
+    "example": "PCRN 1ZZ"
+  },
+  "PL": {
+    "name": "Poland",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{2}-[0-9]{3}$",
+    "stripChars": " ",
+    "example": "44-100 "
+  },
+  "PT": {
+    "name": "Portugal",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}-[0-9]{3}$",
+    "stripChars": " ",
+    "example": "1234-123"
+  },
+  "PR": {
+    "name": "Puerto Rico",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "QA": {
+    "name": "Qatar",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "RE": {
+    "name": "Réunion",
+    "hasPostalCode": true,
+    "regex": "^974[0-9]{2}$",
+    "stripChars": " -",
+    "example": "97400"
+  },
+  "RO": {
+    "name": "Romania",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "RU": {
+    "name": "Russian Federation",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}([0-9]{3})?$",
+    "stripChars": " -",
+    "example": "125"
+  },
+  "RW": {
+    "name": "Rwanda",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "BL": {
+    "name": "Saint-Barthélemy",
+    "hasPostalCode": true,
+    "regex": "^97133$",
+    "stripChars": " -",
+    "example": "97133"
+  },
+  "SH": {
+    "name": "Saint Helena",
+    "hasPostalCode": true,
+    "regex": "^STHL1ZZ$",
+    "stripChars": " -",
+    "example": "STHL 1ZZ"
+  },
+  "KN": {
+    "name": "Saint Kitts and Nevis",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "LC": {
+    "name": "Saint Lucia",
+    "hasPostalCode": true,
+    "regex": "^LC[0-9]{5}$",
+    "stripChars": " -",
+    "example": "LC12 345"
+  },
+  "MF": {
+    "name": "Saint-Martin (French part)",
+    "hasPostalCode": true,
+    "regex": "^97150$",
+    "stripChars": " -",
+    "example": "97150"
+  },
+  "PM": {
+    "name": "Saint Pierre and Miquelon",
+    "hasPostalCode": true,
+    "regex": "^97500$",
+    "stripChars": " -",
+    "example": "97500"
+  },
+  "VC": {
+    "name": "Saint Vincent and Grenadines",
+    "hasPostalCode": true,
+    "regex": "^(VC)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "WS": {
+    "name": "Samoa",
+    "hasPostalCode": true,
+    "regex": "^(WS)?[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "SM": {
+    "name": "San Marino",
+    "hasPostalCode": true,
+    "regex": "^4789[0-9]{1}$",
+    "stripChars": " -",
+    "example": "47890"
+  },
+  "ST": {
+    "name": "Sao Tome and Principe",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "SA": {
+    "name": "Saudi Arabia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SN": {
+    "name": "Senegal",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "RS": {
+    "name": "Serbia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SC": {
+    "name": "Seychelles",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "SL": {
+    "name": "Sierra Leone",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "SG": {
+    "name": "Singapore",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "SK": {
+    "name": "Slovakia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SI": {
+    "name": "Slovenia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "SB": {
+    "name": "Solomon Islands",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "SO": {
+    "name": "Somalia",
+    "hasPostalCode": true,
+    "regex": "^[a-zA-Z]{2}[0-9]{5}$",
+    "stripChars": " -",
+    "example": "AW12345"
+  },
+  "ZA": {
+    "name": "South Africa",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "GS": {
+    "name": "South Georgia and the South Sandwich Islands",
+    "hasPostalCode": true,
+    "regex": "^SIQQ1ZZ$",
+    "stripChars": " -",
+    "example": "SIQQ 1ZZ"
+  },
+  "SS": {
+    "name": "South Sudan",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "ES": {
+    "name": "Spain",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "LK": {
+    "name": "Sri Lanka",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SD": {
+    "name": "Sudan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "SR": {
+    "name": "Suriname *",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "SJ": {
+    "name": "Svalbard and Jan Mayen Islands",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "SZ": {
+    "name": "Swaziland",
+    "hasPostalCode": true,
+    "regex": "^[a-zA-Z]{1}[0-9]{3}$",
+    "stripChars": " -",
+    "example": "S123"
+  },
+  "SE": {
+    "name": "Sweden",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "CH": {
+    "name": "Switzerland",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "SY": {
+    "name": "Syrian Arab Republic (Syria)",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TW": {
+    "name": "Taiwan, Republic of China",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{3}([0-9]{2})?$",
+    "stripChars": " -",
+    "example": "123"
+  },
+  "TJ": {
+    "name": "Tajikistan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "TZ": {
+    "name": "Tanzania *, United Republic of",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "TH": {
+    "name": "Thailand",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "TL": {
+    "name": "Timor-Leste",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TG": {
+    "name": "Togo",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TK": {
+    "name": "Tokelau",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TO": {
+    "name": "Tonga",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "TT": {
+    "name": "Trinidad and Tobago",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "TN": {
+    "name": "Tunisia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "TR": {
+    "name": "Turkey",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "TM": {
+    "name": "Turkmenistan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "TC": {
+    "name": "Turks and Caicos Islands",
+    "hasPostalCode": true,
+    "regex": "^TKCA1ZZ$",
+    "stripChars": " -",
+    "example": "TKCA1ZZ"
+  },
+  "TV": {
+    "name": "Tuvalu",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "UG": {
+    "name": "Uganda",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "UA": {
+    "name": "Ukraine",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "AE": {
+    "name": "United Arab Emirates",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "GB": {
+    "name": "United Kingdom",
+    "hasPostalCode": true,
+    "regex": "((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([AZa-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z]))))[0-9][A-Za-z]{2})|GIR0AA",
+    "stripChars": " -",
+    "example": "CW3 9SS"
+  },
+  "US": {
+    "name": "United States of America",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "UM": {
+    "name": "United States Minor Outlying Islands",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "UY": {
+    "name": "Uruguay",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "UZ": {
+    "name": "Uzbekistan",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "VU": {
+    "name": "Vanuatu",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "VE": {
+    "name": "Venezuela (Bolivarian Republic of)",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{4}[a-zA-Z]?$",
+    "stripChars": " -",
+    "example": "1234"
+  },
+  "VN": {
+    "name": "Viet Nam",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{6}$",
+    "stripChars": " -",
+    "example": "123456"
+  },
+  "VI": {
+    "name": "Virgin Islands, US",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}([0-9]{4})?$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "WF": {
+    "name": "Wallis and Futuna Islands",
+    "hasPostalCode": true,
+    "regex": "^986[0-9]{2}$",
+    "stripChars": " -",
+    "example": "98600"
+  },
+  "EH": {
+    "name": "Western Sahara",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "YE": {
+    "name": "Yemen",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  },
+  "ZM": {
+    "name": "Zambia",
+    "hasPostalCode": true,
+    "regex": "^[0-9]{5}$",
+    "stripChars": " -",
+    "example": "12345"
+  },
+  "ZW": {
+    "name": "Zimbabwe",
+    "hasPostalCode": false,
+    "regex": null,
+    "stripChars": "",
+    "example": null
+  }
+}

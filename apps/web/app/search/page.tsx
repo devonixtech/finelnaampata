@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, MapPin, Sliders, Star, X, Filter, Navigation, CheckCircle2, Clock, Layers } from 'lucide-react';
+import { Search, MapPin, Star, X, Filter, Navigation } from 'lucide-react';
 import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -35,35 +35,30 @@ function SearchResults() {
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [geoLoading, setGeoLoading] = useState(false);
-    const [categories, setCategories] = useState<any[]>([]);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [searchRes, catsData] = await Promise.all([
-                        api.listings.search({
-                            query: query,
-                            city: city,
-                            country: country,
-                            categorySlug: categorySlug,
-                            minRating: minRating,
-                            radius: radius ? Number(radius) : undefined,
-                            latitude: latitude ? Number(latitude) : undefined,
-                            longitude: longitude ? Number(longitude) : undefined,
-                            openNow: openNow || undefined,
-                            verifiedOnly: verifiedOnly || undefined,
-                            fastResponse: fastResponse || undefined,
-                            onlineNow: onlineNow || undefined,
-                            experience: experience || undefined,
-                            mostContacted: mostContacted || undefined,
-                            sortBy: sortBy || undefined,
-                            limit: 20
-                        }),
-                        api.categories.getAll()
-                ]);
+                const searchRes = await api.listings.search({
+                    query: query,
+                    city: city,
+                    country: country,
+                    categorySlug: categorySlug,
+                    minRating: minRating,
+                    radius: radius ? Number(radius) : undefined,
+                    latitude: latitude ? Number(latitude) : undefined,
+                    longitude: longitude ? Number(longitude) : undefined,
+                    openNow: openNow || undefined,
+                    verifiedOnly: verifiedOnly || undefined,
+                    fastResponse: fastResponse || undefined,
+                    onlineNow: onlineNow || undefined,
+                    experience: experience || undefined,
+                    mostContacted: mostContacted || undefined,
+                    sortBy: sortBy || undefined,
+                    limit: 20
+                });
                 setResults(searchRes.data);
-                setCategories(Array.isArray(catsData) ? catsData : (catsData as any)?.data || []);
 
                 // Log demand if there's a query or category
                 if (query || categorySlug) {
@@ -176,30 +171,6 @@ function SearchResults() {
                         </div>
 
                         <div className={`${showFilters ? 'block' : 'hidden lg:block'} space-y-12 animate-in fade-in duration-500`}>
-                            {/* Categories */}
-                            {categories.length > 0 && (
-                                <div>
-                                    <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                                        <Layers className="w-3.5 h-3.5" /> Categories
-                                    </h4>
-                                    <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                        {categories
-                                            .filter(c => !c.parentId)
-                                            .slice(0, 20)
-                                            .map(cat => (
-                                                <button
-                                                    key={cat.id}
-                                                    onClick={() => updateFilter('category', categorySlug === cat.slug ? null : cat.slug)}
-                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all ${categorySlug === cat.slug ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                                                >
-                                                    {cat.name}
-                                                </button>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            )}
-
                             {/* Rating Filter */}
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6">Performance</h4>

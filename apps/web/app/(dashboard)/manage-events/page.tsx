@@ -336,12 +336,10 @@ export default function BusinessEventsPage() {
       const offerPayload = {
         title: form.title,
         description: form.description || undefined,
-        offerBadge: form.offerBadge || undefined,
         imageUrl: form.imageUrl || undefined,
         businessId: form.businessId,
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
-        expiryDate: form.expiryDate || undefined,
         highlights: form.highlights.filter((h) => h.trim() !== ""),
         terms: form.terms.filter((t) => t.trim() !== ""),
         pricingId: undefined,
@@ -928,20 +926,7 @@ export default function BusinessEventsPage() {
                         />
                       </div>
 
-                      <div>
-                        <label className={labelClass}>Offer Badge</label>
-                        <input
-                          value={form.offerBadge}
-                          onChange={(e) =>
-                            setForm((p) => ({
-                              ...p,
-                              offerBadge: e.target.value,
-                            }))
-                          }
-                          className={inputClass}
-                          placeholder="e.g. LIMITED TIME"
-                        />
-                      </div>
+
 
                       <div className="md:col-span-2">
                         <label className={labelClass}>Image</label>
@@ -956,11 +941,9 @@ export default function BusinessEventsPage() {
                             </div>
                           )}
                           <div className="flex-1">
-                            <button
-                              type="button"
-                              onClick={() => fileRef.current?.click()}
-                              disabled={imageUploading}
-                              className="w-full h-24 rounded-2xl border-2 border-dashed border-slate-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group"
+                            <label
+                              htmlFor="banner-upload-event"
+                              className={`w-full h-24 rounded-2xl border-2 border-dashed border-slate-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group ${imageUploading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                             >
                               {imageUploading ? (
                                 <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
@@ -972,12 +955,14 @@ export default function BusinessEventsPage() {
                                   </span>
                                 </>
                               )}
-                            </button>
+                            </label>
                             <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase tracking-wider">Recommended: 1200×675px (16:9), PNG/JPG, max 5MB.</p>
                             <input
+                              id="banner-upload-event"
                               type="file"
                               ref={fileRef}
                               onChange={handleImageUpload}
+                              disabled={imageUploading}
                               className="hidden"
                               accept="image/*"
                             />

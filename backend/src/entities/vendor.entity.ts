@@ -76,6 +76,9 @@ export class Vendor {
     @Index()
     slug: string;
 
+    @Column({ name: 'timezone', nullable: true, length: 64 })
+    timezone: string;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 

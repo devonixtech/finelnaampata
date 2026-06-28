@@ -40,6 +40,7 @@ export default function Footer() {
               {[
                 { label: 'Sign Up', href: '/register' },
                 { label: 'Business Login', href: '/login' },
+                { label: 'Forgot Password', href: '/forgot-password' },
                 { label: 'Pricing Plans', href: '/pricing' }
               ].map((item) => (
                 <li key={item.label}>

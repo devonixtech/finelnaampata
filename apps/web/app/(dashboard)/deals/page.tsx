@@ -955,11 +955,9 @@ export default function BusinessDealsPage() {
                             </div>
                           )}
                           <div className="flex-1">
-                            <button
-                              type="button"
-                              onClick={() => fileRef.current?.click()}
-                              disabled={imageUploading}
-                              className="w-full h-24 rounded-2xl border-2 border-dashed border-slate-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group"
+                            <label
+                              htmlFor="banner-upload-deal"
+                              className={`w-full h-24 rounded-2xl border-2 border-dashed border-slate-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group ${imageUploading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                             >
                               {imageUploading ? (
                                 <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
@@ -971,12 +969,14 @@ export default function BusinessDealsPage() {
                                   </span>
                                 </>
                               )}
-                            </button>
+                            </label>
                             <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase tracking-wider">Recommended: 1200×675px (16:9), PNG/JPG, max 5MB.</p>
                             <input
+                              id="banner-upload-deal"
                               type="file"
                               ref={fileRef}
                               onChange={handleImageUpload}
+                              disabled={imageUploading}
                               className="hidden"
                               accept="image/*"
                             />

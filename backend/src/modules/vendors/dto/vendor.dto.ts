@@ -65,6 +65,11 @@ export class CreateVendorDto {
     @IsOptional()
     @IsString()
     state?: string;
+
+    @ApiPropertyOptional({ example: 'Asia/Karachi' })
+    @IsOptional()
+    @IsString()
+    timezone?: string;
 }
 
 export class UpdateVendorDto {
@@ -134,6 +139,11 @@ export class UpdateVendorDto {
     @IsOptional()
     @IsString()
     state?: string;
+
+    @ApiPropertyOptional({ example: 'Asia/Karachi' })
+    @IsOptional()
+    @IsString()
+    timezone?: string;
 }
 
 export class SocialLinkDto {
@@ -182,6 +192,9 @@ export class VendorProfileDto {
 
     @ApiPropertyOptional()
     state?: string;
+
+    @ApiPropertyOptional()
+    timezone?: string;
 }
 
 export class ListingSummaryDto {

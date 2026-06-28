@@ -158,10 +158,10 @@ export class EventsService {
             rawLimit === undefined || rawLimit === null ? null : Number(rawLimit);
 
         if (numericLimit !== null && !Number.isNaN(numericLimit)) {
-            return numericLimit;
+            return numericLimit > 0 ? numericLimit : 999;
         }
 
-        return 0;
+        return 999;
     }
 
     /** Create a new event */

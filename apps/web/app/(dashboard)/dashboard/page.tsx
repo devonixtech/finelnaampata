@@ -42,6 +42,7 @@ export default function GenericDashboard() {
     const [applyStatus, setApplyStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [conversations, setConversations] = useState<any[]>([]);
     const [setupStatus, setSetupStatus] = useState<{ isCompleted: boolean; answers: Record<string, string[]> } | null>(null);
+    const [vendorProfile, setVendorProfile] = useState<any>(null);
     const { socket } = useChatSocket();
 
     const isVendor = user?.role === 'vendor';
@@ -51,7 +52,7 @@ export default function GenericDashboard() {
         const percent = typeof stats?.profileCompletion === 'number'
             ? Math.max(0, Math.min(100, Math.round(stats.profileCompletion)))
             : 0;
-        const vendor = user?.vendor;
+        const vendor = vendorProfile || user?.vendor;
         const missing: string[] = [];
         if (!vendor?.businessName) missing.push('Business Name');
         if (!vendor?.businessPhone) missing.push('Business Phone');
@@ -64,7 +65,7 @@ export default function GenericDashboard() {
         if (!vendor?.businessHours || Object.keys(vendor.businessHours).length === 0) missing.push('Business Hours');
         if (!stats?.totalBusinesses) missing.push('First Listing');
         return { percent, missing };
-    }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor]);
+    }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor, vendorProfile]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -87,6 +88,7 @@ export default function GenericDashboard() {
                         api.affiliate.getStats().catch(() => null)
                     ]);
                     setStats(statsData);
+                    setVendorProfile(businessProfile);
                     setAffiliateStats(affiliateData);
 
                     if (businessProfile?.id) {
@@ -326,27 +328,27 @@ export default function GenericDashboard() {
                         {(() => {
                             const stepMap: Record<string, number> = {
                                 'Business Name': 1,
-                                'Business Bio': 11,
-                                'Business Email': 9,
-                                'Business Phone': 9,
-                                'Business Address': 7,
-                                'City': 7,
-                                'Country': 7,
-                                'Social Links': 13,
-                                'Business Hours': 10,
-                                'First Listing': 1,
-                                'Logo': 17,
-                                'Cover Image': 17,
-                                'Map Confirmation': 8,
-                                'Legal Consent': 20,
-                                'Website & Social Media': 13,
-                                'Amenities & Facilities': 14,
-                                'Keywords': 16,
+                                'Business Bio': 12,
+                                'Business Email': 10,
+                                'Business Phone': 10,
+                                'Business Address': 8,
+                                'City': 8,
+                                'Country': 8,
+                                'Social Links': 14,
+                                'Business Hours': 11,
+                                'First Listing': 5,
+                                'Logo': 20,
+                                'Cover Image': 20,
+                                'Map Confirmation': 9,
+                                'Legal Consent': 21,
+                                'Website & Social Media': 14,
+                                'Amenities & Facilities': 15,
+                                'Keywords': 17,
                             };
                             return profileCompletion.missing.slice(0, 4).map((item) => (
                                 <Link
                                     key={item}
-                                    href={stepMap[item] ? `/add-listing?step=${stepMap[item]}` : '/add-listing'}
+                                    href={stepMap[item] ? `/business-setup?step=${stepMap[item]}` : '/business-setup'}
                                     className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-50 text-amber-700 border border-amber-200"
                                 >
                                     Complete {item}
@@ -664,7 +666,7 @@ export default function GenericDashboard() {
                                                 <Gift className="w-4 h-4" />
                                             </div>
                                             <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                                                Invite businesses and get <span className="text-white font-black">1 month free</span> extension for each signup!
+                                                Invite businesses and get <span className="text-white font-black">10 days free</span> extension for each signup!
                                             </p>
                                         </div>
                                     </div>

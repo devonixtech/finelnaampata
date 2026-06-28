@@ -551,30 +551,8 @@ export class AffiliateService implements OnModuleInit {
         const now = new Date();
         const isPricingPlan = (p: any): p is PricingPlan => 'unit' in p;
         
-        // Calculate duration in days
-        let durationDays = 30; // Default
-        if (isPricingPlan(rewardPlan)) {
-            durationDays = rewardPlan.duration || 30;
-            if (rewardPlan.unit === PricingPlanUnit.MONTHS) {
-                durationDays = (rewardPlan.duration || 1) * 30;
-            } else if (rewardPlan.unit === PricingPlanUnit.YEARS) {
-                durationDays = (rewardPlan.duration || 1) * 365;
-            } else if (rewardPlan.unit === PricingPlanUnit.HOURS) {
-                durationDays = Math.ceil((rewardPlan.duration || 1) / 24);
-            }
-        } else {
-            // SubscriptionPlan usually monthly by default in this system
-            const cycle = rewardPlan.billingCycle?.toLowerCase() || 'monthly';
-            if (cycle.includes('yearly') || cycle.includes('year')) {
-                durationDays = 365;
-            } else if (cycle.includes('monthly') || cycle.includes('month')) {
-                durationDays = 30;
-            } else if (cycle.includes('weekly') || cycle.includes('week')) {
-                durationDays = 7;
-            } else {
-                durationDays = 30;
-            }
-        }
+        // Calculate duration in days - strictly set to 10 days per affiliate policy update
+        const durationDays = 10;
         
         // --- 1. REWARD THE REFERRER ---
         const referrerVendor = await this.vendorRepo.findOne({ where: { userId: referrerUserId } });

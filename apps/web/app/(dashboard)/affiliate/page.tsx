@@ -207,7 +207,7 @@ export default function AffiliateDashboard() {
                         </div>
                         <div className="space-y-1">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan Extensions Earned</p>
-                            <h3 className="text-3xl font-black text-slate-900">{stats?.convertedReferrals || 0} Months</h3>
+                            <h3 className="text-3xl font-black text-slate-900">{(stats?.convertedReferrals || 0) * 10} Days</h3>
                         </div>
                     </div>
                     <div className="p-8 bg-white rounded-[28px] border border-slate-200 shadow-sm">
@@ -254,7 +254,7 @@ export default function AffiliateDashboard() {
                                                 </div>
                                                 <div className="text-right">
                                                     <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${ref.status === 'converted' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                        {ref.status === 'converted' ? '+1 Month Extension' : 'Awaiting Activation'}
+                                                        {ref.status === 'converted' ? '+10 Days Extension' : 'Awaiting Activation'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -278,7 +278,7 @@ export default function AffiliateDashboard() {
                             <div className="space-y-6">
                                 <div className="flex gap-4">
                                     <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-orange-400 shrink-0">1</div>
-                                    <p className="text-sm text-slate-300 font-medium">Get <span className="text-white font-black text-base">30 Days Free Plan</span> extension for every business that subscribes using your code.</p>
+                                    <p className="text-sm text-slate-300 font-medium">Get <span className="text-white font-black text-base">10 Days Free Plan</span> extension for every business that subscribes using your code.</p>
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0">2</div>
@@ -286,7 +286,7 @@ export default function AffiliateDashboard() {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">3</div>
-                                    <p className="text-sm text-slate-300 font-medium">Unlimited referrals! Stack up your free months and keep your listing live for <span className="text-white font-black">Zero PKR</span>.</p>
+                                    <p className="text-sm text-slate-300 font-medium">Unlimited referrals! Stack up your free days and keep your listing live for <span className="text-white font-black">Zero PKR</span>.</p>
                                 </div>
                             </div>
                         </div>

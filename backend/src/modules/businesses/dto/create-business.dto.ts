@@ -330,4 +330,127 @@ export class CreateBusinessDto {
     @IsOptional()
     @IsString()
     privacyVersion?: string;
+
+    // V2 Registration Flow Fields
+    @ApiPropertyOptional({ example: 'John Doe' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(150)
+    contactPersonName?: string;
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    businessType?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    coreBusinessNature?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    operationalStructure?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    targetMarket?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    locationAccess?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    facilities?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    staffFeatures?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    paymentMethods?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    industrySubType?: string[];
+
+    // Expansion / Opportunities
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    franchiseOpportunities?: boolean;
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    franchiseAvailableIn?: string[];
+
+    @ApiPropertyOptional({ example: '10k-50k' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(50)
+    franchiseInvestmentRange?: string;
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    franchiseSupport?: string[];
+
+    @ApiPropertyOptional({ example: '500 sq ft' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(50)
+    franchiseMinSpace?: string;
+
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    lookingForDealers?: boolean;
+
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    isImporterExporter?: boolean;
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    areasServed?: string[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    businessLanguages?: string[];
+
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    chainOrMultipleBranches?: boolean;
+
+    @ApiPropertyOptional({ type: [Object] })
+    @IsOptional()
+    @IsArray()
+    socialLinks?: { platform: string; url: string }[];
 }
