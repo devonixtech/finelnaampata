@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -131,7 +131,7 @@ const OPERATIONAL_STRUCTURE_SECTIONS = {
     }
 };
 
-export default function BusinessSetupWizard() {
+function BusinessSetupWizardContent() {
     const { user, syncProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -2898,5 +2898,13 @@ export default function BusinessSetupWizard() {
 
             <Footer />
         </div>
+    );
+}
+
+export default function BusinessSetupWizard() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>}>
+            <BusinessSetupWizardContent />
+        </Suspense>
     );
 }
