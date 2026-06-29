@@ -38,7 +38,7 @@ SERVER\-SIDE REFERRAL CODE ENTRY during Business signup ALWAYS overrides cookie 
 
 Attribution — fallback
 
-LAST\-CLICK COOKIE ATTRIBUTION: 30\-calendar\-day window from the qualifying first click on your referral link\.
+LAST\-CLICK COOKIE ATTRIBUTION: 10\-calendar\-day window from the qualifying first click on your referral link\.
 
 Holding period
 
@@ -144,7 +144,7 @@ Where a Business Owner enters a valid Referral Code in the designated referral c
 
 Last\-Click Cookie Attribution
 
-Where no Referral Code is manually entered by the Business, but a valid naampata\_aff attribution cookie from within the 30\-calendar\-day attribution window is detected at signup, the last valid affiliate click is attributed\.
+Where no Referral Code is manually entered by the Business, but a valid naampata\_aff attribution cookie from within the 10\-calendar\-day attribution window is detected at signup, the last valid affiliate click is attributed\.
 
 None
 
@@ -154,7 +154,7 @@ If neither a valid Referral Code nor a valid attribution cookie is present at th
 
 ## 5\.2 Attribution Window
 
-The attribution cookie window is exactly 30 calendar days from the qualifying first click on your referral link\. This window is absolute and cannot be extended for any reason whatsoever, including technical issues, user delays, or circumstances beyond your control\.
+The attribution cookie window is exactly 10 calendar days from the qualifying first click on your referral link\. This window is absolute and cannot be extended for any reason whatsoever, including technical issues, user delays, or circumstances beyond your control\.
 
 ## 5\.3 Attribution Disputes — Process & Finality
 

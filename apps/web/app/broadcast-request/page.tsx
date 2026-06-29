@@ -98,7 +98,7 @@ export default function BroadcastsPage() {
         }
     }, [user, loading, router]);
 
-    const isBlockedBusinessAccount = user?.role === 'vendor';
+    const isBlockedBusinessAccount = false;
 
     if (loading || !user) {
         return (

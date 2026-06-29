@@ -285,7 +285,7 @@ export default function OfferEventDetailClient() {
                         <div className="flex items-center gap-4 text-white/90">
                             <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20 text-sm font-bold">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(offer.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {new Date(offer.expiryDate || offer.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                {new Date(offer.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })} - {new Date(offer.expiryDate || offer.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })} ({Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ')})
                             </div>
                         </div>
                     </div>
@@ -339,9 +339,9 @@ export default function OfferEventDetailClient() {
                                     <Calendar className="w-6 h-6 text-[#FF7904]" />
                                 </div>
                                 <div className="pt-1">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Dates</h4>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Dates & Local Time Zone</h4>
                                     <p className="text-lg font-bold text-slate-800">
-                                        {new Date(offer.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {new Date(offer.expiryDate || offer.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                        {new Date(offer.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })} - {new Date(offer.expiryDate || offer.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })} ({Intl.DateTimeFormat().resolvedOptions().timeZone.replace('_', ' ')})
                                     </p>
                                 </div>
                             </div>

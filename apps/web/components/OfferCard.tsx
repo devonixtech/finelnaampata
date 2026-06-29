@@ -79,7 +79,7 @@ const OfferCard: React.FC<OfferCardProps> = React.memo(({ offer, onEnquire }) =>
                     {offer.expiryDate ? (
                         <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
                             <Clock className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Valid until</span> {new Date(offer.expiryDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short' })}
+                            <span className="hidden sm:inline">Valid until</span> {new Date(offer.expiryDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })}
                         </div>
                     ) : (
                         <div />

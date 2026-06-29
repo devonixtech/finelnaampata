@@ -122,11 +122,11 @@ YES — via Preference Centre before and after activation
 
 Affiliate Attribution
 
-First\-party attribution cookie recording the referral link click event for commission calculation under the Affiliate & Commission Policy \(Document 8\)\. 30\-day attribution window from click\. Example: naampata\_aff\.
+First\-party attribution cookie recording the referral link click event for commission calculation under the Affiliate & Commission Policy \(Document 8\)\. 10\-day attribution window from click\. Example: naampata\_aff\.
 
 Legitimate Interests / Contract — Art\. 6\(1\)\(b\)/\(f\)
 
-30 calendar days from qualifying click event
+10 calendar days from qualifying click event
 
 Limited — required for affiliate commission processing per Document 8; override available via manual referral code entry
 
@@ -190,7 +190,7 @@ NAAMPATA
 
 Referral code click event attribution for Affiliate Programme
 
-30 days from click
+10 days from click
 
 naampata\_pref
 
@@ -355,7 +355,7 @@ To prevent Google Analytics from collecting your data across all websites: insta
 
 # 7\. Affiliate Attribution Tracking
 
-When a Business accesses the Platform via an Affiliate participant's referral link, NAAMPATA places a first\-party attribution cookie \(naampata\_aff\) with a 30\-day attribution window from the click event\. This cookie is used EXCLUSIVELY to attribute the subsequent Business signup to the correct Affiliate participant for commission calculation under the Affiliate & Commission Policy \(Document 8\)\. Server\-side referral code entry by the Business during signup takes ABSOLUTE precedence over cookie attribution — if both a valid attribution cookie and a manually entered referral code are present, the manually entered code governs without exception\.
+When a Business accesses the Platform via an Affiliate participant's referral link, NAAMPATA places a first\-party attribution cookie \(naampata\_aff\) with a 10\-day attribution window from the click event\. This cookie is used EXCLUSIVELY to attribute the subsequent Business signup to the correct Affiliate participant for commission calculation under the Affiliate & Commission Policy \(Document 8\)\. Server\-side referral code entry by the Business during signup takes ABSOLUTE precedence over cookie attribution — if both a valid attribution cookie and a manually entered referral code are present, the manually entered code governs without exception\.
 
 # 8\. Web Device Fingerprinting \(Fraud Prevention Only\)
 

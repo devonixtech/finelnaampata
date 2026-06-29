@@ -137,9 +137,9 @@ function InvoiceModal({ invoiceId, onClose, user }: { invoiceId: string; onClose
                                     <p className="text-xs text-slate-400 font-bold">Business Listings Platform</p>
                                 </div>
                                 <div className="text-right">
-                                <div className="inline-block px-4 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-black uppercase tracking-wider mb-2">
-                                    {txn.status === 'completed' ? '✓ Paid' : txn.status}
-                                </div>
+                                    <div className="inline-block px-4 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-black uppercase tracking-wider mb-2">
+                                        {txn.status === 'completed' ? '✓ Paid' : txn.status}
+                                    </div>
                                     <p className="text-sm font-black text-slate-900">{txn.invoiceNumber || `INV-${txn.id.slice(0, 8).toUpperCase()}`}</p>
                                     <p className="text-xs text-slate-400 font-bold mt-0.5">
                                         {invDate.toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -289,7 +289,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
             )}
             {isFree && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-slate-400 text-white text-[10px] font-black uppercase tracking-widest rounded-full whitespace-nowrap">
-                    Default Free
+                    Starter Tier
                 </div>
             )}
 
@@ -299,8 +299,8 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
                     {getIcon(plan.planType)}
                 </div>
                 <div>
-                    <h3 className="font-black text-slate-900 text-base">{plan.name}</h3>
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${clr.text}`}>{plan.planType}</p>
+                    <h3 className="font-black text-slate-900 text-base">{plan.name?.toLowerCase() === 'free' ? 'Starter Plan' : plan.name}</h3>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${clr.text}`}>{plan.planType === 'free' ? 'Starter' : plan.planType}</p>
                 </div>
             </div>
 
@@ -308,7 +308,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
             <div className="mb-5">
                 <div className="flex items-baseline gap-1">
                     {planPrice === 0 ? (
-                        <span className="text-3xl font-black text-slate-400">Free</span>
+                        <span className="text-3xl font-black text-slate-400">Included</span>
                     ) : (
                         <>
                             <span className="text-3xl font-black text-slate-900">PKR {planPrice.toLocaleString()}</span>
@@ -350,7 +350,7 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
                     return (
                         <div key={key} className="flex items-start gap-2.5">
                             <div className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${isFree ? 'bg-slate-100' : 'bg-emerald-50'}`}>
-                                <Check className={`w-2.5 h-2.5 stroke-[3] ${isFree ? 'text-slate-400' : 'text-emerald-500'}`} />
+                                <Check className={`w-2.5 h-2.5 stroke-[3] ${isFree ? 'text-slate-400' : 'text-emerald-50'}`} />
                             </div>
                             <span className={`font-bold text-sm leading-tight ${isFree ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
                         </div>
@@ -377,7 +377,6 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
         </motion.div>
     );
 }
-
 
 function ConsentModal({
     plan,
@@ -479,6 +478,7 @@ function ConsentModal({
         </motion.div>
     );
 }
+
 /* Main Page */
 export default function BusinessSubscriptionPage() {
     const { user, loading: authLoading, syncProfile } = useAuth();
@@ -686,7 +686,7 @@ export default function BusinessSubscriptionPage() {
                                      activeSub.status === 'pending' ? '⌛ Awaiting Admin Approval' : 'Active Plan'}
                                 </p>
                                 <h2 className={`text-xl font-black ${isExpiringSoon ? 'text-red-700' : 'text-white'}`}>
-                                    {activeSub.plan?.name}
+                                    {activeSub.plan?.name?.toLowerCase() === 'free' ? 'Starter Plan' : activeSub.plan?.name}
                                 </h2>
                                 {activeSub.status === 'active' && activeSub.plan?.planType !== 'free' && activeSub.plan?.name?.toLowerCase() !== 'free' && (
                                     <p className={`text-sm font-bold mt-0.5 ${isExpiringSoon ? 'text-red-500' : 'text-slate-400'}`}>
@@ -710,7 +710,7 @@ export default function BusinessSubscriptionPage() {
                         <div className="flex items-center gap-3">
                             <div className={`text-center px-5 py-3 rounded-xl ${isExpiringSoon ? 'bg-red-100' : 'bg-white/10'}`}>
                                 <p className={`text-xs font-black uppercase tracking-wider ${isExpiringSoon ? 'text-red-400' : 'text-slate-400'}`}>Amount</p>
-                                <p className={`text-lg font-black ${isExpiringSoon ? 'text-red-700' : 'text-white'}`}>{(Number(activeSub.amount) === 0 && activeSub.plan?.planType === 'free') ? 'Free' : `PKR ${Number(activeSub.amount).toLocaleString()}`}</p>
+                                <p className={`text-lg font-black ${isExpiringSoon ? 'text-red-700' : 'text-white'}`}>{Number(activeSub.amount) === 0 ? 'Included' : `PKR ${Number(activeSub.amount).toLocaleString()}`}</p>
                             </div>
                             {isExpiringSoon && (
                                 <button
@@ -900,4 +900,3 @@ export default function BusinessSubscriptionPage() {
         </div>
     );
 }
-

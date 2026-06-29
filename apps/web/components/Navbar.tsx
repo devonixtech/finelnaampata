@@ -139,11 +139,6 @@ export default function Navbar() {
         setIsMobileMenuOpen(false);
         setMobileDropdown(null);
 
-        if (user?.role === 'vendor') {
-            setShowUsersOnlyModal(true);
-            return;
-        }
-
         router.push('/broadcast-request');
     };
 

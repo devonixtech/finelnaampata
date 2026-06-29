@@ -1023,6 +1023,7 @@ export class SubscriptionsService implements OnModuleInit {
 
         const plan = result.plan ? {
             ...result.plan,
+            name: result.plan.name?.toLowerCase() === 'free' ? 'Starter Plan' : result.plan.name,
             planType: isNewSystem
                 ? (['free', 'basic', 'premium', 'enterprise'].includes(result.plan.name?.toLowerCase())
                     ? result.plan.name.toLowerCase()
@@ -1069,8 +1070,6 @@ export class SubscriptionsService implements OnModuleInit {
 
         return {
             ...result,
-            amount: isNewSystem ? result.amountPaid : result.amount,
-            endDate: result.endDate,
             isNewSystem,
             plan
         };

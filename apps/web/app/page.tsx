@@ -516,7 +516,6 @@ export default function HomePage() {
             {/* Get Expert Quotes */}
             <Link
               href="/expert-quote"
-              onClick={handleBroadcastClick}
               className="bg-white rounded-[28px] border border-gray-50 shadow-[0_15px_45px_rgba(0,0,0,0.04)] p-8 flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all group"
             >
               <div className="w-16 h-16 rounded-[22px] bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform shrink-0">

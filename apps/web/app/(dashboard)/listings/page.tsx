@@ -29,12 +29,10 @@ export default function BusinessListings() {
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const isAuthorized = user?.role === 'vendor' || user?.role === 'admin' || user?.role === 'superadmin';
     const isVendor = user?.role === 'vendor';
-    const activeSub = user?.vendor?.subscriptions?.find((sub: any) => sub.status === 'active');
-    const features = activeSub?.plan?.dashboardFeatures || {};
-    const { hasFeature, getFeatureValue } = usePlanFeature();
+    const { hasFeature, getFeatureValue, features, isFree } = usePlanFeature();
+    const activeSub = user?.vendor?.activeSubscription;
     const canCreateAlbums = hasFeature('canCreateAlbums');
     const hasKeywords = getFeatureValue('maxKeywords') > 0;
-    const isFree = !activeSub || activeSub?.plan?.name?.toLowerCase() === 'free';
 
     // Keywords Modal State
     const [keywordsModal, setKeywordsModal] = useState<{ id: string, title: string, keywords: string[] } | null>(null);

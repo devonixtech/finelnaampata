@@ -170,6 +170,25 @@ function AddListingContent() {
     const formDataRef = useRef(formData);
     useEffect(() => { formDataRef.current = formData; }, [formData]);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('naampata_listing_draft');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.formData) {
+                        setFormData(prev => ({ ...prev, ...parsed.formData }));
+                    }
+                    if (parsed.activeStep && !searchParams.get('step')) {
+                        setActiveStep(parsed.activeStep);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse saved draft:', e);
+                }
+            }
+        }
+    }, [searchParams]);
+
     const { getFeatureValue, planName, isFree } = usePlanFeature();
     const maxListings = Math.max(1, Number(getFeatureValue('maxListings') || 1));
     const maxImages = isFree ? 3 : 999;
@@ -413,6 +432,10 @@ function AddListingContent() {
 
         try {
             await api.listings.create(submissionData);
+            if (typeof window !== 'undefined') {
+                // Keep the formData in draft so that when the business owner adds another listing again, it is pre-filled!
+                localStorage.setItem('naampata_listing_draft', JSON.stringify({ formData: formDataRef.current, activeStep: 1 }));
+            }
             setSuccess(true);
             setTimeout(() => router.push('/listings'), 2000);
         } catch (err: any) {
@@ -563,15 +586,29 @@ function AddListingContent() {
                     </AnimatePresence>
                 </div>
 
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-                    <button
-                        type="button"
-                        onClick={handlePrev}
-                        disabled={activeStep === 1 || loading}
-                        className="px-6 py-3 rounded-xl font-black text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                    >
-                        <ArrowLeft className="w-4 h-4" /> Back
-                    </button>
+                <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handlePrev}
+                            disabled={activeStep === 1 || loading}
+                            className="px-6 py-3 rounded-xl font-black text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Back
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (typeof window !== 'undefined') {
+                                    localStorage.setItem('naampata_listing_draft', JSON.stringify({ formData: formDataRef.current, activeStep }));
+                                    alert('Data saved successfully! You can resume anytime.');
+                                }
+                            }}
+                            className="px-6 py-3 rounded-xl font-black text-sm text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-all flex items-center gap-2 active:scale-95"
+                        >
+                            Save Data
+                        </button>
+                    </div>
                     
                     {activeStep < STEPS.length ? (
                         <button

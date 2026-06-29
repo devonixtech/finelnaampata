@@ -532,8 +532,7 @@ export default function GenericDashboard() {
                             </div>
                         </div>
                     )}
-
-                    <RecentReviews
+                    <RecentReviews
                         reviews={mappedReviews}
                         loading={loading}
                         title={isVendor || isAdmin ? "Reviews" : "My Reviews"}
@@ -622,7 +621,14 @@ export default function GenericDashboard() {
                                     </Link>
                                 </div>
 
-                                {!affiliateStats?.hasReferrer && (
+                                {!affiliateStats?.hasRegisteredBusiness && !vendorProfile?.id && !stats?.businessCount && affiliateStats?.hasReferrer && (
+                                    <div className="p-4 bg-white/5 border border-white/5 rounded-2xl">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Referred By Affiliate</p>
+                                        <p className="text-xs font-bold text-white">{affiliateStats.referrerName || 'Affiliate Partner'}</p>
+                                    </div>
+                                )}
+
+                                {!affiliateStats?.hasRegisteredBusiness && !vendorProfile?.id && !stats?.businessCount && !affiliateStats?.hasReferrer && (
                                     <div className="space-y-3">
                                         <div className="flex flex-col sm:flex-row gap-2">
                                             <input
@@ -686,5 +692,3 @@ export default function GenericDashboard() {
         </div>
     );
 }
-
-

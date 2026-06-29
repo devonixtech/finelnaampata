@@ -7,6 +7,8 @@ import {
     Briefcase,
     MessageSquare,
     ShieldAlert,
+    Calendar,
+    Tag,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import StatsGrid from '../../components/business/StatsGrid';
@@ -45,6 +47,20 @@ export default function AdminDashboard() {
             icon: Briefcase,
             color: 'bg-gradient-to-br from-[#3366CC] to-[#1144AA]',
             shadow: 'shadow-blue-500/20'
+        },
+        {
+            label: 'Total Events',
+            value: stats?.totalEvents || '0',
+            icon: Calendar,
+            color: 'bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9]',
+            shadow: 'shadow-purple-500/20'
+        },
+        {
+            label: 'Total Deals',
+            value: stats?.totalDeals || '0',
+            icon: Tag,
+            color: 'bg-gradient-to-br from-[#EC4899] to-[#BE185D]',
+            shadow: 'shadow-pink-500/20'
         },
         {
             label: 'Total Reviews',

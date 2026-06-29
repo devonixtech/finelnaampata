@@ -122,28 +122,48 @@ export class AffiliateService implements OnModuleInit {
 
 
     async getStats(userId: string) {
+        const userObj = await this.userRepository.findOne({ where: { id: userId }, relations: ['vendor'] });
+        const hasRegisteredBusiness = !!(userObj?.vendor?.id || userObj?.role === 'vendor');
+
         let affiliate = await this.affiliateRepository.findOne({
             where: { user: { id: userId } },
         });
 
+        const referredBy = await this.referralRepository.findOne({
+            where: { referredUserId: userId },
+            relations: ['affiliate', 'affiliate.user']
+        });
+
+        let referrerName = referredBy?.affiliate?.user?.fullName;
+        if (!referrerName && userObj?.pendingReferralCode) {
+            const pendingAff = await this.affiliateRepository.findOne({
+                where: { referralCode: ILike(userObj.pendingReferralCode.trim()) },
+                relations: ['user']
+            });
+            if (pendingAff?.user?.fullName) {
+                referrerName = pendingAff.user.fullName;
+            }
+        }
+
+        const hasReferrer = !!referredBy || !!userObj?.pendingReferralCode;
+
         if (!affiliate) {
             // Check if user is a vendor, if so auto-create
-            const user = await this.userRepository.findOne({ where: { id: userId } });
-            if (user && user.role === 'vendor') {
+            if (userObj && userObj.role === 'vendor') {
                 affiliate = this.affiliateRepository.create({
                     user: { id: userId } as any,
                     referralCode: generateReferralCode(),
                 });
                 affiliate = await this.affiliateRepository.save(affiliate);
             } else {
-                return { isAffiliate: false };
+                return { 
+                    isAffiliate: false,
+                    hasReferrer,
+                    referrerName: referrerName || 'Affiliate Partner',
+                    hasRegisteredBusiness,
+                };
             }
         }
-
-        const referredBy = await this.referralRepository.findOne({
-            where: { referredUserId: userId },
-            relations: ['affiliate', 'affiliate.user']
-        });
 
         const referrals = await this.referralRepository.count({
             where: { affiliateId: affiliate.id },
@@ -162,8 +182,9 @@ export class AffiliateService implements OnModuleInit {
             balance: affiliate.balance,
             totalWithdrawals: affiliate.totalWithdrawals,
             conversionRate: referrals > 0 ? (conversions / referrals) * 100 : 0,
-            hasReferrer: !!referredBy,
-            referrerName: referredBy?.affiliate?.user?.fullName,
+            hasReferrer,
+            referrerName: referrerName || 'Affiliate Partner',
+            hasRegisteredBusiness,
         };
     }
 
@@ -252,6 +273,9 @@ export class AffiliateService implements OnModuleInit {
         });
 
         await this.referralRepository.save(referral);
+
+        // Immediately process the referral to grant the 10 days free extension reward and convert it
+        await this.processSuccessfulReferral(userId, 0, true);
 
         return { success: true, message: 'Referral code applied successfully' };
     }
@@ -470,14 +494,16 @@ export class AffiliateService implements OnModuleInit {
         const referral = await this.referralRepository.findOne({
             where: [
                 { referredUserId, status: ReferralStatus.PENDING, type: ReferralType.SIGNUP },
-                { referredUserId, status: ReferralStatus.PENDING, type: ReferralType.SUBSCRIPTION }
+                { referredUserId, status: ReferralStatus.PENDING, type: ReferralType.SUBSCRIPTION },
+                { referredUserId, status: ReferralStatus.CONVERTED, type: ReferralType.SIGNUP },
+                { referredUserId, status: ReferralStatus.CONVERTED, type: ReferralType.SUBSCRIPTION }
             ],
             relations: ['affiliate', 'affiliate.user']
         });
 
         if (!referral) {
-            this.logger.debug(`No pending referral found for user ${referredUserId}`);
-            return { success: false, reason: 'No pending referral' };
+            this.logger.debug(`No pending or converted referral found for user ${referredUserId}`);
+            return { success: false, reason: 'No referral found' };
         }
 
         const referrerUserId = referral.affiliate.user.id;
@@ -840,9 +866,33 @@ export class AffiliateService implements OnModuleInit {
             this.logger.error(`Failed to activate referred vendor features for ${referredUserId}: ${err.message}`);
         }
 
-        // --- 3. Finalize Referral Status ---
+        // --- 3. Finalize Referral Status & Calculate Commission ---
         referral.status = ReferralStatus.CONVERTED;
         await this.referralRepository.save(referral);
+
+        if (Number(paidAmount) > 0) {
+            try {
+                const settings = await this.getSettings();
+                const rate = parseFloat(settings.commissionRate) || 10;
+                const commType = settings.commissionType || 'percent';
+                let commission = 0;
+                if (commType === 'percent') {
+                    commission = (Number(paidAmount) * rate) / 100;
+                } else {
+                    commission = rate;
+                }
+
+                if (commission > 0) {
+                    const affiliateObj = referral.affiliate;
+                    affiliateObj.totalEarnings = Number(affiliateObj.totalEarnings) + commission;
+                    affiliateObj.balance = Number(affiliateObj.balance) + commission;
+                    await this.affiliateRepository.save(affiliateObj);
+                    this.logger.log(`[Referral] Commission of PKR ${commission} added to affiliate ${affiliateObj.id} for paid amount PKR ${paidAmount}`);
+                }
+            } catch (commErr) {
+                this.logger.error(`[Referral] Failed to calculate commission for referral ${referral.id}: ${commErr.message}`);
+            }
+        }
 
         this.logger.log(`✅ Referral ${referral.id} for user ${referredUserId} successfully converted. Extension granted: ${extensionGranted}`);
 

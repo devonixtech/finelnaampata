@@ -227,11 +227,11 @@ export class PromotionsService implements OnModuleInit {
         const baseUrl = getPrimaryFrontendUrl(this.configService, origin);
 
         const successPath = dto.dealId
-            ? '/deals/success'
+            ? '/deals/success/'
             : dto.eventId
-                ? '/manage-events/success'
-                : '/offer-plans/success';
-        const cancelPath = dto.dealId ? '/deals' : dto.eventId ? '/manage-events' : '/offer-plans';
+                ? '/manage-events/success/'
+                : '/offer-plans/success/';
+        const cancelPath = dto.dealId ? '/deals/' : dto.eventId ? '/manage-events/' : '/offer-plans/';
 
         const info = pricing.breakup.map(b => b.label || b.placement).join(', ');
         const session = await this.stripe.checkout.sessions.create({
@@ -312,7 +312,7 @@ export class PromotionsService implements OnModuleInit {
             const session = await this.stripe.checkout.sessions.retrieve(sessionId);
             if (session.payment_status === 'paid') {
                 const bookingId = session.metadata.bookingId;
-                const paymentIntentId = session.payment_intent as string;
+                const paymentIntentId = (session.payment_intent as string) || session.id;
                 
                 const result = await this.activateBooking(bookingId, paymentIntentId);
                 

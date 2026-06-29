@@ -33,6 +33,14 @@ export class AdminController {
         return this.adminService.getGlobalStats();
     }
 
+    @Get('event-deal-payments')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get event and deal payment history' })
+    @ApiResponse({ status: 200, description: 'Event and deal payments retrieved' })
+    getEventDealPayments() {
+        return this.adminService.getEventDealPayments();
+    }
+
     @Get('heatmap-data')
     @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
     @ApiOperation({ summary: 'Get search heatmap data' })

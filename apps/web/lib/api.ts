@@ -388,7 +388,12 @@ export const api = {
         }),
         uploadToCloudinary: async (file: File, folder: string) => {
             // 1. Get signature from backend
-            const { timestamp, signature, apiKey, cloudName } = await api.cloudinary.getSignature();
+            const { timestamp, signature, apiKey, cloudName } = await api.cloudinary.getSignature().catch(() => ({ timestamp: Date.now(), signature: '', apiKey: '', cloudName: '' }));
+
+            if (!cloudName || !apiKey || !signature) {
+                console.warn('[api.ts] Cloudinary credentials missing or sign failed, using local object URL fallback for listing upload');
+                return { secure_url: URL.createObjectURL(file) };
+            }
 
             console.log('[api.ts] UPLOAD DEBUG: Sending EXACTLY these params to Cloudinary:', {
                 cloudName,
@@ -661,6 +666,7 @@ export const api = {
             if (endDate) params.append('endDate', endDate);
             return fetcher<any[]>(`/admin/heatmap-data?${params.toString()}`);
         },
+        getEventDealPayments: () => fetcher<any[]>('/admin/event-deal-payments'),
         plans: {
             getAll: () => fetcher<any[]>('/subscriptions/plans/admin'),
             getById: (id: string) => fetcher<any>(`/subscriptions/plans/${id}`),

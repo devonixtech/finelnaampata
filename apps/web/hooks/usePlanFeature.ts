@@ -75,7 +75,7 @@ export const usePlanFeature = () => {
             return true;
         }
         const value = features[featureName];
-        const hasActiveSub = !!activeSub && activeSub.status === 'active';
+        const hasActiveSub = !!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan);
         if (featureName.startsWith('max')) {
             if (featureName === 'maxSubCategories') {
                 const numeric = Number(value ?? 0);
@@ -86,14 +86,17 @@ export const usePlanFeature = () => {
                 return 0;
             }
             if (featureName === 'maxNamedPhoneNumbers') {
-                return Number(value ?? (features as any).maxAdditionalPhones ?? 0);
+                const num = Number(value ?? (features as any).maxAdditionalPhones ?? 0);
+                if (num > 0) return num;
+                if (hasActiveSub) return 5;
+                return 0;
             }
             if (Number(value ?? 0) === 0 && hasActiveSub) {
                 const paidDefaults: Record<string, number> = {
                     maxPhotos: 10, maxListings: 3, maxHighlights: 6,
                     maxSpecials: 3, maxTeamMembers: 10, maxSocialLinks: 4,
                     maxOperatingHours: 3, maxDealsPerMonth: 3, maxEventsPerMonth: 3,
-                    maxKeywords: 10, maxFaqs: 10, maxEmailAddresses: 5,
+                    maxKeywords: 10, maxFaqs: 10, maxEmailAddresses: 5, maxNamedPhoneNumbers: 5, maxSubCategories: 3
                 };
                 if (paidDefaults[featureName]) return paidDefaults[featureName];
             }
@@ -120,16 +123,17 @@ export const usePlanFeature = () => {
         }
 
         // If it's a vendor, check their active plan features
-        if (!!activeSub && activeSub.status === 'active') return true; return !!features[featureName];
+        if (!!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan)) return true; 
+        return !!features[featureName];
     };
 
     return {
         hasFeature,
         getFeatureValue,
         features,
-        planName: activeSub?.plan?.name || 'Free',
-        isFree: (user?.role !== 'admin' && user?.role !== 'superadmin') && (!activeSub || activeSub.plan?.planType?.toLowerCase() === 'free' || activeSub.plan?.name?.toLowerCase().includes('free')),
-        hasPaidPlan: !!activeSub && activeSub.status === 'active' && activeSub.plan?.planType?.toLowerCase() !== 'free',
+        planName: (activeSub?.plan?.name && activeSub.plan.name.toLowerCase() !== 'free') ? activeSub.plan.name : 'Starter Plan',
+        isFree: (user?.role !== 'admin' && user?.role !== 'superadmin') && (!activeSub || activeSub.plan?.planType?.toLowerCase() === 'free' || activeSub.plan?.name?.toLowerCase().includes('free') || activeSub.plan?.name?.toLowerCase().includes('starter')),
+        hasPaidPlan: !!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan) && activeSub.plan?.planType?.toLowerCase() !== 'free',
         loading: !user,
     };
 };

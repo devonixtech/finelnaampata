@@ -411,6 +411,7 @@ export class AuthService {
                 isActive: true,
                 lastLoginAt: new Date(),
                 isOnline: true,
+                pendingReferralCode: dto.referralCode?.trim() || null,
             });
             user = await this.userRepository.save(newUser);
             this.logger.log(`[GoogleAuth] Created and marked online new user from Google: ${email}`);
@@ -667,7 +668,7 @@ export class AuthService {
                     try {
                         // We pass 0 as amount because this is just a signup trigger (Free Plan by default).
                         // Rewards will only trigger later when as successful purchase occurs.
-                        await this.affiliateService.processSuccessfulReferral(referredUserId, 0);
+                        await this.affiliateService.processSuccessfulReferral(referredUserId, 0, true);
                         this.logger.log(`[Referral] Automated feature activation triggered for referred user ${referredUserId}`);
                     } catch (procErr) {
                         this.logger.error(`[Referral] Failed to AUTOMATE feature activation for ${referredUserId}: ${procErr.message}`);

@@ -162,7 +162,7 @@ function SearchResults() {
                 <div className="flex flex-col lg:grid lg:grid-cols-12 gap-16 items-start">
 
                     {/* Filters Sidebar */}
-                    <aside className={`lg:col-span-3 w-full space-y-12 sticky top-28`}>
+                    <aside className={`lg:col-span-3 w-full sticky top-28 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-6 lg:max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar space-y-10`}>
                         <div className="flex items-center justify-between lg:hidden mb-6">
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Search Parameters</h3>
                             <button onClick={() => setShowFilters(!showFilters)} className="p-4 bg-slate-50 rounded-2xl">

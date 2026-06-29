@@ -208,7 +208,7 @@ export default function BusinessDetailClient({
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [qaLoading, setQaLoading] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-  const [showMapEmbed, setShowMapEmbed] = useState(false);
+  const [showMapEmbed, setShowMapEmbed] = useState(true);
 
 
   const mapEmbedUrl = useMemo(

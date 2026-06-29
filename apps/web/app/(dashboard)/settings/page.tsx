@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { City } from '../../../types/api';
 import { COUNTRIES_STATES, CountryData } from '../../../lib/data/countries-states';
 import { cleanAndDedupeStates, getCanonicalCountryName } from '../../../lib/location-detect';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AccountSettings() {
     const { user, loading: authLoading, updateUser } = useAuth();
@@ -67,6 +68,7 @@ export default function AccountSettings() {
     });
 
     // Deletion State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletionLoading, setDeletionLoading] = useState(false);
     const [deletionStatus, setDeletionStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -377,10 +379,6 @@ export default function AccountSettings() {
     };
 
     const handleRequestDeletion = async () => {
-        if (!confirm('Are you sure you want to delete your account? This action will schedule your account for permanent deletion in 30 days.')) {
-            return;
-        }
-
         setDeletionLoading(true);
         setDeletionStatus(null);
         try {
@@ -388,8 +386,10 @@ export default function AccountSettings() {
             setDeletionStatus({ type: 'success', message: 'Account deletion scheduled. You have 30 days to cancel this request.' });
             const updatedProfile = await api.users.getProfile();
             if (updateUser) updateUser(updatedProfile);
+            setShowDeleteModal(false);
         } catch (err: any) {
             setDeletionStatus({ type: 'error', message: err.message || 'Failed to request account deletion' });
+            setShowDeleteModal(false);
         } finally {
             setDeletionLoading(false);
         }
@@ -1078,7 +1078,7 @@ export default function AccountSettings() {
                                 </button>
                             ) : (
                                 <button
-                                    onClick={handleRequestDeletion}
+                                    onClick={() => setShowDeleteModal(true)}
                                     disabled={deletionLoading}
                                     className="flex items-center justify-center gap-2 px-6 py-3 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-sm font-black hover:bg-rose-100 transition-all active:scale-95 disabled:opacity-50"
                                 >
@@ -1090,6 +1090,76 @@ export default function AccountSettings() {
                     </div>
                 </div>
             </div>
+
+            {/* Beautiful Custom Delete Confirmation Modal */}
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => !deletionLoading && setShowDeleteModal(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-lg bg-white rounded-[40px] shadow-2xl overflow-hidden border border-rose-100 p-8 sm:p-10 text-center flex flex-col items-center"
+                        >
+                            <div className="w-20 h-20 bg-rose-50 border border-rose-100 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-rose-500/10 animate-pulse">
+                                <AlertTriangle className="w-10 h-10 text-rose-600" />
+                            </div>
+                            
+                            <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">
+                                Delete Your Account?
+                            </h3>
+                            
+                            <p className="text-slate-500 font-medium text-sm max-w-sm mb-6 leading-relaxed">
+                                This action will schedule your account for permanent deletion in <span className="font-black text-rose-600">30 days</span>. All your associated data, listings, and reviews will be completely cleared.
+                            </p>
+
+                            <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-8 text-left flex items-start gap-3">
+                                <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                                <div className="text-xs text-slate-600 font-semibold leading-relaxed">
+                                    <span className="font-black text-slate-900 block mb-0.5">30-Day Grace Period</span>
+                                    If you change your mind, you can log back in and cancel the deletion request at any time during the next 30 days.
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-4 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => !deletionLoading && setShowDeleteModal(false)}
+                                    disabled={deletionLoading}
+                                    className="flex-1 py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-2xl transition-all active:scale-95 disabled:opacity-50 text-sm tracking-wide"
+                                >
+                                    Cancel & Keep Account
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleRequestDeletion}
+                                    disabled={deletionLoading}
+                                    className="flex-1 flex items-center justify-center gap-2 py-4 px-6 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl transition-all active:scale-95 shadow-lg shadow-rose-600/25 disabled:opacity-50 text-sm tracking-wide"
+                                >
+                                    {deletionLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Scheduling...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4" />
+                                            Yes, Delete Account
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

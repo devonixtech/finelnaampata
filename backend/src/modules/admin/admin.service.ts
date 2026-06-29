@@ -26,6 +26,10 @@ import { BusinessQuestion } from '../../entities/business-question.entity';
 import { SearchLocationService } from '../location/search-location.service';
 import { ChatConversation } from '../../entities/chat-conversation.entity';
 import { PricingPlanType } from '../../entities/pricing-plan.entity';
+import { Event } from '../../entities/event.entity';
+import { Deal } from '../../entities/deal.entity';
+import { PromotionBooking } from '../../entities/promotion-booking.entity';
+import { OfferType } from '../../entities/offer-event.entity';
 
 @Injectable()
 export class AdminService {
@@ -68,6 +72,12 @@ export class AdminService {
         private questionRepository: Repository<BusinessQuestion>,
         @InjectRepository(ChatConversation)
         private conversationRepository: Repository<ChatConversation>,
+        @InjectRepository(Event)
+        private eventRepository: Repository<Event>,
+        @InjectRepository(Deal)
+        private dealRepository: Repository<Deal>,
+        @InjectRepository(PromotionBooking)
+        private promotionBookingRepository: Repository<PromotionBooking>,
         private searchService: SearchService,
         private notificationsService: NotificationsService,
         private searchLocationService: SearchLocationService,
@@ -121,6 +131,8 @@ export class AdminService {
             where: { status: BusinessStatus.PENDING },
         });
         const reviewCount = await this.reviewRepository.count();
+        const eventCount = await this.eventRepository.count();
+        const dealCount = await this.dealRepository.count();
 
         const activeLegacySubscriptionCount = await this.subscriptionRepository.count({
             where: { status: SubscriptionStatus.ACTIVE },
@@ -227,6 +239,8 @@ export class AdminService {
             totalBusinesses: businessCount,
             pendingBusinesses: pendingBusinessCount,
             totalReviews: reviewCount,
+            totalEvents: eventCount,
+            totalDeals: dealCount,
             activeSubscriptions: activeSubscriptionCount,
             totalRevenue: parseFloat(revenue?.total || '0'),
             monthlyRevenue: parseFloat(monthlyRevenue?.total || '0'),
@@ -234,6 +248,69 @@ export class AdminService {
             vendorsGraphData,
             subscriptionsGraphData,
         };
+    }
+
+    /**
+     * Get all financial transactions/payments associated with events and deals
+     */
+    async getEventDealPayments() {
+        const bookings = await this.promotionBookingRepository.find({
+            relations: ['vendor', 'vendor.user', 'event', 'deal', 'offerEvent'],
+            order: { createdAt: 'DESC' }
+        });
+
+        const activePlans = await this.activePlanRepository.find({
+            relations: ['vendor', 'vendor.user', 'plan'],
+            order: { createdAt: 'DESC' }
+        });
+
+        // Map bookings into unified payment shape
+        const bookingPayments = bookings.map(b => {
+            const itemName = b.event?.title || b.deal?.title || b.offerEvent?.title || `${b.type || 'Visibility'} Boost`;
+            const vendorName = b.vendor?.businessName || b.vendor?.user?.fullName || 'Vendor';
+            const vendorEmail = b.vendor?.businessEmail || b.vendor?.user?.email || '';
+            const typeLabel = b.type === OfferType.EVENT || b.eventId ? 'Event' : 'Deal';
+            return {
+                id: b.id,
+                transactionId: b.paymentIntentId || b.stripeSessionId || b.id,
+                invoiceNumber: `INV-BST-${b.id.slice(0, 8).toUpperCase()}`,
+                type: typeLabel,
+                itemName,
+                vendorName,
+                vendorEmail,
+                amount: Number(b.totalPrice || 0),
+                status: b.status,
+                paymentGateway: b.stripeSessionId ? 'Stripe' : 'System',
+                createdAt: b.createdAt,
+            };
+        });
+
+        // Also check activePlans that are event/deal related or target based
+        const activePlanPayments = activePlans
+            .filter(ap => ap.plan?.type === PricingPlanType.LISTING_BOOST || (ap.amountPaid && Number(ap.amountPaid) > 0))
+            .map(ap => {
+                const vendorName = ap.vendor?.businessName || ap.vendor?.user?.fullName || 'Vendor';
+                const vendorEmail = ap.vendor?.businessEmail || ap.vendor?.user?.email || '';
+                return {
+                    id: ap.id,
+                    transactionId: ap.transactionId || ap.id,
+                    invoiceNumber: `INV-AP-${ap.id.slice(0, 8).toUpperCase()}`,
+                    type: ap.plan?.type === PricingPlanType.LISTING_BOOST ? 'Deal' : 'Promotion',
+                    itemName: ap.plan?.name || 'Event/Deal Promotion',
+                    vendorName,
+                    vendorEmail,
+                    amount: Number(ap.amountPaid || 0),
+                    status: ap.status,
+                    paymentGateway: 'Stripe',
+                    createdAt: ap.createdAt,
+                };
+            });
+
+        const combined = [...bookingPayments, ...activePlanPayments].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        return combined;
     }
 
     /**

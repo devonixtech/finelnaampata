@@ -26,8 +26,8 @@ export default function CategorySearchSelect({ categories, value, onChange, load
         if (!search.trim()) return categories;
         const q = search.toLowerCase();
         return categories.filter(c =>
-            c.name.toLowerCase().includes(q) ||
-            c.slug.toLowerCase().includes(q)
+            c.name?.toLowerCase().includes(q) ||
+            c.slug?.toLowerCase().includes(q)
         );
     }, [categories, search]);
 
