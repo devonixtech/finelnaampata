@@ -23,16 +23,27 @@ export const Step1NameTagline = ({ formData, setFormData }: StepProps) => (
             <p className="text-xs text-slate-500 mt-2">Enter the exact name as it appears on your storefront or official documents.</p>
         </div>
         <div>
-            <label className={labelClass}>Tagline / Short Description (Optional)</label>
+            <label className={labelClass}>Business Tagline (Optional)</label>
             <input 
                 type="text" 
                 className={inputClass} 
                 placeholder="e.g., Your daily fresh grocery hub"
+                value={formData.businessTagline}
+                onChange={e => setFormData(p => ({ ...p, businessTagline: e.target.value }))}
+                maxLength={150}
+            />
+            <p className="text-xs text-slate-500 mt-2">A short one-liner that tells visitors what makes your business memorable.</p>
+        </div>
+        <div>
+            <label className={labelClass}>Short Description (Optional)</label>
+            <input
+                type="text"
+                className={inputClass}
+                placeholder="A compact summary for cards and search results"
                 value={formData.shortDescription}
                 onChange={e => setFormData(p => ({ ...p, shortDescription: e.target.value }))}
-                maxLength={100}
+                maxLength={200}
             />
-            <p className="text-xs text-slate-500 mt-2">A catchy one-liner to display in search results.</p>
         </div>
     </div>
 );
@@ -129,7 +140,9 @@ export const Step11Description = ({ formData, setFormData }: StepProps) => (
                 placeholder="Tell your story. What makes your business unique?"
                 value={formData.description}
                 onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
+                maxLength={2000}
             />
+            <p className="text-xs text-slate-500 mt-2">{formData.description.trim().length}/2000 characters. Add at least 20 characters if you want the description to appear stronger on your profile.</p>
         </div>
     </div>
 );

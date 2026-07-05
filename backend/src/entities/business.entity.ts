@@ -82,7 +82,7 @@ export class Listing {
     whatsapp: string;
 
     @Column({ name: 'named_phone_numbers', type: 'jsonb', default: '[]' })
-    namedPhoneNumbers: { label: string; number: string }[];
+    namedPhoneNumbers: { label: string; number: string; personName?: string; title?: string }[];
 
     @Column({ nullable: true })
     website: string;
@@ -153,10 +153,13 @@ export class Listing {
     @Column({
         type: 'enum',
         enum: BusinessStatus,
-        default: BusinessStatus.PENDING,
+        default: BusinessStatus.PENDING_GEOCODE,
     })
     @Index()
     status: BusinessStatus;
+
+    @Column({ name: 'hidden_by_deletion', default: false })
+    hiddenByDeletion: boolean;
 
     @Column({ name: 'is_verified', default: false })
     isVerified: boolean;
@@ -215,6 +218,15 @@ export class Listing {
     // V2 Registration Flow Fields
     @Column({ name: 'contact_person_name', nullable: true, length: 150 })
     contactPersonName: string;
+
+    @Column({ name: 'contact_person_title', nullable: true, length: 100 })
+    contactPersonTitle: string;
+
+    @Column({ name: 'business_tagline', nullable: true, length: 200 })
+    businessTagline: string;
+
+    @Column({ name: 'open_247', default: false })
+    open247: boolean;
 
     @Column({ name: 'timezone', nullable: true, length: 64 })
     timezone: string;
@@ -278,7 +290,7 @@ export class Listing {
     chainOrMultipleBranches: boolean;
 
     @Column({ name: 'social_links', type: 'jsonb', default: '[]' })
-    socialLinks: { platform: string, url: string }[];
+    socialLinks: { platform: string, url: string, label?: string }[];
 
     // Offer / Promo
     @Column({ name: 'has_offer', default: false })

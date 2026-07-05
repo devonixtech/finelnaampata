@@ -157,11 +157,17 @@ export class EventsService {
         const numericLimit =
             rawLimit === undefined || rawLimit === null ? null : Number(rawLimit);
 
-        if (numericLimit !== null && !Number.isNaN(numericLimit)) {
-            return numericLimit > 0 ? numericLimit : 999;
+        if (numericLimit !== null && !Number.isNaN(numericLimit) && numericLimit > 0) {
+            return numericLimit;
         }
 
-        return 999;
+        const isFree = activeSub?.plan?.planType === SubscriptionPlanType.FREE || activeSub?.plan?.name?.toLowerCase() === 'free';
+        
+        if (!isFree) {
+            return 999;
+        }
+
+        return 1;
     }
 
     /** Create a new event */
@@ -248,6 +254,7 @@ export class EventsService {
                     now
                 })
                 .where('o.isActive = :isActive', { isActive: true })
+                .andWhere('b.hiddenByDeletion = false')
                 .andWhere('o.status != :expired', { expired: EventStatus.EXPIRED })
                 .andWhere('(o.endDate IS NULL OR o.endDate > :now)', { now });
 
@@ -343,10 +350,17 @@ export class EventsService {
 
     /** Delete an event */
     async remove(id: string, userId: string): Promise<void> {
-        const vendor = await this.getVendorByUserId(userId);
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        const isAdmin = user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN);
+
         const event = await this.eventRepository.findOne({ where: { id } });
         if (!event) throw new NotFoundException('Event not found');
-        if (event.vendorId !== vendor.id) throw new ForbiddenException('You do not own this event');
+        
+        if (!isAdmin) {
+            const vendor = await this.getVendorByUserId(userId);
+            if (event.vendorId !== vendor.id) throw new ForbiddenException('You do not own this event');
+        }
+        
         await this.eventRepository.remove(event);
     }
 
@@ -390,6 +404,8 @@ export class EventsService {
         const events = await this.eventRepository.createQueryBuilder('o')
             .where('o.businessId = :businessId', { businessId })
             .andWhere('o.isActive = :isActive', { isActive: true })
+            .innerJoin('o.business', 'b')
+            .andWhere('b.hiddenByDeletion = false')
             .andWhere('o.status != :expired', { expired: EventStatus.EXPIRED })
             .andWhere('(o.endDate IS NULL OR o.endDate > :now)', { now })
             .orderBy('o.isFeatured', 'DESC')
@@ -408,6 +424,10 @@ export class EventsService {
         });
 
         if (!event) {
+            throw new NotFoundException('Event not found');
+        }
+
+        if ((event.business as any)?.hiddenByDeletion) {
             throw new NotFoundException('Event not found');
         }
 

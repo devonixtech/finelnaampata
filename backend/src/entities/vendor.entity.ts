@@ -59,7 +59,7 @@ export class Vendor {
     businessHours: Record<string, { isOpen: boolean, openTime: string, closeTime: string }>;
 
     @Column({ name: 'social_links', nullable: true, type: 'jsonb', default: '[]' })
-    socialLinks: { platform: string, url: string }[];
+    socialLinks: { platform: string, url: string, label?: string }[];
 
     @Column({ length: 100, default: 'Pakistan', nullable: true })
     @Index()

@@ -1,44 +1,12 @@
 import { City } from '../types/api';
 
 export type GeoCoords = { latitude: number; longitude: number };
-export type IpGeoData = { latitude: number; longitude: number; city?: string; region?: string; country_name?: string };
 
-/**
- * IP-based fallback location detection.
- * Returns coordinates AND city/country name strings from the IP API response.
- */
-async function detectLocationByIp(): Promise<GeoCoords> {
-    const data = await fetchIpGeoData();
-    return { latitude: data.latitude, longitude: data.longitude };
-}
-
-/**
- * Fetches full IP geolocation data including city and country name.
- */
-async function fetchIpGeoData(): Promise<IpGeoData> {
-    const response = await fetch('https://ipapi.co/json/');
-    if (!response.ok) {
-        throw new Error('IP geolocation lookup failed');
-    }
-    const data = await response.json();
-    if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-        return {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            city: data.city,
-            region: data.region,
-            country_name: data.country_name,
-        };
-    }
-    throw new Error('IP geolocation returned no coordinates');
-}
-
-/** Device GPS with IP fallback - consistent across all location pickers. */
+/** Device GPS only - consistent across all location pickers. */
 export function detectDeviceLocation(): Promise<GeoCoords> {
     return new Promise((resolve, reject) => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) {
-            // Fall back to IP
-            detectLocationByIp().then(resolve).catch(() => reject(new Error('Geolocation is not supported by your browser')));
+            reject(new Error('Geolocation is not supported by your browser'));
             return;
         }
 
@@ -50,8 +18,7 @@ export function detectDeviceLocation(): Promise<GeoCoords> {
                 });
             },
             () => {
-                // GPS failed, try IP fallback
-                detectLocationByIp().then(resolve).catch(() => reject(new Error('Unable to detect location')));
+                reject(new Error('Unable to detect GPS location'));
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         );
@@ -113,20 +80,17 @@ export async function tryDetectDeviceLocation(): Promise<GpsDetectResult> {
                     resolve({
                         ok: false,
                         reason: 'denied',
-                        message: 'Location permission denied. Enable location access for this site and try again.',
+                        message: 'Location permission denied. Enable location access for this site, or continue by selecting your city and dropping the pin manually.',
                     });
                     return;
                 }
-                // For timeout or other GPS errors, try IP fallback
-                detectLocationByIp()
-                    .then((coords) => resolve({ ok: true, coords }))
-                    .catch(() => resolve({
-                        ok: false,
-                        reason: error.code === error.TIMEOUT ? 'timeout' : 'error',
-                        message: error.code === error.TIMEOUT
-                            ? 'Location lookup timed out. Please try again or select your city manually.'
-                            : 'Unable to detect GPS location. Please try again or select your city manually.',
-                    }));
+                resolve({
+                    ok: false,
+                    reason: error.code === error.TIMEOUT ? 'timeout' : 'error',
+                    message: error.code === error.TIMEOUT
+                        ? 'Location lookup timed out. Please try again, or continue by selecting your city and dropping the pin manually.'
+                        : 'Unable to detect GPS location. Please try again, or continue by selecting your city and dropping the pin manually.',
+                });
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
         );
@@ -270,8 +234,6 @@ export function inferLocationFromCoords(
 
 export async function detectNearestCityName(cities: City[]): Promise<string | null> {
     let coords: GeoCoords | null = null;
-    let ipCity: string | undefined;
-    let ipRegion: string | undefined;
 
     try {
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -283,45 +245,14 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
                 );
             });
         }
-
-        // Always fetch IP geo data as a robust fallback for city name matching
-        const ipData = await fetchIpGeoData();
-        if (!coords) {
-            coords = { latitude: ipData.latitude, longitude: ipData.longitude };
-        }
-        ipCity = ipData.city;
-        ipRegion = ipData.region;
     } catch {
-        // Fallback if IP fetch fails
+        // Ignore GPS lookup failure and fall through.
     }
 
-    if (coords) {
-        // Step 1: Try coordinate-based matching
-        const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
-        if (nearest) return nearest.name;
-    }
+    if (!coords) return null;
 
-    // Step 2: Fallback — match by IP city/region name against our city list
-    const candidates = [ipCity, ipRegion].filter(Boolean) as string[];
-    for (const candidate of candidates) {
-        const normalized = candidate.trim().toLowerCase();
-        const match = cities.find(
-            (c) => c.name?.trim().toLowerCase() === normalized ||
-                   c.name?.trim().toLowerCase().includes(normalized) ||
-                   normalized.includes(c.name?.trim().toLowerCase() || '')
-        );
-        if (match) return match.name;
-    }
-
-    // Step 3: Direct fallback - if IP detected a valid city name, use it directly rather than failing
-    if (ipCity && ipCity.trim()) {
-        return ipCity.trim();
-    }
-    if (ipRegion && ipRegion.trim()) {
-        return ipRegion.trim();
-    }
-
-    return null;
+    const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
+    return nearest?.name || null;
 }
 
 export function visibilityDayCount(start?: string, end?: string): number {
@@ -423,19 +354,16 @@ export function cleanAndDedupeStates(states: Array<string | { name: string; code
         const key = clean.toLowerCase();
         if (!uniqueMap.has(key)) {
             uniqueMap.set(key, clean);
-        } else {
-            if (clean.length < (uniqueMap.get(key)?.length || 999)) {
-                uniqueMap.set(key, clean);
-            }
+        } else if (clean.length < (uniqueMap.get(key)?.length || 999)) {
+            uniqueMap.set(key, clean);
         }
     }
 
     let results = Array.from(uniqueMap.values());
-    const nonDivision = results.filter(n => !/division|district|council|borough/i.test(n));
+    const nonDivision = results.filter((name) => !/division|district|council|borough/i.test(name));
     if (nonDivision.length > 0) {
         results = nonDivision;
     }
 
     return results.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
-

@@ -48,7 +48,7 @@ const faqs = [
     },
     {
         q: "How long does it take to review a listing?",
-        a: "Most listings are reviewed within 24–48 hours. You'll receive an email notification once your listing is approved.",
+        a: "Listings go live automatically after signup. If our team spots anything unusual later, they may contact you for clarification.",
     },
     {
         q: "Can I update my business information?",

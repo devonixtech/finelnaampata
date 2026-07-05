@@ -964,8 +964,16 @@ export class SubscriptionsService implements OnModuleInit {
     public normalizeModernPlanFeatures(features: Record<string, any> = {}, planName?: string) {
         const maxCategories = Number(features.maxCategories ?? 0);
         const derivedMaxSubCategories = maxCategories > 0 ? Math.max(0, maxCategories - 1) : 0;
-        const normalizedMaxSubCategories = Number(features.maxSubCategories ?? derivedMaxSubCategories ?? 0);
-        const normalizedMaxListings = Number(features.maxListings ?? 0);
+        let normalizedMaxSubCategories = Number(features.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        let normalizedMaxListings = Number(features.maxListings ?? 0);
+        
+        // Paid plan safety net
+        const isPaid = planName && !planName.toLowerCase().includes('free');
+        if (isPaid) {
+            if (normalizedMaxSubCategories === 0) normalizedMaxSubCategories = 3;
+            if (normalizedMaxListings <= 1) normalizedMaxListings = 999;
+        }
+
         const normalizedMaxKeywords = Number(features.maxKeywords ?? 0);
         const normalizedMaxFaqs = Number(features.maxFaqs ?? 0);
         const normalizedNamedPhones = Number(features.maxNamedPhoneNumbers ?? features.maxAdditionalPhones ?? 0);
@@ -1059,8 +1067,8 @@ export class SubscriptionsService implements OnModuleInit {
                     showSaved: true,
                     showFollowing: true,
                     showListings: true,
-                    canAddListing: Number(legacyFeatures.maxListings ?? 0) > 0,
-                    maxListings: Number(legacyFeatures.maxListings ?? 0),
+                    canAddListing: legacyIsPaid ? true : Number(legacyFeatures.maxListings ?? 0) > 0,
+                    maxListings: legacyIsPaid && Number(legacyFeatures.maxListings ?? 0) <= 1 ? 999 : Number(legacyFeatures.maxListings ?? 0),
                     maxKeywords: legacyIsPaid && Number(legacyFeatures.maxKeywords ?? 0) === 0 ? 10 : Number(legacyFeatures.maxKeywords ?? 0),
                     maxFaqs: legacyIsPaid && Number(legacyFeatures.maxFaqs ?? 0) === 0 ? 10 : Number(legacyFeatures.maxFaqs ?? 0),
                     maxSubCategories: legacyResolvedMaxSubCategories > 0 ? legacyResolvedMaxSubCategories : (legacyIsPaid ? 3 : 0),

@@ -2,6 +2,7 @@ import { Category } from '../../../types/api';
 
 export interface ListingFormData {
     title: string;
+    businessTagline: string;
     shortDescription: string;
     description: string;
     
@@ -12,6 +13,7 @@ export interface ListingFormData {
     
     categoryId: string;
     subCategoryIds: string[];
+    customCategoryTag: string;
     
     address: string;
     addressLine2: string;
@@ -26,16 +28,20 @@ export interface ListingFormData {
     phoneCode: string;
     phoneNumber: string;
     whatsapp: string;
+    whatsappSameAsPrimary: boolean;
+    contactPersonTitle: string;
     contactPersonName: string;
-    namedPhoneNumbers: { label: string; number: string }[];
+    namedPhoneNumbers: { label: string; personName?: string; title?: string; number: string }[];
     
     businessHours: any[];
+    open247: boolean;
+    timezone: string;
     
     yearEstablished: string;
     employeeCount: string;
     
     website: string;
-    socialLinks: { platform: string; url: string }[];
+    socialLinks: { platform: string; url: string; label?: string }[];
     
     locationAccess: string[];
     facilities: string[];
@@ -65,7 +71,12 @@ export interface ListingFormData {
     images: string[];
     imageCaptions: Record<string, string>;
 
-    agreed: boolean;
+    legalConsentTerms: boolean;
+    legalConsentPrivacy: boolean;
+    legalConsentModeration: boolean;
+    legalConsentAccuracy: boolean;
+    legalConsentPublicLocation: boolean;
+    legalConsentMarketing: boolean;
 }
 
 export interface StepProps {

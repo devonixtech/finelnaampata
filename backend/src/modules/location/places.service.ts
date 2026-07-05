@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GeocoderService } from './geocoder.service';
 
@@ -50,54 +50,36 @@ export class PlacesService {
         if (trimmed.length < 3) return [];
 
         const apiKey = this.getApiKey();
-        if (apiKey) {
-            try {
-                const params = new URLSearchParams({
-                    input: trimmed,
-                    sessiontoken: sessionToken,
-                    key: apiKey,
-                });
-
-                const cc = (countryCode || '').trim().toUpperCase();
-                if (cc && cc.length === 2) {
-                    params.set('components', `country:${cc.toLowerCase()}`);
-                }
-
-                const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.status === 'OK' && Array.isArray(data.predictions) && data.predictions.length > 0) {
-                        return data.predictions.map((p: any) => ({
-                            placeId: String(p.place_id),
-                            description: String(p.description || ''),
-                        }));
-                    }
-                }
-            } catch (err) {
-                this.logger.warn(`Google Places autocomplete failed: ${err.message}. Falling back to OpenStreetMap.`);
-            }
+        if (!apiKey) {
+            this.logger.warn('Google Places API key is missing. Returning no autocomplete suggestions instead of using a non-Google fallback.');
+            return [];
         }
 
-        // --- FREE FALLBACK: Nominatim OpenStreetMap API ---
         try {
-            this.logger.log(`Using Nominatim OpenStreetMap fallback for autocomplete query: "${trimmed}"`);
-            const query = countryCode ? `${trimmed}, ${countryCode}` : trimmed;
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
-            const response = await fetch(url, {
-                headers: { 'User-Agent': 'BusinessDirectoryApp/1.0 (contact@businessdirectory.com)' }
+            const params = new URLSearchParams({
+                input: trimmed,
+                sessiontoken: sessionToken,
+                key: apiKey,
             });
+
+            const cc = (countryCode || '').trim().toUpperCase();
+            if (cc && cc.length === 2) {
+                params.set('components', `country:${cc.toLowerCase()}`);
+            }
+
+            const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`;
+            const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    return data.map((item: any) => ({
-                        placeId: String(item.place_id || item.osm_id || Math.random()),
-                        description: String(item.display_name || trimmed),
+                if (data.status === 'OK' && Array.isArray(data.predictions) && data.predictions.length > 0) {
+                    return data.predictions.map((p: any) => ({
+                        placeId: String(p.place_id),
+                        description: String(p.description || ''),
                     }));
                 }
             }
         } catch (err) {
-            this.logger.error(`Nominatim autocomplete fallback failed: ${err.message}`);
+            this.logger.error(`Google Places autocomplete failed: ${err.message}`);
         }
 
         return [];

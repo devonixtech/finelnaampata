@@ -136,7 +136,7 @@ export interface Business {
     offerBannerUrl?: string;
     // Stats
     followersCount?: number;
-    status: 'pending' | 'approved' | 'rejected' | 'disabled';
+    status: 'pending' | 'pending_geocode' | 'approved' | 'rejected' | 'suspended' | 'disabled';
     faqs?: { question: string; answer: string }[];
     recentUntil?: string;
     createdAt: string;

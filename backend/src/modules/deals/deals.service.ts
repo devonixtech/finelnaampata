@@ -158,15 +158,18 @@ export class DealsService {
         const numericLimit =
             rawLimit === undefined || rawLimit === null ? null : Number(rawLimit);
 
-        if (numericLimit !== null && !Number.isNaN(numericLimit)) {
-            return numericLimit > 0 ? numericLimit : 999;
+        if (numericLimit !== null && !Number.isNaN(numericLimit) && numericLimit > 0) {
+            return numericLimit;
         }
 
-        if (activeSub?.plan?.planType === SubscriptionPlanType.FREE || activeSub?.plan?.name?.toLowerCase() === 'free') {
-            return 1;
+        const isFree = activeSub?.plan?.planType === SubscriptionPlanType.FREE || activeSub?.plan?.name?.toLowerCase() === 'free';
+        
+        // Paid plan fallback: if maxOffers was 0 or undefined, give them unlimited deals (or a high limit)
+        if (!isFree) {
+            return 999;
         }
 
-        return 0;
+        return 1; // Free plans get 1
     }
 
     /** Create a new deal */
@@ -254,6 +257,7 @@ export class DealsService {
                     now
                 })
                 .where('o.isActive = :isActive', { isActive: true })
+                .andWhere('b.hiddenByDeletion = false')
                 .andWhere('o.status != :expired', { expired: DealStatus.EXPIRED })
                 .andWhere('(o.expiryDate IS NULL OR o.expiryDate > :now)', { now })
                 .andWhere('(o.endDate IS NULL OR o.endDate > :now)', { now });
@@ -351,10 +355,17 @@ export class DealsService {
 
     /** Delete a deal */
     async remove(id: string, userId: string): Promise<void> {
-        const vendor = await this.getVendorByUserId(userId);
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        const isAdmin = user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN);
+
         const deal = await this.dealRepository.findOne({ where: { id } });
         if (!deal) throw new NotFoundException('Deal not found');
-        if (deal.vendorId !== vendor.id) throw new ForbiddenException('You do not own this deal');
+        
+        if (!isAdmin) {
+            const vendor = await this.getVendorByUserId(userId);
+            if (deal.vendorId !== vendor.id) throw new ForbiddenException('You do not own this deal');
+        }
+        
         await this.dealRepository.remove(deal);
     }
 
@@ -398,6 +409,8 @@ export class DealsService {
         const deals = await this.dealRepository.createQueryBuilder('o')
             .where('o.businessId = :businessId', { businessId })
             .andWhere('o.isActive = :isActive', { isActive: true })
+            .innerJoin('o.business', 'b')
+            .andWhere('b.hiddenByDeletion = false')
             .andWhere('o.status != :expired', { expired: DealStatus.EXPIRED })
             .andWhere('(o.expiryDate IS NULL OR o.expiryDate > :now)', { now })
             .andWhere('(o.endDate IS NULL OR o.endDate > :now)', { now })
@@ -417,6 +430,10 @@ export class DealsService {
         });
 
         if (!deal) {
+            throw new NotFoundException('Deal not found');
+        }
+
+        if ((deal.business as any)?.hiddenByDeletion) {
             throw new NotFoundException('Deal not found');
         }
 

@@ -23,7 +23,6 @@ export default function AdminSettingsPage() {
         tw_url: '',
         ig_url: '',
         li_url: '',
-        auto_approve_listings: 'true',
         auto_approve_reviews: 'true',
         auto_approve_broadcasts: 'false',
     });
@@ -275,12 +274,6 @@ export default function AdminSettingsPage() {
                                     <div className="space-y-3">
                                         {[
                                             {
-                                                key: 'auto_approve_listings',
-                                                title: 'New Business Listings',
-                                                description: 'When ON, new business listings go live immediately. When OFF, listings stay in the verification queue for admin review.',
-                                                badge: 'On by default',
-                                            },
-                                            {
                                                 key: 'auto_approve_reviews',
                                                 title: 'Customer Reviews',
                                                 description: 'When ON, new reviews appear on business profiles right away. When OFF, reviews wait for admin moderation.',
@@ -321,7 +314,7 @@ export default function AdminSettingsPage() {
                                     <div className="p-4 bg-blue-50/60 border border-blue-100 rounded-2xl flex items-start gap-3">
                                         <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                                         <p className="text-xs text-blue-700 font-semibold leading-relaxed">
-                                            Changes apply across the platform immediately after saving. Existing pending items already in the verification queue are not affected.
+                                            Listing publishing is automatic now. These controls only affect review and broadcast moderation that still remains on the platform.
                                         </p>
                                     </div>
                                 </div>

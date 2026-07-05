@@ -11,7 +11,11 @@ import * as crypto from 'crypto';
 @Injectable()
 export class SearchLocationService {
     private readonly logger = new Logger(SearchLocationService.name);
-    private INDEX_NAME = 'businesses';
+    private readonly INDEX_NAME = 'businesses';
+    private readonly SEARCH_TTL_MS = 15 * 60 * 1000;
+    private readonly SEARCH_TTL_SECONDS = 15 * 60;
+    private readonly CITY_INDEX_PREFIX = 'search:index:city:';
+    private readonly CITY_CATEGORY_INDEX_PREFIX = 'search:index:city-category:';
 
     constructor(
         private readonly elasticsearchService: ElasticsearchService,
@@ -20,14 +24,118 @@ export class SearchLocationService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
 
-    private generateCacheKey(dto: SearchBusinessDto): string {
-        const payload = JSON.stringify(dto);
-        const hash = crypto.createHash('sha256').update(payload).digest('hex').substring(0, 8);
-        return `search:${dto.city?.toLowerCase() || 'all'}:${dto.categorySlug || 'all'}:${dto.radius || 0}:${hash}`;
+    private slugify(value?: string | null): string {
+        const normalized = (value || '').trim().toLowerCase();
+        if (!normalized) return 'all';
+        return normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'all';
+    }
+
+    private queryHash(dto: SearchBusinessDto): string {
+        const normalized = JSON.stringify({
+            query: dto.query || '',
+            city: dto.city || '',
+            categoryId: dto.categoryId || '',
+            categorySlug: dto.categorySlug || '',
+            radius: dto.radius || '',
+            sortBy: dto.sortBy || '',
+            openNow: Boolean(dto.openNow),
+            verifiedOnly: Boolean(dto.verifiedOnly),
+            featuredOnly: Boolean(dto.featuredOnly),
+            latitude: dto.latitude || '',
+            longitude: dto.longitude || '',
+            minRating: dto.minRating || '',
+            priceRange: dto.priceRange || '',
+            filter: dto.filter || '',
+            page: dto.page || 1,
+            limit: dto.limit || 20,
+        });
+        return crypto.createHash('sha1').update(normalized).digest('hex').slice(0, 8);
+    }
+
+    buildSearchCacheKey(dto: SearchBusinessDto): string {
+        const citySlug = this.slugify(dto.city);
+        const categorySlug = this.slugify(dto.categorySlug || dto.categoryId || 'all');
+        const radiusKm = dto.radius ? String(dto.radius) : 'all';
+        return `search:${citySlug}:${categorySlug}:${radiusKm}:${this.queryHash(dto)}`;
+    }
+
+    private cityIndexKey(city?: string | null) {
+        return `${this.CITY_INDEX_PREFIX}${this.slugify(city)}`;
+    }
+
+    private cityCategoryIndexKey(city?: string | null, category?: string | null) {
+        return `${this.CITY_CATEGORY_INDEX_PREFIX}${this.slugify(city)}:${this.slugify(category)}`;
+    }
+
+    private async addToIndex(indexKey: string, value: string) {
+        const existing = (await this.cacheManager.get<string[]>(indexKey)) || [];
+        if (!existing.includes(value)) {
+            existing.push(value);
+            await this.cacheManager.set(indexKey, existing, this.SEARCH_TTL_SECONDS);
+        }
+    }
+
+    private async trackCacheKey(dto: SearchBusinessDto, cacheKey: string) {
+        await this.addToIndex(this.cityIndexKey(dto.city), cacheKey);
+        await this.addToIndex(
+            this.cityCategoryIndexKey(dto.city, dto.categorySlug || dto.categoryId || 'all'),
+            cacheKey,
+        );
+    }
+
+    async search<T>(dto: SearchBusinessDto, fetcher: () => Promise<T>): Promise<T> {
+        const cacheKey = this.buildSearchCacheKey(dto);
+        const cached = await this.cacheManager.get<T>(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        const result = await fetcher();
+        await this.cacheManager.set(cacheKey, result, this.SEARCH_TTL_SECONDS);
+        await this.trackCacheKey(dto, cacheKey);
+        return result;
+    }
+
+    private async invalidateIndex(indexKey: string) {
+        const keys = (await this.cacheManager.get<string[]>(indexKey)) || [];
+        await Promise.all(keys.map((cacheKey) => this.cacheManager.del(cacheKey)));
+        await this.cacheManager.del(indexKey);
+    }
+
+    async invalidateCity(city?: string | null) {
+        const citySlug = this.slugify(city);
+        const pattern = `search:${citySlug}:*`;
+        const client =
+            (this.cacheManager as any)?.store?.getClient?.() ??
+            (this.cacheManager as any)?.stores?.[0]?.getClient?.() ??
+            (this.cacheManager as any)?.client;
+
+        if (client && typeof client.scan === 'function') {
+            try {
+                let cursor = '0';
+                do {
+                    const reply = await client.scan(cursor, { MATCH: pattern, COUNT: 100 });
+                    cursor = reply.cursor;
+                    const keys = reply.keys;
+                    if (keys && keys.length > 0) {
+                        await client.del(keys);
+                    }
+                } while (cursor !== '0');
+            } catch (error) {
+                this.logger.warn(`Cache scan invalidation failed for city "${citySlug}": ${error.message}`);
+                await this.invalidateIndex(this.cityIndexKey(city));
+            }
+        } else {
+            await this.invalidateIndex(this.cityIndexKey(city));
+        }
+    }
+
+    async invalidateCityCategory(city?: string | null, category?: string | null) {
+        await this.invalidateIndex(this.cityCategoryIndexKey(city, category));
     }
 
     async searchHybrid(dto: SearchBusinessDto): Promise<any[]> {
-        const cacheKey = this.generateCacheKey(dto);
+        const cacheKey = this.buildSearchCacheKey(dto);
         
         // 1. Try Cache
         const cached = await this.cacheManager.get<any[]>(cacheKey);
@@ -39,6 +147,7 @@ export class SearchLocationService {
         this.logger.debug(`Cache MISS for key: ${cacheKey}. Executing Hybrid Search.`);
 
         const { query, city, categorySlug, minRating, verifiedOnly, latitude, longitude, radius } = dto;
+        const normalizedQuery = (query || '').trim().toLowerCase();
 
         // 2. Query Elasticsearch (Semantic, Text, Filters)
         const filters: any[] = [];
@@ -46,14 +155,35 @@ export class SearchLocationService {
         if (categorySlug) filters.push({ term: { category_slug: categorySlug } });
         if (minRating) filters.push({ range: { rating: { gte: minRating } } });
         if (verifiedOnly) filters.push({ term: { is_verified: true } });
+        if (dto.featuredOnly) filters.push({ term: { is_featured: true } });
 
         const baseQuery = query
             ? {
-                multi_match: {
-                    query,
-                    fields: ['search_keywords^10', 'title^5', 'category^3', 'meta_keywords^2', 'description', 'address'],
-                    fuzziness: 'AUTO'
-                }
+                bool: {
+                    should: [
+                        { term: { 'title.raw': { value: normalizedQuery, boost: 20 } } },
+                        { term: { 'name.raw': { value: normalizedQuery, boost: 20 } } },
+                        { term: { 'category.raw': { value: normalizedQuery, boost: 12 } } },
+                        { match_phrase: { title: { query, boost: 14 } } },
+                        { match_phrase: { name: { query, boost: 14 } } },
+                        {
+                            multi_match: {
+                                query,
+                                fields: ['search_keywords^10', 'title^5', 'category^3', 'meta_keywords^2', 'description', 'address'],
+                                fuzziness: 'AUTO'
+                            }
+                        },
+                        {
+                            match: {
+                                search_text_normalized: {
+                                    query: normalizedQuery,
+                                    boost: 12,
+                                },
+                            },
+                        },
+                    ],
+                    minimum_should_match: 1,
+                },
               }
             : { match_all: {} };
 
@@ -87,7 +217,8 @@ export class SearchLocationService {
             this.logger.log('[Hybrid Search] Executing pure database fallback search.');
             const qb = this.businessRepository.createQueryBuilder('b')
                 .leftJoinAndSelect('b.category', 'category')
-                .where('b.status = :status', { status: BusinessStatus.APPROVED });
+                .where('b.status = :status', { status: BusinessStatus.APPROVED })
+                .andWhere('b.hiddenByDeletion = false');
 
             if (city) {
                 qb.andWhere('LOWER(b.city) = :city', { city: city.toLowerCase() });
@@ -152,7 +283,8 @@ export class SearchLocationService {
 
             const qb = this.businessRepository.createQueryBuilder('b')
                 .leftJoinAndSelect('b.category', 'category')
-                .where('b.id IN (:...ids)', { ids: esIds });
+                .where('b.id IN (:...ids)', { ids: esIds })
+                .andWhere('b.hiddenByDeletion = false');
 
             if (latitude && longitude) {
                 const formula = `earth_distance(ll_to_earth(b.latitude, b.longitude), ll_to_earth(:lat, :lng))`;
@@ -205,8 +337,9 @@ export class SearchLocationService {
             distance: (b as any).distance ?? null,
         }));
 
-        // 4. Cache the results for 15 minutes (900000 ms)
-        await this.cacheManager.set(cacheKey, formattedResults, 900000);
+        // 4. Cache the results for 15 minutes
+        await this.cacheManager.set(cacheKey, formattedResults, this.SEARCH_TTL_MS);
+        await this.trackCacheKey(dto, cacheKey);
 
         return formattedResults;
     }

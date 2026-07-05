@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Listing, BusinessStatus } from '../../entities/business.entity';
-import { SearchLocationService } from '../location/search-location.service';
+import { SearchLocationService } from '../search/search-location.service';
 import { BusinessesService } from './businesses.service';
 import { SearchBusinessDto } from './dto/search-business.dto';
 import { ConfigService } from '@nestjs/config';

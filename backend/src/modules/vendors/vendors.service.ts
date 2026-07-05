@@ -88,6 +88,47 @@ export class VendorsService {
             : legacyLatest;
     }
 
+    private normalizePublicPlanFeatures(features: Record<string, unknown> = {}) {
+        const raw = features as Record<string, any>;
+
+        return {
+            maxFaqs: Number(raw.maxFaqs ?? 0),
+            maxNamedPhoneNumbers: Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0),
+            showChat: raw.showChat !== undefined ? !!raw.showChat : (!!raw.canChat || !!raw.whatsappIntegration),
+            showSocialLinks:
+                raw.showSocialLinks !== undefined
+                    ? !!raw.showSocialLinks
+                    : !!raw.socialLinks,
+            canCreateAlbums: !!raw.canCreateAlbums,
+        };
+    }
+
+    private resolvePublicFeatures(vendor: Vendor) {
+        const activeMembership = this.resolveActiveMembership(
+            vendor.subscriptions || [],
+            vendor.activePlans || [],
+        );
+        const activePlan = (activeMembership as any)?.plan;
+
+        return this.normalizePublicPlanFeatures(
+            (activePlan?.features || activePlan?.dashboardFeatures || {}) as Record<string, unknown>,
+        );
+    }
+
+    private sanitizeSocialLinks(
+        socialLinks: { platform: string; url: string }[] | undefined,
+        canShowSocialLinks: boolean,
+    ) {
+        return canShowSocialLinks ? socialLinks || [] : [];
+    }
+
+    private sanitizeNamedPhoneNumbers(
+        namedPhoneNumbers: { label: string; number: string }[] | undefined,
+        maxNamedPhoneNumbers: number,
+    ) {
+        return maxNamedPhoneNumbers > 0 ? namedPhoneNumbers || [] : [];
+    }
+
     /**
      * Register a user as a vendor
      */
@@ -383,7 +424,7 @@ export class VendorsService {
         
         const vendor = await this.vendorRepository.findOne({
             where: isUuid ? { id: idOrSlug } : { slug: idOrSlug },
-            relations: ['user'],
+            relations: ['user', 'subscriptions', 'subscriptions.plan', 'activePlans', 'activePlans.plan'],
         });
 
         if (!vendor) {
@@ -402,6 +443,9 @@ export class VendorsService {
 
         const totalViews = listings.reduce((acc, l) => acc + Number(l.totalViews || 0), 0);
         const categories = [...new Set(listings.map(l => l.category?.name).filter(Boolean))];
+        const publicFeatures = this.resolvePublicFeatures(vendor);
+        const canShowSocialLinks = !!publicFeatures.showSocialLinks;
+        const maxNamedPhoneNumbers = Number(publicFeatures.maxNamedPhoneNumbers ?? 0);
 
         // Fetch Deals and Events
         const now = new Date();
@@ -428,11 +472,11 @@ export class VendorsService {
             businessName: vendor.businessName || vendor.user?.fullName || 'Unnamed Business',
             vendorName: vendor.user?.fullName || 'Vendor',
             contactName: vendor.user?.fullName || 'Business Team',
-            businessEmail: vendor.businessEmail || vendor.user?.email,
+            businessEmail: vendor.businessEmail,
             businessPhone: vendor.businessPhone,
             businessAddress: vendor.businessAddress,
             isVerified: vendor.isVerified,
-            socialLinks: vendor.socialLinks || [],
+            socialLinks: this.sanitizeSocialLinks(vendor.socialLinks, canShowSocialLinks),
             avatarUrl: vendor.user?.avatarUrl || null,
             isOnline: vendor.user?.isOnline || false,
             bio: vendor.bio,
@@ -441,7 +485,7 @@ export class VendorsService {
             totalViews,
             categories,
             createdAt: vendor.user?.createdAt,
-            namedPhoneNumbers: listings[0]?.namedPhoneNumbers || [],
+            namedPhoneNumbers: this.sanitizeNamedPhoneNumbers(listings[0]?.namedPhoneNumbers, maxNamedPhoneNumbers),
             listings: listings.map(l => ({
                 id: l.id,
                 title: l.title,
@@ -449,7 +493,7 @@ export class VendorsService {
                 images: l.images,
                 coverImageUrl: l.coverImageUrl || null,
                 logoUrl: l.logoUrl || null,
-                namedPhoneNumbers: l.namedPhoneNumbers || [],
+                namedPhoneNumbers: this.sanitizeNamedPhoneNumbers(l.namedPhoneNumbers, maxNamedPhoneNumbers),
                 averageRating: l.averageRating,
                 totalReviews: l.totalReviews,
                 city: l.city,
@@ -495,11 +539,10 @@ export class VendorsService {
         const vendorIds = rows.map(r => r.vendorId);
 
         // Load vendor + user data for each
-        const vendors = await this.vendorRepository
-            .createQueryBuilder('vendor')
-            .leftJoinAndSelect('vendor.user', 'user')
-            .whereInIds(vendorIds)
-            .getMany();
+        const vendors = await this.vendorRepository.find({
+            where: { id: In(vendorIds) },
+            relations: ['user', 'subscriptions', 'subscriptions.plan', 'activePlans', 'activePlans.plan'],
+        });
 
         // Load one representative listing per vendor (for cover image + categories)
         const sampleListings = await this.listingRepository
@@ -516,19 +559,20 @@ export class VendorsService {
             const listings = sampleListings.filter(l => l.vendorId === vendor.id);
             const cover = listings.find(l => l.images?.length) || listings[0];
             const categories = [...new Set(listings.map(l => l.category?.name).filter(Boolean))];
+            const publicFeatures = this.resolvePublicFeatures(vendor);
 
             return {
                 id: vendor.id,
                 slug: vendor.slug,
                 businessName: vendor.businessName || vendor.user?.fullName || 'Unnamed Business',
                 vendorName: vendor.user?.fullName || (vendor.user?.email ? vendor.user.email.split('@')[0] : 'Unknown'),
-                businessEmail: vendor.businessEmail || vendor.user?.email,
+                businessEmail: vendor.businessEmail,
                 businessPhone: (vendor.businessPhone && vendor.businessPhone !== '0000000000')
                     ? vendor.businessPhone
-                    : (vendor.user?.phone || listings[0]?.phone || null),
+                    : (listings[0]?.phone || null),
                 businessAddress: vendor.businessAddress,
                 isVerified: vendor.isVerified,
-                socialLinks: vendor.socialLinks || [],
+                socialLinks: this.sanitizeSocialLinks(vendor.socialLinks, !!publicFeatures.showSocialLinks),
                 avatarUrl: vendor.user?.avatarUrl || null,
                 isOnline: vendor.user?.isOnline || false,
                 coverImage: cover?.images?.[0] || null,

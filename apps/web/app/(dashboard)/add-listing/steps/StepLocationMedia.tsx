@@ -3,8 +3,8 @@ import { StepProps } from '../types';
 import { Loader2, MapPin, ImagePlus, Plus, Trash2, HelpCircle, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import AddressPlacesAutocomplete from '../../../../components/AddressPlacesAutocomplete';
-import { FeatureGate } from '../../../../components/business/FeatureGate';
 import { fetchCountries, useAddressConfig } from '../../../../hooks/useAddressConfig';
+import { usePlanFeature } from '../../../../hooks/usePlanFeature';
 import { tryDetectDeviceLocation } from '../../../../lib/location-detect';
 import { api } from '../../../../lib/api';
 import { City } from '../../../../types/api';
@@ -333,6 +333,7 @@ export const Step8Map = ({ formData, setFormData }: StepProps) => {
 };
 
 export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
+    const { isFree } = usePlanFeature();
     const [input, setInput] = useState('');
     const safeKeywords = Array.isArray(formData.searchKeywords) ? formData.searchKeywords : [];
 
@@ -340,7 +341,7 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
             const tag = input.trim().toLowerCase().replace(/[,]+$/, '');
-            if (tag && !safeKeywords.includes(tag) && safeKeywords.length < 10) {
+            if (tag && tag.length <= 40 && !safeKeywords.includes(tag) && safeKeywords.length < 10) {
                 setFormData(p => ({
                     ...p, 
                     searchKeywords: [...safeKeywords, tag],
@@ -362,12 +363,18 @@ export const Step16Keywords = ({ formData, setFormData }: StepProps) => {
         <div className="space-y-4">
             <label className={labelClass}>Add keywords that describe your business</label>
             <p className="text-xs text-slate-500 mb-2">Press enter or comma to add a keyword. Maximum 10 allowed.</p>
+            {isFree && (
+                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                    Keywords will still be saved in your setup draft. Upgrade later to unlock them on your live public profile.
+                </div>
+            )}
             <input 
                 type="text" 
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => setInput(e.target.value.slice(0, 40))}
                 onKeyDown={addKeyword}
                 placeholder="e.g. coffee shop, organic, 24/7..."
+                maxLength={40}
                 className={inputClass}
             />
             <div className="flex flex-wrap gap-2 mt-4">
@@ -388,9 +395,11 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
     const [q, setQ] = useState('');
     const [a, setA] = useState('');
     const safeFaqs = Array.isArray(formData.faqs) ? formData.faqs : [];
+    const { getFeatureValue } = usePlanFeature();
+    const maxFaqs = Math.max(0, Number(getFeatureValue('maxFaqs') || 0));
 
     const addFaq = () => {
-        if (q.trim() && a.trim()) {
+        if (q.trim() && a.trim() && q.trim().length <= 200 && a.trim().length <= 1000 && safeFaqs.length < 10) {
             setFormData(p => ({ ...p, faqs: [...(Array.isArray(p.faqs) ? p.faqs : []), { question: q, answer: a }] }));
             setQ('');
             setA('');
@@ -398,8 +407,12 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
     };
 
     return (
-        <FeatureGate feature="maxFaqs" isPage={false} title="Customer FAQs Locked" description="Anticipate customer questions and provide instant answers on your profile. Upgrade to a professional plan to add FAQs.">
-            <div className="space-y-6">
+        <div className="space-y-6">
+            {maxFaqs === 0 && (
+                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                    FAQs will still be saved in your listing draft. Upgrade later to unlock them on your public profile.
+                </div>
+            )}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
                 <label className={labelClass}>Add a New FAQ</label>
                 <input 
@@ -407,14 +420,17 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
                     placeholder="Question (e.g. Do you offer delivery?)" 
                     value={q} 
                     onChange={e => setQ(e.target.value)} 
+                    maxLength={200}
                     className={inputClass} 
                 />
                 <textarea 
                     placeholder="Answer" 
                     value={a} 
                     onChange={e => setA(e.target.value)} 
+                    maxLength={1000}
                     className={inputClass} 
                 />
+                <p className="text-[11px] text-slate-500 font-semibold">{q.length}/200 question characters • {a.length}/1000 answer characters</p>
                 <button type="button" onClick={addFaq} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold flex items-center gap-2">
                     <Plus className="w-4 h-4" /> Add FAQ
                 </button>
@@ -436,7 +452,6 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
                 ))}
             </div>
         </div>
-        </FeatureGate>
     );
 };
 

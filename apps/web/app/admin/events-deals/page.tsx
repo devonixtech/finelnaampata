@@ -376,52 +376,51 @@ export default function AdminEventsDealsPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-[2.5rem] w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+                            className="bg-white rounded-[2rem] w-[95vw] max-w-5xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] my-auto"
                         >
                             {/* Modal Header */}
-                            <div className="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+                            <div className="p-5 md:p-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shrink-0">
                                 <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest rounded-full flex items-center gap-1">
-                                            <DollarSign className="w-3.5 h-3.5" /> Financial Records
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">
+                                            <DollarSign className="w-3 h-3" /> Financial Records
                                         </span>
                                     </div>
-                                    <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white">Event & Deal Payment History</h2>
-                                    <p className="text-xs font-bold text-slate-400 mt-1">Transaction audit log for event visibility and deal promotions.</p>
+                                    <h2 className="text-xl lg:text-2xl font-black tracking-tight text-white">Event & Deal Payment History</h2>
                                 </div>
 
                                 <button
                                     onClick={() => setIsPaymentModalOpen(false)}
-                                    className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl transition-all"
+                                    className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"
                                 >
-                                    <X className="w-6 h-6" />
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {/* Summary Cards Row */}
-                            <div className="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-5 bg-white rounded-2xl border border-slate-200/60 flex items-center gap-4 shadow-sm">
-                                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center font-black">
-                                        <DollarSign className="w-6 h-6" />
+                            <div className="p-4 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
+                                <div className="p-4 bg-white rounded-xl border border-slate-200/60 flex items-center gap-4 shadow-sm">
+                                    <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-black shrink-0">
+                                        <DollarSign className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Total Promotion Revenue</p>
-                                        <p className="text-2xl font-black text-slate-900 mt-0.5">PKR {totalPaymentAmount.toLocaleString()}</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Revenue</p>
+                                        <p className="text-lg lg:text-xl font-black text-slate-900 leading-tight">PKR {totalPaymentAmount.toLocaleString()}</p>
                                     </div>
                                 </div>
-                                <div className="p-5 bg-white rounded-2xl border border-slate-200/60 flex items-center gap-4 shadow-sm">
-                                    <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center font-black">
-                                        <Receipt className="w-6 h-6" />
+                                <div className="p-4 bg-white rounded-xl border border-slate-200/60 flex items-center gap-4 shadow-sm">
+                                    <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center font-black shrink-0">
+                                        <Receipt className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Total Transactions</p>
-                                        <p className="text-2xl font-black text-slate-900 mt-0.5">{payments.length} Records</p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Transactions</p>
+                                        <p className="text-lg lg:text-xl font-black text-slate-900 leading-tight">{payments.length} Records</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Modal Search */}
-                            <div className="p-6 border-b border-slate-100">
+                            <div className="p-4 border-b border-slate-100 shrink-0">
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
@@ -429,23 +428,23 @@ export default function AdminEventsDealsPage() {
                                         value={paymentSearch}
                                         onChange={e => setPaymentSearch(e.target.value)}
                                         placeholder="Search by invoice #, item, vendor name, or email..."
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 transition-colors"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-emerald-500 transition-colors"
                                     />
                                 </div>
                             </div>
 
                             {/* Modal Table Content */}
-                            <div className="p-6 overflow-y-auto flex-1">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                            <div className="overflow-auto flex-1 min-h-[300px]">
+                                <table className="w-full text-left border-collapse min-w-[700px]">
+                                    <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
                                         <tr>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Invoice / ID</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Type & Promotion</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Vendor</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Amount</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Gateway</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Invoice / ID</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Type & Promotion</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Vendor</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Amount</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Gateway</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Status</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider bg-slate-50">Date</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -465,38 +464,38 @@ export default function AdminEventsDealsPage() {
                                             </tr>
                                         ) : (
                                             filteredPayments.map((pay) => (
-                                                <tr key={pay.id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="px-4 py-3">
+                                                <tr key={pay.id} className="hover:bg-slate-50/80 transition-colors">
+                                                    <td className="px-4 py-2.5">
                                                         <span className="font-mono text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-md">
                                                             {pay.invoiceNumber || pay.id.slice(0, 8)}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-4 py-2.5">
                                                         <div>
                                                             <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md ${pay.type === 'Event' ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700'}`}>
                                                                 {pay.type}
                                                             </span>
-                                                            <p className="font-black text-slate-900 text-xs mt-1">{pay.itemName}</p>
+                                                            <p className="font-black text-slate-900 text-xs mt-1 max-w-[150px] truncate" title={pay.itemName}>{pay.itemName}</p>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-4 py-2.5">
                                                         <div>
-                                                            <p className="font-black text-slate-900 text-xs">{pay.vendorName}</p>
-                                                            <p className="text-[11px] font-bold text-slate-400">{pay.vendorEmail}</p>
+                                                            <p className="font-black text-slate-900 text-xs max-w-[150px] truncate" title={pay.vendorName}>{pay.vendorName}</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 max-w-[150px] truncate" title={pay.vendorEmail}>{pay.vendorEmail}</p>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className="font-black text-slate-900 text-xs">
+                                                    <td className="px-4 py-2.5">
+                                                        <span className="font-black text-slate-900 text-xs whitespace-nowrap">
                                                             PKR {Number(pay.amount || 0).toLocaleString()}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="px-4 py-2.5">
                                                         <span className="text-xs font-bold text-slate-500">
                                                             {pay.paymentGateway}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg ${
+                                                    <td className="px-4 py-2.5">
+                                                        <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg ${
                                                             pay.status === 'active' || pay.status === 'completed' || pay.status === 'succeeded'
                                                                 ? 'bg-emerald-100 text-emerald-700'
                                                                 : 'bg-amber-100 text-amber-700'
@@ -504,7 +503,7 @@ export default function AdminEventsDealsPage() {
                                                             {pay.status}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-xs font-bold text-slate-500 whitespace-nowrap">
+                                                    <td className="px-4 py-2.5 text-[11px] font-bold text-slate-500 whitespace-nowrap">
                                                         {pay.createdAt ? new Date(pay.createdAt).toLocaleDateString() : 'N/A'}
                                                     </td>
                                                 </tr>
@@ -515,10 +514,10 @@ export default function AdminEventsDealsPage() {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
                                 <button
                                     onClick={() => setIsPaymentModalOpen(false)}
-                                    className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all active:scale-95"
+                                    className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-black text-xs hover:bg-slate-800 transition-all active:scale-95"
                                 >
                                     Close Window
                                 </button>

@@ -624,9 +624,9 @@ export const api = {
             });
             return fetcher<any>(`/admin/businesses?${params}`);
         },
-        moderateBusiness: (id: string, status: string, reason?: string) => fetcher<any>(`/admin/business/${id}/moderate`, {
+        setBusinessSuspension: (id: string, suspended: boolean) => fetcher<any>(`/admin/business/${id}/suspension`, {
             method: 'PATCH',
-            body: JSON.stringify({ status, reason }),
+            body: JSON.stringify({ suspended }),
         }),
         deleteBusiness: (id: string) => fetcher<any>(`/admin/businesses/${id}`, {
             method: 'DELETE',

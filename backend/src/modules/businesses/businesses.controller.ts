@@ -34,7 +34,7 @@ import { FeatureGateGuard } from '../../common/guards/feature-gate.guard';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User, UserRole } from '../../entities/user.entity';
 import { Request } from 'express';
-import { SearchLocationService } from '../location/search-location.service';
+import { SearchLocationService } from '../search/search-location.service';
 
 @ApiTags('businesses')
 @Controller('businesses')

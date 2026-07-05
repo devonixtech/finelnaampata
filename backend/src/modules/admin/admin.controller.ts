@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { ModerateBusinessDto, ModerateReviewDto } from './dto/moderate.dto';
+import { ModerateReviewDto } from './dto/moderate.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -50,16 +50,6 @@ export class AdminController {
         @Query('endDate') endDate?: string
     ) {
         return this.adminService.getHeatmapData(startDate, endDate);
-    }
-
-    @Patch('business/:id/moderate')
-    @ApiOperation({ summary: 'Approve, reject, or suspend a business' })
-    @ApiResponse({ status: 200, description: 'Business status updated' })
-    moderateBusiness(
-        @Param('id', ParseUuidPipe) id: string,
-        @Body() dto: ModerateBusinessDto,
-    ) {
-        return this.adminService.moderateBusiness(id, dto);
     }
 
     @Patch('review/:id/moderate')
@@ -184,6 +174,17 @@ export class AdminController {
         @Query('status') status: string,
     ) {
         return this.adminService.verifyVendor(id, status === 'true');
+    }
+
+    @Patch('business/:id/suspension')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Suspend or restore a business listing' })
+    @ApiResponse({ status: 200, description: 'Business suspension status updated' })
+    setBusinessSuspension(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('suspended') suspended: boolean,
+    ) {
+        return this.adminService.setBusinessSuspension(id, suspended);
     }
 
     @Patch('business/:id/featured')

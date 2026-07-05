@@ -86,6 +86,11 @@ const buildBusinessHoursPayload = (businessHours: any[]) => {
     return hours.length ? hours : undefined;
 };
 
+const getDefaultBusinessTimezone = () => {
+    if (typeof Intl === 'undefined') return 'UTC';
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+};
+
 function AddListingContent() {
     const { user } = useAuth();
     const router = useRouter();
@@ -116,6 +121,7 @@ function AddListingContent() {
     // V2 Form Data
     const [formData, setFormData] = useState<ListingFormData>({
         title: '',
+        businessTagline: '',
         shortDescription: '',
         description: '',
         businessType: [],
@@ -124,6 +130,7 @@ function AddListingContent() {
         targetMarket: [],
         categoryId: '',
         subCategoryIds: [],
+        customCategoryTag: '',
         address: '',
         addressLine2: '',
         city: '',
@@ -135,9 +142,13 @@ function AddListingContent() {
         phoneCode: '+92',
         phoneNumber: '',
         whatsapp: '',
+        whatsappSameAsPrimary: false,
+        contactPersonTitle: '',
         contactPersonName: '',
         namedPhoneNumbers: [],
         businessHours: [],
+        open247: false,
+        timezone: getDefaultBusinessTimezone(),
         yearEstablished: '',
         employeeCount: '',
         website: '',
@@ -164,7 +175,12 @@ function AddListingContent() {
         coverImageUrl: '',
         images: [],
         imageCaptions: {},
-        agreed: false,
+        legalConsentTerms: false,
+        legalConsentPrivacy: false,
+        legalConsentModeration: false,
+        legalConsentAccuracy: false,
+        legalConsentPublicLocation: false,
+        legalConsentMarketing: false,
     });
 
     const formDataRef = useRef(formData);
@@ -191,6 +207,7 @@ function AddListingContent() {
 
     const { getFeatureValue, planName, isFree } = usePlanFeature();
     const maxListings = Math.max(1, Number(getFeatureValue('maxListings') || 1));
+    const maxSubCategories = Math.max(0, Number(getFeatureValue('maxSubCategories') || 0));
     const maxImages = isFree ? 3 : 999;
     const isVendor = user?.role === 'vendor';
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
@@ -270,10 +287,6 @@ function AddListingContent() {
                 }
                 break;
             case 5:
-                if (!formData.categoryId) {
-                    setError('Please select a primary Business Category.');
-                    return false;
-                }
                 break;
             case 7:
                 if (!formData.address || formData.address.trim().length < 5) {
@@ -284,10 +297,6 @@ function AddListingContent() {
                     setError('City is required and must be at least 2 characters.');
                     return false;
                 }
-                if (!formData.state || formData.state.trim().length < 2) {
-                    setError('State / Province is required and must be at least 2 characters.');
-                    return false;
-                }
                 break;
             case 9:
                 const phone = toE164(formData.phoneCode, formData.phoneNumber);
@@ -296,9 +305,15 @@ function AddListingContent() {
                     return false;
                 }
                 break;
-            case 11:
-                if (!formData.description || formData.description.trim().length < 10) {
-                    setError('Description is required and must be at least 10 characters.');
+            case 16:
+                if (formData.searchKeywords.some((keyword) => keyword.trim().length > 40)) {
+                    setError('Each keyword must be 40 characters or less.');
+                    return false;
+                }
+                break;
+            case 17:
+                if (formData.faqs.some((faq) => faq.question.trim().length > 200 || faq.answer.trim().length > 1000)) {
+                    setError('FAQs must keep questions under 200 characters and answers under 1,000 characters.');
                     return false;
                 }
                 break;
@@ -331,8 +346,14 @@ function AddListingContent() {
         e.preventDefault();
         if (activeStep !== STEPS.length) return;
 
-        if (!formData.agreed) {
-            setError('You must agree to the Terms & Conditions and Privacy Policy.');
+        if (
+            !formData.legalConsentTerms ||
+            !formData.legalConsentPrivacy ||
+            !formData.legalConsentModeration ||
+            !formData.legalConsentAccuracy ||
+            !formData.legalConsentPublicLocation
+        ) {
+            setError('Please complete all required legal consent checkboxes before submitting.');
             return;
         }
 
@@ -349,21 +370,34 @@ function AddListingContent() {
         const logoUrl = normalizeOptionalUrl(rawData.logoUrl);
         const coverImageUrl = normalizeOptionalUrl(rawData.coverImageUrl);
         const images = Array.isArray(rawData.images) && rawData.images.length ? rawData.images : undefined;
-        const faqs = Array.isArray(rawData.faqs) && rawData.faqs.length ? rawData.faqs : undefined;
-        const subCategoryIds = Array.isArray(rawData.subCategoryIds) && rawData.subCategoryIds.length
-            ? rawData.subCategoryIds
+        const faqs = Array.isArray(rawData.faqs) && rawData.faqs.length
+            ? rawData.faqs.slice(0, 10)
+            : undefined;
+        const subCategoryIds = Array.isArray(rawData.subCategoryIds) && rawData.subCategoryIds.length && maxSubCategories > 0
+            ? rawData.subCategoryIds.slice(0, maxSubCategories)
+            : undefined;
+        const suggestedCategoryName = rawData.customCategoryTag.trim() || undefined;
+        const description = rawData.description.trim();
+        const cleanSocialLinks = Array.isArray(rawData.socialLinks) && rawData.socialLinks.length
+            ? rawData.socialLinks.filter((s: any) => s.url?.trim()).map((s: any) => ({
+                ...s,
+                url: normalizeOptionalUrl(s.url) || s.url,
+            }))
             : undefined;
 
         const submissionData = {
             title: rawData.title.trim(),
             categoryId: rawData.categoryId || undefined,
+            suggestedCategoryName,
             subCategoryIds,
-            description: rawData.description.trim(),
+            description: description || undefined,
             shortDescription: rawData.shortDescription.trim() || undefined,
             phone,
             whatsapp,
             namedPhoneNumbers: Array.isArray(rawData.namedPhoneNumbers) && rawData.namedPhoneNumbers.length
-                ? rawData.namedPhoneNumbers.filter((item) => item.label?.trim() && item.number?.trim())
+                ? rawData.namedPhoneNumbers
+                    .filter((item) => item.label?.trim() && item.number?.trim())
+                    .slice(0, 5)
                 : undefined,
             website,
             address: rawData.address.trim(),
@@ -383,18 +417,23 @@ function AddListingContent() {
             yearEstablished: Number.isInteger(yearEstablished as number) ? yearEstablished : undefined,
             employeeCount: rawData.employeeCount || undefined,
             businessHours,
+            open247: Boolean(rawData.open247),
+            timezone: rawData.timezone?.trim() || undefined,
             metaKeywords: Array.isArray(rawData.searchKeywords) && rawData.searchKeywords.length
-                ? rawData.searchKeywords.join(', ')
+                ? rawData.searchKeywords.slice(0, 10).join(', ')
+                : undefined,
+            searchKeywords: Array.isArray(rawData.searchKeywords) && rawData.searchKeywords.length
+                ? rawData.searchKeywords.slice(0, 10)
                 : undefined,
             faqs,
+            businessTagline: rawData.businessTagline?.trim() || undefined,
             businessType: Array.isArray(rawData.businessType) && rawData.businessType.length ? rawData.businessType : undefined,
             coreBusinessNature: Array.isArray(rawData.coreBusinessNature) && rawData.coreBusinessNature.length ? rawData.coreBusinessNature : undefined,
             operationalStructure: Array.isArray(rawData.operationalStructure) && rawData.operationalStructure.length ? rawData.operationalStructure : undefined,
             targetMarket: Array.isArray(rawData.targetMarket) && rawData.targetMarket.length ? rawData.targetMarket : undefined,
             industrySubType: Array.isArray(rawData.industrySubType) && rawData.industrySubType.length ? rawData.industrySubType : undefined,
-            socialLinks: Array.isArray(rawData.socialLinks) && rawData.socialLinks.length
-                ? rawData.socialLinks.filter((s: any) => s.url?.trim())
-                : undefined,
+            socialLinks: cleanSocialLinks,
+            contactPersonTitle: rawData.contactPersonTitle?.trim() || undefined,
             contactPersonName: rawData.contactPersonName?.trim() || undefined,
             locationAccess: Array.isArray(rawData.locationAccess) && rawData.locationAccess.length ? rawData.locationAccess : undefined,
             facilities: Array.isArray(rawData.facilities) && rawData.facilities.length ? rawData.facilities : undefined,
@@ -412,6 +451,12 @@ function AddListingContent() {
             chainOrMultipleBranches: rawData.chainOrMultipleBranches || undefined,
             legalConsentAccepted: true,
             legalConsentAcceptedAt: new Date().toISOString(),
+            legalConsentTerms: rawData.legalConsentTerms,
+            legalConsentPrivacy: rawData.legalConsentPrivacy,
+            legalConsentModeration: rawData.legalConsentModeration,
+            legalConsentAccuracy: rawData.legalConsentAccuracy,
+            legalConsentPublicLocation: rawData.legalConsentPublicLocation,
+            legalConsentMarketing: rawData.legalConsentMarketing,
             legalConsentSessionId: typeof window !== 'undefined'
                 ? (sessionStorage.getItem('listingConsentSessionId') || (() => {
                     const value = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -431,6 +476,26 @@ function AddListingContent() {
         };
 
         try {
+            const duplicateResult = await api.businessSetup.checkDuplicate({
+                businessName: submissionData.title,
+                phone,
+                address: submissionData.address,
+                city: submissionData.city,
+                state: submissionData.state,
+                latitude: submissionData.latitude !== undefined ? String(submissionData.latitude) : undefined,
+                longitude: submissionData.longitude !== undefined ? String(submissionData.longitude) : undefined,
+            }).catch(() => null);
+
+            if (duplicateResult?.showPrompt) {
+                const proceed = window.confirm(
+                    `Potential duplicate detected (${duplicateResult.signals.join(', ')}). Do you want to submit this listing anyway?`,
+                );
+                if (!proceed) {
+                    setLoading(false);
+                    return;
+                }
+            }
+
             await api.listings.create(submissionData);
             if (typeof window !== 'undefined') {
                 // Keep the formData in draft so that when the business owner adds another listing again, it is pre-filled!
@@ -470,22 +535,57 @@ function AddListingContent() {
             case 19: return <Step19Media {...props} />;
             case 20: return (
                 <div className="space-y-6">
-                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl">
-                        <label className="flex items-start cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                className="w-5 h-5 mt-0.5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
-                                checked={formData.agreed}
-                                onChange={e => setFormData(p => ({ ...p, agreed: e.target.checked }))}
-                            />
-                            <div className="ml-4">
-                                <span className="text-sm font-black text-slate-900 block">I agree to the Terms of Service and Privacy Policy</span>
-                                <span className="text-xs font-medium text-slate-500 block mt-1">
-                                    By submitting this listing, I confirm that I am an authorized representative of this business and the information provided is accurate.
-                                </span>
-                            </div>
-                        </label>
-                    </div>
+                    {[
+                        {
+                            key: 'legalConsentTerms',
+                            label: 'I agree to the Business Terms of Service',
+                            required: true,
+                        },
+                        {
+                            key: 'legalConsentPrivacy',
+                            label: 'I agree to the Privacy Policy',
+                            required: true,
+                        },
+                        {
+                            key: 'legalConsentModeration',
+                            label: 'I agree to the Content Moderation Policy',
+                            required: true,
+                        },
+                        {
+                            key: 'legalConsentAccuracy',
+                            label: 'I confirm my business information is accurate',
+                            required: true,
+                        },
+                        {
+                            key: 'legalConsentPublicLocation',
+                            label: 'I consent to my business location being publicly displayed',
+                            required: true,
+                        },
+                        {
+                            key: 'legalConsentMarketing',
+                            label: 'I agree to receive platform notifications and updates',
+                            required: false,
+                        },
+                    ].map((item) => (
+                        <div key={item.key} className="p-6 bg-slate-50 border border-slate-200 rounded-2xl">
+                            <label className="flex items-start cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="w-5 h-5 mt-0.5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                    checked={Boolean((formData as any)[item.key])}
+                                    onChange={e => setFormData(p => ({
+                                        ...p,
+                                        [item.key]: e.target.checked,
+                                    }))}
+                                />
+                                <div className="ml-4">
+                                    <span className="text-sm font-black text-slate-900 block">
+                                        {item.label}{item.required ? ' *' : ' (Optional)'}
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                    ))}
                 </div>
             );
             default:
@@ -621,7 +721,7 @@ function AddListingContent() {
                     ) : (
                         <button
                             type="submit"
-                            disabled={loading || !formData.agreed}
+                            disabled={loading || !formData.legalConsentTerms || !formData.legalConsentPrivacy || !formData.legalConsentModeration || !formData.legalConsentAccuracy || !formData.legalConsentPublicLocation}
                             className="px-8 py-3 rounded-xl font-black text-sm text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 shadow-lg shadow-orange-500/20"
                         >
                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}

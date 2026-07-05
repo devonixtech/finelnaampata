@@ -171,6 +171,30 @@ export class User {
     @Column({ name: 'deletion_scheduled_at', nullable: true, type: 'timestamp' })
     deletionScheduledAt: Date;
 
+    @Column({ name: 'deletion_hold_reason', nullable: true, type: 'text' })
+    deletionHoldReason: string;
+
+    @Column({ name: 'deletion_hold_started_at', nullable: true, type: 'timestamp' })
+    deletionHoldStartedAt: Date;
+
+    @Column({ name: 'deletion_reminder_sent_at', nullable: true, type: 'timestamp' })
+    deletionReminderSentAt: Date;
+
+    @Column({ name: 'deletion_final_reminder_sent_at', nullable: true, type: 'timestamp' })
+    deletionFinalReminderSentAt: Date;
+
+    @Column({ name: 'deletion_completed_at', nullable: true, type: 'timestamp' })
+    deletionCompletedAt: Date;
+
+    @Column({ name: 'deletion_cancelled_at', nullable: true, type: 'timestamp' })
+    deletionCancelledAt: Date;
+
+    @Column({ name: 'public_deletion_otp', nullable: true, length: 6 })
+    publicDeletionOtp: string;
+
+    @Column({ name: 'public_deletion_otp_expires_at', nullable: true, type: 'timestamp' })
+    publicDeletionOtpExpiresAt: Date;
+
     /**
      * Virtual field for user badge
      */

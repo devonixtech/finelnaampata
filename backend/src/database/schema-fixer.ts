@@ -51,6 +51,38 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 await queryRunner.query('ALTER TABLE users ADD COLUMN facebook_id VARCHAR(255)');
                 await queryRunner.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_facebook_id ON users(facebook_id) WHERE facebook_id IS NOT NULL');
             }
+            if (!usersTable.findColumnByName('deletion_hold_reason')) {
+                logger.log('➕ Adding deletion_hold_reason to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_hold_reason TEXT');
+            }
+            if (!usersTable.findColumnByName('deletion_hold_started_at')) {
+                logger.log('➕ Adding deletion_hold_started_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_hold_started_at TIMESTAMP');
+            }
+            if (!usersTable.findColumnByName('deletion_reminder_sent_at')) {
+                logger.log('➕ Adding deletion_reminder_sent_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_reminder_sent_at TIMESTAMP');
+            }
+            if (!usersTable.findColumnByName('deletion_final_reminder_sent_at')) {
+                logger.log('➕ Adding deletion_final_reminder_sent_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_final_reminder_sent_at TIMESTAMP');
+            }
+            if (!usersTable.findColumnByName('deletion_completed_at')) {
+                logger.log('➕ Adding deletion_completed_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_completed_at TIMESTAMP');
+            }
+            if (!usersTable.findColumnByName('deletion_cancelled_at')) {
+                logger.log('➕ Adding deletion_cancelled_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN deletion_cancelled_at TIMESTAMP');
+            }
+            if (!usersTable.findColumnByName('public_deletion_otp')) {
+                logger.log('➕ Adding public_deletion_otp to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN public_deletion_otp VARCHAR(6)');
+            }
+            if (!usersTable.findColumnByName('public_deletion_otp_expires_at')) {
+                logger.log('➕ Adding public_deletion_otp_expires_at to users');
+                await queryRunner.query('ALTER TABLE users ADD COLUMN public_deletion_otp_expires_at TIMESTAMP');
+            }
         }
 
         // --- VENDORS ---
@@ -129,6 +161,7 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 { name: 'legal_consent_device_id', type: 'varchar(128)', nullable: true },
                 { name: 'terms_version', type: 'varchar(32)', nullable: true },
                 { name: 'privacy_version', type: 'varchar(32)', nullable: true },
+                { name: 'hidden_by_deletion', type: 'boolean', default: 'false' },
             ];
 
             for (const col of missingColumns) {
@@ -235,6 +268,24 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 CREATE INDEX idx_events_status ON events(status);
                 CREATE INDEX idx_events_is_featured ON events(is_featured);
             `);
+        }
+
+        try {
+            await queryRunner.query(`
+                CREATE TABLE IF NOT EXISTS deletion_audit_logs (
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    account_id_hash varchar(128) NOT NULL,
+                    user_id uuid NULL,
+                    event_type varchar(64) NOT NULL,
+                    details jsonb DEFAULT '{}'::jsonb,
+                    created_at timestamp NOT NULL DEFAULT now()
+                )
+            `);
+            await queryRunner.query('CREATE INDEX IF NOT EXISTS idx_deletion_audit_logs_user_id ON deletion_audit_logs(user_id)');
+            await queryRunner.query('CREATE INDEX IF NOT EXISTS idx_deletion_audit_logs_event_type ON deletion_audit_logs(event_type)');
+            await queryRunner.query('CREATE INDEX IF NOT EXISTS idx_deletion_audit_logs_created_at ON deletion_audit_logs(created_at)');
+        } catch (error: any) {
+            logger.warn('Deletion audit log setup skipped: ' + error.message);
         }
 
         // --- DATA MIGRATION FROM OFFER_EVENTS ---

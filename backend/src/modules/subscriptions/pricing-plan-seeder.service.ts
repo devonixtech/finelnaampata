@@ -32,6 +32,7 @@ export class PricingPlanSeederService implements OnModuleInit {
                 features: { 
                     maxListings: 1, 
                     maxCategories: 1,
+                    maxSubCategories: 0,
                     maxPhotos: 3,
                     canCreateAlbums: false,
                     canChat: false,
@@ -58,6 +59,7 @@ export class PricingPlanSeederService implements OnModuleInit {
                 features: { 
                     maxListings: 999, 
                     maxCategories: 4, // 1 primary + 3 subcategories
+                    maxSubCategories: 3,
                     maxPhotos: 999, // unlimited
                     canCreateAlbums: true,
                     canChat: true,
@@ -83,8 +85,9 @@ export class PricingPlanSeederService implements OnModuleInit {
                 unit: PricingPlanUnit.YEARS,
                 features: { 
                     maxListings: 999, 
-                    maxCategories: 4, 
-                    maxPhotos: 999, 
+                    maxCategories: 4, // 1 primary + 3 subcategories
+                    maxSubCategories: 3,
+                    maxPhotos: 999, // unlimited
                     canCreateAlbums: true,
                     canChat: true,
                     whatsappIntegration: true,
@@ -96,8 +99,8 @@ export class PricingPlanSeederService implements OnModuleInit {
                     maxAdditionalPhones: 5,
                     respondToBroadcastLeads: true,
                     customerNotes: true,
-                    maxOffers: 0, 
-                    maxEvents: 0, 
+                    maxOffers: 0, // separate add-on
+                    maxEvents: 0, // separate add-on
                 },
                 isActive: true,
             },

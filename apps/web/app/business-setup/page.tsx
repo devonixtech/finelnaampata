@@ -135,7 +135,12 @@ function BusinessSetupWizardContent() {
     const { user, syncProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { isFree } = usePlanFeature();
+    const { isFree, hasFeature, getFeatureValue } = usePlanFeature();
+    const maxSubCategories = Math.max(0, Number(getFeatureValue('maxSubCategories') || 0));
+    const totalSubCategorySlots = Math.max(3, maxSubCategories || 0);
+    const maxNamedPhoneNumbers = Math.max(0, Number(getFeatureValue('maxNamedPhoneNumbers') || 0));
+    const maxFaqs = Math.max(0, Number(getFeatureValue('maxFaqs') || 0));
+    const hasWhatsappIntegration = hasFeature('showChat');
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [allCities, setAllCities] = useState<City[]>([]);
@@ -452,12 +457,24 @@ function BusinessSetupWizardContent() {
 
     // Setup session & device keys
     useEffect(() => {
-        const sessionSeed = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-        const deviceSeed = `dev-${Math.random().toString(36).slice(2, 14)}`;
+        if (typeof window === 'undefined') return;
+
+        const sessionId = sessionStorage.getItem('listingConsentSessionId') || (() => {
+            const value = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            sessionStorage.setItem('listingConsentSessionId', value);
+            return value;
+        })();
+
+        const deviceId = localStorage.getItem('listingConsentDeviceId') || (() => {
+            const value = `dev-${Math.random().toString(36).slice(2, 14)}`;
+            localStorage.setItem('listingConsentDeviceId', value);
+            return value;
+        })();
+
         setConsentMeta(prev => ({
             ...prev,
-            sessionId: sessionSeed,
-            deviceId: deviceSeed
+            sessionId,
+            deviceId
         }));
     }, []);
 
@@ -725,7 +742,7 @@ function BusinessSetupWizardContent() {
             'importerExporter': [stepData.importerExporter],
             'areasServed': stepData.areasServed,
             'logoUrl': [stepData.logoUrl],
-            'coverImageUrl': stepData.coverImageUrl,
+            'coverImageUrl': [stepData.coverImageUrl],
             'galleryUrls': stepData.galleryUrls,
             'imageCaptions': [JSON.stringify(stepData.imageCaptions)],
         };
@@ -746,10 +763,13 @@ function BusinessSetupWizardContent() {
                 }
             } else if (currentStep === 7) {
                 const businessAddress = stepData.address.trim();
-                if (businessAddress.length >= 5) {
-                    await api.businessProfiles.updateProfile({
-                        businessAddress,
-                    });
+                const profileUpdate: any = {};
+                if (businessAddress.length >= 5) profileUpdate.businessAddress = businessAddress;
+                if (stepData.city) profileUpdate.city = stepData.city;
+                if (stepData.country) profileUpdate.country = stepData.country;
+                if (stepData.state) profileUpdate.state = stepData.state;
+                if (Object.keys(profileUpdate).length > 0) {
+                    await api.businessProfiles.updateProfile(profileUpdate);
                 }
             } else if (currentStep === 9) {
                 const normalizedPhone = stepData.phoneNumber.replace(/[^\d]/g, '').replace(/^0+/, '');
@@ -767,11 +787,26 @@ function BusinessSetupWizardContent() {
                 if (Object.keys(profileUpdate).length > 0) {
                     await api.businessProfiles.updateProfile(profileUpdate);
                 }
+            } else if (currentStep === 10) {
+                if (stepData.hours && Object.keys(stepData.hours).length > 0) {
+                    await api.businessProfiles.updateProfile({
+                        businessHours: stepData.hours as any,
+                    });
+                }
             } else if (currentStep === 11) {
                 const bio = stepData.bio.trim();
                 if (bio.length >= 20) {
                     await api.businessProfiles.updateProfile({
                         bio,
+                    });
+                }
+            } else if (currentStep === 13) {
+                const links = Object.entries(stepData.socialLinks)
+                    .filter(([_, url]) => url)
+                    .map(([platform, url]) => ({ platform, url }));
+                if (links.length > 0) {
+                    await api.businessProfiles.updateProfile({
+                        socialLinks: links as any,
                     });
                 }
             }
@@ -801,6 +836,18 @@ function BusinessSetupWizardContent() {
     const handleFinalSubmit = async () => {
         setSaving(true);
         try {
+            if (
+                !stepData.termsAccepted ||
+                !stepData.privacyAccepted ||
+                !stepData.moderationAccepted ||
+                !stepData.accuracyConfirmed ||
+                !stepData.publicLocationConsent
+            ) {
+                alert('Please complete all required legal consent checkboxes before finishing.');
+                setSaving(false);
+                return;
+            }
+
             const isDupCheckOk = await runDuplicateCheck();
             if (!isDupCheckOk) {
                 setSaving(false);
@@ -949,6 +996,18 @@ function BusinessSetupWizardContent() {
                 return;
             }
         }
+        else if (currentStep === 16) {
+            if (stepData.keywords.some((keyword) => keyword.trim().length > 40)) {
+                alert('Each keyword must be 40 characters or less.');
+                return;
+            }
+        }
+        else if (currentStep === 17) {
+            if (stepData.faqs.some((faq) => faq.question.trim().length > 200 || faq.answer.trim().length > 1000)) {
+                alert('FAQs must keep questions under 200 characters and answers under 1,000 characters.');
+                return;
+            }
+        }
 
         if (currentStep === 8) {
             const isDupOk = await runDuplicateCheck();
@@ -1001,7 +1060,7 @@ function BusinessSetupWizardContent() {
     const [keywordInput, setKeywordInput] = useState('');
     const addKeywordTag = () => {
         if (keywordInput.trim() && stepData.keywords.length < 10) {
-            const kw = keywordInput.trim().replace(/#/g, '');
+            const kw = keywordInput.trim().replace(/#/g, '').slice(0, 40);
             if (!stepData.keywords.includes(kw)) {
                 setStepData(prev => ({ ...prev, keywords: [...prev.keywords, kw] }));
                 setKeywordInput('');
@@ -1033,6 +1092,10 @@ function BusinessSetupWizardContent() {
     const triggerImageUpload = async (file: File, target: 'logoUrl' | 'coverImageUrl' | 'gallery') => {
         setSaving(true);
         try {
+            if (target === 'gallery' && isFree && stepData.galleryUrls.length >= 3) {
+                alert('Free plans can publish up to 3 gallery images.');
+                return;
+            }
             const res = await api.listings.uploadImage(file);
             if (target === 'gallery') {
                 setStepData(prev => ({ ...prev, galleryUrls: [...prev.galleryUrls, res.url] }));
@@ -1193,7 +1256,6 @@ function BusinessSetupWizardContent() {
                 );
 
             case 4: { // Step 5: Category & Subcategory
-                const primaryCatObj = categories.find(c => c.id === stepData.primaryCategory);
                 const relatedSubcategories = categories.filter(c => c.parentId === stepData.primaryCategory);
 
                 return (
@@ -1215,53 +1277,39 @@ function BusinessSetupWizardContent() {
 
                             {stepData.primaryCategory && relatedSubcategories.length > 0 && (
                                 <div className="space-y-4 pt-2 border-t border-slate-100">
-                                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider">Subcategories (Select up to 3)</h4>
-                                    
-                                    <div>
-                                        <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 1</label>
-                                        <select
-                                            value={stepData.subcategory1}
-                                            onChange={e => setStepData({...stepData, subcategory1: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
-                                        >
-                                            <option value="">-- Select Subcategory 1 --</option>
-                                            {relatedSubcategories.map(sub => (
-                                                <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                                        {maxSubCategories > 0 ? `Subcategories (Select up to ${maxSubCategories})` : 'Subcategories (Paid plans unlock up to 3)'}
+                                    </h4>
+                                    {maxSubCategories === 0 && <PremiumFeatureBanner />}
 
-                                    {stepData.subcategory1 && (
-                                        <div>
-                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 2</label>
-                                            <select
-                                                value={stepData.subcategory2}
-                                                onChange={e => setStepData({...stepData, subcategory2: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
-                                            >
-                                                <option value="">-- Select Subcategory 2 --</option>
-                                                {relatedSubcategories.filter(s => s.name !== stepData.subcategory1).map(sub => (
-                                                    <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
+                                    {Array.from({ length: totalSubCategorySlots }).map((_, index) => {
+                                        const key = (`subcategory${index + 1}` as 'subcategory1' | 'subcategory2' | 'subcategory3');
+                                        const currentValue = stepData[key];
+                                        const previousSelections = [stepData.subcategory1, stepData.subcategory2, stepData.subcategory3]
+                                            .slice(0, index)
+                                            .filter(Boolean);
+                                        const availableOptions = relatedSubcategories.filter((sub) => !previousSelections.includes(sub.name) || sub.name === currentValue);
+                                        const locked = index >= maxSubCategories;
 
-                                    {stepData.subcategory2 && (
-                                        <div>
-                                            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Subcategory 3</label>
-                                            <select
-                                                value={stepData.subcategory3}
-                                                onChange={e => setStepData({...stepData, subcategory3: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700"
-                                            >
-                                                <option value="">-- Select Subcategory 3 --</option>
-                                                {relatedSubcategories.filter(s => s.name !== stepData.subcategory1 && s.name !== stepData.subcategory2).map(sub => (
-                                                    <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
+                                        return (
+                                            <div key={key}>
+                                                <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                                                    Subcategory {index + 1}
+                                                </label>
+                                                <select
+                                                    value={currentValue}
+                                                    disabled={locked}
+                                                    onChange={e => setStepData({ ...stepData, [key]: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                                >
+                                                    <option value="">{locked ? '-- Upgrade to unlock --' : `-- Select Subcategory ${index + 1} --`}</option>
+                                                    {availableOptions.map(sub => (
+                                                        <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
 
@@ -1644,6 +1692,7 @@ function BusinessSetupWizardContent() {
                             </div>
 
                             <div className="pt-2">
+                                {!hasWhatsappIntegration && <PremiumFeatureBanner />}
                                 <label className="flex items-center gap-2 cursor-pointer mb-2 ml-1">
                                     <input
                                         type="checkbox"
@@ -1703,7 +1752,8 @@ function BusinessSetupWizardContent() {
                             </div>
 
                             <div className="pt-2 border-t border-slate-100">
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Additional Named Phone Numbers{isFree ? ' (Premium Only)' : ''}</label>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Additional Named Phone Numbers{maxNamedPhoneNumbers === 0 ? ' (Premium Only)' : ''}</label>
+                                {maxNamedPhoneNumbers === 0 && <PremiumFeatureBanner />}
                                 <div className="space-y-2">
                                     {stepData.namedPhoneNumbers.map((p, idx) => (
                                         <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -1979,6 +2029,11 @@ function BusinessSetupWizardContent() {
 
                             <div className="pt-2 border-t border-slate-100">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Social Media Links</p>
+                                {isFree && (
+                                    <div className="mb-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                                        Social links will still be saved now. Upgrade later to unlock them on your live profile.
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Facebook Page</label>
@@ -2183,13 +2238,20 @@ function BusinessSetupWizardContent() {
                         </div>
                         <div className="space-y-4">
                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Add keywords that search queries can match (Max 10)</label>
+                            <p className="text-xs text-slate-500">Use short tags only. Each keyword can be up to 40 characters.</p>
+                            {isFree && (
+                                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                                    Search keywords will still be saved now. Upgrade later to unlock them on your live profile.
+                                </div>
+                            )}
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={keywordInput}
-                                    onChange={e => setKeywordInput(e.target.value)}
+                                    onChange={e => setKeywordInput(e.target.value.slice(0, 40))}
                                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addKeywordTag(); } }}
                                     placeholder="Type keyword and press Enter..."
+                                    maxLength={40}
                                     className="flex-grow px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
                                 />
                                 <button
@@ -2224,11 +2286,12 @@ function BusinessSetupWizardContent() {
                         <div className="border-b border-slate-100 pb-4 mb-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xl font-black text-slate-800">Frequently Asked Questions</h3>
-                                {isFree && <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" /> Premium Only</span>}
+                                {maxFaqs === 0 && <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" /> Premium Only</span>}
                             </div>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 18 of 21 • Optional</p>
                         </div>
                         <div className="space-y-4">
+                            {maxFaqs === 0 && <PremiumFeatureBanner />}
                             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                                 <div>
                                     <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Question</label>
@@ -2237,8 +2300,10 @@ function BusinessSetupWizardContent() {
                                         value={faqQ}
                                         onChange={e => setFaqQ(e.target.value.slice(0, 200))}
                                         placeholder="e.g. Do you offer delivery?"
+                                        maxLength={200}
                                         className="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white"
                                     />
+                                    <p className="mt-1 text-[10px] font-semibold text-slate-400">{faqQ.length}/200</p>
                                 </div>
                                 <div>
                                     <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Answer</label>
@@ -2247,13 +2312,16 @@ function BusinessSetupWizardContent() {
                                         value={faqA}
                                         onChange={e => setFaqA(e.target.value.slice(0, 1000))}
                                         placeholder="e.g. Yes, we deliver nationwide..."
+                                        maxLength={1000}
                                         className="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 bg-white resize-none"
                                     />
+                                    <p className="mt-1 text-[10px] font-semibold text-slate-400">{faqA.length}/1000</p>
                                 </div>
                                 <button
                                     type="button"
+                                    disabled={stepData.faqs.length >= 10}
                                     onClick={addFaqItem}
-                                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wider"
+                                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase tracking-wider disabled:opacity-40"
                                 >
                                     + Add Q&A Pair
                                 </button>

@@ -18,7 +18,8 @@ const toggleArrayItem = (arr: string[], item: string) => {
 
 export const Step5Category = ({ formData, setFormData, categories = [], categoriesLoading }: StepProps) => {
     const { getFeatureValue } = usePlanFeature();
-    const maxSubCategories = getFeatureValue('maxSubCategories') || 0;
+    const maxSubCategories = Number(getFeatureValue('maxSubCategories') || 0);
+    const visibleSubCategorySlots = Math.max(3, maxSubCategories || 0);
     const selectedSubCategories = Array.isArray(formData.subCategoryIds) ? formData.subCategoryIds : [];
     
     // Determine available subcategories based on selected category
@@ -40,9 +41,11 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
 
             {relatedSubcategories.length > 0 && (
                 <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100">
-                    <h4 className="text-sm font-black text-slate-900 mb-3">Subcategories (Select up to {Math.max(3, maxSubCategories)})</h4>
+                    <h4 className="text-sm font-black text-slate-900 mb-3">
+                        {maxSubCategories > 0 ? `Subcategories (Select up to ${maxSubCategories})` : 'Subcategories (Paid plans unlock up to 3)'}
+                    </h4>
                     <div className="space-y-3">
-                        {Array.from({ length: Math.max(3, maxSubCategories) }).map((_, i) => {
+                        {Array.from({ length: visibleSubCategorySlots }).map((_, i) => {
                             const isLocked = i >= maxSubCategories;
                             return (
                                 <div key={`sub-${i}`}>
@@ -89,22 +92,40 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
                     </div>
                 </div>
             )}
+
+            <div>
+                <label className={labelClass}>Custom Category Tag (Optional)</label>
+                <input
+                    type="text"
+                    value={formData.customCategoryTag}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, customCategoryTag: e.target.value }))}
+                    maxLength={80}
+                    placeholder="Suggest a better-fit category if you do not see it"
+                    className={inputClass}
+                />
+                <p className="text-xs text-slate-500 mt-2">This is saved for admin review and future category expansion.</p>
+            </div>
         </div>
     );
 };
 
 export const Step9Contact = ({ formData, setFormData }: StepProps) => {
     const [phoneError, setPhoneError] = useState<string | null>(null);
-    const { getFeatureValue } = usePlanFeature();
+    const { getFeatureValue, hasFeature } = usePlanFeature();
     const maxNamedPhoneNumbers = Number(getFeatureValue('maxNamedPhoneNumbers') || 0);
     const canManageNamedPhones = maxNamedPhoneNumbers > 0;
+    const hasWhatsappIntegration = hasFeature('showChat');
     const namedPhoneNumbers = Array.isArray(formData.namedPhoneNumbers) ? formData.namedPhoneNumbers : [];
 
     const handlePhoneChange = (val: string, type: 'phone' | 'whatsapp') => {
         // Strip non-digits except +
         const cleaned = val.replace(/[^\d+]/g, '');
         
-        setFormData(prev => ({ ...prev, [type === 'phone' ? 'phoneNumber' : 'whatsapp']: cleaned }));
+        setFormData(prev => ({
+            ...prev,
+            [type === 'phone' ? 'phoneNumber' : 'whatsapp']: cleaned,
+            ...(type === 'phone' && prev.whatsappSameAsPrimary ? { whatsapp: cleaned } : {}),
+        }));
 
         if (cleaned.length > 5) {
             const fullNumber = cleaned.startsWith('+') ? cleaned : `${formData.phoneCode}${cleaned}`;
@@ -122,7 +143,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
     };
 
     const addNamedPhone = () => {
-        if (!canManageNamedPhones || namedPhoneNumbers.length >= maxNamedPhoneNumbers) return;
+        if (namedPhoneNumbers.length >= 5) return;
         setFormData((prev) => ({
             ...prev,
             namedPhoneNumbers: [...(Array.isArray(prev.namedPhoneNumbers) ? prev.namedPhoneNumbers : []), { label: '', number: '' }],
@@ -149,6 +170,16 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
 
     return (
         <div className="space-y-6 pb-4">
+            <div>
+                <label className={labelClass}>Contact Person Title (Optional)</label>
+                <input
+                    type="text"
+                    className={inputClass}
+                    placeholder="e.g. Owner, Manager, Sales Lead"
+                    value={formData.contactPersonTitle}
+                    onChange={e => setFormData(p => ({ ...p, contactPersonTitle: e.target.value }))}
+                />
+            </div>
             <div>
                 <label className={labelClass}>Contact Person Name</label>
                 <input 
@@ -190,6 +221,24 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
             </div>
             <div className="pt-2 pb-2">
                 <label className={labelClass}>WhatsApp Number (Optional)</label>
+                {!hasWhatsappIntegration && (
+                    <div className="mb-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                        WhatsApp contact is available on paid business plans. You can still save it here now, and it will unlock publicly after upgrade.
+                    </div>
+                )}
+                <label className="mb-3 flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <input
+                        type="checkbox"
+                        checked={formData.whatsappSameAsPrimary}
+                        onChange={(e) => setFormData((prev) => ({
+                            ...prev,
+                            whatsappSameAsPrimary: e.target.checked,
+                            whatsapp: e.target.checked ? prev.phoneNumber : prev.whatsapp,
+                        }))}
+                        className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    Same as primary phone
+                </label>
                 <div className="flex items-center gap-2 min-w-0">
                     <select className="shrink-0 w-[140px] px-3 py-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold text-sm appearance-none cursor-pointer" disabled>
                         <option>{formData.phoneCode}</option>
@@ -198,7 +247,8 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                         type="tel"
                         value={formData.whatsapp}
                         onChange={e => handlePhoneChange(e.target.value, 'whatsapp')}
-                        placeholder="Same as above if empty"
+                        placeholder="WhatsApp number"
+                        disabled={formData.whatsappSameAsPrimary}
                         className="flex-1 min-w-0 w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400"
                     />
                 </div>
@@ -220,7 +270,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
 
                 {!canManageNamedPhones && (
                     <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/50 px-4 py-3 text-xs font-bold text-amber-700">
-                        Paid business plans can add up to 5 named phone numbers for teams like Sales, Support, or Bookings.
+                        Paid business plans can publish up to 5 named phone numbers. You can still save draft numbers here now.
                     </div>
                 )}
 
@@ -231,22 +281,41 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                             value={item.label}
                             onChange={(e) => updateNamedPhone(idx, 'label', e.target.value)}
                             placeholder="Label"
-                            className="col-span-4 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
-                            disabled={!canManageNamedPhones}
+                            className="col-span-12 md:col-span-3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                        />
+                        <input
+                            type="text"
+                            value={item.personName || ''}
+                            onChange={(e) => setFormData((prev) => {
+                                const next = [...(Array.isArray(prev.namedPhoneNumbers) ? prev.namedPhoneNumbers : [])];
+                                next[idx] = { ...(next[idx] || { label: '', number: '' }), personName: e.target.value };
+                                return { ...prev, namedPhoneNumbers: next };
+                            })}
+                            placeholder="Person name"
+                            className="col-span-12 md:col-span-3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
+                        />
+                        <input
+                            type="text"
+                            value={item.title || ''}
+                            onChange={(e) => setFormData((prev) => {
+                                const next = [...(Array.isArray(prev.namedPhoneNumbers) ? prev.namedPhoneNumbers : [])];
+                                next[idx] = { ...(next[idx] || { label: '', number: '' }), title: e.target.value };
+                                return { ...prev, namedPhoneNumbers: next };
+                            })}
+                            placeholder="Title / role"
+                            className="col-span-12 md:col-span-2 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
                         />
                         <input
                             type="tel"
                             value={item.number}
                             onChange={(e) => updateNamedPhone(idx, 'number', e.target.value)}
                             placeholder="+923001234567"
-                            className="col-span-7 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
-                            disabled={!canManageNamedPhones}
+                            className="col-span-11 md:col-span-3 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold"
                         />
                         <button
                             type="button"
                             onClick={() => removeNamedPhone(idx)}
                             className="col-span-1 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center"
-                            disabled={!canManageNamedPhones}
                         >
                             <Trash2 className="w-4 h-4" />
                         </button>
@@ -256,7 +325,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                 <button
                     type="button"
                     onClick={addNamedPhone}
-                    disabled={!canManageNamedPhones || namedPhoneNumbers.length >= maxNamedPhoneNumbers}
+                    disabled={namedPhoneNumbers.length >= 5}
                     className="w-full py-3 border border-dashed border-slate-300 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
                     + Add Named Number
@@ -267,6 +336,7 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
 };
 
 export const Step13Online = ({ formData, setFormData }: StepProps) => {
+    const { isFree } = usePlanFeature();
     const safeSocialLinks = Array.isArray(formData.socialLinks) ? formData.socialLinks : [];
 
     const handleSocialUpdate = (platform: string, url: string) => {
@@ -303,6 +373,11 @@ export const Step13Online = ({ formData, setFormData }: StepProps) => {
             
             <div className="pt-4 border-t border-slate-100">
                 <label className={labelClass}>Social Media Links</label>
+                {isFree && (
+                    <div className="mb-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                        Social media links are visible here for setup and will be saved now. They stay locked on the free plan until you upgrade.
+                    </div>
+                )}
                 <div className="space-y-3">
                     {SOCIAL_PLATFORMS.map((platform: any) => {
                         const link = safeSocialLinks.find(s => s.platform === platform.key)?.url || '';

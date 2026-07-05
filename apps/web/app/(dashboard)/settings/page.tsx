@@ -11,7 +11,7 @@ import { cleanAndDedupeStates, getCanonicalCountryName } from '../../../lib/loca
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AccountSettings() {
-    const { user, loading: authLoading, updateUser } = useAuth();
+    const { user, loading: authLoading, updateUser, logout } = useAuth();
     const [loading, setLoading] = useState(true);
     const hasFetched = useRef(false);
     const isFetching = useRef(false);
@@ -383,10 +383,11 @@ export default function AccountSettings() {
         setDeletionStatus(null);
         try {
             await api.users.requestDeletion();
-            setDeletionStatus({ type: 'success', message: 'Account deletion scheduled. You have 30 days to cancel this request.' });
+            setDeletionStatus({ type: 'success', message: 'Account deletion scheduled. Your account is now hidden and will complete in 30 days unless cancelled.' });
             const updatedProfile = await api.users.getProfile();
             if (updateUser) updateUser(updatedProfile);
             setShowDeleteModal(false);
+            await logout?.();
         } catch (err: any) {
             setDeletionStatus({ type: 'error', message: err.message || 'Failed to request account deletion' });
             setShowDeleteModal(false);
@@ -1051,14 +1052,14 @@ export default function AccountSettings() {
                                         <h4 className="font-black text-rose-600 uppercase tracking-widest text-xs flex items-center gap-2">
                                             <Trash2 className="w-3.5 h-3.5" /> Delete Permanently
                                         </h4>
-                                        <p className="text-slate-900 font-bold">Your account will be permanently deleted in {getDaysLeft(user.deletionScheduledAt)} days.</p>
+                                        <p className="text-slate-900 font-bold">Your account is hidden now and will be permanently removed in {getDaysLeft(user.deletionScheduledAt)} days.</p>
                                         <p className="text-slate-500 text-sm font-medium">Scheduled for removal on: {getScheduledDeleteDate(user.deletionScheduledAt).toLocaleDateString()}</p>
                                     </>
                                 ) : (
                                     <>
                                         <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs">Delete Account</h4>
-                                        <p className="text-slate-500 text-sm font-medium">Permanently remove your account and all associated data.</p>
-                                        <p className="text-slate-400 text-xs font-bold leading-relaxed">Account will be scheduled for deletion and cleared in 30 days.</p>
+                                        <p className="text-slate-500 text-sm font-medium">Hide your account immediately, then permanently delete it after the grace period.</p>
+                                        <p className="text-slate-400 text-xs font-bold leading-relaxed">You will have 30 days to cancel the request before permanent removal starts.</p>
                                     </>
                                 )}
                             </div>
@@ -1117,7 +1118,7 @@ export default function AccountSettings() {
                             </h3>
                             
                             <p className="text-slate-500 font-medium text-sm max-w-sm mb-6 leading-relaxed">
-                                This action will schedule your account for permanent deletion in <span className="font-black text-rose-600">30 days</span>. All your associated data, listings, and reviews will be completely cleared.
+                                This action hides your account immediately and schedules permanent deletion in <span className="font-black text-rose-600">30 days</span>. Reviews are kept in anonymized form and chat history remains for retention.
                             </p>
 
                             <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-8 text-left flex items-start gap-3">

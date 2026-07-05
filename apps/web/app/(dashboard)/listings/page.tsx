@@ -265,7 +265,13 @@ export default function BusinessListings() {
 
         // Status filter (case-insensitive)
         if (statusFilter !== 'all') {
-            result = result.filter(b => ((b as any).status || '').toLowerCase() === statusFilter);
+            result = result.filter(b => {
+                const normalizedStatus = ((b as any).status || '').toLowerCase();
+                if (statusFilter === 'pending') {
+                    return normalizedStatus === 'pending' || normalizedStatus === 'pending_geocode';
+                }
+                return normalizedStatus === statusFilter;
+            });
         }
 
         // Sort — use explicit number coercion so PostgreSQL decimal strings sort correctly
@@ -361,7 +367,7 @@ export default function BusinessListings() {
                                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                                     }`}
                             >
-                                {s === 'all' ? 'All' : s}
+                                {s === 'all' ? 'All' : s === 'pending' ? 'Processing' : s}
                             </button>
                         ))}
                         {(searchQuery || statusFilter !== 'all' || sortOrder !== 'newest') && (
@@ -399,7 +405,7 @@ export default function BusinessListings() {
                                     <div className="absolute top-6 left-6">
                                         <span className={`px-4 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg ${biz.status === 'approved' ? 'text-green-600' :
                                             biz.status === 'rejected' ? 'text-red-500' : 'text-amber-600'
-                                            }`}>{biz.status}</span>
+                                            }`}>{biz.status === 'pending_geocode' ? 'processing' : biz.status}</span>
                                     </div>
                                     
                                     <div className="absolute bottom-6 left-6 right-6">

@@ -81,11 +81,19 @@ export class BusinessesService implements OnModuleInit {
         const raw = features as Record<string, any>;
         const maxCategories = Number(raw.maxCategories ?? 0);
         const derivedMaxSubCategories = maxCategories > 0 ? Math.max(0, maxCategories - 1) : 0;
-        const normalizedMaxSubCategories = Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        let normalizedMaxSubCategories = Number(raw.maxSubCategories ?? derivedMaxSubCategories ?? 0);
+        let normalizedMaxListings = Number(raw.maxListings ?? 0);
+        
+        // Paid plan safety net
+        const isPaid = planName && !planName.toLowerCase().includes('free');
+        if (isPaid) {
+            if (normalizedMaxSubCategories === 0) normalizedMaxSubCategories = 3; // Ensure at least 3 subcategories
+            if (normalizedMaxListings <= 1) normalizedMaxListings = 999; // Ensure unlimited listings for paid
+        }
 
         return {
             ...raw,
-            maxListings: Number(raw.maxListings ?? 0),
+            maxListings: normalizedMaxListings,
             maxKeywords: Number(raw.maxKeywords ?? 0),
             maxFaqs: Number(raw.maxFaqs ?? 0),
             maxSubCategories: normalizedMaxSubCategories,
@@ -103,6 +111,10 @@ export class BusinessesService implements OnModuleInit {
                     ? !!raw.canRespondBroadcast
                     : !!raw.respondToBroadcastLeads,
             showChat: raw.showChat !== undefined ? !!raw.showChat : (!!raw.canChat || !!raw.whatsappIntegration),
+            showSocialLinks:
+                raw.showSocialLinks !== undefined
+                    ? !!raw.showSocialLinks
+                    : !!raw.socialLinks,
             canCreateAlbums: !!raw.canCreateAlbums,
         };
     }
@@ -178,9 +190,12 @@ export class BusinessesService implements OnModuleInit {
             return {
                 maxKeywords: 999,
                 maxFaqs: 999,
+                maxNamedPhoneNumbers: 999,
                 canCreateAlbums: true,
                 maxSubCategories: 999,
                 maxListings: 999,
+                showChat: true,
+                showSocialLinks: true,
             };
         }
 
@@ -201,12 +216,132 @@ export class BusinessesService implements OnModuleInit {
         return modern;
     }
 
+    private async sanitizeListingForPublicViewer(listing: Listing, user?: User): Promise<Listing> {
+        const isOwner = !!user && listing.vendor?.userId === user.id;
+        const isAdmin = !!user && [UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole);
+        if (isOwner || isAdmin) {
+            return listing;
+        }
+
+        const features = await this.resolvePlanFeatures(listing.vendorId);
+
+        if (Number(features.maxKeywords ?? 0) <= 0) {
+            listing.metaKeywords = '';
+            listing.searchKeywords = [];
+        }
+
+        if (!features.showChat) {
+            listing.whatsapp = null as any;
+        }
+
+        if (Number(features.maxNamedPhoneNumbers ?? 0) <= 0) {
+            listing.namedPhoneNumbers = [];
+        }
+
+        if (Number(features.maxFaqs ?? 0) <= 0) {
+            listing.faqs = [];
+        }
+
+        if (!features.canCreateAlbums) {
+            listing.albums = [];
+        }
+
+        if (listing.vendor && !features.showSocialLinks) {
+            listing.vendor.socialLinks = [];
+        }
+
+        return listing;
+    }
+
+    private normalizeSocialLinks(
+        socialLinks?: Array<{ platform?: string; url?: string; label?: string }>,
+    ): Array<{ platform: string; url: string; label?: string }> {
+        if (!Array.isArray(socialLinks)) {
+            return [];
+        }
+
+        return socialLinks
+            .filter((link): link is { platform: string; url: string; label?: string } => !!link?.platform?.trim() && !!link?.url?.trim())
+            .map((link) => ({
+                platform: link.platform.trim(),
+                url: link.url.trim(),
+                label: link.label?.trim() || undefined,
+            }));
+    }
+
+    private normalizeNamedPhoneNumbers(
+        namedPhoneNumbers?: Array<{ label?: string; number?: string; personName?: string; title?: string }>,
+    ): Array<{ label: string; number: string; personName?: string; title?: string }> {
+        if (!Array.isArray(namedPhoneNumbers)) {
+            return [];
+        }
+
+        return namedPhoneNumbers
+            .filter((item): item is { label: string; number: string; personName?: string; title?: string } => !!item?.label?.trim() && !!item?.number?.trim())
+            .map((item) => ({
+                label: item.label.trim(),
+                number: item.number.trim(),
+                personName: item.personName?.trim() || undefined,
+                title: item.title?.trim() || undefined,
+            }))
+            .slice(0, 5);
+    }
+
+    private normalizeSearchKeywords(searchKeywords?: string[]): string[] {
+        if (!Array.isArray(searchKeywords)) {
+            return [];
+        }
+
+        const unique = new Set<string>();
+        for (const keyword of searchKeywords) {
+            const normalized = (keyword || '').trim();
+            if (!normalized) continue;
+            unique.add(normalized.slice(0, 40));
+            if (unique.size >= 10) break;
+        }
+
+        return Array.from(unique);
+    }
+
+    private stripPublicSearchVendorDetails(listing: Listing): Listing {
+        if (!listing.vendor) {
+            return listing;
+        }
+
+        (listing.vendor as any).isOnline = listing.vendor.user?.isOnline || false;
+        delete (listing.vendor as any).user;
+        delete (listing.vendor as any).userId;
+
+        return listing;
+    }
+
+    private sanitizeSearchIndexKeywords(listing: Listing, features: Record<string, unknown>): Listing {
+        if (Number(features.maxKeywords ?? 0) > 0) {
+            return listing;
+        }
+
+        const indexedListing = Object.assign(
+            Object.create(Object.getPrototypeOf(listing)),
+            listing,
+        ) as Listing;
+        indexedListing.metaKeywords = '';
+        indexedListing.searchKeywords = [];
+        return indexedListing;
+    }
+
     private enforcePremiumContentLimits(
-        dto: { metaKeywords?: string; searchKeywords?: string[]; faqs?: { question: string; answer: string }[] },
-        features: Record<string, unknown>,
+        dto: {
+            metaKeywords?: string;
+            searchKeywords?: string[];
+            faqs?: { question: string; answer: string }[];
+            namedPhoneNumbers?: Array<{ label?: string; number?: string; personName?: string; title?: string }>;
+            whatsapp?: string;
+        },
+        _features: Record<string, unknown>,
     ) {
-        const maxKeywords = Number(features.maxKeywords ?? 0);
-        const maxFaqs = Number(features.maxFaqs ?? 0);
+        const maxKeywords = 10;
+        const maxFaqs = 10;
+        const maxNamedPhoneNumbers = 5;
 
         if (dto.metaKeywords) {
             const keywordCount = dto.metaKeywords
@@ -215,7 +350,7 @@ export class BusinessesService implements OnModuleInit {
                 .filter(Boolean).length;
             if (keywordCount > maxKeywords) {
                 throw new BadRequestException(
-                    `Your plan allows up to ${maxKeywords} keywords. Please upgrade to add more.`,
+                    `You can save up to ${maxKeywords} keywords per listing.`,
                 );
             }
         }
@@ -223,14 +358,20 @@ export class BusinessesService implements OnModuleInit {
         if (dto.searchKeywords) {
             if (dto.searchKeywords.length > maxKeywords) {
                 throw new BadRequestException(
-                    `Your plan allows up to ${maxKeywords} search keywords. Please upgrade to add more.`,
+                    `You can save up to ${maxKeywords} search keywords per listing.`,
                 );
             }
         }
 
         if (dto.faqs?.length && dto.faqs.length > maxFaqs) {
             throw new BadRequestException(
-                `Your plan allows up to ${maxFaqs} FAQs. Please upgrade to add more.`,
+                `You can save up to ${maxFaqs} FAQs per listing.`,
+            );
+        }
+
+        if (dto.namedPhoneNumbers?.length && dto.namedPhoneNumbers.length > maxNamedPhoneNumbers) {
+            throw new BadRequestException(
+                `You can save up to ${maxNamedPhoneNumbers} named phone numbers per listing.`,
             );
         }
     }
@@ -359,6 +500,9 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS albums JSONB DEFAULT '[]';
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS named_phone_numbers JSONB DEFAULT '[]';
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS image_captions JSONB DEFAULT '{}'::jsonb;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS contact_person_title VARCHAR(100) NULL;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS business_tagline VARCHAR(200) NULL;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS open_247 BOOLEAN DEFAULT false;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
             `);
             await this.listingRepository.query(`
@@ -426,6 +570,18 @@ export class BusinessesService implements OnModuleInit {
             }
         }
 
+        const requiredConsentFields = [
+            createBusinessDto.legalConsentTerms,
+            createBusinessDto.legalConsentPrivacy,
+            createBusinessDto.legalConsentModeration,
+            createBusinessDto.legalConsentAccuracy,
+            createBusinessDto.legalConsentPublicLocation,
+        ];
+        const providedGranularConsent = requiredConsentFields.some((value) => value !== undefined);
+        if (providedGranularConsent && requiredConsentFields.some((value) => value !== true)) {
+            throw new BadRequestException('All required legal consent checkboxes must be accepted before creating a listing.');
+        }
+
         // Verify category exists or handle suggestion
         let category = null;
         if (createBusinessDto.categoryId) {
@@ -440,8 +596,6 @@ export class BusinessesService implements OnModuleInit {
             if (category.status !== CategoryStatus.ACTIVE) {
                 throw new BadRequestException('Invalid category: selected category is disabled');
             }
-        } else if (!createBusinessDto.suggestedCategoryName) {
-            throw new BadRequestException('Either categoryId or suggestedCategoryName must be provided');
         }
 
         // Generate unique slug
@@ -513,8 +667,18 @@ export class BusinessesService implements OnModuleInit {
 
         const now = new Date();
         const hasCoordinates = this.hasCoordinates(createBusinessDto);
+        const normalizedSearchKeywords = this.normalizeSearchKeywords(createBusinessDto.searchKeywords);
+        const normalizedNamedPhoneNumbers = this.normalizeNamedPhoneNumbers(createBusinessDto.namedPhoneNumbers);
+        const normalizedSocialLinks = this.normalizeSocialLinks(createBusinessDto.socialLinks);
+        const normalizedMetaKeywords = normalizedSearchKeywords.length
+            ? normalizedSearchKeywords.join(', ')
+            : createBusinessDto.metaKeywords;
+        const { socialLinks: _socialLinks, ...listingPayload } = createBusinessDto;
         const listing = this.listingRepository.create({
-            ...createBusinessDto,
+            ...listingPayload,
+            searchKeywords: normalizedSearchKeywords,
+            metaKeywords: normalizedMetaKeywords,
+            namedPhoneNumbers: normalizedNamedPhoneNumbers,
             offerExpiresAt: sanitizedExpiresAt,
             vendorId: vendor.id,
             slug,
@@ -529,6 +693,11 @@ export class BusinessesService implements OnModuleInit {
         });
 
         const savedListing = await this.listingRepository.save(listing);
+
+        if (createBusinessDto.socialLinks !== undefined) {
+            vendor.socialLinks = normalizedSocialLinks;
+            await this.vendorRepository.save(vendor);
+        }
 
         if (createBusinessDto.legalConsentAccepted) {
             const acceptedAt = createBusinessDto.legalConsentAcceptedAt
@@ -545,12 +714,12 @@ export class BusinessesService implements OnModuleInit {
                     listingId: savedListing.id,
                     source: 'listing_create',
                     acceptedAt,
-                    termsAccepted: true,
-                    privacyAccepted: true,
-                    moderationAccepted: true,
-                    accuracyConfirmed: true,
-                    publicLocationConsent: true,
-                    marketingUpdatesConsent: false,
+                    termsAccepted: createBusinessDto.legalConsentTerms ?? true,
+                    privacyAccepted: createBusinessDto.legalConsentPrivacy ?? true,
+                    moderationAccepted: createBusinessDto.legalConsentModeration ?? true,
+                    accuracyConfirmed: createBusinessDto.legalConsentAccuracy ?? true,
+                    publicLocationConsent: createBusinessDto.legalConsentPublicLocation ?? true,
+                    marketingUpdatesConsent: createBusinessDto.legalConsentMarketing ?? false,
                     termsVersion: createBusinessDto.termsVersion || 'v1',
                     privacyVersion: createBusinessDto.privacyVersion || 'v1',
                     sessionId: createBusinessDto.legalConsentSessionId || context?.sessionId || null,
@@ -560,6 +729,12 @@ export class BusinessesService implements OnModuleInit {
                     payload: {
                         legalConsentAccepted: true,
                         legalConsentAcceptedAt: createBusinessDto.legalConsentAcceptedAt || acceptedAt.toISOString(),
+                        legalConsentTerms: createBusinessDto.legalConsentTerms ?? true,
+                        legalConsentPrivacy: createBusinessDto.legalConsentPrivacy ?? true,
+                        legalConsentModeration: createBusinessDto.legalConsentModeration ?? true,
+                        legalConsentAccuracy: createBusinessDto.legalConsentAccuracy ?? true,
+                        legalConsentPublicLocation: createBusinessDto.legalConsentPublicLocation ?? true,
+                        legalConsentMarketing: createBusinessDto.legalConsentMarketing ?? false,
                         termsVersion: createBusinessDto.termsVersion || 'v1',
                         privacyVersion: createBusinessDto.privacyVersion || 'v1',
                     },
@@ -613,7 +788,9 @@ export class BusinessesService implements OnModuleInit {
         }
 
         // Index in Elasticsearch (async, don't wait to complete to return response)
-        this.searchService.indexBusiness(result).catch(err => console.error('ES Index Error:', err));
+        this.searchService
+            .indexBusiness(this.sanitizeSearchIndexKeywords(result, planFeatures))
+            .catch(err => console.error('ES Index Error:', err));
 
         return result;
     }
@@ -631,6 +808,7 @@ export class BusinessesService implements OnModuleInit {
             .createQueryBuilder('listing')
             .select('DISTINCT listing.name', 'suggestion')
             .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.hiddenByDeletion = false')
             .andWhere('listing.name ILIKE :term', { term: searchTerm })
             .orderBy('listing.name', 'ASC')
             .limit(4)
@@ -641,6 +819,7 @@ export class BusinessesService implements OnModuleInit {
             .leftJoin('listing.category', 'category')
             .select('DISTINCT category.name', 'suggestion')
             .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.hiddenByDeletion = false')
             .andWhere('category.name ILIKE :term', { term: searchTerm })
             .orderBy('category.name', 'ASC')
             .limit(3)
@@ -650,6 +829,7 @@ export class BusinessesService implements OnModuleInit {
             .createQueryBuilder('listing')
             .select('DISTINCT listing.city', 'suggestion')
             .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.hiddenByDeletion = false')
             .andWhere('listing.city ILIKE :term', { term: searchTerm })
             .andWhere('listing.city IS NOT NULL')
             .orderBy('listing.city', 'ASC')
@@ -736,6 +916,7 @@ export class BusinessesService implements OnModuleInit {
             .leftJoinAndSelect('listing.businessAmenities', 'businessAmenities')
             .leftJoinAndSelect('businessAmenities.amenity', 'amenity')
             .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('listing.hiddenByDeletion = false')
             .andWhere('user.deletion_scheduled_at IS NULL');
 
         // Apply Search Results from Elasticsearch or fallback to ILIKE
@@ -1036,7 +1217,7 @@ export class BusinessesService implements OnModuleInit {
             const listings = await queryBuilder.skip(skip).take(limit).getRawAndEntities();
 
             // Map and format results
-            const results = listings.entities.map((entity) => {
+            const results = await Promise.all(listings.entities.map(async (entity) => {
                 // Find matching raw record to get the custom selected distance_meters value
                 const raw = listings.raw.find(r => r.listing_id === entity.id);
                 const distanceMeters = raw ? parseFloat(raw.distance_meters) : undefined;
@@ -1048,8 +1229,9 @@ export class BusinessesService implements OnModuleInit {
                 if (result.vendor && result.vendor.user) {
                     result.vendor.isOnline = result.vendor.user.isOnline || false;
                 }
-                return result;
-            });
+                const sanitized = await this.sanitizeListingForPublicViewer(result);
+                return this.stripPublicSearchVendorDetails(sanitized);
+            }));
 
             return createPaginatedResponse(results, page, limit, total);
         } catch (error: any) {
@@ -1084,7 +1266,7 @@ export class BusinessesService implements OnModuleInit {
 
         // Only allow public viewing of APPROVED listings
         // Owners and Admins can view regardless of status
-        if (listing.status !== BusinessStatus.APPROVED) {
+        if (listing.status !== BusinessStatus.APPROVED || listing.hiddenByDeletion) {
             const isOwner = user && listing.vendor && listing.vendor.userId === user.id;
             const isAdmin = user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN);
 
@@ -1104,7 +1286,7 @@ export class BusinessesService implements OnModuleInit {
             (listing.vendor as any).isOnline = listing.vendor.user.isOnline || false;
         }
 
-        return listing;
+        return this.sanitizeListingForPublicViewer(listing, user);
     }
 
     /**
@@ -1142,7 +1324,7 @@ export class BusinessesService implements OnModuleInit {
 
             log(`findBySlug: ${slug} - Found in DB. Status: ${listing.status}`);
 
-            const isPubliclyVisible = listing.status === BusinessStatus.APPROVED;
+            const isPubliclyVisible = listing.status === BusinessStatus.APPROVED && !listing.hiddenByDeletion;
             if (!isPubliclyVisible) {
                 const isOwner = user && listing.vendor && listing.vendor.userId === user.id;
                 const isAdmin = user && (user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN);
@@ -1165,7 +1347,7 @@ export class BusinessesService implements OnModuleInit {
             }
 
             log(`findBySlug: ${slug} - SUCCESS`);
-            return listing;
+            return this.sanitizeListingForPublicViewer(listing, user);
         } catch (error: any) {
             log(`findBySlug: ${slug} - ERROR: ${error.message}\n${error.stack}`);
             throw error;
@@ -1261,11 +1443,20 @@ export class BusinessesService implements OnModuleInit {
             'website', 'address', 'addressLine2', 'city', 'state', 'pincode', 'latitude', 'longitude',
             'logoUrl', 'coverImageUrl', 'images', 'imageCaptions', 'namedPhoneNumbers', 'metaTitle', 'metaDescription',
             'metaKeywords', 'hasOffer', 'offerTitle', 'offerDescription', 'offerBadge',
-            'offerExpiresAt', 'offerBannerUrl', 'faqs'
+            'offerExpiresAt', 'offerBannerUrl', 'faqs', 'businessTagline', 'contactPersonTitle', 'open247', 'searchKeywords'
         ];
 
         textFields.forEach(field => {
             if (updateBusinessDto[field] !== undefined) {
+                if (field === 'namedPhoneNumbers') {
+                    listing.namedPhoneNumbers = this.normalizeNamedPhoneNumbers(updateBusinessDto.namedPhoneNumbers);
+                    return;
+                }
+                if (field === 'searchKeywords') {
+                    listing.searchKeywords = this.normalizeSearchKeywords(updateBusinessDto.searchKeywords);
+                    listing.metaKeywords = listing.searchKeywords.join(', ');
+                    return;
+                }
                 listing[field] = updateBusinessDto[field];
             }
         });
@@ -1303,7 +1494,15 @@ export class BusinessesService implements OnModuleInit {
         }
 
         // Remove nested objects from update
-        const { businessHours: _, amenityIds: __, subCategoryIds: ___, ...updateData } = updateBusinessDto;
+        const {
+            businessHours: _,
+            amenityIds: __,
+            subCategoryIds: ___,
+            socialLinks: ____,
+            namedPhoneNumbers: _____,
+            searchKeywords: ______,
+            ...updateData
+        } = updateBusinessDto;
 
         // Sanitize offerExpiresAt to prevent invalid date errors
         if (
@@ -1332,6 +1531,11 @@ export class BusinessesService implements OnModuleInit {
         await this.listingRepository.save(listing);
         log('Listing saved to database');
 
+        if (updateBusinessDto.socialLinks !== undefined) {
+            listing.vendor.socialLinks = this.normalizeSocialLinks(updateBusinessDto.socialLinks);
+            await this.vendorRepository.save(listing.vendor);
+        }
+
         if ((!listing.latitude || !listing.longitude) && listing.address) {
             await this.geocodingQueueService.enqueue({
                 listingId: listing.id,
@@ -1344,7 +1548,9 @@ export class BusinessesService implements OnModuleInit {
         const updatedListing = await this.findOne(id, user);
 
         // Update in Elasticsearch
-        this.searchService.indexBusiness(updatedListing).catch(err => console.error('ES Update Error:', err));
+        this.searchService
+            .indexBusiness(this.sanitizeSearchIndexKeywords(updatedListing, planFeatures))
+            .catch(err => console.error('ES Update Error:', err));
 
         return updatedListing;
     }
@@ -1363,7 +1569,7 @@ export class BusinessesService implements OnModuleInit {
         }
 
         // Check ownership - Reinforcing filtering as requested
-        if (listing.vendor.userId !== user.id && user.role !== UserRole.ADMIN) {
+        if (listing.vendor.userId !== user.id && user.role !== UserRole.ADMIN && user.role !== UserRole.SUPERADMIN) {
             throw new ForbiddenException('Unauthorized access');
         }
 
@@ -1432,6 +1638,7 @@ export class BusinessesService implements OnModuleInit {
                 categoryId: listing.categoryId,
                 id: Not(listing.id), // Exclude current listing
                 status: BusinessStatus.APPROVED,
+                hiddenByDeletion: false,
             },
             take: Number(limit),
         });

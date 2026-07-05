@@ -63,6 +63,36 @@ export class NamedPhoneDto {
     @IsString()
     @IsGlobalPhone({ message: 'Named phone must be a valid E.164 number with country code, e.g. +923001234567' })
     number: string;
+
+    @ApiPropertyOptional({ example: 'Aisha Khan' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(150)
+    personName?: string;
+
+    @ApiPropertyOptional({ example: 'Sales Manager' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    title?: string;
+}
+
+export class SocialLinkDto {
+    @ApiProperty({ example: 'facebook' })
+    @IsString()
+    @MaxLength(50)
+    platform: string;
+
+    @ApiProperty({ example: 'https://facebook.com/example' })
+    @IsString()
+    @MaxLength(500)
+    url: string;
+
+    @ApiPropertyOptional({ example: 'Discord' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    label?: string;
 }
 
 export class CreateBusinessDto {
@@ -89,10 +119,11 @@ export class CreateBusinessDto {
     @IsUUID('4', { each: true })
     subCategoryIds?: string[];
 
-    @ApiProperty({ example: 'A wonderful dining experience...' })
+    @ApiPropertyOptional({ example: 'A wonderful dining experience...' })
+    @IsOptional()
     @IsString()
-    @MinLength(10)
-    description: string;
+    @MinLength(20)
+    description?: string;
 
     @ApiPropertyOptional({ example: 'Great food and ambiance', maxLength: 500 })
     @IsOptional()
@@ -145,11 +176,12 @@ export class CreateBusinessDto {
     @MaxLength(100)
     city: string;
 
-    @ApiProperty({ example: 'New York' })
+    @ApiPropertyOptional({ example: 'New York' })
+    @IsOptional()
     @IsString()
     @MinLength(2)
     @MaxLength(100)
-    state: string;
+    state?: string;
 
     @ApiPropertyOptional({ example: 'Pakistan', default: 'Pakistan' })
     @IsOptional()
@@ -331,12 +363,59 @@ export class CreateBusinessDto {
     @IsString()
     privacyVersion?: string;
 
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentTerms?: boolean;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentPrivacy?: boolean;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentModeration?: boolean;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentAccuracy?: boolean;
+
+    @ApiPropertyOptional({ example: true })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentPublicLocation?: boolean;
+
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    legalConsentMarketing?: boolean;
+
     // V2 Registration Flow Fields
     @ApiPropertyOptional({ example: 'John Doe' })
     @IsOptional()
     @IsString()
     @MaxLength(150)
     contactPersonName?: string;
+
+    @ApiPropertyOptional({ example: 'Owner' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    contactPersonTitle?: string;
+
+    @ApiPropertyOptional({ example: 'Trusted local supplier since 2010' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(200)
+    businessTagline?: string;
+
+    @ApiPropertyOptional({ example: false })
+    @IsOptional()
+    @IsBoolean()
+    open247?: boolean;
 
     @ApiPropertyOptional({ type: [String] })
     @IsOptional()
@@ -449,8 +528,16 @@ export class CreateBusinessDto {
     @IsBoolean()
     chainOrMultipleBranches?: boolean;
 
-    @ApiPropertyOptional({ type: [Object] })
+    @ApiPropertyOptional({ type: [SocialLinkDto] })
     @IsOptional()
     @IsArray()
-    socialLinks?: { platform: string; url: string }[];
+    @ValidateNested({ each: true })
+    @Type(() => SocialLinkDto)
+    socialLinks?: SocialLinkDto[];
+
+    @ApiPropertyOptional({ type: [String] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    searchKeywords?: string[];
 }

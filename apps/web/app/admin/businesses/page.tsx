@@ -13,17 +13,17 @@ import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 
-type BusinessStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+type BusinessStatus = 'pending_geocode' | 'approved' | 'rejected' | 'suspended';
 
 const STATUS_CONFIG: Record<BusinessStatus, { label: string; cls: string; Icon: any }> = {
-    pending: { label: 'Legacy Pending', cls: 'bg-amber-50/50 text-amber-600 border-amber-100', Icon: Clock },
+    pending_geocode: { label: 'Map Processing', cls: 'bg-amber-50/50 text-amber-600 border-amber-100', Icon: Clock },
     approved: { label: 'Approved', cls: 'bg-emerald-50/50 text-emerald-600 border-emerald-100', Icon: CheckCircle2 },
     rejected: { label: 'Rejected', cls: 'bg-rose-50/50 text-rose-600 border-rose-100', Icon: XCircle },
     suspended: { label: 'Suspended', cls: 'bg-slate-50 text-slate-500 border-slate-200', Icon: AlertCircle },
 };
 
 const StatusBadge = ({ status }: { status: BusinessStatus }) => {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending_geocode;
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${config.cls}`}>
             <config.Icon className="w-3 h-3" /> {config.label}
@@ -68,13 +68,14 @@ export default function AdminBusinessesPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [page]);
 
-    const handleModerate = async (id: string, status: BusinessStatus) => {
+    const handleSuspension = async (id: string, suspended: boolean) => {
         setActionLoading(id + '-moderate');
         try {
-            await api.admin.moderateBusiness(id, status);
-            setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+            const nextStatus: BusinessStatus = suspended ? 'suspended' : 'approved';
+            await api.admin.setBusinessSuspension(id, suspended);
+            setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: nextStatus } : b));
         } catch (err: any) {
-            alert(err.message || 'Failed to moderate business');
+            alert(err.message || 'Failed to update business status');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -143,7 +144,7 @@ export default function AdminBusinessesPage() {
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                    {(['all', 'approved', 'rejected', 'suspended', 'pending'] as const).map(s => (
+                    {(['all', 'approved', 'rejected', 'suspended', 'pending_geocode'] as const).map(s => (
                         <button
                             key={s}
                             onClick={() => setStatusFilter(s)}
@@ -152,7 +153,7 @@ export default function AdminBusinessesPage() {
                                 : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
                                 }`}
                         >
-                            {s === 'all' ? 'All Listings' : s === 'pending' ? 'Legacy Pending' : s.charAt(0).toUpperCase() + s.slice(1)}
+                            {s === 'all' ? 'All Listings' : s === 'pending_geocode' ? 'Map Processing' : s.charAt(0).toUpperCase() + s.slice(1)}
                         </button>
                     ))}
                 </div>
@@ -666,20 +667,11 @@ export default function AdminBusinessesPage() {
 
                                 <div className="h-[1px] bg-slate-50 mx-4 my-1" />
 
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 px-6 pt-3 pb-1.5 focus:outline-none">Moderation</p>
-
-                                {b.status === 'rejected' && (
-                                    <button
-                                        onClick={() => handleModerate(b.id, 'approved')}
-                                        className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-emerald-600 hover:bg-emerald-50 transition-all text-left uppercase tracking-wider group"
-                                    >
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" /> Restore Listing
-                                    </button>
-                                )}
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 px-6 pt-3 pb-1.5 focus:outline-none">Status Controls</p>
 
                                 {b.status !== 'suspended' && (
                                     <button
-                                        onClick={() => handleModerate(b.id, 'suspended')}
+                                        onClick={() => handleSuspension(b.id, true)}
                                         className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-slate-900 hover:bg-slate-50 transition-all text-left uppercase tracking-wider group"
                                     >
                                         <XCircle className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" /> Block Business
@@ -688,19 +680,10 @@ export default function AdminBusinessesPage() {
 
                                 {b.status === 'suspended' && (
                                     <button
-                                        onClick={() => handleModerate(b.id, 'approved')}
+                                        onClick={() => handleSuspension(b.id, false)}
                                         className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-emerald-600 hover:bg-emerald-50 transition-all text-left uppercase tracking-wider group"
                                     >
                                         <RefreshCw className="w-4 h-4 text-emerald-400 group-hover:rotate-180 transition-transform" /> Unblock Business
-                                    </button>
-                                )}
-
-                                {b.status !== 'rejected' && (
-                                    <button
-                                        onClick={() => handleModerate(b.id, 'rejected')}
-                                        className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-rose-500 hover:bg-rose-50 transition-all text-left uppercase tracking-wider group"
-                                    >
-                                        <Trash2 className="w-4 h-4 text-rose-300 group-hover:scale-110 transition-transform" /> Reject Entry
                                     </button>
                                 )}
 

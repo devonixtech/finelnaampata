@@ -13,6 +13,40 @@ export class SearchService implements OnModuleInit {
     private INDEX_NAME = 'businesses';
     private isElasticAvailable = false;
     private readonly logger = new Logger(SearchService.name);
+    private readonly romanUrduSynonymGroups: string[][] = [
+        ['karachi', 'کراچی'],
+        ['lahore', 'lahor', 'لاہور'],
+        ['islamabad', 'اسلام آباد', 'isb'],
+        ['rawalpindi', 'pindi', 'راولپنڈی'],
+        ['faisalabad', 'فیصل آباد'],
+        ['multan', 'ملتان'],
+        ['peshawar', 'پشاور'],
+        ['quetta', 'کوئٹہ'],
+        ['hyderabad', 'حیدرآباد'],
+        ['sialkot', 'سیالکوٹ'],
+        ['restaurant', 'restoran', 'ریسٹورنٹ', 'ہوٹل'],
+        ['hospital', 'hospitel', 'ہسپتال'],
+        ['doctor', 'dr', 'ڈاکٹر'],
+        ['clinic', 'کلینک'],
+        ['pharmacy', 'medical store', 'medikal', 'میڈیکل', 'فارمیسی'],
+        ['school', 'اسکول'],
+        ['college', 'کالج'],
+        ['university', 'یونیورسٹی'],
+        ['salon', 'beauty parlour', 'parlor', 'سیلون'],
+        ['spa', 'اسپا'],
+        ['gym', 'جِم'],
+        ['bakery', 'بیکری'],
+        ['cafe', 'کافی شاپ', 'کیفے'],
+        ['grocery', 'kiryana', 'کریانہ'],
+        ['tailor', 'darzi', 'درزی'],
+        ['plumber', 'پلمبر'],
+        ['electrician', 'الیکٹریشن'],
+        ['mechanic', 'workshop', 'مکینک', 'ورکشاپ'],
+        ['mobile', 'موبائل'],
+        ['computer', 'کمپیوٹر'],
+        ['lawyer', 'wakeel', 'وکیل'],
+        ['real estate', 'property dealer', 'پراپرٹی'],
+    ];
 
     constructor(
         private readonly elasticsearchService: ElasticsearchService,
@@ -62,6 +96,50 @@ export class SearchService implements OnModuleInit {
      */
     isAvailable() {
         return this.isElasticAvailable;
+    }
+
+    private normalizeSearchText(value?: string | null): string {
+        return (value || '')
+            .toLowerCase()
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[اآأإ]/g, 'ا')
+            .replace(/[يی]/g, 'ی')
+            .replace(/[كک]/g, 'ک')
+            .replace(/[ةه]/g, 'ه')
+            .replace(/[ؤئ]/g, '')
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    private expandRomanUrduTokens(value?: string | null): string[] {
+        const normalized = this.normalizeSearchText(value);
+        if (!normalized) return [];
+
+        const expanded = new Set<string>(normalized.split(' ').filter(Boolean));
+        for (const group of this.romanUrduSynonymGroups) {
+            const normalizedGroup = group.map((item) => this.normalizeSearchText(item));
+            const matchesGroup = normalizedGroup.some((item) =>
+                item.includes(' ') ? normalized.includes(item) : expanded.has(item),
+            );
+            if (matchesGroup) {
+                normalizedGroup.forEach((item) => {
+                    if (item) expanded.add(item);
+                });
+            }
+        }
+
+        return Array.from(expanded);
+    }
+
+    private buildNormalizedSearchText(...values: Array<string | string[] | null | undefined>): string {
+        const rawParts = values.flatMap((value) => Array.isArray(value) ? value : [value]);
+        const normalizedParts = rawParts
+            .map((value) => this.normalizeSearchText(value))
+            .filter(Boolean);
+        const expanded = rawParts.flatMap((value) => this.expandRomanUrduTokens(value));
+        return Array.from(new Set([...normalizedParts, ...expanded])).join(' ');
     }
 
     /**
@@ -127,12 +205,13 @@ export class SearchService implements OnModuleInit {
                             location: { type: 'geo_point' },
                             lat_lng: { type: 'geo_point' },
                             rating: { type: 'float' },
-                            isFeatured: { type: 'boolean' },
-                            isVerified: { type: 'boolean' },
+                            is_featured: { type: 'boolean' },
+                            is_verified: { type: 'boolean' },
                             status: { type: 'keyword' },
                             is_active: { type: 'boolean' },
                             search_keywords: { type: 'text', analyzer: 'search_text_analyzer' },
                             meta_keywords: { type: 'text', analyzer: 'search_text_analyzer' },
+                            search_text_normalized: { type: 'text', analyzer: 'search_text_analyzer' },
                             followersCount: { type: 'integer' },
                             businessType: { type: 'keyword' },
                             coreBusinessNature: { type: 'keyword' },
@@ -188,6 +267,14 @@ export class SearchService implements OnModuleInit {
                 is_featured: business.isFeatured,
                 search_keywords: business.searchKeywords || [],
                 meta_keywords: business.metaKeywords || '',
+                search_text_normalized: this.buildNormalizedSearchText(
+                    business.title,
+                    business.category?.name,
+                    business.city,
+                    business.address,
+                    business.metaKeywords,
+                    business.searchKeywords || [],
+                ),
                 followersCount: business.followersCount || 0,
                 businessType: business.businessType || [],
                 coreBusinessNature: business.coreBusinessNature || [],
@@ -234,6 +321,7 @@ export class SearchService implements OnModuleInit {
             .createQueryBuilder('b')
             .leftJoinAndSelect('b.category', 'category')
             .where('b.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere('b.hiddenByDeletion = false')
             .andWhere(new Brackets(qb => {
                 qb.where('category.id IS NULL')
                   .orWhere('category.status = :catStatus', { catStatus: 'active' });
@@ -379,7 +467,7 @@ export class SearchService implements OnModuleInit {
             verifiedOnly, featuredOnly, sortBy
         } = searchDto;
 
-        const filters: any[] = []; // Removed status filter from here
+        const filters: any[] = [{ term: { status: BusinessStatus.APPROVED } }];
 
         if (city) {
             filters.push({ term: { city: city.toLowerCase() } });
@@ -398,35 +486,12 @@ export class SearchService implements OnModuleInit {
         }
 
         if (featuredOnly) {
-            // Assuming 'isFeatured' in DTO maps to 'is_active' in ES for featured logic
-            // Or, if 'isFeatured' is a separate concept, it needs to be indexed separately.
-            // For now, let's assume featured implies active and is a separate field.
-            // If 'isFeatured' is not indexed, this filter won't work.
-            // Based on the instruction, it seems 'isFeatured' was removed from indexing.
-            // If 'featuredOnly' is still a requirement, it needs to be re-evaluated.
-            // For now, I'll assume it should filter on 'is_active' if that's the new "featured" indicator.
-            // Or, if 'isFeatured' is still a property of Listing, it should be indexed.
-            // Given the instruction, I'll remove this filter as 'isFeatured' is no longer indexed.
-            // If the user wants to filter by featured, they need to re-add 'isFeatured' to the index.
-            // For now, I'll keep it commented out or remove it if it's not indexed.
-            // Let's assume 'is_active' is the new field for "approved" status, not "featured".
-            // If 'featuredOnly' is still needed, it implies 'isFeatured' should be indexed.
-            // The instruction removed 'isFeatured' from indexing. So, this filter cannot work as is.
-            // I will remove this filter for now, as the corresponding field is no longer indexed.
-            // If 'featuredOnly' is meant to filter on 'is_active', then it should be:
-            // filters.push({ term: { is_active: true } });
-            // But 'is_active' is for 'approved' status.
-            // Let's assume 'featuredOnly' is no longer supported via ES if 'isFeatured' is not indexed.
-            // If 'isFeatured' is still a property of Listing, it should be indexed.
-            // The instruction removed `isFeatured: business.isFeatured,` from `indexBusiness`.
-            // So, `featuredOnly` filter cannot be applied directly.
-            // I will remove this filter for now.
-            // If the user wants to filter by featured, they need to re-add `isFeatured` to the index.
-            // For now, I'll remove it to be consistent with the indexing change.
+            filters.push({ term: { is_featured: true } });
         }
 
         // Base query - if no text query, match all but keep filters
         const normalizedQuery = (query || '').trim().toLowerCase();
+        const normalizedExpandedQuery = this.buildNormalizedSearchText(query);
         const baseQuery = query
             ? {
                 bool: {
@@ -450,17 +515,20 @@ export class SearchService implements OnModuleInit {
                                 ],
                                 fuzziness: 'AUTO'
                             }
+                        },
+                        {
+                            match: {
+                                search_text_normalized: {
+                                    query: normalizedExpandedQuery || normalizedQuery,
+                                    boost: 12,
+                                },
+                            },
                         }
                     ],
                     minimum_should_match: 1,
                 }
               }
             : { match_all: {} };
-
-        // Ranking functions
-        const must: any[] = [
-            { term: { status: BusinessStatus.APPROVED } } // Moved from filters to must
-        ];
 
         // Ranking functions
         const functions: any[] = [
@@ -612,6 +680,7 @@ export class SearchService implements OnModuleInit {
         if (category) filters.push({ term: { category: category.toLowerCase() } });
 
         const normalizedQuery = (query || '').trim().toLowerCase();
+        const normalizedExpandedQuery = this.buildNormalizedSearchText(query);
         const response = await this.elasticsearchService.search({
             index: this.INDEX_NAME,
             size: limit,
@@ -643,6 +712,14 @@ export class SearchService implements OnModuleInit {
                                                             'address'
                                                         ],
                                                         fuzziness: 'AUTO'
+                                                    },
+                                                },
+                                                {
+                                                    match: {
+                                                        search_text_normalized: {
+                                                            query: normalizedExpandedQuery || normalizedQuery,
+                                                            boost: 12,
+                                                        },
                                                     },
                                                 },
                                             ],

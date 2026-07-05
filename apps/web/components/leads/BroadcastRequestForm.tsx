@@ -7,7 +7,7 @@ import CategorySearchSelect from '../CategorySearchSelect';
 import CitySearchSelect from '../CitySearchSelect';
 import { MapPin, Megaphone, Loader2, Navigation, ChevronRight, ChevronLeft, CheckCircle2, Sparkles, Target, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { detectLocationForUi, sortAndDedupeCities } from '../../lib/location-detect';
+import { detectLocationForUi, sortAndDedupeCities, findNearestCity } from '../../lib/location-detect';
 import { useAuth } from '../../context/AuthContext';
 
 interface BroadcastRequestFormProps {
@@ -64,10 +64,12 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
         try {
             const coords = await detectLocationForUi();
             if (!coords) return;
+            const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
             setFormData(prev => ({
                 ...prev,
                 latitude: coords.latitude,
                 longitude: coords.longitude,
+                city: nearest?.name || prev.city,
             }));
         } catch (err) {
             console.error('Geolocation error:', err);
@@ -119,8 +121,8 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
             setError('Please provide some details');
             return;
         }
-        if (step === 3 && !formData.city) {
-            setError('Please select your city');
+        if (step === 3 && !formData.city && !formData.latitude) {
+            setError('Please select your city or use GPS');
             return;
         }
         setError(null);
@@ -330,7 +332,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                             <div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Location</span>
                                                 <p className="font-bold flex items-center gap-2 mt-1">
-                                                    <MapPin className="w-4 h-4 text-blue-400" /> {formData.city}
+                                                    <MapPin className="w-4 h-4 text-blue-400" /> {formData.city || 'GPS Location'}
                                                     {formData.latitude && <span className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">GPS</span>}
                                                 </p>
                                             </div>

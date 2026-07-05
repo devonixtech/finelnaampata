@@ -83,10 +83,10 @@ export const INDUSTRY_SUB_TYPES_SECTIONS = {
 export type IndustrySubTypeSectionKey = keyof typeof INDUSTRY_SUB_TYPES_SECTIONS;
 
 export const TARGET_MARKET = [
-    'B2C — Individual Consumers',
-    'B2B — Other Businesses',
-    'B2G — Government & Public Sector',
-    'D2C — Direct to Consumer (own brand)',
+    'B2C - Individual Consumers',
+    'B2B - Other Businesses',
+    'B2G - Government & Public Sector',
+    'D2C - Direct to Consumer (own brand)',
     'Wholesale Buyers',
     'International Clients',
 ];
@@ -116,16 +116,26 @@ export const AMENITIES = {
 };
 
 export const SOCIAL_PLATFORMS = [
-    { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
-    { key: 'instagram', label: 'Instagram', emoji: '📸', color: '#E1306C', placeholder: 'https://instagram.com/yourbusiness' },
-    { key: 'twitter', label: 'Twitter / X', emoji: '🐦', color: '#1DA1F2', placeholder: 'https://twitter.com/yourbusiness' },
-    { key: 'linkedin', label: 'LinkedIn', emoji: '💼', color: '#0A66C2', placeholder: 'https://linkedin.com/company/yourbusiness' },
-    { key: 'youtube', label: 'YouTube', emoji: '▶️', color: '#FF0000', placeholder: 'https://youtube.com/@yourbusiness' },
-    { key: 'tiktok', label: 'TikTok', emoji: '🎵', color: '#000000', placeholder: 'https://tiktok.com/@yourbusiness' },
+    { key: 'facebook', label: 'Facebook', emoji: 'Fb', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
+    { key: 'instagram', label: 'Instagram', emoji: 'Ig', color: '#E1306C', placeholder: 'https://instagram.com/yourbusiness' },
+    { key: 'twitter', label: 'Twitter / X', emoji: 'X', color: '#1DA1F2', placeholder: 'https://twitter.com/yourbusiness' },
+    { key: 'linkedin', label: 'LinkedIn', emoji: 'In', color: '#0A66C2', placeholder: 'https://linkedin.com/company/yourbusiness' },
+    { key: 'youtube', label: 'YouTube', emoji: 'YT', color: '#FF0000', placeholder: 'https://youtube.com/@yourbusiness' },
+    { key: 'tiktok', label: 'TikTok', emoji: 'TT', color: '#000000', placeholder: 'https://tiktok.com/@yourbusiness' },
+    { key: 'pinterest', label: 'Pinterest', emoji: 'P', color: '#E60023', placeholder: 'https://pinterest.com/yourbusiness' },
+    { key: 'snapchat', label: 'Snapchat', emoji: 'S', color: '#FFFC00', placeholder: 'https://snapchat.com/add/yourbusiness' },
 ];
 
 export const EMPLOYEE_COUNT_OPTIONS = [
-    '1-10 (Micro)', '11-50 (Small)', '51-200 (Medium)', '201-500 (Large)', '500+ (Enterprise)',
+    'Only me',
+    '2-5',
+    '6-10',
+    '11-20',
+    '21-50',
+    '51-100',
+    '101-250',
+    '251-500',
+    '500+',
 ];
 
 export const STEPS = [

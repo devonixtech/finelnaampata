@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StepProps } from '../types';
-import { ImagePlus, Clock, RotateCcw } from 'lucide-react';
+import { ImagePlus, Clock, RotateCcw, Plus, X } from 'lucide-react';
 import { api } from '../../../../lib/api';
+import { usePlanFeature } from '../../../../hooks/usePlanFeature';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const labelClass = "block text-xs font-black uppercase tracking-widest text-slate-400 mb-2";
@@ -54,7 +55,7 @@ const toggleArrayItem = (arr: string[], item: string) => {
 };
 
 export const Step10Hours = ({ formData, setFormData }: StepProps) => {
-    const [open247, setOpen247] = useState(false);
+    const [open247, setOpen247] = useState(Boolean(formData.open247));
     const [hoursMap, setHoursMap] = useState<HoursMap>(() => {
         if (Array.isArray(formData.businessHours) && formData.businessHours.length > 0) {
             return hoursArrayToMap(formData.businessHours);
@@ -69,6 +70,7 @@ export const Step10Hours = ({ formData, setFormData }: StepProps) => {
 
     const handleOpen247 = (checked: boolean) => {
         setOpen247(checked);
+        setFormData(prev => ({ ...prev, open247: checked }));
         if (checked) {
             const allOpen: HoursMap = {};
             for (const d of DAYS) {
@@ -174,6 +176,17 @@ export const Step10Hours = ({ formData, setFormData }: StepProps) => {
                     })}
                 </div>
             )}
+
+            <div>
+                <label className={labelClass}>Time Zone</label>
+                <input
+                    type="text"
+                    value={formData.timezone || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                    className={inputClass}
+                    placeholder="e.g. Asia/Karachi"
+                />
+            </div>
         </div>
     );
 };
@@ -270,8 +283,10 @@ export const Step18Expansion = ({ formData, setFormData }: StepProps) => (
 );
 
 export const Step19Media = ({ formData, setFormData }: StepProps) => {
+    const { isFree } = usePlanFeature();
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingGallery, setUploadingGallery] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -301,15 +316,32 @@ export const Step19Media = ({ formData, setFormData }: StepProps) => {
         }
     };
 
+    const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            setUploadingGallery(true);
+            const response = await api.listings.uploadImage(file);
+            setFormData(prev => ({
+                ...prev,
+                images: [...(Array.isArray(prev.images) ? prev.images : []), response.url],
+            }));
+        } catch (err: any) {
+            console.error('Failed to upload gallery image', err);
+        } finally {
+            setUploadingGallery(false);
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-sm font-bold text-slate-700">Recommended sizes</p>
-                <p className="text-xs text-slate-500 mt-1">Logo: 400 x 400px square. Cover image: 1200 x 675px wide.</p>
+                <p className="text-xs text-slate-500 mt-1">Logo: 400 x 400px square. Cover image: 1200 x 400px wide.</p>
                 <p className="text-xs text-slate-500 mt-1">Uploads are auto-optimized before publishing for better speed.</p>
-                {(uploadingLogo || uploadingCover) && (
+                {(uploadingLogo || uploadingCover || uploadingGallery) && (
                     <p className="text-xs font-semibold text-orange-500 mt-2">
-                        {uploadingLogo ? 'Uploading logo...' : 'Uploading cover image...'}
+                        {uploadingLogo ? 'Uploading logo...' : uploadingCover ? 'Uploading cover image...' : 'Uploading gallery image...'}
                     </p>
                 )}
             </div>
@@ -341,13 +373,67 @@ export const Step19Media = ({ formData, setFormData }: StepProps) => {
                                 <ImagePlus className="w-10 h-10" />
                                 <div className="text-center">
                                     <p className="font-black text-sm">Click to upload cover image</p>
-                                    <p className="text-xs mt-0.5">Recommended: 1200 × 675px (16:9)</p>
+                                    <p className="text-xs mt-0.5">Recommended: 1200 x 400px</p>
                                 </div>
                             </div>
                         )}
                     </div>
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
+            </div>
+
+            <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                    <label className={labelClass + " mb-0"}>Gallery Images</label>
+                    <span className="text-[10px] font-black text-slate-500">
+                        {(Array.isArray(formData.images) ? formData.images.length : 0)}/{isFree ? 3 : 'Unlimited'}
+                    </span>
+                </div>
+                {isFree && (
+                    <div className="mb-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/60 px-4 py-3 text-xs font-bold text-amber-700">
+                        Free plans can publish up to 3 gallery images. Upgrade to unlock more photos and album creation.
+                    </div>
+                )}
+                <div className="flex flex-wrap gap-3">
+                    {(Array.isArray(formData.images) ? formData.images : []).map((url, idx) => (
+                        <div key={`${url}-${idx}`} className="flex w-32 flex-col gap-2">
+                            <div className="relative h-24 overflow-hidden rounded-2xl border border-slate-200">
+                                <img src={url} alt={`Gallery ${idx + 1}`} className="h-full w-full object-cover" />
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({
+                                        ...prev,
+                                        images: (Array.isArray(prev.images) ? prev.images : []).filter((_, imageIdx) => imageIdx !== idx),
+                                    }))}
+                                    className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-rose-500 shadow"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                value={formData.imageCaptions[url] || ''}
+                                onChange={(e) => setFormData(prev => ({
+                                    ...prev,
+                                    imageCaptions: {
+                                        ...prev.imageCaptions,
+                                        [url]: e.target.value,
+                                    },
+                                }))}
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                                placeholder="Caption (optional)"
+                            />
+                        </div>
+                    ))}
+
+                    {(Array.isArray(formData.images) ? formData.images.length : 0) < (isFree ? 3 : 999) && (
+                        <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 text-slate-500 transition-colors hover:bg-white">
+                            <Plus className="w-5 h-5" />
+                            <span className="mt-1 text-[10px] font-black uppercase tracking-wider">Upload</span>
+                            <input type="file" accept="image/*" onChange={handleGalleryUpload} className="hidden" />
+                        </label>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -3,6 +3,7 @@ import {
     NotFoundException,
     ConflictException,
     InternalServerErrorException,
+    BadRequestException,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +14,9 @@ import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Listing } from '../../entities/business.entity';
 import { OfferEvent } from '../../entities/offer-event.entity';
+import { Lead } from '../../entities/lead.entity';
+import { Comment } from '../../entities/comment.entity';
+import { Vendor } from '../../entities/vendor.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
     createPaginatedResponse,
@@ -20,8 +24,8 @@ import {
 } from '../../common/utils/pagination.util';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { AdminService } from '../admin/admin.service';
 
 @Injectable()
 export class UsersService {
@@ -36,10 +40,15 @@ export class UsersService {
         private notificationRepository: Repository<Notification>,
         @InjectRepository(Listing)
         private businessRepository: Repository<Listing>,
+        @InjectRepository(Vendor)
+        private vendorRepository: Repository<Vendor>,
         @InjectRepository(OfferEvent)
         private offerEventRepository: Repository<OfferEvent>,
+        @InjectRepository(Lead)
+        private leadRepository: Repository<Lead>,
+        @InjectRepository(Comment)
+        private commentRepository: Repository<Comment>,
         private subscriptionsService: SubscriptionsService,
-        private adminService: AdminService,
     ) { }
 
     /**
@@ -48,7 +57,7 @@ export class UsersService {
     async getProfile(id: string): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id },
-            relations: ['vendor', 'vendor.subscriptions', 'vendor.subscriptions.plan', 'vendor.activePlans', 'vendor.activePlans.plan'],
+            relations: ['vendor', 'vendor.businesses', 'vendor.subscriptions', 'vendor.subscriptions.plan', 'vendor.activePlans', 'vendor.activePlans.plan'],
         });
 
         if (!user) {
@@ -326,17 +335,57 @@ export class UsersService {
      * Request account deletion (scheduled for 30 days from now)
      */
     async requestDeletion(id: string): Promise<User> {
-        const user = await this.getProfile(id);
-        user.deletionScheduledAt = new Date();
-        return this.userRepository.save(user);
+        const user = await this.userRepository.findOne({
+            where: { id },
+            relations: ['vendor', 'vendor.businesses'],
+        });
+
+        if (!user) throw new NotFoundException('User not found');
+        if (user.deletionScheduledAt) return this.getProfile(id);
+
+        const now = new Date();
+        const holdReason = !user.isActive ? 'Account is suspended' : null;
+
+        user.deletionCancelledAt = null;
+        user.deletionCompletedAt = null;
+        user.deletionHoldReason = holdReason;
+        user.deletionHoldStartedAt = holdReason ? now : null;
+        user.deletionReminderSentAt = null;
+        user.deletionFinalReminderSentAt = null;
+
+        if (!holdReason) {
+            user.deletionScheduledAt = now;
+        }
+
+        await this.hideOwnedBusinesses(user, true);
+        await this.appendDeletionAudit(user, 'deletion_requested', {
+            holdReason,
+            scheduledAt: user.deletionScheduledAt?.toISOString() || null,
+        });
+
+        await this.userRepository.save(user);
+        return this.getProfile(id);
     }
 
     /**
      * Cancel scheduled account deletion
      */
     async cancelDeletion(id: string): Promise<User> {
-        const user = await this.getProfile(id);
+        const user = await this.userRepository.findOne({
+            where: { id },
+            relations: ['vendor', 'vendor.businesses'],
+        });
+        if (!user) throw new NotFoundException('User not found');
+
         user.deletionScheduledAt = null;
+        user.deletionHoldReason = null;
+        user.deletionHoldStartedAt = null;
+        user.deletionReminderSentAt = null;
+        user.deletionFinalReminderSentAt = null;
+        user.deletionCancelledAt = new Date();
+
+        await this.hideOwnedBusinesses(user, false);
+        await this.appendDeletionAudit(user, 'deletion_cancelled', {});
         return this.userRepository.save(user);
     }
 
@@ -371,19 +420,108 @@ export class UsersService {
             where: {
                 deletionScheduledAt: LessThanOrEqual(thirtyDaysAgo),
             },
+            relations: ['vendor', 'vendor.businesses'],
         });
 
         if (usersToDelete.length > 0) {
             console.log(`[UsersService] Found ${usersToDelete.length} accounts for permanent deletion`);
             for (const user of usersToDelete) {
                 try {
-                    // Use AdminService for thorough cleanup of all related data
-                    await this.adminService.deleteUser(user.id);
+                    await this.completeDeletion(user);
                     console.log(`[UsersService] Permanently deleted user ${user.id} (${user.email})`);
                 } catch (error) {
                     console.error(`[UsersService] Failed to permanently delete user ${user.id}:`, error.message);
                 }
             }
+        }
+    }
+
+    private async hideOwnedBusinesses(user: User, hidden: boolean): Promise<void> {
+        const businessIds = user.vendor?.businesses?.map((business: Listing) => business.id).filter(Boolean) || [];
+        if (businessIds.length === 0) return;
+
+        await this.businessRepository
+            .createQueryBuilder()
+            .update(Listing)
+            .set({ hiddenByDeletion: hidden })
+            .whereInIds(businessIds)
+            .execute();
+    }
+
+    private async completeDeletion(user: User): Promise<void> {
+        const reloaded = await this.userRepository.findOne({
+            where: { id: user.id },
+            relations: ['vendor', 'vendor.businesses', 'reviews', 'notifications', 'leads', 'savedListings', 'comments', 'savedOfferEvents'],
+        });
+
+        if (!reloaded) return;
+
+        await this.appendDeletionAudit(reloaded, 'deletion_completed', {});
+        await this.hideOwnedBusinesses(reloaded, true);
+
+        if (reloaded.notifications?.length) {
+            await this.notificationRepository.remove(reloaded.notifications);
+        }
+        if (reloaded.leads?.length) {
+            await this.leadRepository.delete({ userId: reloaded.id });
+        }
+        if (reloaded.savedListings?.length) {
+            await this.savedListingRepository.delete({ userId: reloaded.id });
+        }
+        if (reloaded.savedOfferEvents?.length) {
+            await this.savedOfferEventRepository.delete({ userId: reloaded.id });
+        }
+        if (reloaded.comments?.length) {
+            await this.commentRepository.delete({ userId: reloaded.id });
+        }
+
+        if (reloaded.vendor) {
+            reloaded.vendor.businessName = 'Deleted Business';
+            reloaded.vendor.businessEmail = null;
+            reloaded.vendor.businessPhone = null;
+            reloaded.vendor.businessAddress = null;
+            reloaded.vendor.bio = null;
+            reloaded.vendor.isVerified = false;
+            await this.vendorRepository.save(reloaded.vendor);
+        }
+
+        reloaded.fullName = 'Deleted User';
+        reloaded.avatarUrl = null;
+        reloaded.phone = null;
+        reloaded.city = null;
+        reloaded.state = null;
+        reloaded.country = null;
+        reloaded.googleId = null;
+        reloaded.facebookId = null;
+        reloaded.pendingReferralCode = null;
+        reloaded.password = null;
+        reloaded.deviceToken = null;
+        reloaded.pushSubscriptions = [];
+        reloaded.verificationOtp = null;
+        reloaded.otpExpiresAt = null;
+        reloaded.deletionScheduledAt = null;
+        reloaded.deletionHoldReason = null;
+        reloaded.deletionHoldStartedAt = null;
+        reloaded.deletionReminderSentAt = null;
+        reloaded.deletionFinalReminderSentAt = null;
+        reloaded.deletionCancelledAt = null;
+        reloaded.deletionCompletedAt = new Date();
+        reloaded.isActive = false;
+        reloaded.isEmailVerified = false;
+        reloaded.isPhoneVerified = false;
+
+        await this.userRepository.save(reloaded);
+    }
+
+    private async appendDeletionAudit(user: User, eventType: string, details: Record<string, any>) {
+        const hash = createHash('sha256').update(`${user.id}:${user.email || ''}`).digest('hex');
+        try {
+            await this.userRepository.query(
+                `INSERT INTO deletion_audit_logs (account_id_hash, user_id, event_type, details) VALUES ($1, $2, $3, $4)`,
+                [hash, user.id, eventType, JSON.stringify(details || {})],
+            );
+        } catch (error) {
+            console.warn(`[UsersService] Failed to write deletion audit log (${eventType}): ${error.message}`);
         }
     }
 }

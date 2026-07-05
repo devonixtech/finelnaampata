@@ -1,17 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, In } from 'typeorm';
 import { User, UserRole } from '../../entities/user.entity';
 import { Listing, BusinessStatus } from '../../entities/business.entity';
 import { Review } from '../../entities/review.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { SystemSetting } from '../../entities/system-setting.entity';
-import { ModerateBusinessDto, ModerateReviewDto } from './dto/moderate.dto';
+import { ModerateReviewDto } from './dto/moderate.dto';
 import { BusinessHours } from '../../entities/business-hours.entity';
 import { BusinessAmenity } from '../../entities/business-amenity.entity';
 import { Lead } from '../../entities/lead.entity';
 import { SavedListing } from '../../entities/favorite.entity';
+import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
 import { Comment as BusinessComment } from '../../entities/comment.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
@@ -20,10 +21,9 @@ import { CommentReply } from '../../entities/comment-reply.entity';
 import { createPaginatedResponse, calculateSkip } from '../../common/utils/pagination.util';
 import { SearchLog } from '../../entities/search-log.entity';
 import { SearchService } from '../search/search.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { VendorAttribute } from '../../entities/vendor-attribute.entity';
 import { BusinessQuestion } from '../../entities/business-question.entity';
-import { SearchLocationService } from '../location/search-location.service';
+import { SearchLocationService } from '../search/search-location.service';
 import { ChatConversation } from '../../entities/chat-conversation.entity';
 import { PricingPlanType } from '../../entities/pricing-plan.entity';
 import { Event } from '../../entities/event.entity';
@@ -54,6 +54,8 @@ export class AdminService {
         private leadRepository: Repository<Lead>,
         @InjectRepository(SavedListing)
         private favoriteRepository: Repository<SavedListing>,
+        @InjectRepository(SavedOfferEvent)
+        private savedOfferEventRepository: Repository<SavedOfferEvent>,
         @InjectRepository(BusinessComment)
         private commentRepository: Repository<BusinessComment>,
         @InjectRepository(Notification)
@@ -79,7 +81,6 @@ export class AdminService {
         @InjectRepository(PromotionBooking)
         private promotionBookingRepository: Repository<PromotionBooking>,
         private searchService: SearchService,
-        private notificationsService: NotificationsService,
         private searchLocationService: SearchLocationService,
     ) { }
 
@@ -127,8 +128,10 @@ export class AdminService {
         const userCount = await this.userRepository.count();
         const vendorCount = await this.vendorRepository.count();
         const businessCount = await this.businessRepository.count();
-        const pendingBusinessCount = await this.businessRepository.count({
-            where: { status: BusinessStatus.PENDING },
+        const processingBusinessCount = await this.businessRepository.count({
+            where: {
+                status: In([BusinessStatus.PENDING, BusinessStatus.PENDING_GEOCODE]),
+            },
         });
         const reviewCount = await this.reviewRepository.count();
         const eventCount = await this.eventRepository.count();
@@ -237,7 +240,8 @@ export class AdminService {
             totalUsers: userCount,
             totalVendors: vendorCount,
             totalBusinesses: businessCount,
-            pendingBusinesses: pendingBusinessCount,
+            pendingBusinesses: processingBusinessCount,
+            processingBusinesses: processingBusinessCount,
             totalReviews: reviewCount,
             totalEvents: eventCount,
             totalDeals: dealCount,
@@ -353,48 +357,23 @@ export class AdminService {
         }
     }
 
-    /**
-     * Moderate a business listing
-     */
-    async moderateBusiness(id: string, dto: ModerateBusinessDto) {
+    async setBusinessSuspension(id: string, suspended: boolean) {
         const business = await this.businessRepository.findOne({ where: { id } });
         if (!business) throw new NotFoundException('Business not found');
 
-        business.status = dto.status;
-        if (dto.status === BusinessStatus.APPROVED) {
-            business.approvedAt = new Date();
-            business.isVerified = true;
-        } else if (dto.status === BusinessStatus.REJECTED) {
-            business.rejectedAt = new Date();
-            business.rejectionReason = dto.reason;
-            business.isVerified = false;
+        business.status = suspended ? BusinessStatus.SUSPENDED : BusinessStatus.APPROVED;
+        if (!suspended) {
+            business.approvedAt = business.approvedAt || new Date();
+            business.rejectedAt = null as any;
+            business.rejectionReason = null as any;
         }
 
-        const moderated = await this.businessRepository.save(business);
+        const updated = await this.businessRepository.save(business);
 
-        // Fetch fully populated listing for notification (need category name, slug etc)
-        const result = await this.businessRepository.findOne({
-            where: { id: moderated.id },
-            relations: ['category']
-        });
+        this.searchService.indexBusiness(updated).catch(err => console.error('ES Status Index Error:', err));
+        await this.invalidateBusinessSearchCache(updated);
 
-        if (dto.status === BusinessStatus.APPROVED && result) {
-            // Broadcast to all users: new listing is live
-            /* 
-            this.notificationsService.broadcast({
-                title: '📍 New Business Listed!',
-                message: `"${result.title}" just joined ${result.category?.name ? result.category.name + ' listings' : 'our directory'}. Check it out!`,
-                type: 'new_listing',
-                data: { businessId: result.id, slug: result.slug },
-            }).catch(() => {});
-            */
-        }
-
-        // Update in Elasticsearch (approval status changed)
-        this.searchService.indexBusiness(moderated).catch(err => console.error('ES Approval Index Error:', err));
-        await this.invalidateBusinessSearchCache(result);
-
-        return moderated;
+        return updated;
     }
 
     /**
@@ -610,10 +589,10 @@ export class AdminService {
                     'vendor',
                     'vendor.businesses',
                     'notifications',
-                    'reviews',
                     'leads',
                     'savedListings',
-                    'comments'
+                    'comments',
+                    'savedOfferEvents',
                 ],
             });
 
@@ -622,16 +601,12 @@ export class AdminService {
                 throw new NotFoundException('User not found');
             }
 
-            log(`Found user: ${user.email}. Role: ${user.role}. Starting manual cleanup...`);
+            log(`Found user: ${user.email}. Role: ${user.role}. Starting anonymized cleanup...`);
 
-            // 1. Delete user-specific relations
+            // 1. Delete purely personal relation rows
             if (user.notifications?.length > 0) {
                 log(`Deleting ${user.notifications.length} notifications`);
                 await this.notificationRepository.remove(user.notifications);
-            }
-            if (user.reviews?.length > 0) {
-                log(`Deleting ${user.reviews.length} written reviews`);
-                await this.reviewRepository.remove(user.reviews);
             }
             if (user.leads?.length > 0) {
                 log(`Deleting ${user.leads.length} user leads`);
@@ -641,48 +616,67 @@ export class AdminService {
                 log(`Deleting ${user.savedListings.length} favorite entries`);
                 await this.favoriteRepository.remove(user.savedListings);
             }
+            if (user.savedOfferEvents?.length > 0) {
+                log(`Deleting ${user.savedOfferEvents.length} saved offer/event entries`);
+                await this.savedOfferEventRepository.delete({ userId: user.id });
+            }
             if (user.comments?.length > 0) {
                 log(`Deleting ${user.comments.length} user comments`);
                 await this.commentRepository.remove(user.comments as any);
             }
 
-            // 2. If vendor, delete all their businesses properly
+            // 2. If vendor, hide all their businesses instead of hard deleting
             if (user.vendor) {
                 log(`User has a vendor profile. Cleaning up vendor data...`);
 
-                // 2a. Recursive cleanup for businesses
                 if (user.vendor.businesses?.length > 0) {
-                    log(`Recursive cleanup for ${user.vendor.businesses.length} businesses...`);
-                    const bizIds = user.vendor.businesses.map(b => b.id);
-                    for (const bizId of bizIds) {
-                        try {
-                            await this.deleteBusiness(bizId);
-                        } catch (e) {
-                            log(`Warning: Failed to delete nested business ${bizId}: ${e.message}`);
-                        }
+                    log(`Hiding ${user.vendor.businesses.length} businesses from public view...`);
+                    for (const business of user.vendor.businesses) {
+                        business.hiddenByDeletion = true;
+                        await this.invalidateBusinessSearchCache(business);
+                        await this.businessRepository.save(business);
+                        this.searchService.remove(business.id).catch(err => console.error('ES Delete Index Error:', err));
                     }
                 }
 
-                // 2b. Cleanup Transactions (many-to-one with Vendor)
-                log(`Cleaning up transactions...`);
-                await this.transactionRepository.delete({ vendorId: user.vendor.id });
-
-                // 2c. Cleanup Subscriptions (many-to-one with Vendor)
-                log(`Cleaning up subscriptions...`);
-                await this.subscriptionRepository.delete({ vendorId: user.vendor.id });
-
-                // 2d. Cleanup Comment Replies (many-to-one with Vendor)
-                log(`Cleaning up vendor replies...`);
-                await this.commentReplyRepository.delete({ vendorId: user.vendor.id });
-
-                log(`Removing vendor record...`);
-                await this.vendorRepository.remove(user.vendor);
+                log(`Anonymizing vendor record...`);
+                user.vendor.businessName = 'Deleted Business';
+                user.vendor.businessEmail = null;
+                user.vendor.businessPhone = null;
+                user.vendor.businessAddress = null;
+                user.vendor.bio = null;
+                user.vendor.isVerified = false;
+                await this.vendorRepository.save(user.vendor);
             }
 
-            log(`Final user record removal...`);
-            const result = await this.userRepository.remove(user);
-            log(`Successfully removed user: ${userId}`);
-            return result;
+            log(`Anonymizing user record...`);
+            user.fullName = 'Deleted User';
+            user.avatarUrl = null;
+            user.phone = null;
+            user.city = null;
+            user.state = null;
+            user.country = null;
+            user.password = null;
+            user.googleId = null;
+            user.facebookId = null;
+            user.pendingReferralCode = null;
+            user.deviceToken = null;
+            user.pushSubscriptions = [];
+            user.verificationOtp = null;
+            user.otpExpiresAt = null;
+            user.isActive = false;
+            user.isEmailVerified = false;
+            user.isPhoneVerified = false;
+            user.deletionScheduledAt = null;
+            user.deletionHoldReason = null;
+            user.deletionHoldStartedAt = null;
+            user.deletionReminderSentAt = null;
+            user.deletionFinalReminderSentAt = null;
+            user.deletionCancelledAt = null;
+            user.deletionCompletedAt = new Date();
+            await this.userRepository.save(user);
+            log(`Successfully anonymized user: ${userId}`);
+            return user;
 
         } catch (error: any) {
             log(`ERROR deleting user ${userId}: ${error.message}\n${error.stack}`);
@@ -750,42 +744,16 @@ export class AdminService {
                 throw new NotFoundException('Business not found');
             }
 
-            log(`Found business: ${business.title}. Starting manual cleanup...`);
+            log(`Found business: ${business.title}. Starting hide/anonymize cleanup...`);
 
-            // Manual cleanup of relations to avoid foreign key violations
-            if (business.businessHours?.length > 0) {
-                log(`Deleting ${business.businessHours.length} business hours`);
-                await this.businessHoursRepository.remove(business.businessHours);
-            }
-            if (business.businessAmenities?.length > 0) {
-                log(`Deleting ${business.businessAmenities.length} business amenities`);
-                await this.businessAmenityRepository.remove(business.businessAmenities);
-            }
-            if (business.reviews?.length > 0) {
-                log(`Deleting ${business.reviews.length} reviews`);
-                await this.reviewRepository.remove(business.reviews);
-            }
-            if (business.leads?.length > 0) {
-                log(`Deleting ${business.leads.length} leads`);
-                await this.leadRepository.remove(business.leads);
-            }
-            if (business.savedListings?.length > 0) {
-                log(`Deleting ${business.savedListings.length} favorite entries`);
-                await this.favoriteRepository.remove(business.savedListings);
-            }
-            if (business.comments?.length > 0) {
-                log(`Deleting ${business.comments.length} comments`);
-                await this.commentRepository.remove(business.comments as any);
-            }
-
-            log(`Main record removal...`);
+            business.hiddenByDeletion = true;
             await this.invalidateBusinessSearchCache(business);
-            const result = await this.businessRepository.remove(business);
+            const result = await this.businessRepository.save(business);
 
             // Remove from Elasticsearch
             this.searchService.remove(id).catch(err => console.error('ES Delete Index Error:', err));
 
-            log(`Successfully removed business: ${id}`);
+            log(`Successfully hidden business: ${id}`);
             return result;
         } catch (error: any) {
             log(`ERROR deleting business ${id}: ${error.message}\n${error.stack}`);
