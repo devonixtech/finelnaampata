@@ -27,7 +27,6 @@ import {
   Download,
   Zap,
 } from "lucide-react";
-import { CheckoutUrlResponse } from "../../../types/api";
 import { SearchableSelect } from "../../../components/ui/SearchableSelect";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../context/AuthContext";
