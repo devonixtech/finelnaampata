@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Store, MapPin, Phone, TextQuote, Layers, Sparkles, Plus, Check, Hash, Share2, Globe, MessageSquare, Navigation, ChevronDown, Tag, ImagePlus, HelpCircle, Trash2 } from 'lucide-react';
 import { api, getImageUrl } from '../../lib/api';
-import { Business, Category, City, Offer } from "../../../types/api";
+import { Business, Category, City, Offer } from "../../types/api";
 import { SearchableSelect } from "../ui/SearchableSelect";
 import { motion, AnimatePresence } from 'framer-motion';
 import CategorySearchSelect from '../CategorySearchSelect';
