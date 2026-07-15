@@ -14,6 +14,7 @@ import { FeatureGate } from '../../../components/business/FeatureGate';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (d: string) => {
@@ -321,30 +322,32 @@ export default function BusinessReviews() {
                     {/* Rating filter */}
                     <div className="relative border border-slate-100 rounded-xl overflow-hidden">
                         <Star className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <select
-                            id="review-rating-filter"
-                            value={ratingFilter}
-                            onChange={e => { setRatingFilter(e.target.value === '' ? '' : Number(e.target.value)); setCurrentPage(1); }}
-                            className="pl-9 pr-8 py-2.5 text-sm font-bold bg-slate-50 border-none outline-none appearance-none cursor-pointer"
-                        >
-                            <option value="">All Ratings</option>
-                            {[5, 4, 3, 2, 1].map(s => <option key={s} value={s}>{s} Stars</option>)}
-                        </select>
+                        <div className="w-[180px]">
+                            <SearchableSelect
+                                value={String(ratingFilter)}
+                                onChange={val => { setRatingFilter(val === '' ? '' : Number(val)); setCurrentPage(1); }}
+                                options={[
+                                    { label: "All Ratings", value: "" },
+                                    ...[5, 4, 3, 2, 1].map(s => ({ label: `${s} Stars`, value: String(s) }))
+                                ]}
+                            />
+                        </div>
                     </div>
 
                     {/* Listing filter */}
                     {listings.length > 1 && (
                         <div className="relative border border-slate-100 rounded-xl overflow-hidden">
                             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                            <select
-                                id="review-listing-filter"
-                                value={listingFilter}
-                                onChange={e => { setListingFilter(e.target.value); setCurrentPage(1); }}
-                                className="pl-9 pr-8 py-2.5 text-sm font-bold bg-slate-50 border-none outline-none appearance-none cursor-pointer max-w-[200px] truncate"
-                            >
-                                <option value="">All Listings</option>
-                                {listings.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                            </select>
+                            <div className="w-[200px]">
+                                <SearchableSelect
+                                    value={listingFilter}
+                                    onChange={val => { setListingFilter(val); setCurrentPage(1); }}
+                                    options={[
+                                        { label: "All Listings", value: "" },
+                                        ...listings.map(l => ({ label: l.title, value: l.id }))
+                                    ]}
+                                />
+                            </div>
                         </div>
                     )}
 

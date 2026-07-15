@@ -45,6 +45,7 @@ import Slider from "react-slick";
 import CitySearchSelect from "../components/CitySearchSelect";
 import { useAuth } from "../context/AuthContext";
 import { COUNTRIES_STATES } from "../lib/data/countries-states";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
 // Script is removed to avoid multiple loads (already in layout.tsx)
 
 export default function HomePage() {
@@ -426,16 +427,17 @@ export default function HomePage() {
               {/* Country Filter */}
               <div className="w-full md:w-auto flex items-center px-4 py-4 md:border-r border-gray-100 group">
                 <Globe className="w-5 h-5 text-slate-300 mr-3 group-hover:text-orange-500 transition-colors shrink-0" />
-                <select
-                  value={selectedCountry}
-                  onChange={(e) => { setSelectedCountry(e.target.value); setSelectedCity(''); }}
-                  className="bg-transparent border-none outline-none text-slate-900 text-sm font-bold cursor-pointer pr-4 max-w-[140px]"
-                >
-                  <option value="">All Countries</option>
-                  {COUNTRIES_STATES.map(c => (
-                    <option key={c.code} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="w-full min-w-[150px]">
+                  <SearchableSelect
+                    options={[
+                      { label: "All Countries", value: "" },
+                      ...COUNTRIES_STATES.map(c => ({ label: c.name, value: c.name }))
+                    ]}
+                    value={selectedCountry}
+                    onChange={(val) => { setSelectedCountry(val); setSelectedCity(''); }}
+                    minimal
+                  />
+                </div>
               </div>
 
               {/* City Selection */}

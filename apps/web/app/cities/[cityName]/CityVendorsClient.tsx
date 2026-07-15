@@ -7,6 +7,7 @@ import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import VendorProfileCard from '../../../components/VendorProfileCard';
 import { api } from '../../../lib/api';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 interface CityVendorsClientProps {
     city: string;
@@ -120,17 +121,19 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
                         </div>
 
                         {/* Sort */}
-                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-2 z-40 relative">
                             <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-                            <select
-                                value={sortBy}
-                                onChange={e => setSortBy(e.target.value as any)}
-                                className="text-sm font-bold text-slate-700 bg-transparent outline-none cursor-pointer"
-                            >
-                                <option value="rating">Top Rated</option>
-                                <option value="listings">Most Listings</option>
-                                <option value="views">Most Views</option>
-                            </select>
+                            <div className="w-36">
+                                <SearchableSelect
+                                    value={sortBy}
+                                    onChange={val => setSortBy(val as any)}
+                                    options={[
+                                        { label: "Top Rated", value: "rating" },
+                                        { label: "Most Listings", value: "listings" },
+                                        { label: "Most Views", value: "views" }
+                                    ]}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

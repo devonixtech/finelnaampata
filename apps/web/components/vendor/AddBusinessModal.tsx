@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Store, MapPin, Phone, TextQuote, Layers, Sparkles, Plus, Check, Hash, Share2, Globe, MessageSquare, Navigation, ChevronDown, Tag, ImagePlus, HelpCircle, Trash2 } from 'lucide-react';
 import { api, getImageUrl } from '../../lib/api';
-import { Category, Business, City } from '../../types/api';
+import { Business, Category, City, Offer } from "../../../types/api";
+import { SearchableSelect } from "../ui/SearchableSelect";
 import { motion, AnimatePresence } from 'framer-motion';
 import CategorySearchSelect from '../CategorySearchSelect';
 import { useAuth } from '../../context/AuthContext';
@@ -649,32 +650,28 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                                             {Array.from({ length: allowedMax }).map((_, i) => (
                                                                                 <div key={`sub-${i}`}>
                                                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Subcategory {i + 1}</label>
-                                                                                    <div className="relative">
-                                                                                        <select
+                                                                                    <div className="relative z-50">
+                                                                                        <SearchableSelect
                                                                                             value={formData.subCategoryIds[i] || ''}
-                                                                                            onChange={e => {
+                                                                                            onChange={val => {
                                                                                                 const newSubs = [...formData.subCategoryIds];
-                                                                                                if (e.target.value) {
-                                                                                                    newSubs[i] = e.target.value;
+                                                                                                if (val) {
+                                                                                                    newSubs[i] = val as string;
                                                                                                 } else {
                                                                                                     newSubs.splice(i, 1);
                                                                                                 }
                                                                                                 setFormData(prev => ({ ...prev, subCategoryIds: newSubs.filter(Boolean) }));
                                                                                             }}
-                                                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none shadow-sm pr-10"
-                                                                                        >
-                                                                                            <option value="">-- Optional --</option>
-                                                                                            {relatedSubcategories.map(sub => (
-                                                                                                <option 
-                                                                                                    key={sub.id} 
-                                                                                                    value={sub.id}
-                                                                                                    disabled={formData.subCategoryIds.includes(sub.id) && formData.subCategoryIds[i] !== sub.id}
-                                                                                                >
-                                                                                                    {sub.name}
-                                                                                                </option>
-                                                                                            ))}
-                                                                                        </select>
-                                                                                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                                                                            options={[
+                                                                                                { label: '-- Optional --', value: '' },
+                                                                                                ...relatedSubcategories
+                                                                                                    .filter(sub => !(formData.subCategoryIds.includes(sub.id) && formData.subCategoryIds[i] !== sub.id))
+                                                                                                    .map(sub => ({
+                                                                                                        label: sub.name,
+                                                                                                        value: sub.id
+                                                                                                    }))
+                                                                                            ]}
+                                                                                        />
                                                                                     </div>
                                                                                 </div>
                                                                             ))}
@@ -753,18 +750,16 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2.5">
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Country <span className="text-red-500">*</span></label>
-                                                        <select
-                                                            required
-                                                            name="country"
-                                                            value={formData.country}
-                                                            onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value, city: '', state: '' }))}
-                                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
-                                                        >
-                                                            <option value="">Select a country...</option>
-                                                            {countries.map((c) => (
-                                                                <option key={c.code} value={c.code}>{c.name}</option>
-                                                            ))}
-                                                        </select>
+                                                        <div className="relative z-40">
+                                                            <SearchableSelect
+                                                                value={formData.country}
+                                                                onChange={val => setFormData(prev => ({ ...prev, country: val as string, city: '', state: '' }))}
+                                                                options={[
+                                                                    ...countries.map(c => ({ label: c.name, value: c.code }))
+                                                                ]}
+                                                                placeholder="Select a country..."
+                                                            />
+                                                        </div>
                                                     </div>
                                                     <div className="space-y-2.5">
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
@@ -792,18 +787,16 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                                 {addressConfig.administrativeArea.label} {addressConfig.administrativeArea.required && <span className="text-red-500">*</span>}
                                                             </label>
                                                             {addressConfig.administrativeArea.options && addressConfig.administrativeArea.options.length > 0 ? (
-                                                                <select
-                                                                    required={addressConfig.administrativeArea.required}
-                                                                    name="state"
-                                                                    value={formData.state}
-                                                                    onChange={handleChange}
-                                                                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
-                                                                >
-                                                                    <option value="">Select {addressConfig.administrativeArea.label}...</option>
-                                                                    {addressConfig.administrativeArea.options.map(opt => (
-                                                                        <option key={opt.code} value={opt.code}>{opt.name}</option>
-                                                                    ))}
-                                                                </select>
+                                                                <div className="relative z-30">
+                                                                    <SearchableSelect
+                                                                        value={formData.state}
+                                                                        onChange={val => handleChange({ target: { name: 'state', value: val } } as any)}
+                                                                        options={[
+                                                                            ...addressConfig.administrativeArea.options.map(opt => ({ label: opt.name, value: opt.code }))
+                                                                        ]}
+                                                                        placeholder={`Select ${addressConfig.administrativeArea.label}...`}
+                                                                    />
+                                                                </div>
                                                             ) : (
                                                                 <input
                                                                     required={addressConfig.administrativeArea.required}

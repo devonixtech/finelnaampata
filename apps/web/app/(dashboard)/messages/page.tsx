@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
 import Link from 'next/link';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 // ─── Types ─────────────────────────────────────────────────────────────
 type EnquiryStatus = 'new' | 'contacted' | 'converted' | 'lost';
@@ -147,19 +148,15 @@ function EnquiryDetailModal({ enquiry, onClose, onStatusChange }: {
                     <div>
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Update Status</p>
                         <div className="relative">
-                            <select
+                            <SearchableSelect
                                 value={enquiry.status}
-                                onChange={(e) => handleStatus(e.target.value as EnquiryStatus)}
+                                onChange={(val) => handleStatus(val as EnquiryStatus)}
                                 disabled={updating}
-                                className="w-full pl-4 pr-10 py-3 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-700 focus:border-violet-400 focus:ring-4 focus:ring-violet-50 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
-                            >
-                                {(Object.keys(STATUS_CONFIG) as EnquiryStatus[]).map(s => (
-                                    <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
-                            </div>
+                                options={(Object.keys(STATUS_CONFIG) as EnquiryStatus[]).map(s => ({
+                                    label: STATUS_CONFIG[s].label,
+                                    value: s
+                                }))}
+                            />
                         </div>
                     </div>
                 </div>
@@ -339,14 +336,16 @@ export default function BusinessEnquiriesPage() {
                             value={search} onChange={e => setSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 text-sm font-medium bg-slate-50 rounded-xl border border-transparent focus:border-violet-400 focus:bg-white outline-none transition-all" />
                     </div>
-                    <div className="relative">
+                    <div className="relative border border-slate-100 rounded-xl overflow-hidden w-[200px]">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <select id="query-status-filter" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-                            className="pl-9 pr-8 py-2.5 text-sm font-bold bg-slate-50 rounded-xl border border-transparent focus:border-violet-400 outline-none appearance-none cursor-pointer">
-                            <option value="">All Statuses</option>
-                            {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <SearchableSelect
+                            value={filterStatus}
+                            onChange={val => { setFilterStatus(val); setPage(1); }}
+                            options={[
+                                { label: "All Statuses", value: "" },
+                                ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ label: v.label, value: k }))
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -414,21 +413,15 @@ export default function BusinessEnquiriesPage() {
                                                         <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">{enq.message || '—'}</p>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <div className="relative inline-block mt-0.5">
-                                                            <select
+                                                        <div className="w-[140px]" onClick={e => e.stopPropagation()}>
+                                                            <SearchableSelect
                                                                 value={enq.status}
-                                                                onChange={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleStatusChange(enq.id, e.target.value as EnquiryStatus);
-                                                                }}
-                                                                onClick={e => e.stopPropagation()}
-                                                                className={`appearance-none pl-3 pr-8 py-1 rounded-full text-xs font-bold border outline-none cursor-pointer transition-all ${STATUS_CONFIG[enq.status].bg} ${STATUS_CONFIG[enq.status].color} focus:ring-2 focus:ring-current/20`}
-                                                            >
-                                                                {(Object.keys(STATUS_CONFIG) as EnquiryStatus[]).map(s => (
-                                                                    <option key={s} value={s} className="bg-white text-slate-900 font-bold">{STATUS_CONFIG[s].label}</option>
-                                                                ))}
-                                                            </select>
-                                                            <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none opacity-60`} />
+                                                                onChange={(val) => handleStatusChange(enq.id, val as EnquiryStatus)}
+                                                                options={(Object.keys(STATUS_CONFIG) as EnquiryStatus[]).map(s => ({
+                                                                    label: STATUS_CONFIG[s].label,
+                                                                    value: s
+                                                                }))}
+                                                            />
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4">

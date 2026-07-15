@@ -38,6 +38,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { usePlanFeature } from '../../hooks/usePlanFeature';
 import { City, Category } from '../../types/api';
 import CategorySearchSelect from '../../components/CategorySearchSelect';
@@ -1146,17 +1147,17 @@ function BusinessSetupWizardContent() {
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="col-span-1">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Title</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.contactPersonTitle}
-                                        onChange={e => setStepData({...stepData, contactPersonTitle: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all font-bold text-slate-800"
-                                    >
-                                        <option value="">Select</option>
-                                        <option value="Mr.">Mr.</option>
-                                        <option value="Ms.">Ms.</option>
-                                        <option value="Dr.">Dr.</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                        onChange={val => setStepData({...stepData, contactPersonTitle: val})}
+                                        options={[
+                                            { label: "Select", value: "" },
+                                            { label: "Mr.", value: "Mr." },
+                                            { label: "Ms.", value: "Ms." },
+                                            { label: "Dr.", value: "Dr." },
+                                            { label: "Other", value: "Other" }
+                                        ]}
+                                    />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Contact Person Name</label>
@@ -1296,17 +1297,15 @@ function BusinessSetupWizardContent() {
                                                 <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
                                                     Subcategory {index + 1}
                                                 </label>
-                                                <select
+                                                <SearchableSelect
                                                     value={currentValue}
                                                     disabled={locked}
-                                                    onChange={e => setStepData({ ...stepData, [key]: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                                                >
-                                                    <option value="">{locked ? '-- Upgrade to unlock --' : `-- Select Subcategory ${index + 1} --`}</option>
-                                                    {availableOptions.map(sub => (
-                                                        <option key={sub.id} value={sub.name}>{sub.name}</option>
-                                                    ))}
-                                                </select>
+                                                    onChange={val => setStepData({ ...stepData, [key]: val })}
+                                                    options={[
+                                                        { label: locked ? '-- Upgrade to unlock --' : `-- Select Subcategory ${index + 1} --`, value: "" },
+                                                        ...availableOptions.map(sub => ({ label: sub.name, value: sub.name }))
+                                                    ]}
+                                                />
                                             </div>
                                         );
                                     })}
@@ -1409,17 +1408,14 @@ function BusinessSetupWizardContent() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Country *</label>
-                                    <select
-                                        required
+                                    <SearchableSelect
                                         value={stepData.country}
-                                        onChange={e => setStepData({...stepData, country: e.target.value, city: '', state: '', zipCode: ''})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-800"
-                                    >
-                                        <option value="">Select a country</option>
-                                        {countries.map(c => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
+                                        onChange={val => setStepData({...stepData, country: val, city: '', state: '', zipCode: ''})}
+                                        options={[
+                                            { label: "Select a country", value: "" },
+                                            ...countries.map(c => ({ label: c, value: c }))
+                                        ]}
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City *</label>
@@ -1451,17 +1447,14 @@ function BusinessSetupWizardContent() {
                                             {addressConfig?.fields?.find((f: any) => f.key === 'state')?.required ? ' *' : ''}
                                         </label>
                                         {stateOptions.length > 0 ? (
-                                            <select
-                                                required={addressConfig?.fields?.find((f: any) => f.key === 'state')?.required}
+                                            <SearchableSelect
                                                 value={stepData.state}
-                                                onChange={e => setStepData({...stepData, state: e.target.value, city: '', zipCode: ''})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-800"
-                                            >
-                                                <option value="">Select State / Province</option>
-                                                {stateOptions.map((state) => (
-                                                    <option key={state} value={state}>{state}</option>
-                                                ))}
-                                            </select>
+                                                onChange={val => setStepData({...stepData, state: val, city: '', zipCode: ''})}
+                                                options={[
+                                                    { label: "Select State / Province", value: "" },
+                                                    ...stateOptions.map((state) => ({ label: state, value: state }))
+                                                ]}
+                                            />
                                         ) : (
                                             <input
                                                 type="text"
@@ -1665,15 +1658,13 @@ function BusinessSetupWizardContent() {
                             <div>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Primary Phone Number *</label>
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <select
-                                        value={stepData.phoneCode}
-                                        onChange={e => setStepData({...stepData, phoneCode: e.target.value})}
-                                        className="shrink-0 w-[140px] px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 text-sm"
-                                    >
-                                        {DIAL_CODES.map(d => (
-                                            <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
-                                        ))}
-                                    </select>
+                                    <div className="shrink-0 w-[140px]">
+                                        <SearchableSelect
+                                            value={stepData.phoneCode}
+                                            onChange={val => setStepData({...stepData, phoneCode: val})}
+                                            options={DIAL_CODES.map(d => ({ label: `${d.code} (${d.dialCode})`, value: d.dialCode }))}
+                                        />
+                                    </div>
                                     <input
                                         type="tel"
                                         value={stepData.phoneNumber}
@@ -1713,15 +1704,13 @@ function BusinessSetupWizardContent() {
                                 
                                 {!stepData.whatsappSameAsPhone && (
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <select
-                                            value={stepData.whatsappCode}
-                                            onChange={e => setStepData({...stepData, whatsappCode: e.target.value})}
-                                            className="shrink-0 w-[140px] px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 text-sm"
-                                        >
-                                            {DIAL_CODES.map(d => (
-                                                <option key={d.code} value={d.dialCode}>{d.code} ({d.dialCode})</option>
-                                            ))}
-                                        </select>
+                                        <div className="shrink-0 w-[140px]">
+                                            <SearchableSelect
+                                                value={stepData.whatsappCode}
+                                                onChange={val => setStepData({...stepData, whatsappCode: val})}
+                                                options={DIAL_CODES.map(d => ({ label: `${d.code} (${d.dialCode})`, value: d.dialCode }))}
+                                            />
+                                        </div>
                                         <input
                                             type="tel"
                                             value={stepData.whatsappNumber}
@@ -1976,16 +1965,14 @@ function BusinessSetupWizardContent() {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Team Size (Employees)</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.employeeSize}
-                                        onChange={e => setStepData({...stepData, employeeSize: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold text-slate-700 cursor-pointer"
-                                    >
-                                        <option value="">-- Select Team Size --</option>
-                                        {EMPLOYEE_SIZE_OPTIONS.map(opt => (
-                                            <option key={opt} value={opt}>{opt}</option>
-                                        ))}
-                                    </select>
+                                        onChange={val => setStepData({...stepData, employeeSize: val})}
+                                        options={[
+                                            { label: "-- Select Team Size --", value: "" },
+                                            ...EMPLOYEE_SIZE_OPTIONS.map(opt => ({ label: opt, value: opt }))
+                                        ]}
+                                    />
                                 </div>
                             </div>
 
@@ -2361,14 +2348,14 @@ function BusinessSetupWizardContent() {
                                 
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Do you offer franchise opportunities?</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.franchiseOpportunity}
-                                        onChange={e => setStepData({...stepData, franchiseOpportunity: e.target.value})}
-                                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700"
-                                    >
-                                        <option value="No">No</option>
-                                        <option value="Yes">Yes</option>
-                                    </select>
+                                        onChange={val => setStepData({...stepData, franchiseOpportunity: val})}
+                                        options={[
+                                            { label: "No", value: "No" },
+                                            { label: "Yes", value: "Yes" }
+                                        ]}
+                                    />
                                 </div>
 
                                 {stepData.franchiseOpportunity === 'Yes' && (
@@ -2394,18 +2381,18 @@ function BusinessSetupWizardContent() {
 
                                         <div>
                                             <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Investment Range Required</label>
-                                            <select
+                                            <SearchableSelect
                                                 value={stepData.franchiseInvestment}
-                                                onChange={e => setStepData({...stepData, franchiseInvestment: e.target.value})}
-                                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
-                                            >
-                                                <option value="">Select Range</option>
-                                                <option value="Under $1,000">Under $1,000</option>
-                                                <option value="$1k – $10k">$1k – $10k</option>
-                                                <option value="$10k – $50k">$10k – $50k</option>
-                                                <option value="$50k – $100k">$50k – $100k</option>
-                                                <option value="$100k+">$100k+</option>
-                                            </select>
+                                                onChange={val => setStepData({...stepData, franchiseInvestment: val})}
+                                                options={[
+                                                    { label: "Select Range", value: "" },
+                                                    { label: "Under $1,000", value: "Under $1,000" },
+                                                    { label: "$1k – $10k", value: "$1k – $10k" },
+                                                    { label: "$10k – $50k", value: "$10k – $50k" },
+                                                    { label: "$50k – $100k", value: "$50k – $100k" },
+                                                    { label: "$100k+", value: "$100k+" }
+                                                ]}
+                                            />
                                         </div>
 
                                         <div>
@@ -2446,25 +2433,25 @@ function BusinessSetupWizardContent() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Dealers / Resellers wanted?</label>
-                                        <select
+                                        <SearchableSelect
                                             value={stepData.dealersResellers}
-                                            onChange={e => setStepData({...stepData, dealersResellers: e.target.value})}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
-                                        >
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
+                                            onChange={val => setStepData({...stepData, dealersResellers: val})}
+                                            options={[
+                                                { label: "No", value: "No" },
+                                                { label: "Yes", value: "Yes" }
+                                            ]}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Are you an Importer / Exporter?</label>
-                                        <select
+                                        <SearchableSelect
                                             value={stepData.importerExporter}
-                                            onChange={e => setStepData({...stepData, importerExporter: e.target.value})}
-                                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
-                                        >
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
+                                            onChange={val => setStepData({...stepData, importerExporter: val})}
+                                            options={[
+                                                { label: "No", value: "No" },
+                                                { label: "Yes", value: "Yes" }
+                                            ]}
+                                        />
                                     </div>
                                 </div>
 
@@ -2737,17 +2724,11 @@ function BusinessSetupWizardContent() {
 
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Phone Code</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.phoneCode}
-                                        onChange={(e) => setStepData((prev) => ({ ...prev, phoneCode: e.target.value }))}
-                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    >
-                                        {DIAL_CODES.map((dial) => (
-                                            <option key={`${dial.code}-${dial.dialCode}`} value={dial.dialCode}>
-                                                {dial.country} ({dial.dialCode})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(val) => setStepData((prev) => ({ ...prev, phoneCode: val }))}
+                                        options={DIAL_CODES.map((dial) => ({ label: `${dial.country} (${dial.dialCode})`, value: dial.dialCode }))}
+                                    />
                                 </div>
 
                                 <div>
@@ -2763,38 +2744,29 @@ function BusinessSetupWizardContent() {
 
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Country</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.country}
-                                        onChange={(e) => setStepData((prev) => ({ ...prev, country: e.target.value, city: '', state: '', zipCode: '' }))}
-                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-800"
-                                    >
-                                        <option value="">Select a country</option>
-                                        {countries.map((c) => (
-                                            <option key={c} value={c}>
-                                                {c}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={(val) => setStepData((prev) => ({ ...prev, country: val, city: '', state: '', zipCode: '' }))}
+                                        options={[
+                                            { label: "Select a country", value: "" },
+                                            ...countries.map((c) => ({ label: c, value: c }))
+                                        ]}
+                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City</label>
-                                    <select
+                                    <SearchableSelect
                                         value={stepData.city}
-                                        onChange={(e) => {
-                                            const nextCity = e.target.value;
-                                            setStepData((prev) => ({ ...prev, city: nextCity }));
-                                            applySelectedCity(nextCity);
+                                        onChange={(val) => {
+                                            setStepData((prev) => ({ ...prev, city: val }));
+                                            applySelectedCity(val);
                                         }}
-                                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-800"
-                                    >
-                                        <option value="">Select a city</option>
-                                        {filteredCities.map((city) => (
-                                            <option key={city.id} value={city.name}>
-                                                {city.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        options={[
+                                            { label: "Select a city", value: "" },
+                                            ...filteredCities.map((city) => ({ label: city.name, value: city.name }))
+                                        ]}
+                                    />
                                 </div>
 
                                 <div>
@@ -2802,18 +2774,14 @@ function BusinessSetupWizardContent() {
                                         {addressConfig?.administrativeArea?.label || 'State / Province'}
                                     </label>
                                     {stateOptions.length > 0 ? (
-                                        <select
+                                        <SearchableSelect
                                             value={stepData.state}
-                                            onChange={(e) => setStepData((prev) => ({ ...prev, state: e.target.value, city: '', zipCode: '' }))}
-                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-800"
-                                        >
-                                            <option value="">Select State / Province</option>
-                                            {stateOptions.map((state) => (
-                                                <option key={state} value={state}>
-                                                    {state}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            onChange={(val) => setStepData((prev) => ({ ...prev, state: val, city: '', zipCode: '' }))}
+                                            options={[
+                                                { label: "Select State / Province", value: "" },
+                                                ...stateOptions.map((state) => ({ label: state, value: state }))
+                                            ]}
+                                        />
                                     ) : (
                                         <input
                                             value={stepData.state}

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 export default function AdminDemandDashboard() {
     const [selectedCity, setSelectedCity] = useState('');
@@ -65,20 +66,21 @@ export default function AdminDemandDashboard() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="relative group">
-                        <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                        <select
+                    <div className="relative group min-w-[280px] bg-white border border-black rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
+                            <MapPin className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        </div>
+                        <SearchableSelect
                             value={selectedCity}
-                            onChange={(e) => setSelectedCity(e.target.value)}
-                            className="h-16 pl-14 pr-10 bg-white border border-black rounded-[24px] text-sm font-black text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-100 hover:bg-slate-50 transition-all appearance-none cursor-pointer shadow-sm min-w-[280px]"
-                        >
-                            <option value="">System Wide (All Cities)</option>
-                            {topCities.map((city: any) => (
-                                <option key={city.city} value={city.city}>
-                                    {city.city} ({city.count} hits)
-                                </option>
-                            ))}
-                        </select>
+                            onChange={val => setSelectedCity(val)}
+                            options={[
+                                { label: "System Wide (All Cities)", value: "" },
+                                ...topCities.map((city: any) => ({
+                                    label: `${city.city} (${city.count} hits)`,
+                                    value: city.city
+                                }))
+                            ]}
+                        />
                     </div>
 
                     <button

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import StatsGrid from '../../../components/business/StatsGrid';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 export default function AdminReferralsPage() {
     const [referrals, setReferrals] = useState<any[]>([]);
@@ -118,15 +119,17 @@ export default function AdminReferralsPage() {
                         />
                     </div>
                     
-                    <select 
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-6 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-black text-slate-600 focus:ring-2 focus:ring-red-500/10 focus:border-red-500 outline-none transition-all cursor-pointer"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="converted">Converted</option>
-                    </select>
+                    <div className="w-48">
+                        <SearchableSelect 
+                            value={statusFilter}
+                            onChange={(val) => setStatusFilter(val)}
+                            options={[
+                                { label: "All Status", value: "all" },
+                                { label: "Pending", value: "pending" },
+                                { label: "Converted", value: "converted" }
+                            ]}
+                        />
+                    </div>
                 </div>
             </div>
 

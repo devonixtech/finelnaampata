@@ -11,6 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import Link from 'next/link';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { FeatureGate } from '../../../components/business/FeatureGate';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost';
@@ -330,19 +331,15 @@ function LeadDetailModal({ lead, onClose, onStatusChange }: {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Action Center</p>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="relative">
-                                <select
+                                <SearchableSelect
                                     value={lead.status}
-                                    onChange={(e) => handleStatus(e.target.value as LeadStatus)}
+                                    onChange={(val) => handleStatus(val as LeadStatus)}
                                     disabled={updating}
-                                    className="w-full pl-6 pr-12 py-4 rounded-[20px] text-xs font-black uppercase tracking-widest border-2 border-slate-100 bg-white text-slate-900 focus:border-blue-400 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 shadow-sm"
-                                >
-                                    {(Object.keys(STATUS_CONFIG) as LeadStatus[]).map(s => (
-                                        <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                    {updating ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <ChevronDown className="w-5 h-5" />}
-                                </div>
+                                    options={(Object.keys(STATUS_CONFIG) as LeadStatus[]).map(s => ({
+                                        label: STATUS_CONFIG[s].label,
+                                        value: s
+                                    }))}
+                                />
                             </div>
                             <a href={`mailto:${lead.email}`} className="flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-[20px] font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95 shadow-xl shadow-slate-900/10">
                                 <Mail className="w-4 h-4" /> Reply
@@ -514,23 +511,25 @@ export default function VendorLeadsPage() {
                             value={search} onChange={e => setSearch(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 text-sm font-medium bg-slate-50 rounded-xl border border-transparent focus:border-blue-400 focus:bg-white outline-none transition-all" />
                     </div>
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <select id="leads-status-filter" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-                            className="pl-9 pr-8 py-2.5 text-sm font-bold bg-slate-50 rounded-xl border border-transparent focus:border-blue-400 outline-none appearance-none cursor-pointer">
-                            <option value="">All Statuses</option>
-                            {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <div className="relative w-[200px]">
+                        <SearchableSelect
+                            value={filterStatus}
+                            onChange={(val) => { setFilterStatus(val); setPage(1); }}
+                            options={[
+                                { label: "All Statuses", value: "" },
+                                ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ label: v.label, value: k }))
+                            ]}
+                        />
                     </div>
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        <select id="leads-type-filter" value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }}
-                            className="pl-9 pr-8 py-2.5 text-sm font-bold bg-slate-50 rounded-xl border border-transparent focus:border-blue-400 outline-none appearance-none cursor-pointer">
-                            <option value="">All Types</option>
-                            {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <div className="relative w-[200px]">
+                        <SearchableSelect
+                            value={filterType}
+                            onChange={(val) => { setFilterType(val); setPage(1); }}
+                            options={[
+                                { label: "All Types", value: "" },
+                                ...Object.entries(TYPE_CONFIG).map(([k, v]) => ({ label: v.label, value: k }))
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -577,17 +576,15 @@ export default function VendorLeadsPage() {
                                                     </td>
                                                     <td className="px-4 py-4"><TypeBadge type={lead.type} /></td>
                                                     <td className="px-4 py-4">
-                                                        <div className="relative inline-block mt-0.5">
-                                                            <select
+                                                        <div className="w-[140px] mt-0.5">
+                                                            <SearchableSelect
                                                                 value={lead.status}
-                                                                onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)}
-                                                                className={`appearance-none pl-3 pr-8 py-1 rounded-full text-xs font-bold border outline-none cursor-pointer transition-all ${STATUS_CONFIG[lead.status].bg} ${STATUS_CONFIG[lead.status].color} focus:ring-2 focus:ring-current/20`}
-                                                            >
-                                                                {(Object.keys(STATUS_CONFIG) as LeadStatus[]).map(s => (
-                                                                    <option key={s} value={s} className="bg-white text-slate-900 font-bold">{STATUS_CONFIG[s].label}</option>
-                                                                ))}
-                                                            </select>
-                                                            <ChevronDown className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none opacity-60`} />
+                                                                onChange={(val) => handleStatusChange(lead.id, val as LeadStatus)}
+                                                                options={(Object.keys(STATUS_CONFIG) as LeadStatus[]).map(s => ({
+                                                                    label: STATUS_CONFIG[s].label,
+                                                                    value: s
+                                                                }))}
+                                                            />
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4 max-w-[200px]">

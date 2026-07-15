@@ -10,6 +10,7 @@ import {
 import { api, getImageUrl } from '../../../lib/api';
 import { City } from '../../../types/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 const COUNTRY_FLAGS: Record<string, string> = {
     'Pakistan': '🇵🇰',
@@ -457,24 +458,15 @@ export default function AdminCitiesPage() {
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Country</label>
-                                    <div className="relative">
-                                        <select
+                                    <div className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                                        <SearchableSelect
                                             value={selectedBulkCountry}
-                                            onChange={e => setSelectedBulkCountry(e.target.value)}
-                                            className="w-full h-16 pl-14 pr-6 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-bold transition-all appearance-none cursor-pointer text-slate-900"
-                                        >
-                                            {(supportedCountries.length > 0 ? supportedCountries : Object.keys(COUNTRY_FLAGS).map(c => ({ country: c, cityCount: 0 }))).map(({ country, cityCount }) => (
-                                                <option key={country} value={country}>
-                                                    {COUNTRY_FLAGS[country]} {country} {cityCount > 0 ? `(${cityCount} cities)` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-2xl pointer-events-none">
-                                            {COUNTRY_FLAGS[selectedBulkCountry] || '🌍'}
-                                        </div>
-                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronDown className="w-5 h-5" />
-                                        </div>
+                                            onChange={val => setSelectedBulkCountry(val)}
+                                            options={(supportedCountries.length > 0 ? supportedCountries : Object.keys(COUNTRY_FLAGS).map(c => ({ country: c, cityCount: 0 }))).map(({ country, cityCount }) => ({
+                                                label: `${COUNTRY_FLAGS[country] || '🌍'} ${country} ${cityCount > 0 ? `(${cityCount} cities)` : ''}`,
+                                                value: country
+                                            }))}
+                                        />
                                     </div>
                                 </div>
 
@@ -677,16 +669,18 @@ export default function AdminCitiesPage() {
                                     {/* Country */}
                                     <div className="space-y-2">
                                         <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Country</label>
-                                        <div className="relative">
-                                            <select value={formData.country}
-                                                onChange={e => setFormData({ ...formData, country: e.target.value })}
-                                                className="w-full h-14 px-5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100 font-bold transition-all appearance-none cursor-pointer">
-                                                {Object.keys(COUNTRY_FLAGS).map(c => <option key={c} value={c}>{COUNTRY_FLAGS[c]} {c}</option>)}
-                                                <option value="Other">🌍 Other</option>
-                                            </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                <ChevronDown className="w-4 h-4" />
-                                            </div>
+                                        <div className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 focus-within:ring-4 focus-within:ring-slate-100 transition-all">
+                                            <SearchableSelect
+                                                value={formData.country}
+                                                onChange={val => setFormData({ ...formData, country: val })}
+                                                options={[
+                                                    ...Object.keys(COUNTRY_FLAGS).map(c => ({
+                                                        label: `${COUNTRY_FLAGS[c]} ${c}`,
+                                                        value: c
+                                                    })),
+                                                    { label: "🌍 Other", value: "Other" }
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                 </div>

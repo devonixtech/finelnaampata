@@ -19,6 +19,7 @@ import OfferCard from '../../components/OfferCard';
 import { api } from '../../lib/api';
 import { City } from '../../types/api';
 import Link from 'next/link';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { motion } from 'framer-motion';
 import { detectLocationForUi, sortAndDedupeCities } from '../../lib/location-detect';
 
@@ -167,18 +168,16 @@ const EventsContent = () => {
                         />
                     </div>
 
-                    <div className="w-full lg:w-48 relative group">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
-                        <select
+                    <div className="w-full lg:w-48 relative z-50">
+                        <SearchableSelect
                             value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            className="w-full pl-12 pr-4 py-4 bg-[#F8FAFC] rounded-2xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all appearance-none cursor-pointer"
-                        >
-                            <option value="">All Pakistan</option>
-                            {cities.map(c => (
-                                <option key={c.id} value={c.name}>{c.name}</option>
-                            ))}
-                        </select>
+                            onChange={val => setCity(val)}
+                            options={[
+                                { label: "All Pakistan", value: "" },
+                                ...cities.map(c => ({ label: c.name, value: c.name }))
+                            ]}
+                            placeholder="All Pakistan"
+                        />
                     </div>
 
                     <button 

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { Loader2, Plus, AlertCircle, RefreshCw, XCircle, Search, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -235,40 +236,32 @@ export default function SubscriptionsPage() {
                             <div className="p-6 space-y-5">
                                 <div>
                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Search Business</label>
-                                    <div className="relative mb-3">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            value={searchVendor}
-                                            onChange={e => setSearchVendor(e.target.value)}
-                                            placeholder="Search by name or email..."
-                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500"
-                                        />
-                                    </div>
-                                    <select
+                                    <SearchableSelect
                                         value={assignForm.vendorId}
-                                        onChange={e => setAssignForm({ ...assignForm, vendorId: e.target.value })}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                    >
-                                        <option value="" disabled>Select Business</option>
-                                        {filteredVendors.map(v => (
-                                            <option key={v.id} value={v.id}>{v.businessName || v.user?.fullName || 'Unknown Business'} ({v.user?.email || 'No email'})</option>
-                                        ))}
-                                    </select>
+                                        onChange={val => setAssignForm({ ...assignForm, vendorId: val })}
+                                        options={[
+                                            { label: "Select Business", value: "" },
+                                            ...vendors.map(v => ({
+                                                label: `${v.businessName || v.user?.fullName || 'Unknown Business'} (${v.user?.email || 'No email'})`,
+                                                value: v.id
+                                            }))
+                                        ]}
+                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Select Plan</label>
-                                    <select
+                                    <SearchableSelect
                                         value={assignForm.planId}
-                                        onChange={e => setAssignForm({ ...assignForm, planId: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                    >
-                                        <option value="" disabled>Select a Plan</option>
-                                        {plans.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name} - PKR {Number(p.price).toLocaleString()}/{p.billingCycle}</option>
-                                        ))}
-                                    </select>
+                                        onChange={val => setAssignForm({ ...assignForm, planId: val })}
+                                        options={[
+                                            { label: "Select a Plan", value: "" },
+                                            ...plans.map(p => ({
+                                                label: `${p.name} - PKR ${Number(p.price).toLocaleString()}/${p.billingCycle}`,
+                                                value: p.id
+                                            }))
+                                        ]}
+                                    />
                                 </div>
 
                                 <div>

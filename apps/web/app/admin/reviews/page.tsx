@@ -29,6 +29,7 @@ import {
     ExternalLink,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Review {
@@ -361,34 +362,38 @@ export default function ReviewModerationPage() {
                     )}
                 </div>
 
-                {/* Flag filter */}
-                <div className="relative">
-                    <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    <select
-                        value={filter.isSuspicious}
-                        onChange={e => { setPage(1); setFilter(p => ({ ...p, isSuspicious: e.target.value })); }}
-                        className="pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl appearance-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all cursor-pointer"
-                    >
-                        <option value="all">All Flags</option>
-                        <option value="true">⚠ Suspicious</option>
-                        <option value="false">✓ Clean</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                <div className="relative w-40 min-w-[150px]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                        <ShieldAlert className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div className="pl-6">
+                        <SearchableSelect
+                            value={filter.isSuspicious}
+                            onChange={val => { setPage(1); setFilter(p => ({ ...p, isSuspicious: val })); }}
+                            options={[
+                                { label: "All Flags", value: "all" },
+                                { label: "⚠ Suspicious", value: "true" },
+                                { label: "✓ Clean", value: "false" }
+                            ]}
+                        />
+                    </div>
                 </div>
 
-                {/* Approval filter */}
-                <div className="relative">
-                    <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    <select
-                        value={filter.isApproved}
-                        onChange={e => { setPage(1); setFilter(p => ({ ...p, isApproved: e.target.value })); }}
-                        className="pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl appearance-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all cursor-pointer"
-                    >
-                        <option value="all">Any Status</option>
-                        <option value="true">✓ Approved</option>
-                        <option value="false">✗ Unapproved</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                <div className="relative w-44 min-w-[160px]">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                        <CheckCircle className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div className="pl-6">
+                        <SearchableSelect
+                            value={filter.isApproved}
+                            onChange={val => { setPage(1); setFilter(p => ({ ...p, isApproved: val })); }}
+                            options={[
+                                { label: "Any Status", value: "all" },
+                                { label: "✓ Approved", value: "true" },
+                                { label: "✗ Unapproved", value: "false" }
+                            ]}
+                        />
+                    </div>
                 </div>
 
                 {/* Clear filters */}

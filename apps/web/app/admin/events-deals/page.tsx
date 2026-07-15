@@ -19,6 +19,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 export default function AdminEventsDealsPage() {
     const [events, setEvents] = useState<any[]>([]);
@@ -220,18 +221,20 @@ export default function AdminEventsDealsPage() {
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5">
-                        <Filter className="w-4 h-4 text-slate-400" />
-                        <select
-                            value={statusFilter}
-                            onChange={(e: any) => setStatusFilter(e.target.value)}
-                            className="bg-transparent text-xs font-black text-slate-700 focus:outline-none cursor-pointer"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="published">Published</option>
-                            <option value="draft">Draft / Un-published</option>
-                            <option value="featured">Featured Boosted</option>
-                        </select>
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 overflow-visible min-w-[200px]">
+                        <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <div className="flex-1">
+                            <SearchableSelect
+                                value={statusFilter}
+                                onChange={(val: any) => setStatusFilter(val)}
+                                options={[
+                                    { label: "All Status", value: "all" },
+                                    { label: "Published", value: "published" },
+                                    { label: "Draft / Un-published", value: "draft" },
+                                    { label: "Featured Boosted", value: "featured" }
+                                ]}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

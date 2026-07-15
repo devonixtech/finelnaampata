@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { FeatureGate } from '../../../components/business/FeatureGate';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 
 const PAGE_SIZE = 9;
@@ -344,15 +345,17 @@ export default function BusinessListings() {
                         </div>
 
                         {/* Sort */}
-                        <select
-                            value={sortOrder}
-                            onChange={e => setSortOrder(e.target.value as any)}
-                            className="px-6 py-3 bg-slate-50 text-slate-600 rounded-2xl font-bold border border-transparent hover:border-slate-200 transition-all outline-none"
-                        >
-                            <option value="newest">Recent First</option>
-                            <option value="rated">Highest Rated</option>
-                            <option value="views">Most Views</option>
-                        </select>
+                        <div className="w-[180px]">
+                            <SearchableSelect
+                                value={sortOrder}
+                                onChange={val => setSortOrder(val as any)}
+                                options={[
+                                    { label: "Recent First", value: "newest" },
+                                    { label: "Highest Rated", value: "rated" },
+                                    { label: "Most Views", value: "views" }
+                                ]}
+                            />
+                        </div>
                     </div>
 
                     {/* Status Filter Pills */}

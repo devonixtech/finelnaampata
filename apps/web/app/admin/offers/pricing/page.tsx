@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
 export default function AdminOfferPricingPage() {
     const { user } = useAuth();
@@ -225,14 +226,14 @@ export default function AdminOfferPricingPage() {
                                     <div className="grid grid-cols-2 gap-6">
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Apply To</label>
-                                            <select 
+                                            <SearchableSelect 
                                                 value={currentPricing.type}
-                                                onChange={e => setCurrentPricing({...currentPricing, type: e.target.value})}
-                                                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-orange-500/10 transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="offer">Business Offer</option>
-                                                <option value="event">Business Event</option>
-                                            </select>
+                                                onChange={val => setCurrentPricing({...currentPricing, type: val})}
+                                                options={[
+                                                    { label: "Business Offer", value: "offer" },
+                                                    { label: "Business Event", value: "event" }
+                                                ]}
+                                            />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Price (PKR)</label>
@@ -264,15 +265,15 @@ export default function AdminOfferPricingPage() {
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Unit</label>
-                                            <select 
+                                            <SearchableSelect 
                                                 value={currentPricing.unit}
-                                                onChange={e => setCurrentPricing({...currentPricing, unit: e.target.value})}
-                                                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-orange-500/10 transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="minutes">Minutes</option>
-                                                <option value="hours">Hours</option>
-                                                <option value="days">Days</option>
-                                            </select>
+                                                onChange={val => setCurrentPricing({...currentPricing, unit: val})}
+                                                options={[
+                                                    { label: "Minutes", value: "minutes" },
+                                                    { label: "Hours", value: "hours" },
+                                                    { label: "Days", value: "days" }
+                                                ]}
+                                            />
                                         </div>
                                     </div>
 

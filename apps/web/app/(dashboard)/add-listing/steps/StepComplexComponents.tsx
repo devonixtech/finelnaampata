@@ -6,6 +6,7 @@ import { SOCIAL_PLATFORMS, AMENITIES } from '../../../../lib/constants/listing-o
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
 import { usePlanFeature } from '../../../../hooks/usePlanFeature';
 import CategorySearchSelect from '../../../../components/CategorySearchSelect';
+import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const selectClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer pr-10";
@@ -59,31 +60,25 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
                                         </div>
                                     ) : (
                                         <div className="relative">
-                                            <select
+                                            <SearchableSelect
+                                                options={[
+                                                    { label: "-- Optional --", value: "" },
+                                                    ...relatedSubcategories.map(sub => ({
+                                                        label: sub.name,
+                                                        value: sub.id,
+                                                    }))
+                                                ]}
                                                 value={selectedSubCategories[i] || ''}
-                                                onChange={e => {
+                                                onChange={val => {
                                                     const newSubs = [...selectedSubCategories];
-                                                    if (e.target.value) {
-                                                        newSubs[i] = e.target.value;
+                                                    if (val) {
+                                                        newSubs[i] = val;
                                                     } else {
                                                         newSubs.splice(i, 1);
                                                     }
                                                     setFormData(prev => ({ ...prev, subCategoryIds: newSubs.filter(Boolean) }));
                                                 }}
-                                                className={selectClass + " bg-white"}
-                                            >
-                                                <option value="">-- Optional --</option>
-                                                {relatedSubcategories.map(sub => (
-                                                    <option 
-                                                        key={sub.id} 
-                                                        value={sub.id}
-                                                        disabled={selectedSubCategories.includes(sub.id) && selectedSubCategories[i] !== sub.id}
-                                                    >
-                                                        {sub.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                            />
                                         </div>
                                     )}
                                 </div>
@@ -193,20 +188,19 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
             <div>
                 <label className={labelClass}>Contact Number</label>
                 <div className="flex items-center gap-2 min-w-0">
-                    <select
-                        value={formData.phoneCode}
-                        onChange={e => {
-                            setFormData(prev => ({ ...prev, phoneCode: e.target.value }));
-                            handlePhoneChange(formData.phoneNumber, 'phone');
-                        }}
-                        className="shrink-0 w-[140px] px-3 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer"
-                    >
-                        {DEFAULT_DIAL_CODES.map((d: any) => (
-                            <option key={`${d.code}-${d.dialCode}`} value={d.dialCode}>
-                                {d.dialCode} {d.country}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="shrink-0 w-[140px]">
+                        <SearchableSelect
+                            options={DEFAULT_DIAL_CODES.map((d: any) => ({
+                                label: `${d.dialCode} ${d.country}`,
+                                value: d.dialCode,
+                            }))}
+                            value={formData.phoneCode}
+                            onChange={val => {
+                                setFormData(prev => ({ ...prev, phoneCode: val }));
+                                handlePhoneChange(formData.phoneNumber, 'phone');
+                            }}
+                        />
+                    </div>
                     <div className="flex-1 min-w-0 relative">
                         <input
                             type="tel"
@@ -240,9 +234,14 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                     Same as primary phone
                 </label>
                 <div className="flex items-center gap-2 min-w-0">
-                    <select className="shrink-0 w-[140px] px-3 py-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-semibold text-sm appearance-none cursor-pointer" disabled>
-                        <option>{formData.phoneCode}</option>
-                    </select>
+                    <div className="shrink-0 w-[140px]">
+                        <SearchableSelect
+                            options={[{ label: formData.phoneCode, value: formData.phoneCode }]}
+                            value={formData.phoneCode}
+                            onChange={() => {}}
+                            disabled
+                        />
+                    </div>
                     <input
                         type="tel"
                         value={formData.whatsapp}

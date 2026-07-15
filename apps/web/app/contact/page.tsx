@@ -9,6 +9,7 @@ import {
     ChevronRight, CheckCircle, AlertCircle, HelpCircle, ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 
 const contactInfo = [
     {
@@ -170,22 +171,21 @@ export default function ContactPage() {
 
                                     <div>
                                         <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Subject</label>
-                                        <select
-                                            id="contact-subject"
-                                            name="subject"
-                                            required
-                                            value={form.subject}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-[#FF7A30] focus:ring-2 focus:ring-orange-100 outline-none text-sm font-medium text-slate-800 transition-all bg-white"
-                                        >
-                                            <option value="">Select a topic...</option>
-                                            <option value="listing">Business Listing Help</option>
-                                            <option value="billing">Billing & Subscriptions</option>
-                                            <option value="review">Review Dispute</option>
-                                            <option value="partnership">Partnership Enquiry</option>
-                                            <option value="bug">Report a Bug</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                        <div className="relative z-50">
+                                            <SearchableSelect
+                                                value={form.subject}
+                                                onChange={val => setForm({ ...form, subject: val as string })}
+                                                options={[
+                                                    { label: "Business Listing Help", value: "listing" },
+                                                    { label: "Billing & Subscriptions", value: "billing" },
+                                                    { label: "Review Dispute", value: "review" },
+                                                    { label: "Partnership Enquiry", value: "partnership" },
+                                                    { label: "Report a Bug", value: "bug" },
+                                                    { label: "Other", value: "other" }
+                                                ]}
+                                                placeholder="Select a topic..."
+                                            />
+                                        </div>
                                     </div>
 
                                     <div>

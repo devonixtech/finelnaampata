@@ -7,7 +7,8 @@ import BusinessCard from '@/components/BusinessCard';
 import OfferCard from '@/components/OfferCard';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { LayoutGrid, List, Filter, ChevronRight, Star, ShieldCheck, Search, MapPin, Activity } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronRight, MapPin, Search, Star, Filter, ArrowUpRight, Activity, Clock, ShieldCheck, CheckCircle2, Navigation, Heart, Share2, Phone, Mail, Instagram, Facebook, Globe, Twitter, ArrowRight, LayoutGrid, List } from "lucide-react";
+import { SearchableSelect } from "../../../components/ui/SearchableSelect";
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -233,16 +234,17 @@ export default function CategoryDetailClient({ slug }: CategoryDetailClientProps
                                     {/* Location Select */}
                                     <div className="space-y-4">
                                         <label className="text-xs font-black text-slate-900 tracking-tight">Geo Location</label>
-                                        <select
-                                            value={filters.city}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, city: e.target.value }))}
-                                            className="w-full bg-[#F8FAFC] border border-slate-100 rounded-2xl px-5 py-4 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">All Pakistan</option>
-                                            {cities.map(city => (
-                                                <option key={city.id} value={city.name}>{city.name}</option>
-                                            ))}
-                                        </select>
+                                        <div className="relative z-50">
+                                            <SearchableSelect
+                                                value={filters.city}
+                                                onChange={val => setFilters(prev => ({ ...prev, city: val as string }))}
+                                                options={[
+                                                    { label: "All Pakistan", value: "" },
+                                                    ...cities.map(city => ({ label: city.name, value: city.name }))
+                                                ]}
+                                                placeholder="All Pakistan"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Rating Select */}
@@ -302,15 +304,17 @@ export default function CategoryDetailClient({ slug }: CategoryDetailClientProps
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="bg-white border-b border-slate-100 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 outline-none focus:border-blue-600 transition-all cursor-pointer mr-4"
-                                >
-                                    <option value="relevance">By Significance</option>
-                                    <option value="rating">Top Performance</option>
-                                    <option value="newest">Recent Listing</option>
-                                </select>
+                                <div className="relative z-50 mr-4 w-40">
+                                    <SearchableSelect
+                                        value={sortBy}
+                                        onChange={val => setSortBy(val as string)}
+                                        options={[
+                                            { label: "By Significance", value: "relevance" },
+                                            { label: "Top Performance", value: "rating" },
+                                            { label: "Recent Listing", value: "newest" }
+                                        ]}
+                                    />
+                                </div>
 
                                 <div className="flex items-center gap-4">
                                     <button onClick={() => setViewMode('grid')} className={`p-1 transition-all ${viewMode === 'grid' ? 'text-blue-600' : 'text-slate-200 hover:text-slate-400'}`}>

@@ -10,6 +10,7 @@ import {
 import { api, getImageUrl } from '../../../lib/api';
 import { Category } from '../../../types/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 export default function AdminCategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -517,21 +518,16 @@ export default function AdminCategoriesPage() {
                                 <div className="space-y-2">
                                     <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Parent Category</label>
                                     <div className="relative">
-                                        <select
+                                        <SearchableSelect
                                             value={formData.parentId || ''}
-                                            onChange={e => setFormData({ ...formData, parentId: e.target.value })}
-                                            className="w-full h-14 px-5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100 font-bold transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">None (Root Category)</option>
-                                            {categories
-                                                .filter(c => isEditModalOpen ? c.id !== selectedCategory?.id : true)
-                                                .map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                                ))}
-                                        </select>
-                                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                            <ChevronRight className="w-5 h-5 rotate-90" />
-                                        </div>
+                                            onChange={val => setFormData({ ...formData, parentId: val })}
+                                            options={[
+                                                { label: "None (Root Category)", value: "" },
+                                                ...categories
+                                                    .filter(c => isEditModalOpen ? c.id !== selectedCategory?.id : true)
+                                                    .map(c => ({ label: c.name, value: c.id }))
+                                            ]}
+                                        />
                                     </div>
                                 </div>
 

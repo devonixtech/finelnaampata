@@ -23,6 +23,7 @@ import {
 import { api } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { Badge } from '../../../components/ui/Badge';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 interface PricingPlan {
     id: string;
@@ -321,14 +322,14 @@ const OfferEventPlansPage = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-gray-700">Unit</label>
-                                    <select
+                                    <SearchableSelect
                                         value={formData.unit}
-                                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all appearance-none"
-                                    >
-                                        <option value="hours">Hours</option>
-                                        <option value="days">Days</option>
-                                    </select>
+                                        onChange={val => setFormData({ ...formData, unit: val })}
+                                        options={[
+                                            { label: "Hours", value: "hours" },
+                                            { label: "Days", value: "days" }
+                                        ]}
+                                    />
                                 </div>
                             </div>
 

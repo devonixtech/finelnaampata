@@ -7,6 +7,7 @@ import { Mail, Lock, User, ArrowRight, Loader2, Phone, Megaphone, Eye, EyeOff, S
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useAuth, getCookie } from '../../context/AuthContext';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { useGoogleLogin } from '@react-oauth/google';
 
 import { DEFAULT_DIAL_CODES } from '../../lib/phone-codes';
@@ -199,17 +200,15 @@ function RegisterForm() {
                                     Phone Number
                                 </label>
                                 <div className="flex gap-2">
-                                    <select
-                                        className="w-32 px-3 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-slate-900 font-bold transition-all outline-none"
-                                        value={phoneCode}
-                                        onChange={(e) => setPhoneCode(e.target.value)}
-                                    >
-                                        {DEFAULT_DIAL_CODES.map((d) => (
-                                            <option key={d.code} value={d.dialCode}>
-                                                {d.code} ({d.dialCode})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="w-32 relative z-50">
+                                        <SearchableSelect
+                                            value={phoneCode}
+                                            onChange={val => setPhoneCode(val as string)}
+                                            options={[
+                                                ...DEFAULT_DIAL_CODES.map(d => ({ label: `${d.code} (${d.dialCode})`, value: d.dialCode }))
+                                            ]}
+                                        />
+                                    </div>
                                     <div className="relative flex-1">
                                         <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                         <input

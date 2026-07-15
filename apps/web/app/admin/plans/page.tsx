@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { Loader2, Plus, Edit, Trash2, CheckCircle2, XCircle, AlertCircle, Save, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 
 // Defined features from usePlanFeature.ts
 const booleanFeatures = [
@@ -261,16 +262,16 @@ export default function PlansPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Plan Type</label>
-                                        <select
+                                        <SearchableSelect
                                             value={formData.planType}
-                                            onChange={e => setFormData({ ...formData, planType: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                        >
-                                            <option value="free">Free</option>
-                                            <option value="basic">Basic</option>
-                                            <option value="premium">Premium</option>
-                                            <option value="enterprise">Enterprise</option>
-                                        </select>
+                                            onChange={val => setFormData({ ...formData, planType: val })}
+                                            options={[
+                                                { label: "Free", value: "free" },
+                                                { label: "Basic", value: "basic" },
+                                                { label: "Premium", value: "premium" },
+                                                { label: "Enterprise", value: "enterprise" }
+                                            ]}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Description</label>
@@ -293,15 +294,15 @@ export default function PlansPage() {
                                         </div>
                                         <div>
                                             <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Billing Cycle</label>
-                                            <select
+                                            <SearchableSelect
                                                 value={formData.billingCycle}
-                                                onChange={e => setFormData({ ...formData, billingCycle: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                            >
-                                                <option value="monthly">Monthly</option>
-                                                <option value="yearly">Yearly</option>
-                                                <option value="lifetime">Lifetime</option>
-                                            </select>
+                                                onChange={val => setFormData({ ...formData, billingCycle: val })}
+                                                options={[
+                                                    { label: "Monthly", value: "monthly" },
+                                                    { label: "Yearly", value: "yearly" },
+                                                    { label: "Lifetime", value: "lifetime" }
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6 mt-2">

@@ -27,6 +27,8 @@ import {
   Download,
   Zap,
 } from "lucide-react";
+import { CheckoutUrlResponse } from "../../../types/api";
+import { SearchableSelect } from "../../../components/ui/SearchableSelect";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../context/AuthContext";
 import Link from "next/link";
@@ -881,20 +883,19 @@ export default function BusinessEventsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2">
                         <label className={labelClass}>Select Business *</label>
-                        <select
-                          value={form.businessId}
-                          onChange={(e) =>
-                            setForm((p) => ({ ...p, businessId: e.target.value }))
-                          }
-                          className={inputClass}
-                        >
-                          <option value="">Choose a business</option>
-                          {businesses.map((b) => (
-                            <option key={b.id} value={b.id}>
-                              {b.title}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative z-50">
+                          <SearchableSelect
+                            value={form.businessId}
+                            onChange={(val) =>
+                              setForm((p) => ({ ...p, businessId: val as string }))
+                            }
+                            options={businesses.map((b) => ({
+                              label: b.title,
+                              value: b.id
+                            }))}
+                            placeholder="Choose a business"
+                          />
+                        </div>
                       </div>
 
                       <div className="md:col-span-2">

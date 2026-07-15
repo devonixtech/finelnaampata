@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award, Lock } from 'lucide-react';
 import { api, getImageUrl } from '../../../lib/api';
 import BusinessAvatar from '../../../components/BusinessAvatar';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 import { useAuth } from '../../../context/AuthContext';
 import { City } from '../../../types/api';
 import { COUNTRIES_STATES, CountryData } from '../../../lib/data/countries-states';
@@ -548,18 +549,13 @@ export default function AccountSettings() {
                                 <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
                                     <Globe className="w-3.5 h-3.5" /> Country / Region
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        name="country"
+                                <div className="relative z-50">
+                                    <SearchableSelect
                                         value={formData.country}
-                                        onChange={handleSelectChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
-                                    >
-                                        {COUNTRIES_STATES.map(c => (
-                                            <option key={c.code} value={c.name}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        onChange={val => handleSelectChange({ target: { name: 'country', value: val } } as any)}
+                                        options={COUNTRIES_STATES.map(c => ({ label: c.name, value: c.name }))}
+                                        placeholder="Select Country"
+                                    />
                                 </div>
                             </div>
 
@@ -567,27 +563,21 @@ export default function AccountSettings() {
                                 <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
                                     <Globe className="w-3.5 h-3.5" /> State / Province
                                 </label>
-                                <div className="relative">
-                                    <select
-                                        name="state"
+                                <div className="relative z-40">
+                                    <SearchableSelect
                                         value={formData.state}
-                                        onChange={handleSelectChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select state / province</option>
-                                        {(() => {
+                                        onChange={val => handleSelectChange({ target: { name: 'state', value: val } } as any)}
+                                        options={(() => {
                                             const country = COUNTRIES_STATES.find(c => getCanonicalCountryName(c.name) === getCanonicalCountryName(formData.country) ||
                                                 c.name === formData.country ||
                                                 c.name.toLowerCase() === (formData.country || '').toLowerCase() ||
                                                 c.code === (formData.country || '')
                                             );
                                             const statesList = country ? cleanAndDedupeStates(country.states, formData.country) : cleanAndDedupeStates(availableStates.map(name => ({ name })), formData.country);
-                                            return statesList.map((s: any) => (
-                                                <option key={s} value={s}>{s}</option>
-                                            ));
+                                            return statesList.map((s: any) => ({ label: s, value: s }));
                                         })()}
-                                    </select>
-                                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        placeholder="Select state / province"
+                                    />
                                 </div>
                             </div>
 
@@ -704,19 +694,17 @@ export default function AccountSettings() {
                                     <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
                                         Timezone
                                     </label>
-                                    <select
-                                        name="timezone"
-                                        value={formData.timezone}
-                                        onChange={handleSelectChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none appearance-none cursor-pointer"
-                                    >
-                                        {['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].map(tz => (
-                                            <option key={tz} value={tz}>{tz.replace(/_/g,' ')}</option>
-                                        ))}
-                                        {!['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].includes(formData.timezone) && formData.timezone && (
-                                            <option value={formData.timezone}>{formData.timezone.replace(/_/g,' ')}</option>
-                                        )}
-                                    </select>
+                                    <div className="relative z-30">
+                                        <SearchableSelect
+                                            value={formData.timezone}
+                                            onChange={val => handleSelectChange({ target: { name: 'timezone', value: val } } as any)}
+                                            options={[
+                                                ...['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].map(tz => ({ label: tz.replace(/_/g,' '), value: tz })),
+                                                ...(!['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Kolkata','Asia/Dhaka','Asia/Bangkok','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].includes(formData.timezone) && formData.timezone ? [{ label: formData.timezone.replace(/_/g,' '), value: formData.timezone }] : [])
+                                            ]}
+                                            placeholder="Select timezone"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -859,29 +847,22 @@ export default function AccountSettings() {
                                         <div key={index} className="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-2">
                                             <div className="w-full sm:w-48">
                                                 <div className="relative">
-                                                    <select
-                                                        value={link.platform}
-                                                        onChange={(e) => handleSocialLinkChange(index, 'platform', e.target.value)}
-                                                        className="w-full pl-12 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold appearance-none outline-none focus:border-blue-500/20 transition-all"
-                                                    >
-                                                        <option value="facebook">Facebook</option>
-                                                        <option value="instagram">Instagram</option>
-                                                        <option value="linkedin">LinkedIn</option>
-                                                        <option value="twitter">Twitter / X</option>
-                                                        <option value="youtube">YouTube</option>
-                                                        <option value="whatsapp">WhatsApp</option>
-                                                        <option value="website">Website</option>
-                                                    </select>
-                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                                        {link.platform === 'facebook' && <Facebook className="w-4 h-4" />}
-                                                        {link.platform === 'instagram' && <Instagram className="w-4 h-4" />}
-                                                        {link.platform === 'linkedin' && <Linkedin className="w-4 h-4" />}
-                                                        {link.platform === 'twitter' && <Twitter className="w-4 h-4" />}
-                                                        {link.platform === 'youtube' && <Youtube className="w-4 h-4" />}
-                                                        {link.platform === 'website' && <Globe className="w-4 h-4" />}
-                                                        {link.platform === 'whatsapp' && <Phone className="w-4 h-4" />}
+                                                    <div className="relative z-50">
+                                                        <SearchableSelect
+                                                            value={link.platform}
+                                                            onChange={val => handleSocialLinkChange(index, 'platform', val as string)}
+                                                            options={[
+                                                                { label: 'Facebook', value: 'facebook' },
+                                                                { label: 'Instagram', value: 'instagram' },
+                                                                { label: 'LinkedIn', value: 'linkedin' },
+                                                                { label: 'Twitter / X', value: 'twitter' },
+                                                                { label: 'YouTube', value: 'youtube' },
+                                                                { label: 'WhatsApp', value: 'whatsapp' },
+                                                                { label: 'Website', value: 'website' }
+                                                            ]}
+                                                            placeholder="Platform"
+                                                        />
                                                     </div>
-                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                                                 </div>
                                             </div>
 
