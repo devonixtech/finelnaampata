@@ -251,6 +251,23 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
 
     if (!coords) return null;
 
+    // Try accurate reverse geocoding first (helps when cities in DB lack coordinates)
+    try {
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.latitude}&longitude=${coords.longitude}&localityLanguage=en`);
+        if (res.ok) {
+            const data = await res.json();
+            const cityName = data.city || data.locality;
+            if (cityName) {
+                // Find a match in our provided cities array
+                const matched = cities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
+                if (matched) return matched.name;
+            }
+        }
+    } catch (e) {
+        console.warn("Reverse geocode failed", e);
+    }
+
+    // Fallback: calculate Euclidean distance for cities that DO have coordinates
     const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
     return nearest?.name || null;
 }

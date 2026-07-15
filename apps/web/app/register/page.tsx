@@ -11,8 +11,45 @@ import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { useGoogleLogin } from '@react-oauth/google';
 
 import { DEFAULT_DIAL_CODES } from '../../lib/phone-codes';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+const registerSchema = z.object({
+    fullName: z.string().min(2, 'Enter your full name'),
+    email: z.string().email('Please enter a valid email address'),
+    phoneCode: z.string(),
+    phone: z.string()
+        .min(7, 'Phone number must be at least 7 digits')
+        .max(15, 'Phone number cannot exceed 15 digits')
+        .optional()
+        .or(z.literal('')),
+    password: z.string()
+        .min(8, 'At least 8 characters')
+        .regex(/[A-Z]/, 'At least one uppercase letter')
+        .regex(/[a-z]/, 'At least one lowercase letter')
+        .regex(/[0-9]/, 'At least one number')
+        .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/, 'At least one special character (!@#$%^&*)'),
+    confirmPassword: z.string(),
+    agreedToTerms: z.literal(true, {
+        message: 'Agree to terms to continue'
+    })
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+}).refine((data) => {
+    if (data.phoneCode === 'PK' && data.phone && data.phone.length !== 10) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Pakistan phone number must be exactly 10 digits",
+    path: ["phone"]
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const inputClass =
     'w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/5 rounded-2xl text-slate-900 font-bold transition-all outline-none';
@@ -57,37 +94,37 @@ function GoogleSignupButton({ loading, onError, onSuccess }: { loading: boolean;
 }
 
 function RegisterForm() {
-    const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [phoneCode, setPhoneCode] = useState('+92');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [referralCode, setReferralCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    
     const { register, googleLogin } = useAuth();
     const searchParams = useSearchParams();
     const redirect = searchParams.get('redirect');
 
-    // Real-time validation
-    const passwordValidation = {
-        minLength: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        lowercase: /[a-z]/.test(password),
-        number: /[0-9]/.test(password),
-        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password),
-    };
-    const isPasswordValid = Object.values(passwordValidation).every(Boolean);
-    const isEmailValid = email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isPkPhone = phoneCode === '+92';
-    const isPhoneValid = phone.length === 0 || (isPkPhone ? phone.length === 10 : (phone.length >= 7 && phone.length <= 15));
-    const fullNameValid = fullName.trim().length >= 2;
-    const confirmPasswordValid = confirmPassword.length > 0 && password === confirmPassword;
-    const isFormValid = isPasswordValid && isEmailValid && isPhoneValid && fullNameValid && confirmPasswordValid && agreedToTerms;
+    const {
+        register: formRegister,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors, isValid }
+    } = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
+        mode: 'onChange',
+        defaultValues: {
+            fullName: '',
+            email: '',
+            phoneCode: 'PK',
+            phone: '',
+            password: '',
+            confirmPassword: '',
+            agreedToTerms: false as any,
+        }
+    });
+
+    const phoneCode = watch('phoneCode');
 
     useEffect(() => {
         const ref = searchParams.get('ref');
@@ -99,48 +136,28 @@ function RegisterForm() {
         }
     }, [searchParams]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: RegisterFormValues) => {
         setError('');
 
-        if (!agreedToTerms) {
-            setError('Please agree to the Terms and Privacy Policy to continue.');
-            return;
-        }
-
-        const hasMinLength = password.length >= 8;
-        const hasUppercase = /[A-Z]/.test(password);
-        const hasLowercase = /[a-z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
-        if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
-            setError('Password must meet all strength requirements (8+ chars, upper, lower, number, special character).');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setError('Passwords do not match.');
-            return;
-        }
-
-        const normalizedNumber = phone.replace(/^0+/, ''); // Strip leading zero
-        const fullPhone = `${phoneCode}${normalizedNumber}`;
-        if (phone && isPkPhone && normalizedNumber.length !== 10) {
-            setError('Pakistan phone number must be exactly 10 digits.');
-            return;
-        }
-        if (phone && !/^\+[1-9]\d{7,14}$/.test(fullPhone)) {
-            setError('Please enter a valid phone number (8 to 15 digits).');
-            return;
+        const normalizedNumber = (data.phone || '').replace(/^0+/, '');
+        let fullPhone = '';
+        if (normalizedNumber) {
+            const selectedCountry = DEFAULT_DIAL_CODES.find(c => c.code === data.phoneCode);
+            const dialCode = selectedCountry ? selectedCountry.dialCode : '+92';
+            fullPhone = `${dialCode}${normalizedNumber}`;
+            if (!/^\+[1-9]\d{7,14}$/.test(fullPhone)) {
+                setError('Please enter a valid phone number (8 to 15 digits).');
+                return;
+            }
         }
 
         setLoading(true);
         try {
             await register({
-                fullName,
-                email,
-                phone: fullPhone,
-                password,
+                fullName: data.fullName,
+                email: data.email,
+                phone: fullPhone || undefined,
+                password: data.password,
                 role: 'user',
                 referralCode: referralCode || undefined,
             });
@@ -177,7 +194,7 @@ function RegisterForm() {
                             </div>
                         )}
 
-                        <form className="space-y-5" onSubmit={handleSubmit}>
+                        <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                                     Full Name
@@ -185,14 +202,15 @@ function RegisterForm() {
                                 <div className="relative">
                                     <User className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
-                                        required
                                         type="text"
-                                        className={inputClass}
+                                        className={`${inputClass} ${errors.fullName ? 'border-red-500/50 focus:border-red-500' : ''}`}
                                         placeholder="Enter your full name"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
+                                        {...formRegister('fullName')}
                                     />
                                 </div>
+                                {errors.fullName && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.fullName.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -203,36 +221,29 @@ function RegisterForm() {
                                     <div className="w-32 relative z-50">
                                         <SearchableSelect
                                             value={phoneCode}
-                                            onChange={val => setPhoneCode(val as string)}
+                                            onChange={val => setValue('phoneCode', val as string)}
                                             options={[
-                                                ...DEFAULT_DIAL_CODES.map(d => ({ label: `${d.code} (${d.dialCode})`, value: d.dialCode }))
+                                                ...DEFAULT_DIAL_CODES.map(d => ({ label: `${d.code} (${d.dialCode})`, value: d.code }))
                                             ]}
                                         />
                                     </div>
                                     <div className="relative flex-1">
                                         <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                         <input
-                                            required
                                             type="tel"
-                                            className={inputClass}
-                                            placeholder={isPkPhone ? '3001234567' : 'Enter phone number'}
-                                            value={phone}
-                                            maxLength={isPkPhone ? 10 : 15}
-                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, isPkPhone ? 10 : 15))}
+                                            className={`${inputClass} ${errors.phone ? 'border-red-500/50 focus:border-red-500' : ''}`}
+                                            placeholder={phoneCode === 'PK' ? '3001234567' : 'Enter phone number'}
+                                            maxLength={phoneCode === 'PK' ? 10 : 15}
+                                            {...formRegister('phone', {
+                                                onChange: (e) => {
+                                                    e.target.value = e.target.value.replace(/\D/g, '').slice(0, phoneCode === 'PK' ? 10 : 15);
+                                                }
+                                            })}
                                         />
                                     </div>
                                 </div>
-                                {phone.length > 0 && isPkPhone && phone.length < 10 && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Pakistan phone number must be exactly 10 digits</p>
-                                )}
-                                {phone.length > 0 && !isPkPhone && phone.length < 7 && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Phone number must be at least 7 digits</p>
-                                )}
-                                {phone.length > 10 && isPkPhone && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Pakistan phone number cannot exceed 10 digits</p>
-                                )}
-                                {phone.length > 15 && !isPkPhone && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Phone number cannot exceed 15 digits</p>
+                                {errors.phone && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.phone.message}</p>
                                 )}
                             </div>
 
@@ -243,16 +254,14 @@ function RegisterForm() {
                                 <div className="relative">
                                     <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
-                                        required
                                         type="email"
-                                        className={inputClass}
+                                        className={`${inputClass} ${errors.email ? 'border-red-500/50 focus:border-red-500' : ''}`}
                                         placeholder="name@example.com"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        {...formRegister('email')}
                                     />
                                 </div>
-                                {email.length > 0 && !isEmailValid && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Please enter a valid email address</p>
+                                {errors.email && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.email.message}</p>
                                 )}
                             </div>
 
@@ -263,12 +272,10 @@ function RegisterForm() {
                                 <div className="relative">
                                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
-                                        required
                                         type={showPassword ? 'text' : 'password'}
-                                        className={`${inputClass} pr-14`}
+                                        className={`${inputClass} pr-14 ${errors.password ? 'border-red-500/50 focus:border-red-500' : ''}`}
                                         placeholder="At least 8 characters"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        {...formRegister('password')}
                                     />
                                     <button
                                         type="button"
@@ -278,21 +285,9 @@ function RegisterForm() {
                                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
-                                <div className="mt-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs font-medium text-slate-500">
-                                    <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400 mb-1">Password Strength</p>
-                                    {[
-                                        { label: 'At least 8 characters', check: passwordValidation.minLength },
-                                        { label: 'At least one uppercase letter', check: passwordValidation.uppercase },
-                                        { label: 'At least one lowercase letter', check: passwordValidation.lowercase },
-                                        { label: 'At least one number', check: passwordValidation.number },
-                                        { label: 'At least one special character (!@#$%^&*)', check: passwordValidation.special },
-                                    ].map(({ label, check }) => (
-                                        <div key={label} className="flex items-center gap-2">
-                                            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${check ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                                            <span className={check ? 'text-slate-900 font-semibold' : 'text-slate-400'}>{label}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                {errors.password && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.password.message}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -302,12 +297,10 @@ function RegisterForm() {
                                 <div className="relative">
                                     <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
-                                        required
                                         type={showConfirmPassword ? 'text' : 'password'}
-                                        className={`${inputClass} pr-14`}
+                                        className={`${inputClass} pr-14 ${errors.confirmPassword ? 'border-red-500/50 focus:border-red-500' : ''}`}
                                         placeholder="Re-type your password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        {...formRegister('confirmPassword')}
                                     />
                                     <button
                                         type="button"
@@ -317,11 +310,8 @@ function RegisterForm() {
                                         {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
-                                {confirmPassword && password !== confirmPassword && (
-                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">Passwords do not match</p>
-                                )}
-                                {confirmPassword && password === confirmPassword && (
-                                    <p className="text-[10px] font-bold text-emerald-500 ml-1 mt-1">✓ Passwords match</p>
+                                {errors.confirmPassword && (
+                                    <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.confirmPassword.message}</p>
                                 )}
                             </div>
 
@@ -329,26 +319,29 @@ function RegisterForm() {
                                 <div className="relative flex items-center justify-center mt-0.5">
                                     <input
                                         type="checkbox"
-                                        id="agreeToTerms"
-                                        checked={agreedToTerms}
-                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        id="agreedToTerms"
                                         className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-lg checked:border-blue-500 checked:bg-blue-500 transition-colors cursor-pointer peer"
+                                        {...formRegister('agreedToTerms')}
                                     />
                                     <svg className="w-3 h-3 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                 </div>
-                                <label htmlFor="agreeToTerms" className="text-[11px] text-slate-500 font-medium leading-relaxed cursor-pointer">
+                                <label htmlFor="agreedToTerms" className="text-[11px] text-slate-500 font-medium leading-relaxed cursor-pointer">
                                     I agree to the{' '}
                                     <Link href="/terms" className="text-blue-600 font-bold hover:underline">Terms &amp; Conditions</Link>
                                     {' '}and{' '}
                                     <Link href="/privacy" className="text-blue-600 font-bold hover:underline">Privacy Policy</Link>
                                 </label>
                             </div>
+                            {errors.agreedToTerms && (
+                                <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.agreedToTerms.message}</p>
+                            )}
 
                             <button
-                                disabled={loading || !isFormValid}
-                                type="submit"
+                                disabled={loading || !isValid}
+                                type="button"
+                                onClick={handleSubmit(onSubmit)}
                                 className="w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg bg-[#112D4E] hover:bg-black shadow-slate-900/10"
                             >
                                 {loading ? (
@@ -360,15 +353,6 @@ function RegisterForm() {
                                     </>
                                 )}
                             </button>
-                            {!isFormValid && !loading && (
-                                <p className="text-[10px] font-bold text-slate-400 text-center mt-2">
-                                    {!fullNameValid && 'Enter your full name'}
-                                    {fullNameValid && !isEmailValid && 'Enter a valid email'}
-                                    {fullNameValid && isEmailValid && !isPasswordValid && 'Password does not meet requirements'}
-                                    {fullNameValid && isEmailValid && isPasswordValid && !confirmPasswordValid && 'Passwords must match'}
-                                    {fullNameValid && isEmailValid && isPasswordValid && confirmPasswordValid && !agreedToTerms && 'Agree to terms to continue'}
-                                </p>
-                            )}
                         </form>
 
                         <div className="relative my-8">

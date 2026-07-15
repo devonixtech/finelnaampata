@@ -10,6 +10,7 @@
         "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
     },
     "dependencies": {
+        "@hookform/resolvers": "^5.4.0",
         "@react-oauth/google": "^0.13.4",
         "@types/canvas-confetti": "^1.9.0",
         "browser-image-compression": "^2.0.2",
@@ -24,6 +25,7 @@
         "next": "^16.1.6",
         "react": "18.3.1",
         "react-dom": "18.3.1",
+        "react-hook-form": "^7.81.0",
         "react-hot-toast": "^2.6.0",
         "react-markdown": "^10.1.0",
         "react-slick": "^0.31.0",
@@ -31,7 +33,8 @@
         "remark-gfm": "^4.0.1",
         "slick-carousel": "^1.8.1",
         "socket.io-client": "^4.8.3",
-        "tailwind-merge": "^2.3.0"
+        "tailwind-merge": "^2.3.0",
+        "zod": "^4.4.3"
     },
     "devDependencies": {
         "@netlify/plugin-nextjs": "^5.15.9",

@@ -31,6 +31,7 @@ export default function CitiesPage() {
     const [query, setQuery] = useState('');
     const [countries, setCountries] = useState<string[]>([]); // New state for unique countries
     const [selectedCountry, setSelectedCountry] = useState<string | null>(null); // New state for selected country
+    const [visibleCount, setVisibleCount] = useState(10);
 
     useEffect(() => {
         const load = async () => {
@@ -72,7 +73,12 @@ export default function CitiesPage() {
         }
 
         setFiltered(currentFiltered);
+        setVisibleCount(10); // Reset visible count on filter change
     }, [query, cities, selectedCountry]); // Add selectedCountry to dependencies
+
+    const handleLoadMore = () => {
+        setVisibleCount(prev => prev + 10);
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -169,35 +175,51 @@ export default function CitiesPage() {
                         <p className="text-slate-400 text-sm">Try a different search term</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        {filtered.map((city, idx) => (
-                            <Link
-                                key={city.id}
-                                href={`/cities/${encodeURIComponent(city.name.toLowerCase())}`}
-                                className="group relative rounded-2xl overflow-hidden shadow-sm hover: transition-all duration-300 hover:-translate-y-1"
-                            >
-                                {/* Gradient background */}
-                                <div className={`absolute inset-0 bg-gradient-to-br ${gradients[idx % gradients.length]} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                    <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            {filtered.slice(0, visibleCount).map((city, idx) => (
+                                <Link
+                                    key={city.id}
+                                    href={`/cities/${encodeURIComponent(city.name.toLowerCase())}`}
+                                    className="group relative rounded-2xl overflow-hidden shadow-sm hover: transition-all duration-300 hover:-translate-y-1"
+                                >
+                                    {/* Gradient background */}
+                                    <div className={`absolute inset-0 bg-gradient-to-br ${gradients[idx % gradients.length]} opacity-90 group-hover:opacity-100 transition-opacity`} />
 
-                                {/* Content */}
-                                <div className="relative p-5 h-36 flex flex-col justify-end">
-                                    <div>
-                                        <h3 className="font-black text-white text-base leading-tight">{city.name}</h3>
-                                        {(city.state || city.country) && (
-                                            <p className="text-white/70 text-[10px] font-bold mt-0.5 uppercase tracking-wider">
-                                                {[city.state, city.country].filter(Boolean).join(', ')}
-                                            </p>
-                                        )}
+                                    {/* Content */}
+                                    <div className="relative p-5 h-36 flex flex-col justify-end">
+                                        <div>
+                                            <h3 className="font-black text-white text-base leading-tight">{city.name}</h3>
+                                            {(city.state || city.country) && (
+                                                <p className="text-white/70 text-[10px] font-bold mt-0.5 uppercase tracking-wider">
+                                                    {[city.state, city.country].filter(Boolean).join(', ')}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Hover overlay arrow */}
-                                <div className="absolute bottom-4 right-4 w-7 h-7 bg-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
-                                    <ArrowRight className="w-3.5 h-3.5 text-white" />
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
+                                    {/* Hover overlay arrow */}
+                                    <div className="absolute bottom-4 right-4 w-7 h-7 bg-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                                        <ArrowRight className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+
+                        {visibleCount < filtered.length && (
+                            <div className="mt-12 text-center">
+                                <button
+                                    onClick={handleLoadMore}
+                                    className="px-8 py-3 bg-white border-2 border-slate-200 hover:border-orange-500 hover:bg-orange-50 text-slate-700 hover:text-orange-600 rounded-2xl font-black text-sm uppercase tracking-wide transition-all shadow-sm active:scale-95 flex items-center gap-2 mx-auto"
+                                >
+                                    Load More Cities
+                                </button>
+                                <p className="text-slate-400 text-xs font-bold mt-4">
+                                    Showing {visibleCount} of {filtered.length} cities
+                                </p>
+                            </div>
+                        )}
+                    </>
                 )}
             </main>
 
