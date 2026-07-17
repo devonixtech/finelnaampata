@@ -146,7 +146,7 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
                                 </div>
                             ) : (
                                 <div className="space-y-1">
-                                    {filteredCities.map(city => {
+                                    {filteredCities.slice(0, 50).map(city => {
                                         const isSelected = city.name === value;
                                         const rowKey = `${city.id || city.name}-${city.country || 'global'}`;
                                         return (

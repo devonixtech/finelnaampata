@@ -648,7 +648,7 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-            <div className={`grid md:grid-cols-2 lg:grid-cols-4 gap-10 transition-all duration-500 ${businessesLoading ? "opacity-40 blur-[2px] pointer-events-none scale-95" : "opacity-100 scale-100"}`}>
+            <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-10 transition-all duration-500 ${businessesLoading ? "opacity-40 blur-[2px] pointer-events-none scale-95" : "opacity-100 scale-100"}`}>
               {featuredBusinesses.length > 0 ? (
                 featuredBusinesses.map((biz, idx) => (
                   <motion.div

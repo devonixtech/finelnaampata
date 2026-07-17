@@ -13,6 +13,8 @@ interface ListingImageProps {
     aspectRatio?: string;
 }
 
+import { createPortal } from 'react-dom';
+
 export function ListingImage({ 
     src, 
     alt, 
@@ -25,6 +27,50 @@ export function ListingImage({
     const imageUrl = getImageUrl(src);
 
     if (imageUrl && !error) {
+        const modalContent = (
+            <AnimatePresence>
+                {isOpen && (
+                    <div 
+                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-12 bg-slate-950/95 backdrop-blur-2xl"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsOpen(false);
+                        }}
+                    >
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsOpen(false);
+                            }}
+                            className="absolute top-6 right-6 z-[210] p-3 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-2xl"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="relative w-full h-full flex flex-col items-center justify-center"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <img
+                                src={imageUrl}
+                                alt={alt}
+                                className="w-full h-full max-h-[85vh] object-contain select-none drop-shadow-2xl rounded-xl"
+                            />
+                            {alt && (
+                                <div className="mt-6 px-6 py-2.5 bg-white/10 backdrop-blur-md rounded-full text-white/90 font-medium text-sm select-none border border-white/10 shadow-xl">
+                                    {alt}
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        );
+
         return (
             <>
                 <div 
@@ -49,44 +95,7 @@ export function ListingImage({
                     </div>
                 </div>
 
-                <AnimatePresence>
-                    {isOpen && (
-                        <div 
-                            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsOpen(false);
-                            }}
-                        >
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.2 }}
-                                className="relative max-w-5xl max-h-[90vh] w-auto h-auto rounded-3xl overflow-hidden shadow-2xl bg-slate-900 border border-white/10"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsOpen(false);
-                                    }}
-                                    className="absolute top-4 right-4 z-10 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-lg"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                                <img
-                                    src={imageUrl}
-                                    alt={alt}
-                                    className="w-full h-full max-h-[85vh] object-contain select-none"
-                                />
-                                <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white font-bold text-sm select-none">
-                                    {alt}
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
+                {typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null}
             </>
         );
     }

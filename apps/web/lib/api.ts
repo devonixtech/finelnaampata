@@ -91,7 +91,7 @@ async function fetcher<T>(endpoint: string, options?: FetcherOptions): Promise<T
                     localStorage.removeItem('user');
                     window.location.href = '/login?error=expired';
                 }
-            } else if (response.status >= 500) {
+            } else if (response.status >= 500 && !options?.silent) {
                 console.error(`[api.ts] API Error on ${endpoint}:`, response.status, response.statusText, errorData);
             }
 

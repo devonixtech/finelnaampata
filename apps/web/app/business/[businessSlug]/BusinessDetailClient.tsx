@@ -2579,25 +2579,25 @@ export default function BusinessDetailClient({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-12 bg-slate-950/95 backdrop-blur-2xl"
             onClick={() => setShowLightbox(false)}
           >
             <button
-              className="absolute top-6 right-6 z-[110] w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/10"
               onClick={() => setShowLightbox(false)}
+              className="absolute top-6 right-6 z-[210] p-3 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all border border-white/10 shadow-2xl"
             >
               <X className="w-6 h-6" />
             </button>
 
             <div
-              className="relative w-full max-w-5xl aspect-video md:aspect-[16/9] flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                className="absolute left-0 -translate-x-full md:-translate-x-20 z-[110] w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/10"
+                className="absolute left-4 md:left-8 z-[210] p-4 bg-white/10 hover:bg-white/25 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/10 shadow-2xl"
                 onClick={prevImage}
               >
-                <ChevronLeft className="w-8 h-8" />
+                <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
               </button>
 
               <AnimatePresence mode="wait">
@@ -2607,33 +2607,33 @@ export default function BusinessDetailClient({
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95, x: -20 }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="w-full h-full rounded-[20px] overflow-hidden border border-white/10 shadow-2xl"
+                  className="w-full h-full flex flex-col items-center justify-center"
                 >
                   <img
                     src={galleryImages[currentImageIndex]}
-                    className="w-full h-full object-contain bg-black/50"
-                    alt="Gallery selection"
+                    alt={`Gallery selection ${currentImageIndex + 1}`}
+                    className="w-full h-full max-h-[85vh] object-contain select-none drop-shadow-2xl rounded-xl"
                   />
+                  
+                  {/* Thumbnails Indicator */}
+                  <div className="absolute bottom-4 flex gap-3 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/10 shadow-xl">
+                    {galleryImages.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentImageIndex(i)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentImageIndex ? "bg-white w-8" : "bg-white/40 hover:bg-white/80"}`}
+                      />
+                    ))}
+                  </div>
                 </motion.div>
               </AnimatePresence>
 
               <button
-                className="absolute right-0 translate-x-full md:translate-x-20 z-[110] w-14 h-14 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/10"
+                className="absolute right-4 md:right-8 z-[210] p-4 bg-white/10 hover:bg-white/25 text-white rounded-full flex items-center justify-center backdrop-blur-md transition-all border border-white/10 shadow-2xl"
                 onClick={nextImage}
               >
-                <ChevronRight className="w-8 h-8" />
+                <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
               </button>
-
-              {/* Thumbnails Indicator */}
-              <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 flex gap-3">
-                {galleryImages.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentImageIndex(i)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentImageIndex ? "bg-blue-500 w-8" : "bg-white/20 hover:bg-white/40"}`}
-                  />
-                ))}
-              </div>
             </div>
           </motion.div>
         )}
