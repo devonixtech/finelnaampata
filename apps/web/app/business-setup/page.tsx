@@ -815,7 +815,7 @@ function BusinessSetupWizardContent() {
                 const standardPlatforms = ['facebook', 'instagram', 'tiktok', 'twitter', 'linkedin', 'youtube', 'pinterest', 'snapchat'];
                 let hasInvalid = false;
 
-                const finalSocials: Record<string, any> = { customLinks: [] };
+                const payloadLinks: Array<{ platform: string; url: string }> = [];
 
                 for (const plat of standardPlatforms) {
                     const val = socialObj[plat];
@@ -823,12 +823,10 @@ function BusinessSetupWizardContent() {
                         try {
                             const url = val.startsWith('http') ? val : `https://${val}`;
                             new URL(url);
-                            finalSocials[plat] = url;
+                            payloadLinks.push({ platform: plat, url });
                         } catch {
                             hasInvalid = true;
                         }
-                    } else {
-                        finalSocials[plat] = '';
                     }
                 }
 
@@ -839,7 +837,7 @@ function BusinessSetupWizardContent() {
                         try {
                             const url = cl.url.startsWith('http') ? cl.url : `https://${cl.url}`;
                             new URL(url);
-                            finalSocials.customLinks.push({ label: cl.label || 'Link', url });
+                            payloadLinks.push({ platform: cl.label || 'Link', url });
                         } catch {
                             hasInvalid = true;
                         }
@@ -851,16 +849,12 @@ function BusinessSetupWizardContent() {
                     setSaving(false);
                     return;
                 }
-
-                // Only send if there's at least one link provided
-                const hasAnyLink = standardPlatforms.some(p => finalSocials[p]) || finalSocials.customLinks.length > 0;
                 
-                if (hasAnyLink || true) { // Always send to ensure clears work
-                    await api.businessProfiles.updateProfile({
-                        socialLinks: finalSocials,
-                        ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
-                    });
-                }
+                // Send the array to backend
+                await api.businessProfiles.updateProfile({
+                    socialLinks: payloadLinks as any,
+                    ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
+                });
             }
 
             await api.businessSetup.saveAnswers(payload);
