@@ -794,9 +794,23 @@ function BusinessSetupWizardContent() {
                     await api.businessProfiles.updateProfile(profileUpdate);
                 }
             } else if (currentStep === 10) {
-                if (stepData.hours && Object.keys(stepData.hours).length > 0) {
+                let payloadHours = stepData.hours;
+                if (stepData.open247) {
+                    payloadHours = {
+                        monday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        tuesday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        wednesday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        thursday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        friday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        saturday: { isOpen: true, openTime: '00:00', closeTime: '23:59' },
+                        sunday: { isOpen: true, openTime: '00:00', closeTime: '23:59' }
+                    };
+                }
+                
+                if (payloadHours && Object.keys(payloadHours).length > 0) {
                     await api.businessProfiles.updateProfile({
-                        businessHours: stepData.hours as any,
+                        businessHours: payloadHours as any,
+                        ...(stepData.timezone ? { timezone: stepData.timezone } : {}),
                         ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
                     });
                 }
