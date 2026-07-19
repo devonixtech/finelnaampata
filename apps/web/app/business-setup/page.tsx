@@ -1704,7 +1704,7 @@ function BusinessSetupWizardContent() {
                             <h3 className="text-xl font-black text-slate-800">Contact Details</h3>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 10 of 21 • Required</p>
                         </div>
-                        <div className="space-y-4 overflow-hidden">
+                        <div className="space-y-4">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Contact Person Name *</label>
                                 <input
@@ -2220,7 +2220,7 @@ function BusinessSetupWizardContent() {
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 15 of 21 • Optional</p>
                         </div>
                         
-                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {mergeQuestionOptions('Amenities & Facilities', allAmenityOptions).map(opt => {
                                     const selected = stepData.amenities.includes(opt);
@@ -2251,7 +2251,7 @@ function BusinessSetupWizardContent() {
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 16 of 21 • Optional</p>
                         </div>
 
-                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {mergeQuestionOptions('Industry Sub-Type', allIndustryOptions).map(opt => {
                                     const selected = stepData.specialisedSectors.includes(opt);
@@ -2403,7 +2403,7 @@ function BusinessSetupWizardContent() {
                             <h3 className="text-xl font-black text-slate-800">Opportunities & Expansion</h3>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 19 of 21 • Optional</p>
                         </div>
-                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-6">
                             <div className="space-y-3">
                                 <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest border-l-4 border-blue-600 pl-2">Section A: Franchise</h4>
                                 
@@ -2549,7 +2549,7 @@ function BusinessSetupWizardContent() {
                             <h3 className="text-xl font-black text-slate-800">Business Profile Media</h3>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Step 20 of 21 • Optional</p>
                         </div>
-                        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-6">
                             <div>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Business Logo</label>
                                 <div className="flex items-center gap-4">
