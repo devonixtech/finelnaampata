@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-    Loader2, CheckCircle, ArrowLeft, ArrowRight, Lock
+    Loader2, CheckCircle, ArrowLeft, ArrowRight, Lock, RotateCcw, BadgeCheck, Zap
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { Category, City } from '../../../types/api';
@@ -117,6 +117,7 @@ function AddListingContent() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [countryOptions, setCountryOptions] = useState<{ code: string; name: string }[]>([]);
     const [myListingsCount, setMyListingsCount] = useState<number | null>(null);
+    const [setupStatus, setSetupStatus] = useState<any>(null);
 
     // V2 Form Data
     const [formData, setFormData] = useState<ListingFormData>({
@@ -183,6 +184,70 @@ function AddListingContent() {
         legalConsentMarketing: false,
     });
 
+    const EMPTY_FORM: ListingFormData = {
+        title: '',
+        businessTagline: '',
+        shortDescription: '',
+        description: '',
+        businessType: [],
+        coreBusinessNature: [],
+        operationalStructure: [],
+        targetMarket: [],
+        categoryId: '',
+        subCategoryIds: [],
+        customCategoryTag: '',
+        address: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        country: 'Pakistan',
+        pincode: '',
+        latitude: 30.3753,
+        longitude: 69.3451,
+        phoneCode: '+92',
+        phoneNumber: '',
+        whatsapp: '',
+        whatsappSameAsPrimary: false,
+        contactPersonTitle: '',
+        contactPersonName: '',
+        namedPhoneNumbers: [],
+        businessHours: [],
+        open247: false,
+        timezone: getDefaultBusinessTimezone(),
+        yearEstablished: '',
+        employeeCount: '',
+        website: '',
+        socialLinks: [],
+        locationAccess: [],
+        facilities: [],
+        staffFeatures: [],
+        paymentMethods: [],
+        industrySubType: [],
+        searchKeywords: [],
+        metaKeywords: '',
+        faqs: [],
+        franchiseOpportunities: false,
+        franchiseAvailableIn: [],
+        franchiseInvestmentRange: '',
+        franchiseSupport: [],
+        franchiseMinSpace: '',
+        lookingForDealers: false,
+        isImporterExporter: false,
+        areasServed: [],
+        businessLanguages: [],
+        chainOrMultipleBranches: false,
+        logoUrl: '',
+        coverImageUrl: '',
+        images: [],
+        imageCaptions: {},
+        legalConsentTerms: false,
+        legalConsentPrivacy: false,
+        legalConsentModeration: false,
+        legalConsentAccuracy: false,
+        legalConsentPublicLocation: false,
+        legalConsentMarketing: false,
+    };
+
     const formDataRef = useRef(formData);
     useEffect(() => { formDataRef.current = formData; }, [formData]);
 
@@ -217,13 +282,15 @@ function AddListingContent() {
         const fetchInitialData = async () => {
             setCatsLoading(true);
             try {
-                const [cats, myListings] = await Promise.all([
+                const [cats, myListings, setupSt] = await Promise.all([
                     api.categories.getAll({ includeSubcategories: true }),
-                    api.listings.getMyListings({ limit: 1 }).catch(() => ({ meta: { total: 0 } }))
+                    api.listings.getMyListings({ limit: 1 }).catch(() => ({ meta: { total: 0 } })),
+                    api.businessSetup.getStatus().catch(() => null)
                 ]);
                 const catArray = Array.isArray(cats) ? cats : (cats as any)?.data ?? [];
                 setCategories(catArray);
                 setMyListingsCount((myListings as any)?.meta?.total ?? (myListings as any)?.length ?? 0);
+                setSetupStatus(setupSt);
             } catch (err: any) {
                 console.error('Failed to fetch initial data:', err);
                 setError(err.message || 'Failed to load initial data');
@@ -498,8 +565,8 @@ function AddListingContent() {
 
             await api.listings.create(submissionData);
             if (typeof window !== 'undefined') {
-                // Keep the formData in draft so that when the business owner adds another listing again, it is pre-filled!
-                localStorage.setItem('naampata_listing_draft', JSON.stringify({ formData: formDataRef.current, activeStep: 1 }));
+                // Clear draft after successful submission — next listing should start fresh
+                localStorage.removeItem('naampata_listing_draft');
             }
             setSuccess(true);
             setTimeout(() => router.push('/listings'), 2000);
@@ -595,7 +662,7 @@ function AddListingContent() {
                             <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
                         </div>
                         <h3 className="text-lg font-black text-slate-900 mb-2">Step {activeStep}</h3>
-                        <p className="text-sm text-slate-500">This step is currently under construction in the V2 migration.</p>
+                        <p className="text-sm text-slate-500">This step is currently under construction.</p>
                     </div>
                 );
         }
@@ -614,6 +681,33 @@ function AddListingContent() {
                 <div className="text-center">
                     <h2 className="text-3xl font-black text-slate-900 mb-2">Listing Submitted! 🎉</h2>
                     <p className="text-slate-500 font-medium">Your business is being processed. Redirecting...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isVendor && !isAdmin && setupStatus && !setupStatus.isCompleted) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+                <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-8 sm:p-12 shadow-2xl max-w-2xl w-full text-center border border-slate-800 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
+                    
+                    <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <BadgeCheck className="w-10 h-10 text-blue-400" />
+                    </div>
+                    
+                    <h2 className="text-3xl font-black text-white mb-4">Complete Your Business Profile First</h2>
+                    <p className="text-slate-400 text-lg mb-8 max-w-lg mx-auto">
+                        You need to complete your business profile setup before you can add a new listing. Complete your profile to unlock all vendor features.
+                    </p>
+                    
+                    <Link
+                        href="/business-setup"
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+                    >
+                        <Zap className="w-5 h-5 animate-pulse" />
+                        Resume Business Setup
+                    </Link>
                 </div>
             </div>
         );
@@ -671,7 +765,7 @@ function AddListingContent() {
                     <h2 className="text-xl font-black text-slate-900">{currentStepConfig?.label}</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">{currentStepConfig?.description}</p>
                 </div>
-                
+
                 <div className="p-8 min-h-[300px]">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -708,8 +802,23 @@ function AddListingContent() {
                         >
                             Save Data
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (typeof window !== 'undefined' && window.confirm('Are you sure you want to reset all fields? All entered data will be lost.')) {
+                                    localStorage.removeItem('naampata_listing_draft');
+                                    setFormData(EMPTY_FORM);
+                                    setActiveStep(1);
+                                    setError(null);
+                                }
+                            }}
+                            className="px-4 py-3 rounded-xl font-black text-sm text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all flex items-center gap-2 active:scale-95"
+                            title="Reset all form fields"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Reset
+                        </button>
                     </div>
-                    
+
                     {activeStep < STEPS.length ? (
                         <button
                             type="button"
@@ -746,4 +855,3 @@ export default function AddListingPage() {
         </Suspense>
     );
 }
-
