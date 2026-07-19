@@ -136,8 +136,8 @@ export class BusinessSetupService implements OnModuleInit {
         return {
             ...raw,
             maxListings: Number(raw.maxListings ?? 0),
-            maxKeywords: Number(raw.maxKeywords ?? 0),
-            maxFaqs: Number(raw.maxFaqs ?? 0),
+            maxKeywords: Number(raw.maxKeywords ?? 5),
+            maxFaqs: Number(raw.maxFaqs ?? 3),
             maxSubCategories: normalizedMaxSubCategories,
             maxNamedPhoneNumbers: Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0),
             showCustomerNotes:
@@ -487,6 +487,54 @@ export class BusinessSetupService implements OnModuleInit {
                 });
                 await this.attributeRepository.save(attribute);
             }
+        }
+
+        // Sync vital fields to the Vendor entity
+        let vendorUpdated = false;
+        const getValue = (key: string) => {
+            const val = normalizedAnswers[key];
+            return Array.isArray(val) ? val[0] : val;
+        };
+
+        const bName = getValue('businessName');
+        if (bName) { vendor.businessName = String(bName); vendorUpdated = true; }
+
+        const bPhone = getValue('phoneNumber');
+        if (bPhone) { vendor.businessPhone = String(bPhone); vendorUpdated = true; }
+
+        const bAddr = getValue('address');
+        if (bAddr) { vendor.businessAddress = String(bAddr); vendorUpdated = true; }
+
+        const bCity = getValue('city');
+        if (bCity) { vendor.city = String(bCity); vendorUpdated = true; }
+
+        const bCountry = getValue('country');
+        if (bCountry) { vendor.country = String(bCountry); vendorUpdated = true; }
+
+        const bBio = getValue('bio');
+        if (bBio) { vendor.bio = String(bBio); vendorUpdated = true; }
+
+        const bEmail = getValue('businessEmail');
+        if (bEmail) { vendor.businessEmail = String(bEmail); vendorUpdated = true; }
+
+        const bHours = getValue('hours');
+        if (bHours) {
+            try {
+                vendor.businessHours = typeof bHours === 'string' ? JSON.parse(bHours) : bHours;
+                vendorUpdated = true;
+            } catch (e) {}
+        }
+
+        const bSocial = getValue('socialLinks');
+        if (bSocial) {
+            try {
+                vendor.socialLinks = typeof bSocial === 'string' ? JSON.parse(bSocial) : bSocial;
+                vendorUpdated = true;
+            } catch (e) {}
+        }
+
+        if (vendorUpdated) {
+            await this.vendorRepository.save(vendor);
         }
 
         const legalConsentAccepted = String(
