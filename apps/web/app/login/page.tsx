@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import Navbar from '../../components/Navbar';
@@ -64,14 +64,21 @@ function GoogleSignInButton({ loading, onError, onSuccess }: { loading: boolean;
 
 function LoginForm() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const redirect = searchParams.get('redirect');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const { login, googleLogin } = useAuth();
+    const { user, login, googleLogin } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
+
+    React.useEffect(() => {
+        if (user) {
+            router.replace(redirect || '/dashboard');
+        }
+    }, [user, router, redirect]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

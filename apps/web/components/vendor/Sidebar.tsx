@@ -19,6 +19,7 @@ import { useSocket } from '../../context/SocketContext';
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
+
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -26,6 +27,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { unreadChatCount, unreadCount: unreadNotificationCount, newEnquiryCount } = useSocket();
     const [newBroadcastCount, setNewBroadcastCount] = useState(0);
+    const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
     const { hasFeature, planName } = usePlanFeature();
     const displayPlan = planName.toLowerCase().includes('plan')
         ? planName.replace(/plan/gi, '').replace(/\s+/g, ' ').trim()
@@ -49,6 +51,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 .catch(() => { });
         };
 
+        if (user?.role === 'vendor') {
+            api.businessSetup.getStatus()
+                .then((res: any) => setIsSetupComplete(res?.isCompleted || false))
+                .catch(() => setIsSetupComplete(false));
+        } else {
+            setIsSetupComplete(true);
+        }
+
         refreshStats();
         const interval = setInterval(refreshStats, 30000);
         return () => clearInterval(interval);
@@ -56,7 +66,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const menuItems: { name: string; icon: any; href: string; badge: string | null; feature?: keyof DashboardFeatures; iconColor?: string; description?: string }[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null, description: 'Overview of your activity' },
-        { name: 'Sign Up', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
+        { name: 'List Your Business', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
         { name: 'My Listings', icon: ListTree, href: '/listings', badge: null, feature: 'showListings', description: 'Manage your published businesses' },
         { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing', description: 'Add a new business listing' },
         { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },
@@ -80,16 +90,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const filteredItems = menuItems.filter(item => {
         // Show all items to admins except upgrade CTA
         if (user?.role === 'admin' || user?.role === 'superadmin') {
-            return item.name !== 'Sign Up';
+            return item.name !== 'List Your Business';
         }
 
         if (user?.role === 'vendor') {
-            if (item.name === 'Sign Up') return false;
+            if (isSetupComplete !== true) {
+                const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
+                if (!allowedForUsers) return false;
+                return item.feature ? hasFeature(item.feature) : true;
+            }
+            if (item.name === 'List Your Business') return false;
             return item.feature ? hasFeature(item.feature) : true;
         }
 
         // For regular users/customers, show a limited subset
-        const allowedForUsers = ['Dashboard', 'Sign Up', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
+        const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
         if (!allowedForUsers) return false;
         return item.feature ? hasFeature(item.feature) : true;
     });

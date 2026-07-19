@@ -76,6 +76,18 @@ export class ReviewsController {
         return this.reviewsService.findAll(getReviewsDto);
     }
 
+    @Get(['vendor/all', 'business/all'])
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get all reviews for the current vendor businesses' })
+    @ApiResponse({ status: 200, description: 'Reviews retrieved successfully' })
+    findVendorReviews(
+        @CurrentUser() user: User,
+        @Query() query: GetReviewsDto,
+    ) {
+        return this.reviewsService.findVendorReviews(user.id, query);
+    }
+
     @Public()
     @Get('business/:idOrSlug/stats')
     @ApiOperation({ summary: 'Get business rating statistics' })
@@ -177,18 +189,6 @@ export class ReviewsController {
         return this.reviewsService.removeHelpfulMark(id, user);
     }
 
-
-    @Get(['vendor/all', 'business/all'])
-    @Roles(UserRole.VENDOR, UserRole.ADMIN)
-    @ApiBearerAuth()
-    @ApiOperation({ summary: 'Get all reviews for the current vendor businesses' })
-    @ApiResponse({ status: 200, description: 'Reviews retrieved successfully' })
-    findVendorReviews(
-        @CurrentUser() user: User,
-        @Query() query: GetReviewsDto,
-    ) {
-        return this.reviewsService.findVendorReviews(user.id, query);
-    }
 
     // Admin Endpoints
     @Get('admin/all')

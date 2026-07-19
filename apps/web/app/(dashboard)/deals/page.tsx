@@ -992,7 +992,7 @@ export default function BusinessDealsPage() {
                           <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                         <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
-                          I agree to the <Link href="/terms" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</Link> and <Link href="/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</Link>, and acknowledge that creating this listing constitutes a legal obligation.
+                          I agree to the <Link href="/legal/terms-business" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</Link> and <Link href="/legal/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</Link>, and acknowledge that creating this listing constitutes a legal obligation.
                         </span>
                       </label>
                     </div>

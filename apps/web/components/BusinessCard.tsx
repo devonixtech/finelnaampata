@@ -91,7 +91,7 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
                 </div>
 
                 {/* Rating */}
-                <RatingStars rating={business.averageRating || 0} count={business.reviewCount || business.reviews?.length || 0} />
+                <RatingStars rating={business.averageRating || 0} count={business.totalReviews || 0} />
 
                 {/* Action Buttons */}
                 <div className="mt-auto pt-2 flex items-center gap-2">

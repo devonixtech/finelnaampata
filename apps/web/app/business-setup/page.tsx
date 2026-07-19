@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import { toast } from 'react-hot-toast';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
@@ -151,6 +152,7 @@ function BusinessSetupWizardContent() {
     const [setupQuestions, setSetupQuestions] = useState<Array<{ id: string; category: string; question: string; options: string[] }>>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingTarget, setUploadingTarget] = useState<'logoUrl' | 'coverImageUrl' | 'gallery' | null>(null);
     const [activatingBusiness, setActivatingBusiness] = useState(false);
     const [activationError, setActivationError] = useState<string | null>(null);
     const [currentStep, setCurrentStep] = useState(0);
@@ -784,6 +786,9 @@ function BusinessSetupWizardContent() {
                 if (businessEmail.includes('@')) {
                     profileUpdate.businessEmail = businessEmail;
                 }
+                if (stepData.address.trim().length >= 5) {
+                    profileUpdate.businessAddress = stepData.address.trim();
+                }
 
                 if (Object.keys(profileUpdate).length > 0) {
                     await api.businessProfiles.updateProfile(profileUpdate);
@@ -792,6 +797,7 @@ function BusinessSetupWizardContent() {
                 if (stepData.hours && Object.keys(stepData.hours).length > 0) {
                     await api.businessProfiles.updateProfile({
                         businessHours: stepData.hours as any,
+                        ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
                     });
                 }
             } else if (currentStep === 11) {
@@ -799,15 +805,60 @@ function BusinessSetupWizardContent() {
                 if (bio.length >= 20) {
                     await api.businessProfiles.updateProfile({
                         bio,
+                        ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
                     });
                 }
             } else if (currentStep === 13) {
-                const links = Object.entries(stepData.socialLinks)
-                    .filter(([_, url]) => url)
-                    .map(([platform, url]) => ({ platform, url }));
-                if (links.length > 0) {
+                const socialObj = stepData.socialLinks as any;
+                
+                // Validate standard string links
+                const standardPlatforms = ['facebook', 'instagram', 'tiktok', 'twitter', 'linkedin', 'youtube', 'pinterest', 'snapchat'];
+                let hasInvalid = false;
+
+                const finalSocials: Record<string, any> = { customLinks: [] };
+
+                for (const plat of standardPlatforms) {
+                    const val = socialObj[plat];
+                    if (val && typeof val === 'string' && val.trim().length > 0) {
+                        try {
+                            const url = val.startsWith('http') ? val : `https://${val}`;
+                            new URL(url);
+                            finalSocials[plat] = url;
+                        } catch {
+                            hasInvalid = true;
+                        }
+                    } else {
+                        finalSocials[plat] = '';
+                    }
+                }
+
+                // Validate custom links
+                const cLinks = Array.isArray(socialObj.customLinks) ? socialObj.customLinks : [];
+                for (const cl of cLinks) {
+                    if (cl.url && typeof cl.url === 'string' && cl.url.trim().length > 0) {
+                        try {
+                            const url = cl.url.startsWith('http') ? cl.url : `https://${cl.url}`;
+                            new URL(url);
+                            finalSocials.customLinks.push({ label: cl.label || 'Link', url });
+                        } catch {
+                            hasInvalid = true;
+                        }
+                    }
+                }
+
+                if (hasInvalid) {
+                    toast.error('Please enter valid full URLs for your social media links (e.g. https://facebook.com/yourpage)');
+                    setSaving(false);
+                    return;
+                }
+
+                // Only send if there's at least one link provided
+                const hasAnyLink = standardPlatforms.some(p => finalSocials[p]) || finalSocials.customLinks.length > 0;
+                
+                if (hasAnyLink || true) { // Always send to ensure clears work
                     await api.businessProfiles.updateProfile({
-                        socialLinks: links as any,
+                        socialLinks: finalSocials,
+                        ...(stepData.address.trim().length >= 5 ? { businessAddress: stepData.address.trim() } : {})
                     });
                 }
             }
@@ -844,7 +895,7 @@ function BusinessSetupWizardContent() {
                 !stepData.accuracyConfirmed ||
                 !stepData.publicLocationConsent
             ) {
-                alert('Please complete all required legal consent checkboxes before finishing.');
+                toast.error('Please complete all required legal consent checkboxes before finishing.');
                 setSaving(false);
                 return;
             }
@@ -892,21 +943,21 @@ function BusinessSetupWizardContent() {
         if (currentStep === 0) {
             // Step 1: Business Name
             if (!stepData.businessName.trim()) {
-                alert('Please enter your business name.');
+                toast.error('Please enter your business name.');
                 return;
             }
         }
         else if (currentStep === 7) {
             // Step 8: Business Address
             if (!stepData.country || !stepData.city || !stepData.address.trim()) {
-                alert('Please fill in country, city, and street address.');
+                toast.error('Please fill in country, city, and street address.');
                 return;
             }
 
             // Validate state if required
             const stateField = addressConfig?.fields?.find((f: any) => f.key === 'state');
             if (stateField?.required && !stepData.state) {
-                alert(`Please select or fill in the ${stateField.label || 'State'}.`);
+                toast.error(`Please select or fill in the ${stateField.label || 'State'}.`);
                 return;
             }
 
@@ -915,13 +966,13 @@ function BusinessSetupWizardContent() {
                 const pc = addressConfig.postalCode;
                 const value = stepData.zipCode.trim();
                 if (pc.required && !value) {
-                    alert(`Please enter a valid ${pc.label || 'Postal/ZIP Code'}.`);
+                    toast.error(`Please enter a valid ${pc.label || 'Postal/ZIP Code'}.`);
                     return;
                 }
                 if (value) {
                     const postalVal = validatePostalCode(stepData.country, value);
                     if (!postalVal.valid) {
-                        alert(`Please enter a valid ${pc.label || 'Postal/ZIP Code'} format for ${stepData.country}. Example: ${postalVal.example || '12345'}`);
+                        toast.error(`Please enter a valid ${pc.label || 'Postal/ZIP Code'} format for ${stepData.country}. Example: ${postalVal.example || '12345'}`);
                         return;
                     }
                 }
@@ -929,7 +980,7 @@ function BusinessSetupWizardContent() {
                     try {
                         const regex = new RegExp(pc.regex, 'i');
                         if (!regex.test(value)) {
-                            alert(`Please enter a valid ${pc.label || 'Postal/ZIP Code'} format.`);
+                            toast.error(`Please enter a valid ${pc.label || 'Postal/ZIP Code'} format.`);
                             return;
                         }
                     } catch (e) {
@@ -941,20 +992,20 @@ function BusinessSetupWizardContent() {
         else if (currentStep === 8) {
             // Step 9: Map Pin
             if (!stepData.latitude || !stepData.longitude || !stepData.mapConfirmed) {
-                alert('Please confirm your map location coordinates and check the confirmation box.');
+                toast.error('Please confirm your map location coordinates and check the confirmation box.');
                 return;
             }
             const lat = parseFloat(stepData.latitude);
             const lng = parseFloat(stepData.longitude);
             if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                alert('Please enter valid GPS coordinates (latitude -90 to 90, longitude -180 to 180).');
+                toast.error('Please enter valid GPS coordinates (latitude -90 to 90, longitude -180 to 180).');
                 return;
             }
         }
         else if (currentStep === 9) {
             // Step 10: Contact details
             if (!stepData.phoneNumber.trim()) {
-                alert('Primary phone number is required.');
+                toast.error('Primary phone number is required.');
                 return;
             }
             const phoneUtil = PhoneNumberUtil.getInstance();
@@ -963,11 +1014,11 @@ function BusinessSetupWizardContent() {
                 const fullPhone = `${stepData.phoneCode}${stepData.phoneNumber}`;
                 const parsedNumber = phoneUtil.parseAndKeepRawInput(fullPhone);
                 if (!phoneUtil.isValidNumber(parsedNumber)) {
-                    alert('Please enter a valid phone number (8-15 digits).');
+                    toast.error('Please enter a valid phone number (8-15 digits).');
                     return;
                 }
             } catch (e) {
-                alert('Please enter a valid phone number (8-15 digits).');
+                toast.error('Please enter a valid phone number (8-15 digits).');
                 return;
             }
 
@@ -976,16 +1027,16 @@ function BusinessSetupWizardContent() {
                     const fullWa = `${stepData.whatsappCode}${stepData.whatsappNumber}`;
                     const parsedWa = phoneUtil.parseAndKeepRawInput(fullWa);
                     if (!phoneUtil.isValidNumber(parsedWa)) {
-                        alert('Please enter a valid WhatsApp phone number (8-15 digits).');
+                        toast.error('Please enter a valid WhatsApp phone number (8-15 digits).');
                         return;
                     }
                 } catch (e) {
-                    alert('Please enter a valid WhatsApp phone number (8-15 digits).');
+                    toast.error('Please enter a valid WhatsApp phone number (8-15 digits).');
                     return;
                 }
             }
             if (!stepData.businessEmail.trim() || !stepData.businessEmail.includes('@')) {
-                alert('A valid business email is required.');
+                toast.error('A valid business email is required.');
                 return;
             }
         }
@@ -993,19 +1044,19 @@ function BusinessSetupWizardContent() {
             // Step 12: Bio description length limits
             const len = stepData.bio.trim().length;
             if (len > 0 && len < 20) {
-                alert('Description must be at least 20 characters if provided.');
+                toast.error('Description must be at least 20 characters if provided.');
                 return;
             }
         }
         else if (currentStep === 16) {
             if (stepData.keywords.some((keyword) => keyword.trim().length > 40)) {
-                alert('Each keyword must be 40 characters or less.');
+                toast.error('Each keyword must be 40 characters or less.');
                 return;
             }
         }
         else if (currentStep === 17) {
             if (stepData.faqs.some((faq) => faq.question.trim().length > 200 || faq.answer.trim().length > 1000)) {
-                alert('FAQs must keep questions under 200 characters and answers under 1,000 characters.');
+                toast.error('FAQs must keep questions under 200 characters and answers under 1,000 characters.');
                 return;
             }
         }
@@ -1091,10 +1142,11 @@ function BusinessSetupWizardContent() {
 
     // Step 20: Media uploads
     const triggerImageUpload = async (file: File, target: 'logoUrl' | 'coverImageUrl' | 'gallery') => {
+        setUploadingTarget(target);
         setSaving(true);
         try {
             if (target === 'gallery' && isFree && stepData.galleryUrls.length >= 3) {
-                alert('Free plans can publish up to 3 gallery images.');
+                toast.error('Free plans can publish up to 3 gallery images.');
                 return;
             }
             const res = await api.listings.uploadImage(file);
@@ -1104,9 +1156,10 @@ function BusinessSetupWizardContent() {
                 setStepData(prev => ({ ...prev, [target]: res.url }));
             }
         } catch (e) {
-            alert('Upload failed. Please try again.');
+            toast.error('Upload failed. Please try again.');
         } finally {
             setSaving(false);
+            setUploadingTarget(null);
         }
     };
 
@@ -1419,23 +1472,31 @@ function BusinessSetupWizardContent() {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">City *</label>
-                                    <input
-                                        required
-                                        list="city-list"
-                                        value={stepData.city}
-                                        onChange={e => {
-                                            const nextCity = e.target.value;
-                                            setStepData({...stepData, city: nextCity});
-                                            applySelectedCity(nextCity);
-                                        }}
-                                        placeholder="Type or select a city"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
-                                    />
-                                    <datalist id="city-list">
-                                        {filteredCities.map(c => (
-                                            <option key={c.id} value={c.name} />
-                                        ))}
-                                    </datalist>
+                                    {filteredCities.length > 0 ? (
+                                        <SearchableSelect
+                                            value={stepData.city}
+                                            onChange={val => {
+                                                setStepData({...stepData, city: val});
+                                                applySelectedCity(val);
+                                            }}
+                                            options={[
+                                                { label: "Select a city", value: "" },
+                                                ...filteredCities.map(c => ({ label: c.name, value: c.name }))
+                                            ]}
+                                        />
+                                    ) : (
+                                        <input
+                                            required
+                                            value={stepData.city}
+                                            onChange={e => {
+                                                const nextCity = e.target.value;
+                                                setStepData({...stepData, city: nextCity});
+                                                applySelectedCity(nextCity);
+                                            }}
+                                            placeholder="Type a city"
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                                        />
+                                    )}
                                 </div>
                             </div>
 
@@ -2351,6 +2412,7 @@ function BusinessSetupWizardContent() {
                                     <SearchableSelect
                                         value={stepData.franchiseOpportunity}
                                         onChange={val => setStepData({...stepData, franchiseOpportunity: val})}
+                                        searchable={false}
                                         options={[
                                             { label: "No", value: "No" },
                                             { label: "Yes", value: "Yes" }
@@ -2436,6 +2498,7 @@ function BusinessSetupWizardContent() {
                                         <SearchableSelect
                                             value={stepData.dealersResellers}
                                             onChange={val => setStepData({...stepData, dealersResellers: val})}
+                                            searchable={false}
                                             options={[
                                                 { label: "No", value: "No" },
                                                 { label: "Yes", value: "Yes" }
@@ -2447,6 +2510,7 @@ function BusinessSetupWizardContent() {
                                         <SearchableSelect
                                             value={stepData.importerExporter}
                                             onChange={val => setStepData({...stepData, importerExporter: val})}
+                                            searchable={false}
                                             options={[
                                                 { label: "No", value: "No" },
                                                 { label: "Yes", value: "Yes" }
@@ -2501,15 +2565,19 @@ function BusinessSetupWizardContent() {
                                             </button>
                                         </div>
                                     )}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={e => {
-                                            const file = e.target.files?.[0];
-                                            if (file) triggerImageUpload(file, 'logoUrl');
-                                        }}
-                                        className="text-xs"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            disabled={uploadingTarget === 'logoUrl'}
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) triggerImageUpload(file, 'logoUrl');
+                                            }}
+                                            className="text-xs"
+                                        />
+                                        {uploadingTarget === 'logoUrl' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                                    </div>
                                 </div>
                                 <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Recommended: 400×400px, PNG or JPG. Max file size: 5MB.</p>
                             </div>
@@ -2529,15 +2597,19 @@ function BusinessSetupWizardContent() {
                                             </button>
                                         </div>
                                     )}
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={e => {
-                                            const file = e.target.files?.[0];
-                                            if (file) triggerImageUpload(file, 'coverImageUrl');
-                                        }}
-                                        className="text-xs"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            disabled={uploadingTarget === 'coverImageUrl'}
+                                            onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) triggerImageUpload(file, 'coverImageUrl');
+                                            }}
+                                            className="text-xs"
+                                        />
+                                        {uploadingTarget === 'coverImageUrl' && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                                    </div>
                                 </div>
                                 <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Recommended: 1200×400px, PNG or JPG. Max file size: 10MB.</p>
                             </div>
@@ -2571,12 +2643,19 @@ function BusinessSetupWizardContent() {
                                         </div>
                                     ))}
                                     {stepData.galleryUrls.length < (isFree ? 3 : 999) && (
-                                        <label className="w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer bg-slate-50 hover:bg-white transition-colors">
-                                            <Plus className="w-6 h-6 text-slate-400" />
-                                            <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Upload</span>
+                                        <label className={`w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${uploadingTarget === 'gallery' ? 'cursor-not-allowed bg-slate-100' : 'cursor-pointer bg-slate-50 hover:bg-white'}`}>
+                                            {uploadingTarget === 'gallery' ? (
+                                                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                                            ) : (
+                                                <>
+                                                    <Plus className="w-6 h-6 text-slate-400" />
+                                                    <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase">Upload</span>
+                                                </>
+                                            )}
                                             <input
                                                 type="file"
                                                 accept="image/*"
+                                                disabled={uploadingTarget === 'gallery'}
                                                 onChange={e => {
                                                     const file = e.target.files?.[0];
                                                     if (file) triggerImageUpload(file, 'gallery');
@@ -2860,10 +2939,10 @@ function BusinessSetupWizardContent() {
                             21-Step Configuration
                         </span>
                         <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-2 tracking-tight">
-                            Personalize Your Listing
+                            Complete Your Business Profile
                         </h1>
                         <p className="text-slate-500 font-bold text-sm">
-                            Submit detailed profile data to strengthen your listing and improve customer visibility.
+                            Submit detailed profile data to strengthen your business profile and unlock all vendor features.
                         </p>
                     </div>
 
@@ -2885,7 +2964,7 @@ function BusinessSetupWizardContent() {
                     </div>
 
                     {/* Form Card */}
-                    <div className="p-8 rounded-3xl bg-white border border-slate-100 shadow-2xl relative overflow-hidden mb-8">
+                    <div className="p-8 rounded-3xl bg-white border border-slate-100 shadow-2xl relative overflow-visible mb-8">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                         
                         {renderStepContent()}

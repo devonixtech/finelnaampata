@@ -1,7 +1,21 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Loader2, Store, MapPin, Phone, TextQuote, Layers, Sparkles, Plus, Check, Hash, Share2, Globe, MessageSquare, Navigation, ChevronDown, Tag, ImagePlus, HelpCircle, Trash2 } from 'lucide-react';
+import { X, Loader2, Store, MapPin, Phone, TextQuote, Layers, Sparkles, Plus, Check, Hash, Share2, Globe, MessageSquare, Navigation, ChevronDown, Tag, ImagePlus, HelpCircle, Trash2, Facebook, Instagram, Twitter, Linkedin, Youtube, Music2, Image as ImageIcon } from 'lucide-react';
+
+const getSocialIcon = (key: string, className = "w-5 h-5") => {
+    switch(key) {
+        case 'facebook': return <Facebook className={className} />;
+        case 'instagram': return <Instagram className={className} />;
+        case 'twitter': return <Twitter className={className} />;
+        case 'linkedin': return <Linkedin className={className} />;
+        case 'youtube': return <Youtube className={className} />;
+        case 'tiktok': return <Music2 className={className} />;
+        case 'pinterest': return <ImageIcon className={className} />;
+        case 'snapchat': return <MessageSquare className={className} />;
+        default: return null;
+    }
+};
 import { api, getImageUrl } from '../../lib/api';
 import { Business, Category, City } from "../../types/api";
 import { SearchableSelect } from "../ui/SearchableSelect";
@@ -726,15 +740,21 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            <label className={`flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-2xl transition-all cursor-pointer ${formData.coverImageUrl ? 'bg-slate-50/50 border-slate-200' : 'bg-orange-50/30 border-orange-200 hover:bg-orange-50/50'}`}>
-                                                                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                                            <label className={`flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-2xl transition-all ${loading ? 'cursor-not-allowed bg-slate-50 opacity-70 border-slate-200' : 'cursor-pointer'} ${formData.coverImageUrl && !loading ? 'bg-slate-50/50 border-slate-200' : 'bg-orange-50/30 border-orange-200 hover:bg-orange-50/50'}`}>
+                                                                <input type="file" accept="image/*" disabled={loading} onChange={handleImageUpload} className="hidden" />
                                                                 <div className="flex flex-col items-center gap-2 text-slate-400 group">
-                                                                    <div className="p-3 rounded-xl bg-white border border-slate-100 text-orange-500 shadow-sm group-hover:scale-110 transition-transform">
-                                                                        <ImagePlus className="w-4 h-4" />
-                                                                    </div>
-                                                                    <p className="text-[10px] font-black uppercase text-slate-500 mt-1">
-                                                                        {formData.coverImageUrl ? 'Change Cover' : 'Upload Cover Photo'}
-                                                                    </p>
+                                                                    {loading ? (
+                                                                        <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                                                                    ) : (
+                                                                        <>
+                                                                            <div className="p-3 rounded-xl bg-white border border-slate-100 text-orange-500 shadow-sm group-hover:scale-110 transition-transform">
+                                                                                <ImagePlus className="w-4 h-4" />
+                                                                            </div>
+                                                                            <p className="text-[10px] font-black uppercase text-slate-500 mt-1">
+                                                                                {formData.coverImageUrl ? 'Change Cover' : 'Upload Cover Photo'}
+                                                                            </p>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </label>
                                                         </div>
@@ -891,10 +911,16 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                             </div>
                                                         ))}
                                                         {galleryPreviews.length < maxImages && (
-                                                            <label className="aspect-square border-2 border-dashed bg-orange-50/30 border-orange-200 hover:bg-orange-50/50 rounded-2xl transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-slate-400 group">
-                                                                <input type="file" multiple accept="image/*" onChange={handleGalleryUpload} className="hidden" />
-                                                                <div className="p-2 rounded-xl bg-white border border-slate-100 text-orange-500 shadow-sm group-hover:scale-110 transition-transform"><Plus className="w-4 h-4" /></div>
-                                                                <span className="text-[9px] font-black uppercase text-slate-500">Add Photos</span>
+                                                            <label className={`aspect-square border-2 border-dashed rounded-2xl transition-all flex flex-col items-center justify-center gap-2 text-slate-400 group ${galleryUploading ? 'cursor-not-allowed bg-slate-50 border-slate-200 opacity-70' : 'cursor-pointer bg-orange-50/30 border-orange-200 hover:bg-orange-50/50'}`}>
+                                                                <input type="file" multiple accept="image/*" disabled={galleryUploading} onChange={handleGalleryUpload} className="hidden" />
+                                                                {galleryUploading ? (
+                                                                    <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="p-2 rounded-xl bg-white border border-slate-100 text-orange-500 shadow-sm group-hover:scale-110 transition-transform"><Plus className="w-4 h-4" /></div>
+                                                                        <span className="text-[9px] font-black uppercase text-slate-500">Add Photos</span>
+                                                                    </>
+                                                                )}
                                                             </label>
                                                         )}
                                                     </div>
@@ -1091,7 +1117,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                             if (!platform) return null;
                                                             return (
                                                                 <div key={link.platform} className="flex items-center gap-2 group/link">
-                                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: platform.color }}>{platform.emoji}</div>
+                                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: platform.color }}>{getSocialIcon(platform.key, "w-5 h-5 text-white") || platform.emoji}</div>
                                                                     <input type="url" value={link.url || ''} onChange={e => updateSocialUrl(link.platform, e.target.value)} placeholder={platform.placeholder} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
                                                                     <button type="button" onClick={() => removeSocialLink(link.platform)} className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-red-50 text-slate-400 flex items-center justify-center"><X className="w-4 h-4" /></button>
                                                                 </div>

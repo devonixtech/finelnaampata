@@ -133,8 +133,8 @@ function SearchResults() {
             const loc = await detectLocationForUi();
             if (loc) {
                 const params = new URLSearchParams(searchParams.toString());
-                params.set('latitude', String(loc.lat));
-                params.set('longitude', String(loc.lng));
+                params.set('latitude', String(loc.latitude));
+                params.set('longitude', String(loc.longitude));
                 router.push(`/search?${params.toString()}`);
             }
         } finally {

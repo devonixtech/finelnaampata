@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { StepProps, ListingFormData } from '../types';
-import { ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock } from 'lucide-react';
+import { ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock, Check, Facebook, Instagram, Twitter, Linkedin, Youtube, Music2, Image as ImageIcon, MessageCircle } from 'lucide-react';
+
+const getSocialIcon = (key: string, className = "w-5 h-5") => {
+    switch(key) {
+        case 'facebook': return <Facebook className={className} style={{ color: '#1877F2' }} />;
+        case 'instagram': return <Instagram className={className} style={{ color: '#E1306C' }} />;
+        case 'twitter': return <Twitter className={className} style={{ color: '#1DA1F2' }} />;
+        case 'linkedin': return <Linkedin className={className} style={{ color: '#0A66C2' }} />;
+        case 'youtube': return <Youtube className={className} style={{ color: '#FF0000' }} />;
+        case 'tiktok': return <Music2 className={className} style={{ color: '#000000' }} />;
+        case 'pinterest': return <ImageIcon className={className} style={{ color: '#E60023' }} />;
+        case 'snapchat': return <MessageCircle className={className} style={{ color: '#FFFC00' }} />;
+        default: return null;
+    }
+};
 import { DEFAULT_DIAL_CODES } from '../../../../lib/phone-codes';
 import { SOCIAL_PLATFORMS, AMENITIES } from '../../../../lib/constants/listing-options';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
@@ -383,7 +397,7 @@ export const Step13Online = ({ formData, setFormData }: StepProps) => {
                         return (
                             <div key={platform.key} className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0" title={platform.label}>
-                                    {platform.emoji}
+                                    {getSocialIcon(platform.key) || platform.emoji}
                                 </div>
                                 <input
                                     type="url"

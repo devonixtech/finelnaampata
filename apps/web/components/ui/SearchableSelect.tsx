@@ -22,6 +22,7 @@ interface Props {
     loading?: boolean;
     disabled?: boolean;
     minimal?: boolean;
+    searchable?: boolean;
     className?: string;
     icon?: React.ReactNode; // Optional default icon
     noOptionsMessage?: string;
@@ -36,6 +37,7 @@ export function SearchableSelect({
     loading = false,
     disabled = false,
     minimal = false,
+    searchable = true,
     className = "",
     icon,
     noOptionsMessage = "No matching options"
@@ -114,20 +116,24 @@ export function SearchableSelect({
                         exit={{ opacity: 0, y: 10 }}
                         className="absolute z-[110] top-full mt-2 w-full min-w-[240px] bg-white rounded-3xl border border-slate-100 shadow-[0_15px_45px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col max-h-[360px]"
                     >
-                        <div className="p-3 border-b border-slate-50">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    placeholder={searchPlaceholder}
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-slate-200 outline-none"
-                                    onClick={e => e.stopPropagation()}
-                                />
+                        {searchable && (
+                            <div className="p-3 border-b border-slate-50">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        autoComplete="off"
+                                        name="search_input_hidden"
+                                        placeholder={searchPlaceholder}
+                                        value={search}
+                                        onChange={e => setSearch(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-slate-200 outline-none"
+                                        onClick={e => e.stopPropagation()}
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="flex-grow overflow-y-auto p-2 custom-scrollbar">
                             {filteredOptions.length === 0 ? (

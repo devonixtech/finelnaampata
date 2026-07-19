@@ -100,9 +100,16 @@ function RegisterForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
-    const { register, googleLogin } = useAuth();
+    const { user, register, googleLogin } = useAuth();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const redirect = searchParams.get('redirect');
+
+    useEffect(() => {
+        if (user) {
+            router.replace(redirect || '/dashboard');
+        }
+    }, [user, router, redirect]);
 
     const {
         register: formRegister,
@@ -329,9 +336,9 @@ function RegisterForm() {
                                 </div>
                                 <label htmlFor="agreedToTerms" className="text-[11px] text-slate-500 font-medium leading-relaxed cursor-pointer">
                                     I agree to the{' '}
-                                    <Link href="/terms" className="text-blue-600 font-bold hover:underline">Terms &amp; Conditions</Link>
+                                    <Link href="/legal/terms-users" className="text-blue-600 font-bold hover:underline">Terms &amp; Conditions</Link>
                                     {' '}and{' '}
-                                    <Link href="/privacy" className="text-blue-600 font-bold hover:underline">Privacy Policy</Link>
+                                    <Link href="/legal/privacy" className="text-blue-600 font-bold hover:underline">Privacy Policy</Link>
                                 </label>
                             </div>
                             {errors.agreedToTerms && (

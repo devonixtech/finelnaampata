@@ -307,11 +307,8 @@ export class SubscriptionsService implements OnModuleInit {
 
         await this.transactionRepository.save(transaction);
 
-        // Featured Listing Integration
-        if (plan.isFeatured) {
-            this.logger.log(`🌟 Admin Assigned Featured Plan. Marking all listings of vendor ${dto.vendorId} as featured.`);
-            await this.listingRepo.update({ vendorId: dto.vendorId }, { isFeatured: true });
-        }
+        // Note: isFeatured is NOT auto-set from subscription plans.
+        // Only the Superadmin can mark a listing as Featured via the admin panel.
 
         return savedSub;
     }
@@ -782,11 +779,8 @@ export class SubscriptionsService implements OnModuleInit {
         }
 
 
-        // 6. Featured Listing Integration - AUTOMATED
-        if (plan.isFeatured) {
-            this.logger.log(`🌟 Plan is Featured. Marking all listings of vendor ${vendor.id} as featured.`);
-            await this.listingRepo.update({ vendorId: vendor.id }, { isFeatured: true });
-        }
+        // Note: isFeatured is NOT auto-set from subscription plans.
+        // Only the Superadmin can mark a listing as Featured via the admin panel.
 
         this.logger.log(`✅ Subscription [${savedSub.id}] activated/extended for vendor [${vendor.id}] via ${gateway} until ${savedSub.endDate.toDateString()}`);
 
@@ -1282,17 +1276,13 @@ export class SubscriptionsService implements OnModuleInit {
 
         const saved = await this.activePlanRepository.save(activePlan);
 
-        // Sync flags if needed (featured/boosted)
+        // Sync flags if needed (boosted only — isFeatured is controlled exclusively by Superadmin)
         if (targetId) {
-            if (plan.type === PricingPlanType.HOMEPAGE_FEATURED || plan.type === PricingPlanType.CATEGORY_FEATURED) {
-                await this.listingRepo.update(targetId, { isFeatured: true });
-            } else if (plan.type === PricingPlanType.LISTING_BOOST) {
+            if (plan.type === PricingPlanType.LISTING_BOOST) {
                 await this.listingRepo.update(targetId, { isSponsored: true });
             }
-        } else if (plan.type === PricingPlanType.SUBSCRIPTION && (plan.features as any)?.isFeatured) {
-            // Global featured status for all listings
-            this.logger.log(`🌟 PricingPlan [${plan.name}] is Featured globally. Marking all listings of vendor ${vendorId} as featured.`);
-            await this.listingRepo.update({ vendorId }, { isFeatured: true });
+            // Note: HOMEPAGE_FEATURED and CATEGORY_FEATURED plan types no longer auto-set isFeatured.
+            // isFeatured is exclusively controlled by Superadmin via admin panel.
         }
 
         // 4. Record Transaction (Invoice)

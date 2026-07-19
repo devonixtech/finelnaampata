@@ -19,10 +19,10 @@ import {
     Download,
     X
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useRef } from 'react';
+import toast from 'react-hot-toast';
 
 /* ─── Invoice Modal ─────────────────────────────────────────────────────── */
 function InvoiceModal({ invoiceId, onClose }: { invoiceId: string; onClose: () => void }) {
@@ -36,22 +36,24 @@ function InvoiceModal({ invoiceId, onClose }: { invoiceId: string; onClose: () =
 
     const handlePrint = () => {
         if (!printRef.current) return;
-        const content = printRef.current.innerHTML;
+        const content = printRef.current.innerHTML.replace(/dark:[^\s"']+/g, '').replace(/text-white/g, 'text-black');
         const w = window.open('', '_blank');
         if (!w) return;
         w.document.write(`<html><head><title>Invoice</title>
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
-                body { font-family: system-ui, sans-serif; padding: 40px; color: #0f172a; }
-                .logo { font-size: 24px; font-weight: 900; color: #f97316; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { padding: 12px 16px; text-align: left; }
-                th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
-                .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #fff7ed; color: #f97316; }
-                .total-row { border-top: 2px solid #f1f5f9; font-weight: 900; }
+                @media print {
+                    @page { margin: 0.5cm; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
             </style>
-        </head><body>${content}</body></html>`);
+        </head><body class="bg-white text-slate-900 p-8 antialiased">
+            ${content}
+            <script>
+                setTimeout(() => { window.print(); }, 1500);
+            </script>
+        </body></html>`);
         w.document.close();
-        w.print();
     };
 
     const txn = data?.transaction;
@@ -212,24 +214,8 @@ function SuccessContent() {
             if (response.success) {
                 setPlanDetails(response);
 
-                // Trigger confetti immediately
-                const duration = 4 * 1000;
-                const animationEnd = Date.now() + duration;
-                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 50 };
-
-                const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-                const interval: any = setInterval(function () {
-                    const timeLeft = animationEnd - Date.now();
-                    if (timeLeft <= 0) return clearInterval(interval);
-
-                    const particleCount = 50 * (timeLeft / duration);
-                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-                }, 250);
-
-                // Start celebration animation
-                setStatus('celebrating');
+                toast.success('Congratulations! Your plan is active.', { duration: 4000 });
+                setStatus('success');
 
                 // NEW: Sync profile to ensure vendor benefits are applied immediately in UI
                 syncProfile().catch(err => console.error('Feature Sync Error:', err));

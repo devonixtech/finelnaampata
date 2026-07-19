@@ -662,7 +662,6 @@ export class BusinessesService implements OnModuleInit {
         // Image limit check bypassed to allow free tier saving premium features
         // -------------------------
 
-        const hasFeaturedSub = (activeSub?.plan?.isFeatured) || ((activeNewPlan?.plan?.features as any)?.isFeatured);
         const hasBoostedSub = !!referralPlan || ((activeNewPlan?.plan?.features as any)?.top_ranking);
 
         const now = new Date();
@@ -684,7 +683,7 @@ export class BusinessesService implements OnModuleInit {
             slug,
             status: hasCoordinates ? BusinessStatus.APPROVED : BusinessStatus.PENDING_GEOCODE,
             isVerified: false,
-            isFeatured: hasFeaturedSub || !!referralPlan,
+            isFeatured: false, // Only Superadmin can set isFeatured via admin panel
             isSponsored: hasBoostedSub,
             approvedAt: hasCoordinates ? now : (null as any),
             recentUntil: hasCoordinates ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) : (null as any),

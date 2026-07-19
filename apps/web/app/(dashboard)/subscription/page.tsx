@@ -59,22 +59,24 @@ function InvoiceModal({ invoiceId, onClose, user }: { invoiceId: string; onClose
 
     const handlePrint = () => {
         if (!printRef.current) return;
-        const content = printRef.current.innerHTML;
+        const content = printRef.current.innerHTML.replace(/dark:[^\s"']+/g, '').replace(/text-white/g, 'text-black');
         const w = window.open('', '_blank');
         if (!w) return;
         w.document.write(`<html><head><title>Invoice</title>
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
-                body { font-family: system-ui, sans-serif; padding: 40px; color: #0f172a; }
-                .logo { font-size: 24px; font-weight: 900; color: #f97316; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { padding: 12px 16px; text-align: left; }
-                th { background: #f8fafc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
-                .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #fff7ed; color: #f97316; }
-                .total-row { border-top: 2px solid #f1f5f9; font-weight: 900; }
+                @media print {
+                    @page { margin: 0.5cm; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
             </style>
-        </head><body>${content}</body></html>`);
+        </head><body class="bg-white text-slate-900 p-8 antialiased">
+            ${content}
+            <script>
+                setTimeout(() => { window.print(); }, 1500);
+            </script>
+        </body></html>`);
         w.document.close();
-        w.print();
     };
 
     const txn = data?.transaction;
@@ -217,6 +219,38 @@ function InvoiceModal({ invoiceId, onClose, user }: { invoiceId: string; onClose
     );
 }
 
+const PLAN_FEATURES: Record<string, { label: string, included: boolean }[]> = {
+    free: [
+        { label: "1 Business Listing", included: true },
+        { label: "1 Business Category", included: true },
+        { label: "Logo + Cover + 3 Photos", included: true },
+        { label: "Receive Broadcast / Job Leads", included: true },
+        { label: "Receive Reviews", included: true },
+        { label: "Up to 3 Subcategories", included: false },
+        { label: "Album Creation (Unlimited Photos)", included: false },
+        { label: "In-App Chat & WhatsApp", included: false },
+        { label: "10 Search Keywords", included: false },
+        { label: "Analytics Dashboard", included: false },
+        { label: "Reply to Reviews", included: false },
+        { label: "Customer Notes & FAQs", included: false },
+    ],
+    basic: [
+        { label: "Everything in Free Plan", included: true },
+        { label: "Multiple Business Listings", included: true },
+        { label: "Up to 3 Subcategories", included: true },
+        { label: "Album Creation (Unlimited Photos)", included: true },
+        { label: "In-App Chat & WhatsApp", included: true },
+        { label: "10 Search Keywords", included: true },
+        { label: "Analytics Dashboard", included: true },
+        { label: "Reply to Reviews", included: true },
+        { label: "FAQs on Profile (up to 10)", included: true },
+        { label: "Up to 5 Named Phone Numbers", included: true },
+        { label: "Respond to Broadcast Leads", included: true },
+        { label: "Customer Notes", included: true },
+        { label: "Deals & Events (Add-on)", included: false },
+    ]
+};
+
 /* ─── Plan Card ─────────────────────────────────────────────────────────── */
 function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading }: {
     plan: Plan;
@@ -328,42 +362,18 @@ function PlanCard({ plan, isActive, status, hasActivePaidPlan, onSelect, loading
 
             {/* Feature list */}
             <div className="space-y-2.5 flex-1 mb-6">
-                {plan.dashboardFeatures && Object.entries(plan.dashboardFeatures).map(([key, enabled]) => {
-                    if (!enabled || key === 'maxKeywords') return null;
-                    const labels: Record<string, string> = {
-                        showListings:  'My Listings',
-                        canAddListing: 'Add Listing',
-                        showLeads:     'Leads',
-                        showOffers:    'Offers & Events',
-                        showReviews:   'Reviews',
-                        showAnalytics: 'Analytics',
-                        showSaved:     'Saved',
-                        showFollowing: 'Following',
-                        showQueries:   'Queries',
-                        showChat:      'Live Chat',
-                        showBroadcast: 'Broadcast Feed (view)',
-                        canRespondBroadcast: 'Respond to Broadcast Leads',
-                        canReplyReviews: 'Reply to Customer Reviews',
-                        showDemand:    'Hot Demand Insights',
-                    };
-                    const label = labels[key] || key.replace('show', '').replace(/([A-Z])/g, ' $1').trim();
-                    return (
-                        <div key={key} className="flex items-start gap-2.5">
-                            <div className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${isFree ? 'bg-slate-100' : 'bg-emerald-50'}`}>
-                                <Check className={`w-2.5 h-2.5 stroke-[3] ${isFree ? 'text-slate-400' : 'text-emerald-50'}`} />
+                {(PLAN_FEATURES[plan.planType] || PLAN_FEATURES.free).map(({ label, included }) => (
+                    <div key={label} className={`flex items-start gap-2.5 ${!included ? "opacity-40" : ""}`}>
+                        {included ? (
+                            <div className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${isFree ? 'bg-slate-200' : 'bg-emerald-50'}`}>
+                                <Check className={`w-2.5 h-2.5 stroke-[3] ${isFree ? 'text-slate-500' : 'text-emerald-500'}`} />
                             </div>
-                            <span className={`font-bold text-sm leading-tight ${isFree ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
-                        </div>
-                    );
-                })}
-                <div className="flex items-center gap-2.5 pt-1">
-                    <div className="w-4 h-4 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-2.5 h-2.5 text-blue-500" />
+                        ) : (
+                            <X className="w-4 h-4 mt-0.5 text-slate-300 flex-shrink-0" />
+                        )}
+                        <span className={`font-bold text-sm leading-tight ${included ? (isFree ? 'text-slate-500' : 'text-slate-600') : 'text-slate-400 line-through'}`}>{label}</span>
                     </div>
-                    <span className="font-black text-slate-700 text-sm">
-                        {(plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0) >= 999 ? 'Unlimited Listings' : `${plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0} Listing${(plan.dashboardFeatures?.maxListings ?? plan.maxListings ?? 0) !== 1 ? 's' : ''}`}
-                    </span>
-                </div>
+                ))}
             </div>
 
             {/* CTA Button */}
@@ -451,7 +461,7 @@ function ConsentModal({
                             <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                         <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors text-left">
-                            I agree to the <a href="/terms" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>, and acknowledge that subscribing to a plan constitutes a legal obligation.
+                            I agree to the <a href="/legal/terms-business" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/legal/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>, and acknowledge that subscribing to a plan constitutes a legal obligation.
                         </span>
                     </label>
                 </div>
@@ -804,7 +814,7 @@ export default function BusinessSubscriptionPage() {
                                             <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                         </div>
                                         <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors text-left">
-                                            I agree to the <a href="/terms" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>, and acknowledge that subscribing to a plan constitutes a legal obligation.
+                                            I agree to the <a href="/legal/terms-business" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/legal/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>, and acknowledge that subscribing to a plan constitutes a legal obligation.
                                         </span>
                                     </label>
                                 </div>
