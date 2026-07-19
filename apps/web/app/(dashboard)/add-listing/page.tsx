@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 import { DEFAULT_DIAL_CODES } from '../../../lib/phone-codes';
 
@@ -760,8 +761,8 @@ function AddListingContent() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
-                <div className="p-8 border-b border-slate-100 bg-slate-50/50">
+            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl">
+                <div className="p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl">
                     <h2 className="text-xl font-black text-slate-900">{currentStepConfig?.label}</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">{currentStepConfig?.description}</p>
                 </div>
@@ -780,7 +781,7 @@ function AddListingContent() {
                     </AnimatePresence>
                 </div>
 
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4">
+                <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4 rounded-b-3xl">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
@@ -795,7 +796,7 @@ function AddListingContent() {
                             onClick={() => {
                                 if (typeof window !== 'undefined') {
                                     localStorage.setItem('naampata_listing_draft', JSON.stringify({ formData: formDataRef.current, activeStep }));
-                                    alert('Data saved successfully! You can resume anytime.');
+                                    toast.success('Data saved successfully!', { icon: '💾' });
                                 }
                             }}
                             className="px-6 py-3 rounded-xl font-black text-sm text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-all flex items-center gap-2 active:scale-95"
