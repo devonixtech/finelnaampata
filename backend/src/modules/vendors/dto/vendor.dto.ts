@@ -91,10 +91,11 @@ export class UpdateVendorDto {
     @IsString()
     businessPhone?: string;
 
-    @ApiProperty({ example: 'New Address' })
+    @ApiPropertyOptional({ example: 'New Address' })
+    @IsOptional()
     @IsString()
     @MinLength(5)
-    businessAddress: string;
+    businessAddress?: string;
 
     @ApiPropertyOptional({ example: 'GSTIN123456789' })
     @IsOptional()
