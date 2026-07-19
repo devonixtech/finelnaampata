@@ -93,21 +93,6 @@ const FAQS = [
 
 type Plan = {
     id: string;
-    name: string;
-    planType: "free" | "basic" | "premium" | "enterprise";
-    description: string;
-    price: number;
-    billingCycle: string;
-    maxListings: number;
-    isFeatured: boolean;
-
-                                            {/* Price */}
-                                            <div className="mb-8 pb-8 border-b border-slate-100">
-                                                <div className="flex items-end gap-1">
-                                                    <span className={`text-5xl font-black ${config.accentColor}`}>{priceDisplay}</span>
-                                                    {plan.price > 0 && (
-                                                        <span className="text-slate-400 font-medium mb-2">/{plan.billingCycle?.toLowerCase() === "yearly" ? "year" : "month"}</span>
-                                                    )}
                                                 </div>
                                                 {plan.price === 0 && (
                                                     <p className="text-slate-400 text-sm font-medium mt-1">Free forever · No credit card required</p>
