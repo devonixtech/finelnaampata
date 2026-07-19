@@ -18,6 +18,8 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
     const [countryCities, setCountryCities] = useState<City[]>([]);
     const [countries, setCountries] = useState<{ code: string; name: string }[]>([]);
     const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+    const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+    const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
 
     const selectedCountryCode = useMemo(() => {
         const rawCountry = (formData.country || '').trim();
@@ -114,6 +116,25 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                 .sort((a, b) => a.localeCompare(b)),
         [addressConfig],
     );
+
+    const cityMatches = useMemo(() => {
+        const query = (formData.city || '').trim().toLowerCase();
+        let matches = countryCities;
+        if (query) {
+            matches = countryCities.filter(c => 
+                c.name.toLowerCase().includes(query) || 
+                (c.state && c.state.toLowerCase().includes(query))
+            );
+        }
+        return matches.slice(0, 50);
+    }, [countryCities, formData.city]);
+
+    const stateMatches = useMemo(() => {
+        const query = (formData.state || '').trim().toLowerCase();
+        const options = subdivisionOptions.length ? subdivisionOptions : stateOptions;
+        if (!query) return options;
+        return options.filter(s => s.toLowerCase().includes(query));
+    }, [subdivisionOptions, stateOptions, formData.state]);
 
     const autoFillFromCity = (cityName: string) => {
         const normalized = cityName.trim().toLowerCase();
@@ -223,43 +244,85 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className={labelClass}>City *</label>
-                    <input 
-                        type="text" 
-                        list="listing-city-list"
-                        value={formData.city} 
-                        onChange={e => {
-                            const nextCity = e.target.value;
-                            setFormData(p => ({ ...p, city: nextCity }));
-                            autoFillFromCity(nextCity);
-                        }}
-                        className={inputClass}
-                        placeholder={formData.country ? 'Type or select a city' : 'Select country first'}
-                        required
-                    />
-                    <datalist id="listing-city-list">
-                        {countryCities.map((city) => (
-                            <option key={city.id} value={city.name}>
-                                {city.state ? `${city.name}, ${city.state}` : city.name}
-                            </option>
-                        ))}
-                    </datalist>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            value={formData.city} 
+                            onFocus={() => setCityDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setCityDropdownOpen(false), 150)}
+                            onChange={e => {
+                                const nextCity = e.target.value;
+                                setFormData(p => ({ ...p, city: nextCity }));
+                                autoFillFromCity(nextCity);
+                                setCityDropdownOpen(true);
+                            }}
+                            className={inputClass}
+                            placeholder={formData.country ? 'Type or select a city' : 'Select country first'}
+                            required
+                            autoComplete="new-password"
+                        />
+                        {cityDropdownOpen && cityMatches.length > 0 && (
+                            <div
+                                className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {cityMatches.map((city) => (
+                                    <button
+                                        key={city.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData(p => ({ ...p, city: city.name }));
+                                            autoFillFromCity(city.name);
+                                            setCityDropdownOpen(false);
+                                        }}
+                                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-50 last:border-b-0"
+                                    >
+                                        <span>{city.name}</span>
+                                        {city.state && <span className="text-[10px] font-black uppercase text-slate-400">{city.state}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div>
                     <label className={labelClass}>{stateLabel}{stateRequired ? ' *' : ''}</label>
-                    <input 
-                        type="text" 
-                        list="listing-state-list"
-                        value={formData.state} 
-                        onChange={e => setFormData(p => ({ ...p, state: e.target.value, city: '', pincode: '' }))}
-                        className={inputClass}
-                        placeholder={(subdivisionOptions.length || stateOptions.length) ? `Select ${stateLabel.toLowerCase()}` : stateLabel}
-                        required={stateRequired}
-                    />
-                    <datalist id="listing-state-list">
-                        {(subdivisionOptions.length ? subdivisionOptions : stateOptions).map((state) => (
-                            <option key={state} value={state} />
-                        ))}
-                    </datalist>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            value={formData.state} 
+                            onFocus={() => setStateDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setStateDropdownOpen(false), 150)}
+                            onChange={e => {
+                                setFormData(p => ({ ...p, state: e.target.value, city: '', pincode: '' }));
+                                setStateDropdownOpen(true);
+                            }}
+                            className={inputClass}
+                            placeholder={(subdivisionOptions.length || stateOptions.length) ? `Select ${stateLabel.toLowerCase()}` : stateLabel}
+                            required={stateRequired}
+                            autoComplete="new-password"
+                        />
+                        {stateDropdownOpen && stateMatches.length > 0 && (
+                            <div
+                                className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {stateMatches.map((stateName) => (
+                                    <button
+                                        key={stateName}
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData(p => ({ ...p, state: stateName, city: '', pincode: '' }));
+                                            setStateDropdownOpen(false);
+                                        }}
+                                        className="block w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-50 last:border-b-0"
+                                    >
+                                        {stateName}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             <div>

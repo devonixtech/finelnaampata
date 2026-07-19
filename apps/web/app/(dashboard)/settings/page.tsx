@@ -156,6 +156,20 @@ export default function AccountSettings() {
         fetchData();
     }, [user, authLoading, updateUser]);
 
+    // City Dropdown state
+    const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+    const cityMatches = useMemo(() => {
+        const query = (formData.city || '').trim().toLowerCase();
+        let matches = allCities.filter(c => 
+            c.country === formData.country &&
+            (!formData.state || c.state === formData.state)
+        );
+        if (query) {
+            matches = matches.filter(c => c.name.toLowerCase().includes(query));
+        }
+        return matches.slice(0, 50);
+    }, [allCities, formData.country, formData.state, formData.city]);
+
     // Profile Handlers
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -585,27 +599,41 @@ export default function AccountSettings() {
                                 <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
                                     <MapPin className="w-3.5 h-3.5" /> City
                                 </label>
-                                <div className="relative">
                                     <input
-                                        list="settings-city-list"
+                                        type="text"
                                         name="city"
                                         value={formData.city}
-                                        onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                                        onFocus={() => setCityDropdownOpen(true)}
+                                        onBlur={() => setTimeout(() => setCityDropdownOpen(false), 150)}
+                                        onChange={e => {
+                                            setFormData(prev => ({ ...prev, city: e.target.value }));
+                                            setCityDropdownOpen(true);
+                                        }}
                                         placeholder={formData.state ? "Type or select a city" : "Select state first"}
                                         disabled={!formData.state}
+                                        autoComplete="new-password"
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
-                                    <datalist id="settings-city-list">
-                                        {allCities
-                                            .filter(c =>
-                                                c.country === formData.country &&
-                                                (!formData.state || c.state === formData.state)
-                                            )
-                                            .map(city => (
-                                                <option key={city.id} value={city.name} />
+                                    {cityDropdownOpen && cityMatches.length > 0 && (
+                                        <div
+                                            className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                        >
+                                            {cityMatches.map((city) => (
+                                                <button
+                                                    key={city.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({ ...prev, city: city.name }));
+                                                        setCityDropdownOpen(false);
+                                                    }}
+                                                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-50 last:border-b-0"
+                                                >
+                                                    <span>{city.name}</span>
+                                                </button>
                                             ))}
-                                    </datalist>
-                                </div>
+                                        </div>
+                                    )}
                             </div>
                         </div>
 
