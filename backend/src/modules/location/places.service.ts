@@ -32,15 +32,6 @@ export class PlacesService {
         return (value || '').trim();
     }
 
-    private getApiKey(): string | null {
-        return (
-            this.configService.get<string>('GOOGLE_MAPS_API_KEY') ||
-            this.configService.get<string>('GOOGLE_PLACES_API_KEY') ||
-            process.env.GOOGLE_MAPS_API_KEY ||
-            null
-        );
-    }
-
     async autocomplete(
         input: string,
         sessionToken: string,
@@ -49,37 +40,36 @@ export class PlacesService {
         const trimmed = this.sanitizePlaceText(input);
         if (trimmed.length < 3) return [];
 
-        const apiKey = this.getApiKey();
-        if (!apiKey) {
-            this.logger.warn('Google Places API key is missing. Returning no autocomplete suggestions instead of using a non-Google fallback.');
-            return [];
-        }
-
         try {
             const params = new URLSearchParams({
-                input: trimmed,
-                sessiontoken: sessionToken,
-                key: apiKey,
+                q: trimmed,
+                limit: '5',
             });
 
-            const cc = (countryCode || '').trim().toUpperCase();
-            if (cc && cc.length === 2) {
-                params.set('components', `country:${cc.toLowerCase()}`);
-            }
+            // Photon doesn't strictly support `countryCode` filter out of the box in the same way,
+            // but you can append it to the search query for better localized results if needed.
+            // Leaving it out for broad results, as OSM covers it well.
 
-            const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`;
+            const url = `https://photon.komoot.io/api/?${params.toString()}`;
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                if (data.status === 'OK' && Array.isArray(data.predictions) && data.predictions.length > 0) {
-                    return data.predictions.map((p: any) => ({
-                        placeId: String(p.place_id),
-                        description: String(p.description || ''),
-                    }));
+                if (Array.isArray(data?.features)) {
+                    return data.features.map((feature: any) => {
+                        const props = feature.properties;
+                        // Build a nice description
+                        const parts = [props.name, props.street, props.city || props.county, props.state, props.country].filter(Boolean);
+                        // Filter duplicates like 'Karachi, Karachi'
+                        const uniqueParts = Array.from(new Set(parts));
+                        return {
+                            placeId: String(props.osm_id || Math.random()),
+                            description: uniqueParts.join(', '),
+                        };
+                    });
                 }
             }
-        } catch (err) {
-            this.logger.error(`Google Places autocomplete failed: ${err.message}`);
+        } catch (err: any) {
+            this.logger.error(`Photon autocomplete failed: ${err.message}`);
         }
 
         return [];

@@ -45,37 +45,33 @@ export class GeocoderService {
         const trimmed = (address || '').trim();
         if (!trimmed) return null;
 
-        const apiKey = this.getApiKey();
-        if (!apiKey) {
-            this.logger.warn('Google Geocoding API key is missing. Returning no result instead of using a non-Google fallback.');
-            return null;
-        }
-
         try {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(trimmed)}&key=${apiKey}`;
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&limit=1`;
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                if (Array.isArray(data?.results) && data.results.length > 0) {
-                    const result = data.results[0];
-                    const location = result?.geometry?.location;
-                    if (location) {
-                        const parsed = this.parseAddressComponents(result.address_components || []);
-                        return {
-                            lat: Number(location.lat),
-                            lng: Number(location.lng),
-                            formattedAddress: String(result.formatted_address || trimmed),
-                            city: parsed.city,
-                            state: parsed.state,
-                            postalCode: parsed.postalCode,
-                            country: parsed.country,
-                            streetAddress: parsed.streetAddress,
-                        };
-                    }
+                if (Array.isArray(data?.features) && data.features.length > 0) {
+                    const feature = data.features[0];
+                    const props = feature.properties;
+                    const coords = feature.geometry.coordinates; // [lng, lat]
+
+                    const parts = [props.name, props.street, props.city, props.state, props.country].filter(Boolean);
+                    const formattedAddress = Array.from(new Set(parts)).join(', ');
+
+                    return {
+                        lat: Number(coords[1]),
+                        lng: Number(coords[0]),
+                        formattedAddress: formattedAddress || trimmed,
+                        city: props.city || props.county,
+                        state: props.state,
+                        postalCode: props.postcode,
+                        country: props.country,
+                        streetAddress: props.street || props.name,
+                    };
                 }
             }
-        } catch (err) {
-            this.logger.error(`Google geocoding failed for "${trimmed}": ${err.message}`);
+        } catch (err: any) {
+            this.logger.error(`Photon geocoding failed for "${trimmed}": ${err.message}`);
         }
 
         return null;
