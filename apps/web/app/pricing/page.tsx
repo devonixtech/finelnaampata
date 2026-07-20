@@ -35,7 +35,11 @@ const PLAN_FEATURES = {
             { label: "10 Search Keywords", included: false, icon: Zap },
             { label: "Analytics Dashboard", included: false, icon: BarChart2 },
             { label: "Reply to Reviews", included: false, icon: Star },
-            { label: "Customer Notes & FAQs", included: false, icon: Users },
+            { label: "FAQs on Profile (up to 10)", included: false, icon: MessageSquare },
+            { label: "Up to 5 Named Phone Numbers", included: false, icon: Users },
+            { label: "Respond to Broadcast Leads", included: false, icon: Megaphone },
+            { label: "Customer Notes", included: false, icon: Building2 },
+            { label: "Deals & Events (Add-on)", included: false, icon: Tag },
         ],
     },
     basic: {

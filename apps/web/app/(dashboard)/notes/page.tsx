@@ -13,6 +13,8 @@ import {
     MessageSquare,
     Lock,
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePlanFeature } from '../../../hooks/usePlanFeature';
 
 interface ConversationNote {
     id: string;
@@ -57,6 +59,7 @@ export default function NotesPage() {
     const [newNote, setNewNote] = useState('');
     const [addingNote, setAddingNote] = useState(false);
     const [notesError, setNotesError] = useState('');
+    const { hasFeature, loading: planLoading } = usePlanFeature();
 
     useEffect(() => {
         let active = true;
@@ -176,6 +179,31 @@ export default function NotesPage() {
         'Customer conversation';
 
     const selectedCustomerAvatar = getImageUrl(selectedConversation?.user?.avatarUrl || undefined);
+
+    if (planLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!hasFeature('showCustomerNotes')) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[70vh]">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                    <Lock className="w-10 h-10 text-slate-400" />
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 mb-3">Premium Feature</h2>
+                <p className="text-slate-500 mb-8 text-center max-w-md">
+                    Customer Notes is a premium feature. Upgrade your plan to unlock private follow-up notes and relationship management.
+                </p>
+                <Link href="/subscription" className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm shadow-indigo-600/20">
+                    Upgrade Plan
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">

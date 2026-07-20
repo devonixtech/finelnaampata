@@ -7,6 +7,7 @@ import {
     Gift, Timer, AlertCircle, ChevronRight, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -20,6 +21,13 @@ export default function AffiliateDashboard() {
     const [joining, setJoining] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+
+    // Custom Alert State
+    const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
+
+    const showAlert = (title: string, message: string, type: 'success' | 'error' = 'error') => {
+        setAlertConfig({ title, message, type });
+    };
 
     // Payout Form State
     const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -60,8 +68,9 @@ export default function AffiliateDashboard() {
         try {
             await api.affiliate.join({});
             await loadData();
+            showAlert('Success', 'Successfully joined the affiliate program!', 'success');
         } catch (err: any) {
-            alert(err.message || 'Failed to join affiliate program');
+            showAlert('Error', err.message || 'Failed to join affiliate program', 'error');
         } finally {
             setJoining(false);
         }
@@ -72,22 +81,22 @@ export default function AffiliateDashboard() {
         const amount = parseFloat(payoutAmount);
 
         if (isNaN(amount) || amount < 500) {
-            alert('Minimum withdrawal is PKR 500');
+            showAlert('Invalid Amount', 'Minimum withdrawal is PKR 500', 'error');
             return;
         }
 
         if (amount > stats.balance) {
-            alert('Insufficient balance');
+            showAlert('Insufficient Balance', 'You do not have enough balance for this withdrawal', 'error');
             return;
         }
 
         if (!payoutDetails) {
-            alert('Please provide payment details');
+            showAlert('Missing Details', 'Please provide payment details', 'error');
             return;
         }
 
         if (!payoutAgreed) {
-            alert('Please confirm the payment details are accurate before submitting.');
+            showAlert('Agreement Required', 'Please confirm the payment details are accurate before submitting.', 'error');
             return;
         }
 
@@ -102,9 +111,9 @@ export default function AffiliateDashboard() {
             setPayoutAmount('');
             setPayoutDetails('');
             await loadData();
-            alert('Payout request submitted successfully!');
+            showAlert('Request Submitted', 'Payout request submitted successfully!', 'success');
         } catch (err: any) {
-            alert(err.message || 'Failed to submit payout request');
+            showAlert('Request Failed', err.message || 'Failed to submit payout request', 'error');
         } finally {
             setSubmittingPayout(false);
         }
@@ -152,10 +161,10 @@ export default function AffiliateDashboard() {
                                         if (!input?.value?.trim()) return;
                                         try {
                                             await api.affiliate.applyReferral(input.value.trim());
-                                            alert('Referral code applied successfully!');
-                                            window.location.reload();
+                                            showAlert('Code Applied', 'Referral code applied successfully!', 'success');
+                                            setTimeout(() => window.location.reload(), 1500);
                                         } catch (err: any) {
-                                            alert(err.message || 'Invalid referral code');
+                                            showAlert('Error', err.message || 'Invalid referral code', 'error');
                                         }
                                     }}
                                     className="px-6 py-3 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-orange-500 transition-all active:scale-95"
@@ -330,10 +339,43 @@ export default function AffiliateDashboard() {
                             <Share2 className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform duration-500" />
                             <h3 className="text-xl font-black mb-2">Need Help?</h3>
                             <p className="text-sm text-blue-100 font-medium mb-6 relative z-10">Contact our affiliate support for tips on how to grow your earnings.</p>
-                            <button className="px-6 py-3 bg-white text-blue-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all relative z-10 shadow-lg">Contact Support</button>
+                            <Link href="/contact" className="inline-block px-6 py-3 bg-white text-blue-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all relative z-10 shadow-lg">Contact Support</Link>
                         </div>
                     </div>
-                </div>                {/* Payout Modal */}
+                </div>
+                {/* Custom Alert Modal */}
+                <AnimatePresence>
+                    {alertConfig && (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setAlertConfig(null)}
+                                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden p-8 text-center"
+                            >
+                                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 ${alertConfig.type === 'success' ? 'bg-emerald-100 text-emerald-500' : 'bg-red-100 text-red-500'}`}>
+                                    {alertConfig.type === 'success' ? <CheckCircle2 className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">{alertConfig.title}</h3>
+                                <p className="text-slate-500 font-medium mb-8">{alertConfig.message}</p>
+                                <button
+                                    onClick={() => setAlertConfig(null)}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all active:scale-[0.98]"
+                                >
+                                    Okay
+                                </button>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+                {/* Payout Modal */}
                 <AnimatePresence>
                     {showPayoutModal && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

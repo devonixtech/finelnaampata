@@ -232,7 +232,11 @@ const PLAN_FEATURES: Record<string, { label: string, included: boolean }[]> = {
         { label: "10 Search Keywords", included: false },
         { label: "Analytics Dashboard", included: false },
         { label: "Reply to Reviews", included: false },
-        { label: "Customer Notes & FAQs", included: false },
+        { label: "FAQs on Profile (up to 10)", included: false },
+        { label: "Up to 5 Named Phone Numbers", included: false },
+        { label: "Respond to Broadcast Leads", included: false },
+        { label: "Customer Notes", included: false },
+        { label: "Deals & Events (Add-on)", included: false },
     ],
     basic: [
         { label: "Everything in Free Plan", included: true },
@@ -505,6 +509,13 @@ export default function BusinessSubscriptionPage() {
     const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
     const [billingCycleFilter, setBillingCycleFilter] = useState<'Monthly' | 'Yearly'>('Monthly');
 
+    // Custom Alert State
+    const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
+
+    const showAlert = (title: string, message: string, type: 'success' | 'error' = 'error') => {
+        setAlertConfig({ title, message, type });
+    };
+
     // Safety-net guard: only businesses can access this page
     // Wait for auth to finish loading before checking role to avoid premature redirects
     useEffect(() => {
@@ -576,25 +587,12 @@ export default function BusinessSubscriptionPage() {
 
     useEffect(() => { fetchAll(); }, []);
 
-    const handleSelectPlan = async (plan: Plan) => {
-        // Free plan is never directly selectable — it's the automatic fallback
+    const handleSelectPlan = (plan: Plan) => {
         if (plan.planType === 'free') return;
+        setPendingPlan(plan);
+    };
 
-        if (!agreed) {
-            alert('Please agree to the Terms & Conditions and Privacy Policy first by checking the box below the plans.');
-            return;
-        }
-
-        const isRecharge = activeSub?.plan?.id === plan.id;
-
-        const cycleLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? 'year' : 'month';
-        const extensionLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? '1 year' : '1 month';
-        const confirmMsg = isRecharge
-            ? `Recharge your ${plan.name} plan for another ${extensionLabel}?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()} via Stripe.`
-            : `Activate the ${plan.name} plan?\n\nYou will be charged PKR ${Number(plan.price).toLocaleString()}/${cycleLabel} via Stripe.`;
-
-        if (!confirm(confirmMsg)) return;
-
+    const processCheckout = async (plan: Plan) => {
         setCheckingOut(plan.id);
         try {
             const res = await api.subscriptions.createCheckout(plan.id);
@@ -608,9 +606,11 @@ export default function BusinessSubscriptionPage() {
             await fetchAll();
             await syncProfile();
         } catch (err: any) {
-            alert(err.message || 'Failed to process plan. Please try again.');
+            showAlert('Checkout Failed', err.message || 'Failed to process plan. Please try again.', 'error');
         } finally {
             setCheckingOut(null);
+            setPendingPlan(null);
+            setAgreed(false);
         }
     };
 
@@ -802,22 +802,7 @@ export default function BusinessSubscriptionPage() {
                                         />
                                     ))}
                                 </div>
-                                <div className="mt-8 border-t border-slate-200 pt-6 max-w-2xl mx-auto">
-                                    <label className="flex items-start gap-3 cursor-pointer group">
-                                        <div className="relative flex items-center justify-center mt-0.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={agreed}
-                                                onChange={(e) => setAgreed(e.target.checked)}
-                                                className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-lg checked:border-orange-500 checked:bg-orange-500 transition-colors cursor-pointer peer"
-                                            />
-                                            <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                        </div>
-                                        <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors text-left">
-                                            I agree to the <a href="/legal/terms-business" target="_blank" className="text-orange-500 font-bold hover:underline">Terms & Conditions</a> and <a href="/legal/privacy" target="_blank" className="text-orange-500 font-bold hover:underline">Privacy Policy</a>, and acknowledge that subscribing to a plan constitutes a legal obligation.
-                                        </span>
-                                    </label>
-                                </div>
+
                             </>
                         )}
                     </motion.div>
@@ -897,6 +882,39 @@ export default function BusinessSubscriptionPage() {
                 )}
             </AnimatePresence>
 
+            {/* Custom Alert Modal */}
+            <AnimatePresence>
+                {alertConfig && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setAlertConfig(null)}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden p-8 text-center"
+                        >
+                            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 ${alertConfig.type === 'success' ? 'bg-emerald-100 text-emerald-500' : 'bg-red-100 text-red-500'}`}>
+                                {alertConfig.type === 'success' ? <CheckCircle2 className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 mb-2">{alertConfig.title}</h3>
+                            <p className="text-slate-500 font-medium mb-8">{alertConfig.message}</p>
+                            <button
+                                onClick={() => setAlertConfig(null)}
+                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all active:scale-[0.98]"
+                            >
+                                Okay
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* ── Invoice Modal ── */}
             <AnimatePresence>
                 {selectedInvoiceId && (
@@ -904,6 +922,16 @@ export default function BusinessSubscriptionPage() {
                         invoiceId={selectedInvoiceId}
                         onClose={() => setSelectedInvoiceId(null)}
                         user={user}
+                    />
+                )}
+                {pendingPlan && (
+                    <ConsentModal
+                        plan={pendingPlan}
+                        agreed={agreed}
+                        onAgreeChange={setAgreed}
+                        onClose={() => { setPendingPlan(null); setAgreed(false); }}
+                        onContinue={() => processCheckout(pendingPlan)}
+                        loading={checkingOut === pendingPlan.id}
                     />
                 )}
             </AnimatePresence>

@@ -52,7 +52,7 @@ export class SubscriptionsSeederService implements OnApplicationBootstrap {
                     showBroadcast: true,
                     canRespondBroadcast: false,
                     canReplyReviews: false,
-                    showCustomerNotes: true,
+                    showCustomerNotes: false,
                     maxKeywords: 0,
                     maxFaqs: 0,
                     maxSubCategories: 0,

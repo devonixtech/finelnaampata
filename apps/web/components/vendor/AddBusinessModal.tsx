@@ -251,7 +251,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                 setMyListingsCount(businessesRes?.data?.length || 0);
 
                 if (vendorProfile?.socialLinks) {
-                    setSocialLinks(vendorProfile.socialLinks);
+                    setSocialLinks(Array.isArray(vendorProfile.socialLinks) ? vendorProfile.socialLinks : []);
                 }
 
                 if (!business) {
@@ -325,7 +325,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
 
             // Pre-fill social links from vendor profile if available (fallback, usually fetchInitialData handles it)
             if (business.vendor?.socialLinks) {
-                setSocialLinks(business.vendor.socialLinks);
+                setSocialLinks(Array.isArray(business.vendor.socialLinks) ? business.vendor.socialLinks : []);
             }
         } else if (!business && isOpen && cities.length > 0 && categories.length > 0) {
             setFormData(prev => ({
@@ -349,7 +349,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         try {
             // Handle empty strings for optional URL/Email fields (send null to clear them in backend)
             const submissionData = { ...formData };
-            const fieldsToPrune: string[] = ['coverImageUrl', 'website', 'metaKeywords', 'whatsapp', 'offerExpiresAt'];
+            const fieldsToPrune: string[] = ['coverImageUrl', 'website', 'metaKeywords', 'whatsapp', 'offerExpiresAt', 'description', 'shortDescription'];
             fieldsToPrune.forEach(field => {
                 const val = (submissionData as any)[field];
                 if (val === '' || (typeof val === 'string' && val.includes('NaN'))) {
@@ -377,7 +377,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
             }
 
             // Save social links to vendor profile
-            const linksToSave = socialLinks.filter(s => s.url?.trim());
+            const linksToSave = (Array.isArray(socialLinks) ? socialLinks : []).filter(s => s.url?.trim());
             try {
                 await api.businessProfiles.updateProfile({ socialLinks: linksToSave });
             } catch (socialErr) {
@@ -1102,7 +1102,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Social Media Profiles</label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {SOCIAL_PLATFORMS.map(p => {
-                                                            const isSelected = !!socialLinks.find(s => s.platform === p.key);
+                                                            const isSelected = !!(Array.isArray(socialLinks) ? socialLinks : []).find(s => s.platform === p.key);
                                                             return (
                                                                 <button key={p.key} type="button" onClick={() => isSelected ? removeSocialLink(p.key) : addSocialLink(p.key)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all ${isSelected ? 'text-white' : 'bg-slate-50 text-slate-500'}`} style={isSelected ? { backgroundColor: p.color } : {}}>
                                                                     <span className="text-[10px]">{isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}</span> {p.label}
@@ -1112,7 +1112,7 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     </div>
 
                                                     <div className="space-y-3 pt-2">
-                                                        {socialLinks.map(link => {
+                                                        {(Array.isArray(socialLinks) ? socialLinks : []).map(link => {
                                                             const platform = SOCIAL_PLATFORMS.find(p => p.key === link.platform);
                                                             if (!platform) return null;
                                                             return (

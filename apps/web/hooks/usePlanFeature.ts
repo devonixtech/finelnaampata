@@ -47,7 +47,7 @@ export const usePlanFeature = () => {
         showEvents: true,
         showReviews: false,
         showAnalytics: false,
-        showCustomerNotes: true,
+        showCustomerNotes: false,
         showChat: false,
         showBroadcast: false,
         canRespondBroadcast: false,
@@ -75,23 +75,23 @@ export const usePlanFeature = () => {
             return true;
         }
         const value = features[featureName];
-        const hasActiveSub = !!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan);
+        const hasPaidPlan = !!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan) && activeSub.plan?.planType?.toLowerCase() !== 'free' && !(activeSub.plan?.name?.toLowerCase().includes('free') || activeSub.plan?.name?.toLowerCase().includes('starter'));
         if (featureName.startsWith('max')) {
             if (featureName === 'maxSubCategories') {
                 const numeric = Number(value ?? 0);
                 const fallbackFromCategories = Number((features as any).maxCategories ?? 0);
                 if (numeric > 0) return numeric;
                 if (fallbackFromCategories > 0) return Math.max(0, fallbackFromCategories - 1);
-                if (hasActiveSub) return 3;
+                if (hasPaidPlan) return 3;
                 return 0;
             }
             if (featureName === 'maxNamedPhoneNumbers') {
                 const num = Number(value ?? (features as any).maxAdditionalPhones ?? 0);
                 if (num > 0) return num;
-                if (hasActiveSub) return 5;
+                if (hasPaidPlan) return 5;
                 return 0;
             }
-            if (Number(value ?? 0) === 0 && hasActiveSub) {
+            if (Number(value ?? 0) === 0 && hasPaidPlan) {
                 const paidDefaults: Record<string, number> = {
                     maxPhotos: 10, maxListings: 3, maxHighlights: 6,
                     maxSpecials: 3, maxTeamMembers: 10, maxSocialLinks: 4,
@@ -110,7 +110,7 @@ export const usePlanFeature = () => {
         if (user?.role === 'admin' || user?.role === 'superadmin') return true;
 
         // Core features always available for all roles
-        if (['showCustomerNotes'].includes(featureName as string)) return true;
+        if ([''].includes(featureName as string)) return true;
 
         // Standard users bypass gating for core community features
         if (user?.role === 'user' && ['showChat', 'showSaved', 'showFollowing', 'showReviews'].includes(featureName as string)) {
@@ -122,8 +122,7 @@ export const usePlanFeature = () => {
             return Number(getFeatureValue(key) || 0) > 0;
         }
 
-        // If it's a vendor, check their active plan features
-        if (!!activeSub && (activeSub.status?.toLowerCase() === 'active' || activeSub.status?.toLowerCase() === 'trialing' || !!activeSub.plan)) return true; 
+        // For boolean features, check the features object directly
         return !!features[featureName];
     };
 

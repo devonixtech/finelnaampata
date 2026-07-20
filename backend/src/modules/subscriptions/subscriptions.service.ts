@@ -962,7 +962,7 @@ export class SubscriptionsService implements OnModuleInit {
         let normalizedMaxListings = Number(features.maxListings ?? 0);
         
         // Paid plan safety net
-        const isPaid = planName && !planName.toLowerCase().includes('free');
+        const isPaid = planName && !planName.toLowerCase().includes('free') && !planName.toLowerCase().includes('starter');
         if (isPaid) {
             if (normalizedMaxSubCategories === 0) normalizedMaxSubCategories = 3;
             if (normalizedMaxListings <= 1) normalizedMaxListings = 999;

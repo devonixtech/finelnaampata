@@ -85,7 +85,7 @@ export class BusinessesService implements OnModuleInit {
         let normalizedMaxListings = Number(raw.maxListings ?? 0);
         
         // Paid plan safety net
-        const isPaid = planName && !planName.toLowerCase().includes('free');
+        const isPaid = planName && !planName.toLowerCase().includes('free') && !planName.toLowerCase().includes('starter');
         if (isPaid) {
             if (normalizedMaxSubCategories === 0) normalizedMaxSubCategories = 3; // Ensure at least 3 subcategories
             if (normalizedMaxListings <= 1) normalizedMaxListings = 999; // Ensure unlimited listings for paid
@@ -339,9 +339,9 @@ export class BusinessesService implements OnModuleInit {
         },
         _features: Record<string, unknown>,
     ) {
-        const maxKeywords = 10;
-        const maxFaqs = 10;
-        const maxNamedPhoneNumbers = 5;
+        const maxKeywords = Number(_features.maxKeywords ?? 0);
+        const maxFaqs = Number(_features.maxFaqs ?? 0);
+        const maxNamedPhoneNumbers = Number(_features.maxNamedPhoneNumbers ?? 0);
 
         if (dto.metaKeywords) {
             const keywordCount = dto.metaKeywords

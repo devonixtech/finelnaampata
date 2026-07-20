@@ -88,6 +88,16 @@ export default function BusinessListings() {
     };
 
     const openAlbumsManager = async (biz: Business) => {
+        if (!canCreateAlbums) {
+            setAlbumsModal({
+                listingId: biz.id,
+                title: biz.title,
+                albums: [],
+                newAlbumName: '',
+            });
+            return;
+        }
+
         try {
             setActionLoading('albums-load');
             setAlbumsError(null);
@@ -104,6 +114,12 @@ export default function BusinessListings() {
                 newAlbumName: '',
             });
         } catch (error: any) {
+            setAlbumsModal({
+                listingId: biz.id,
+                title: biz.title,
+                albums: [],
+                newAlbumName: '',
+            });
             setAlbumsError(error?.message || 'Failed to load albums');
         } finally {
             setActionLoading(null);
