@@ -6,23 +6,10 @@ import { api } from '../../../lib/api';
 
 
 
+// Render all category pages dynamically on-demand (SSR) to avoid building 25,000+ static pages at build time
+export const dynamicParams = true;
 export async function generateStaticParams() {
-    try {
-        const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/categories');
-        const json = await res.json();
-        const categories = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
-        return [
-            { categorySlug: 'template' },
-            { categorySlug: 'default' },
-            ...categories.map((c: any) => ({ categorySlug: c.slug }))
-        ];
-    } catch (error) {
-        console.error("Error generating static params for categories:", error);
-        return [
-            { categorySlug: 'template' },
-            { categorySlug: 'default' }
-        ];
-    }
+    return [];
 }
 
 // Dynamic route handling for categories
