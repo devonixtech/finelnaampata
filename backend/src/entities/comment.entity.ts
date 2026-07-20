@@ -24,15 +24,15 @@ export class Comment {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'user_id' })
+    @Column({ name: 'user_id', nullable: true })
     @Index()
     userId: string;
 
-    @Column({ name: 'business_id' })
+    @Column({ name: 'business_id', nullable: true })
     @Index()
     businessId: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @Column({ type: 'int', nullable: true })

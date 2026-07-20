@@ -21,7 +21,7 @@ export class QAAnswer {
     id: string;
 
     @ApiProperty()
-    @Column({ name: 'question_id', type: 'uuid' })
+    @Column({ name: 'question_id', type: 'uuid', nullable: true })
     @Index()
     questionId: string;
 
@@ -31,7 +31,7 @@ export class QAAnswer {
     question: QAQuestion;
 
     @ApiProperty()
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     @Index()
     userId: string;
 
@@ -40,7 +40,7 @@ export class QAAnswer {
     user: User;
 
     @ApiProperty()
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @ApiProperty({ enum: QAStatus })

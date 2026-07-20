@@ -36,7 +36,7 @@ export class Listing {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     vendorId: string;
 
     @Column({ name: 'category_id', type: 'uuid', nullable: true })
@@ -47,7 +47,7 @@ export class Listing {
     suggestedCategoryName: string;
 
     // Basic Info
-    @Column({ name: 'name' })
+    @Column({ name: 'name', nullable: true })
     @Index()
     title: string;
 
@@ -61,7 +61,7 @@ export class Listing {
         return this.title;
     }
 
-    @Column({ unique: true })
+    @Column({ unique: true, nullable: true })
     @Index()
     slug: string;
 
@@ -75,7 +75,7 @@ export class Listing {
     @Column({ nullable: true })
     email: string;
 
-    @Column({ length: 20 })
+    @Column({ length: 20, nullable: true })
     phone: string;
 
     @Column({ nullable: true, length: 20 })
@@ -88,7 +88,7 @@ export class Listing {
     website: string;
 
     // Location
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     address: string;
 
     @Column({ name: 'address_line_2', nullable: true, type: 'text' })

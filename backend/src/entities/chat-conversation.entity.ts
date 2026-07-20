@@ -24,21 +24,21 @@ export class ChatConversation {
     @JoinColumn({ name: 'user_id' })
     user: User;
 
-    @Column({ name: 'user_id' })
+    @Column({ name: 'user_id', nullable: true })
     userId: string;
 
     @ManyToOne(() => Listing)
     @JoinColumn({ name: 'business_id' })
     business: Listing;
 
-    @Column({ name: 'business_id' })
+    @Column({ name: 'business_id', nullable: true })
     businessId: string;
 
     @ManyToOne(() => Vendor)
     @JoinColumn({ name: 'vendor_id' })
     vendor: Vendor;
 
-    @Column({ name: 'vendor_id' })
+    @Column({ name: 'vendor_id', nullable: true })
     vendorId: string;
 
     @Column({ name: 'last_message', nullable: true, type: 'text' })

@@ -14,7 +14,7 @@ export class NotificationLog {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 

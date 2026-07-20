@@ -17,13 +17,13 @@ export class CommentReply {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'comment_id' })
+    @Column({ name: 'comment_id', nullable: true })
     commentId: string;
 
-    @Column({ name: 'vendor_id' })
+    @Column({ name: 'vendor_id', nullable: true })
     vendorId: string;
 
-    @Column({ name: 'reply_text', type: 'text' })
+    @Column({ name: 'reply_text', type: 'text', nullable: true })
     replyText: string;
 
     @CreateDateColumn({ name: 'created_at' })

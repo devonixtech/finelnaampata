@@ -22,15 +22,15 @@ export class JobLeadResponse {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'job_lead_id', type: 'uuid' })
+    @Column({ name: 'job_lead_id', type: 'uuid', nullable: true })
     @Index()
     jobLeadId: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     message: string;
 
     @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })

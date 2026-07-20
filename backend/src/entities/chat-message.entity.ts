@@ -20,17 +20,17 @@ export class ChatMessage {
     @Index()
     conversation: ChatConversation;
 
-    @Column({ name: 'conversation_id' })
+    @Column({ name: 'conversation_id', nullable: true })
     conversationId: string;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'sender_id' })
     sender: User;
 
-    @Column({ name: 'sender_id' })
+    @Column({ name: 'sender_id', nullable: true })
     senderId: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @Column({ name: 'is_read', default: false })

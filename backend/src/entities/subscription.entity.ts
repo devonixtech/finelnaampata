@@ -25,7 +25,7 @@ export class Subscription {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
@@ -42,10 +42,10 @@ export class Subscription {
     status: SubscriptionStatus;
 
     // Billing
-    @Column({ name: 'start_date', type: 'date' })
+    @Column({ name: 'start_date', type: 'date', nullable: true })
     startDate: Date;
 
-    @Column({ name: 'end_date', type: 'date' })
+    @Column({ name: 'end_date', type: 'date', nullable: true })
     @Index()
     endDate: Date;
 
@@ -53,7 +53,7 @@ export class Subscription {
     autoRenew: boolean;
 
     // Payment
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amount: number;
 
     @Column({ length: 3, default: 'INR' })

@@ -24,11 +24,11 @@ export class Affiliate {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'user_id' })
+    @Column({ name: 'user_id', nullable: true })
     @Index({ unique: true })
     userId: string;
 
-    @Column({ name: 'referral_code', unique: true })
+    @Column({ name: 'referral_code', unique: true, nullable: true })
     @Index()
     referralCode: string;
 

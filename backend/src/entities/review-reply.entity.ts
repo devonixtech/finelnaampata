@@ -17,15 +17,15 @@ export class ReviewReply {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'review_id', type: 'uuid' })
+    @Column({ name: 'review_id', type: 'uuid', nullable: true })
     @Index()
     reviewId: string;
 
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     @Index()
     userId: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @Column({ name: 'is_approved', default: true })

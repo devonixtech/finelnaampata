@@ -27,12 +27,12 @@ export class Transaction {
     @Index()
     subscriptionId: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
     // Payment Details
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amount: number;
 
     @Column({ length: 3, default: 'PKR' })

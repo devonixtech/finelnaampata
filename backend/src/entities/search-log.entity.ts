@@ -14,11 +14,11 @@ export class SearchLog {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column({ nullable: true })
     @Index()
     keyword: string;
 
-    @Column({ name: 'normalized_keyword' })
+    @Column({ name: 'normalized_keyword', nullable: true })
     @Index()
     normalizedKeyword: string;
 

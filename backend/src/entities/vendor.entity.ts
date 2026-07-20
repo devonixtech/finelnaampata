@@ -22,7 +22,7 @@ export class Vendor {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     userId: string;
 
     @Column({ name: 'business_name', nullable: true })

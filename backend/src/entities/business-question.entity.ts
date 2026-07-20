@@ -18,11 +18,11 @@ export class BusinessQuestion {
     category: string;
 
     @ApiProperty()
-    @Column()
+    @Column({ nullable: true, default: '' })
     question: string;
 
     @ApiProperty({ type: [String] })
-    @Column('jsonb')
+    @Column('jsonb', { nullable: true, default: '[]' })
     options: string[];
 
     @ApiProperty()

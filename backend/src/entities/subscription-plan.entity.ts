@@ -20,20 +20,21 @@ export class SubscriptionPlan {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ length: 100 })
+    @Column({ length: 100, nullable: true })
     name: string;
 
     @Column({
         name: 'plan_type',
         type: 'enum',
         enum: SubscriptionPlanType,
+        nullable: true,
     })
     planType: SubscriptionPlanType;
 
     @Column({ nullable: true, type: 'text' })
     description: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     price: number;
 
     @Column({ name: 'billing_cycle', length: 20, default: 'monthly' })

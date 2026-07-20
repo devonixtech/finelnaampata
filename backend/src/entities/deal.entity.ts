@@ -24,15 +24,15 @@ export class Deal {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
-    @Column({ name: 'business_id', type: 'uuid' })
+    @Column({ name: 'business_id', type: 'uuid', nullable: true })
     @Index()
     businessId: string;
 
-    @Column()
+    @Column({ nullable: true })
     title: string;
 
     @Column({ nullable: true, type: 'text' })

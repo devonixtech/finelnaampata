@@ -27,11 +27,11 @@ export class Category {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ unique: true, length: 100 })
+    @Column({ unique: true, length: 100, nullable: true })
     @Index()
     name: string;
 
-    @Column({ unique: true, length: 100 })
+    @Column({ unique: true, length: 100, nullable: true })
     @Index()
     slug: string;
 

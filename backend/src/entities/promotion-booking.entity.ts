@@ -25,7 +25,7 @@ export class PromotionBooking {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
@@ -51,16 +51,16 @@ export class PromotionBooking {
     @Column({ type: 'jsonb', default: '[]' })
     placements: string[]; // e.g., ['homepage', 'category']
 
-    @Column({ name: 'start_time', type: 'timestamp' })
+    @Column({ name: 'start_time', type: 'timestamp', nullable: true })
     startTime: Date;
 
-    @Column({ name: 'end_time', type: 'timestamp' })
+    @Column({ name: 'end_time', type: 'timestamp', nullable: true })
     endTime: Date;
 
-    @Column({ name: 'duration_hours', type: 'int' })
+    @Column({ name: 'duration_hours', type: 'int', nullable: true })
     durationHours: number;
 
-    @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2 })
+    @Column({ name: 'total_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
     totalPrice: number;
 
     @Column({

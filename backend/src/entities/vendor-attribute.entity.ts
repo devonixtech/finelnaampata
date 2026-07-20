@@ -18,17 +18,17 @@ export class VendorAttribute {
     id: string;
 
     @ApiProperty()
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
     @ApiProperty()
-    @Column({ name: 'attribute_key' })
+    @Column({ name: 'attribute_key', nullable: true })
     @Index()
     attributeKey: string;
 
     @ApiProperty()
-    @Column({ name: 'attribute_value', type: 'text' })
+    @Column({ name: 'attribute_value', type: 'text', nullable: true })
     attributeValue: string;
 
     @ApiProperty()

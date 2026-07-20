@@ -25,18 +25,18 @@ export class JobLead {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     @Index()
     userId: string;
 
-    @Column({ name: 'category_id', type: 'uuid' })
+    @Column({ name: 'category_id', type: 'uuid', nullable: true })
     @Index()
     categoryId: string;
 
-    @Column()
+    @Column({ nullable: true })
     title: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     description: string;
 
     @Column({ nullable: true })

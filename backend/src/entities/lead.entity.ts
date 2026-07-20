@@ -34,7 +34,7 @@ export class Lead {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'business_id', type: 'uuid' })
+    @Column({ name: 'business_id', type: 'uuid', nullable: true })
     @Index()
     businessId: string;
 
@@ -46,6 +46,7 @@ export class Lead {
     @Column({
         type: 'enum',
         enum: LeadType,
+        nullable: true,
     })
     @Index()
     type: LeadType;

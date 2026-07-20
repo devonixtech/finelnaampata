@@ -24,13 +24,14 @@ export class BusinessHours {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'business_id', type: 'uuid' })
+    @Column({ name: 'business_id', type: 'uuid', nullable: true })
     businessId: string;
 
     @Column({
         name: 'day_of_week',
         type: 'enum',
         enum: DayOfWeek,
+        nullable: true,
     })
     dayOfWeek: DayOfWeek;
 

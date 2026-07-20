@@ -26,17 +26,18 @@ export class AffiliateReferral {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'affiliate_id' })
+    @Column({ name: 'affiliate_id', nullable: true })
     @Index()
     affiliateId: string;
 
-    @Column({ name: 'referred_user_id' })
+    @Column({ name: 'referred_user_id', nullable: true })
     @Index()
     referredUserId: string;
 
     @Column({
         type: 'enum',
         enum: ReferralType,
+        nullable: true,
     })
     type: ReferralType;
 

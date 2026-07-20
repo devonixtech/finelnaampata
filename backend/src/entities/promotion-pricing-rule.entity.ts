@@ -25,6 +25,7 @@ export class PromotionPricingRule {
         type: 'enum',
         enum: PromotionPlacement,
         unique: true,
+        nullable: true,
     })
     placement: PromotionPlacement;
 

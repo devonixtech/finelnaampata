@@ -22,7 +22,7 @@ export class QAQuestion {
     id: string;
 
     @ApiProperty()
-    @Column({ name: 'business_id', type: 'uuid' })
+    @Column({ name: 'business_id', type: 'uuid', nullable: true })
     @Index()
     businessId: string;
 
@@ -31,7 +31,7 @@ export class QAQuestion {
     business: Listing;
 
     @ApiProperty()
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     @Index()
     userId: string;
 
@@ -40,7 +40,7 @@ export class QAQuestion {
     user: User;
 
     @ApiProperty()
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @ApiProperty({ enum: QAStatus })

@@ -28,7 +28,7 @@ export class PricingPlan {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column({ nullable: true })
     name: string;
 
     @Column({ nullable: true, type: 'text' })
@@ -41,10 +41,10 @@ export class PricingPlan {
     })
     type: PricingPlanType;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     price: number;
 
-    @Column()
+    @Column({ nullable: true })
     duration: number;
 
     @Column({

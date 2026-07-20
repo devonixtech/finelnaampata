@@ -17,7 +17,7 @@ export class BusinessConsentLog {
     @Index()
     userId: string | null;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     @Index()
     vendorId: string;
 
@@ -25,10 +25,10 @@ export class BusinessConsentLog {
     @Index()
     listingId: string | null;
 
-    @Column({ length: 32 })
+    @Column({ length: 32, nullable: true })
     source: BusinessConsentSource;
 
-    @Column({ name: 'accepted_at', type: 'timestamp' })
+    @Column({ name: 'accepted_at', type: 'timestamp', nullable: true })
     acceptedAt: Date;
 
     @Column({ name: 'terms_accepted', default: false })
@@ -64,7 +64,7 @@ export class BusinessConsentLog {
     @Column({ name: 'ip_address', nullable: true, length: 120 })
     ipAddress: string | null;
 
-    @Column({ name: 'retention_until', type: 'timestamp' })
+    @Column({ name: 'retention_until', type: 'timestamp', nullable: true })
     retentionUntil: Date;
 
     @Column({ type: 'jsonb', default: {} })

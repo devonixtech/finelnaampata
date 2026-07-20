@@ -25,7 +25,7 @@ export class ActivePlan {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     vendorId: string;
 
     @Column({ name: 'plan_id', type: 'uuid', nullable: true })
@@ -41,10 +41,10 @@ export class ActivePlan {
     })
     status: ActivePlanStatus;
 
-    @Column({ name: 'start_date', type: 'timestamp' })
+    @Column({ name: 'start_date', type: 'timestamp', nullable: true })
     startDate: Date;
 
-    @Column({ name: 'end_date', type: 'timestamp' })
+    @Column({ name: 'end_date', type: 'timestamp', nullable: true })
     endDate: Date;
 
     @Column({ name: 'amount_paid', type: 'decimal', precision: 10, scale: 2, nullable: true })

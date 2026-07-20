@@ -5,7 +5,7 @@ export class SystemSetting {
     @PrimaryColumn()
     key: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     value: string;
 
     @Column({ type: 'text', nullable: true })

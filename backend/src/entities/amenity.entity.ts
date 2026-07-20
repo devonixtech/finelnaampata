@@ -12,7 +12,7 @@ export class Amenity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ unique: true, length: 100 })
+    @Column({ unique: true, length: 100, nullable: true })
     name: string;
 
     @Column({ nullable: true, length: 50 })

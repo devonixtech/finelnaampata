@@ -20,15 +20,15 @@ export class Review {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'business_id', type: 'uuid' })
+    @Column({ name: 'business_id', type: 'uuid', nullable: true })
     @Index()
     businessId: string;
 
-    @Column({ name: 'user_id', type: 'uuid' })
+    @Column({ name: 'user_id', type: 'uuid', nullable: true })
     @Index()
     userId: string;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'int', nullable: true })
     @Index()
     rating: number;
 

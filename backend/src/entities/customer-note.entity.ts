@@ -16,35 +16,35 @@ export class CustomerNote {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'conversation_id', type: 'uuid' })
+    @Column({ name: 'conversation_id', type: 'uuid', nullable: true })
     conversationId: string;
 
     @ManyToOne(() => ChatConversation)
     @JoinColumn({ name: 'conversation_id' })
     conversation: ChatConversation;
 
-    @Column({ name: 'vendor_id', type: 'uuid' })
+    @Column({ name: 'vendor_id', type: 'uuid', nullable: true })
     vendorId: string;
 
     @ManyToOne(() => Vendor)
     @JoinColumn({ name: 'vendor_id' })
     vendor: Vendor;
 
-    @Column({ name: 'customer_id', type: 'uuid' })
+    @Column({ name: 'customer_id', type: 'uuid', nullable: true })
     customerId: string;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'customer_id' })
     customer: User;
 
-    @Column({ name: 'created_by_user_id', type: 'uuid' })
+    @Column({ name: 'created_by_user_id', type: 'uuid', nullable: true })
     createdByUserId: string;
 
     @ManyToOne(() => User)
     @JoinColumn({ name: 'created_by_user_id' })
     createdByUser: User;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     content: string;
 
     @CreateDateColumn({ name: 'created_at' })

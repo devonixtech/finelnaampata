@@ -21,16 +21,16 @@ export class Payout {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ name: 'affiliate_id', type: 'uuid' })
+    @Column({ name: 'affiliate_id', type: 'uuid', nullable: true })
     affiliateId: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     amount: number;
 
-    @Column({ name: 'payment_method', length: 50 })
+    @Column({ name: 'payment_method', length: 50, nullable: true })
     paymentMethod: string;
 
-    @Column({ name: 'payment_details', type: 'text' })
+    @Column({ name: 'payment_details', type: 'text', nullable: true })
     paymentDetails: string;
 
     @Column({

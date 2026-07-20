@@ -5,11 +5,11 @@ export class City {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ length: 100 })
+    @Column({ length: 100, nullable: true })
     name: string;
 
     @Index({ unique: true })
-    @Column({ length: 100 })
+    @Column({ length: 100, nullable: true })
     slug: string;
 
     @Column({ length: 100, nullable: true })

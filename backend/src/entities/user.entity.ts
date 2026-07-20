@@ -55,13 +55,13 @@ export class User {
     @Column({ nullable: true, select: false })
     password: string;
 
-    @Column({ unique: true })
+    @Column({ unique: true, nullable: true })
     email: string;
 
     @Column({ nullable: true, length: 20 })
     phone: string;
 
-    @Column({ name: 'full_name' })
+    @Column({ name: 'full_name', nullable: true })
     fullName: string;
 
     @Column({ name: 'avatar_url', nullable: true, type: 'text' })
