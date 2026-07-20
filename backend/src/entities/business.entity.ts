@@ -114,6 +114,7 @@ export class Listing {
     @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
     longitude: number;
 
+    /*
     @Column({
         type: 'geography',
         spatialFeatureType: 'Point',
@@ -122,6 +123,7 @@ export class Listing {
     })
     @Index({ spatial: true })
     location: string;
+    */
 
     // Media
     @Column({ name: 'logo_url', nullable: true, type: 'text' })

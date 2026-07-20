@@ -436,10 +436,12 @@ export class BusinessesService implements OnModuleInit {
         // ST_SetSRID(... ) expressions that fail at runtime. We store the same POINT string in
         // a plain text column instead and rely on lat/lng + earthdistance fallbacks for queries.
         if (!this.isPostgisAvailable) {
+            /*
             const locationColumn = this.listingRepository.metadata.findColumnWithPropertyName('location');
             if (locationColumn) {
                 locationColumn.type = 'text' as any;
             }
+            */
         }
 
         // Backfill logic for recent_until and performance indexes
@@ -687,7 +689,7 @@ export class BusinessesService implements OnModuleInit {
             isSponsored: hasBoostedSub,
             approvedAt: hasCoordinates ? now : (null as any),
             recentUntil: hasCoordinates ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) : (null as any),
-            location: createBusinessDto.latitude && createBusinessDto.longitude ? `POINT(${createBusinessDto.longitude} ${createBusinessDto.latitude})` : null,
+            // location: createBusinessDto.latitude && createBusinessDto.longitude ? `POINT(${createBusinessDto.longitude} ${createBusinessDto.latitude})` : null,
             subcategories: createBusinessDto.subCategoryIds?.length ? createBusinessDto.subCategoryIds.map(id => ({ id } as any)) : [],
         });
 
@@ -1020,6 +1022,7 @@ export class BusinessesService implements OnModuleInit {
 
         // Distance Filter & Selection using PostGIS or earthdistance fallback
         if (latitude && longitude) {
+            /* 
             if (this.isPostgisAvailable) {
                 queryBuilder.addSelect(
                     `ST_Distance(listing.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)`,
@@ -1033,6 +1036,7 @@ export class BusinessesService implements OnModuleInit {
                     );
                 }
             } else {
+            */
                 queryBuilder.addSelect(
                     `earth_distance(ll_to_earth(listing.latitude, listing.longitude), ll_to_earth(:lat, :lng))`,
                     'distance_meters'
@@ -1045,7 +1049,7 @@ export class BusinessesService implements OnModuleInit {
                         { radiusMeters }
                     );
                 }
-            }
+            // }
             queryBuilder.setParameter('lat', latitude);
             queryBuilder.setParameter('lng', longitude);
         }
@@ -1502,26 +1506,6 @@ export class BusinessesService implements OnModuleInit {
             searchKeywords: ______,
             ...updateData
         } = updateBusinessDto;
-
-        // Sanitize offerExpiresAt to prevent invalid date errors
-        if (
-            updateData.offerExpiresAt === '' || 
-            updateData.offerExpiresAt === null || 
-            (typeof updateData.offerExpiresAt === 'string' && (updateData.offerExpiresAt.includes('NaN') || updateData.offerExpiresAt.includes('Invalid')))
-        ) {
-            updateData.offerExpiresAt = null as any;
-        }
-
-        // Apply updates to the listing object
-        Object.assign(listing, updateData);
-
-        if (listing.latitude && listing.longitude) {
-            listing.location = `POINT(${listing.longitude} ${listing.latitude})`;
-            if (listing.status === BusinessStatus.PENDING_GEOCODE) {
-                this.markApproved(listing);
-            }
-        } else {
-            listing.location = null as any;
             if (listing.address && listing.status === BusinessStatus.APPROVED) {
                 this.markPendingGeocode(listing);
             }
