@@ -145,7 +145,7 @@ export function SearchableSelect({
                                     const isSelected = option.value === value;
                                     return (
                                         <button
-                                            key={option.value}
+                                            key={`${option.value}-${option.label}`}
                                             type="button"
                                             onClick={() => {
                                                 onChange(option.value);
