@@ -9,7 +9,8 @@ import { api } from '../../../lib/api';
 export async function generateStaticParams() {
     try {
         const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/categories');
-        const categories = await res.json();
+        const json = await res.json();
+        const categories = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
         return [
             { categorySlug: 'template' },
             { categorySlug: 'default' },

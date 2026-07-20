@@ -10,7 +10,8 @@ import { api } from '../../../lib/api';
 export async function generateStaticParams() {
     try {
         const res = await fetch('https://local-business-listing-directory-production.up.railway.app/api/v1/cities');
-        const cities = await res.json();
+        const json = await res.json();
+        const cities = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
         const paths: { cityName: string }[] = [
             { cityName: 'template' },
             { cityName: 'default' }

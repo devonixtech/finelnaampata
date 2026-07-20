@@ -1506,9 +1506,9 @@ export class BusinessesService implements OnModuleInit {
             searchKeywords: ______,
             ...updateData
         } = updateBusinessDto;
-            if (listing.address && listing.status === BusinessStatus.APPROVED) {
-                this.markPendingGeocode(listing);
-            }
+
+        if (listing.address && listing.status === BusinessStatus.APPROVED) {
+            this.markPendingGeocode(listing);
         }
 
         await this.listingRepository.save(listing);

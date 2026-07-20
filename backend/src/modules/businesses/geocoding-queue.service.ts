@@ -110,7 +110,7 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
             this.logger.log(`📍 Reusing coordinates for listing "${listing.title}" from existing listing.`);
             listing.latitude = Number(existing.latitude);
             listing.longitude = Number(existing.longitude);
-            listing.location = `POINT(${existing.longitude} ${existing.latitude})`;
+            (listing as any).location = `POINT(${existing.longitude} ${existing.latitude})`;
             listing.status = BusinessStatus.APPROVED;
             listing.approvedAt = listing.approvedAt || new Date();
             listing.rejectedAt = null as any;
@@ -129,7 +129,7 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`📍 Geocoded listing "${listing.title}" successfully: (${coords.lat}, ${coords.lng})`);
         listing.latitude = coords.lat;
         listing.longitude = coords.lng;
-        listing.location = `POINT(${coords.lng} ${coords.lat})`;
+        (listing as any).location = `POINT(${coords.lng} ${coords.lat})`;
         listing.status = BusinessStatus.APPROVED;
         listing.approvedAt = listing.approvedAt || new Date();
         listing.rejectedAt = null as any;
