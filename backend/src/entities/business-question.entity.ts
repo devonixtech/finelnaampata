@@ -14,7 +14,7 @@ export class BusinessQuestion {
     id: string;
 
     @ApiProperty()
-    @Column()
+    @Column({ nullable: true, default: '' })
     category: string;
 
     @ApiProperty()
