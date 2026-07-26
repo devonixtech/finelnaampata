@@ -135,7 +135,7 @@ const OPERATIONAL_STRUCTURE_SECTIONS = {
 };
 
 function BusinessSetupWizardContent() {
-    const { user, syncProfile } = useAuth();
+    const { user, loading: authLoading, syncProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { isFree, hasFeature, getFeatureValue } = usePlanFeature();
@@ -307,6 +307,8 @@ function BusinessSetupWizardContent() {
 
     // Load initial configuration
     useEffect(() => {
+        if (authLoading) return;
+        
         const loadInitialData = async () => {
             try {
                 if (!user) {
@@ -457,7 +459,7 @@ function BusinessSetupWizardContent() {
         };
 
         loadInitialData();
-    }, [user, router]);
+    }, [user, authLoading, router]);
 
     // Setup session & device keys
     useEffect(() => {
