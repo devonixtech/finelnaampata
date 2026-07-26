@@ -3000,16 +3000,18 @@ function BusinessSetupWizardContent() {
 
                         {/* Navigation controls */}
                         <div className="flex justify-between items-center p-6 bg-slate-50 border-t border-slate-100 sticky bottom-0 z-50">
-                            <button
-                                type="button"
-                                onClick={() => handleSaveStep(false)}
-                                disabled={currentStep === 0 || saving}
-                                className="inline-flex items-center gap-1.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                            >
-                                <ChevronLeft className="w-4 h-4" /> Back
-                            </button>
+                            <div className="flex-1">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSaveStep(false)}
+                                    disabled={currentStep === 0 || saving}
+                                    className={`inline-flex items-center gap-1.5 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-500 hover:text-slate-800 disabled:opacity-0 disabled:pointer-events-none transition-colors ${currentStep === 0 ? 'invisible' : ''}`}
+                                >
+                                    <ChevronLeft className="w-4 h-4" /> Back
+                                </button>
+                            </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-1 justify-end items-center gap-3">
                                 <button
                                     type="button"
                                     onClick={handleReset}
