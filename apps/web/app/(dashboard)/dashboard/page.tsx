@@ -92,9 +92,9 @@ export default function GenericDashboard() {
                     ]);
                     setStats({
                         ...(statsData || {}),
-                        savedCount: favoritesData.data?.length || 0,
-                        reviewsCount: reviewsData.data?.length || 0,
-                        unreadNotifs: notifsData.data?.filter((n: any) => !n.isRead).length || 0
+                        savedCount: favoritesData?.data?.length || 0,
+                        reviewsCount: reviewsData?.data?.length || 0,
+                        unreadNotifs: notifsData?.data?.filter((n: any) => !n.isRead).length || 0
                     });
                     setVendorProfile(businessProfile);
                     setAffiliateStats(affiliateData);
