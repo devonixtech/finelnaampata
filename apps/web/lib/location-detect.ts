@@ -268,13 +268,37 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
             coords = await new Promise<GeoCoords | null>((resolve) => {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                    () => resolve(null),
+                    (err) => {
+                        console.warn('[location-detect] Geolocation failed/denied:', err.message);
+                        resolve(null);
+                    },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
                 );
             });
         }
     } catch {
         // Ignore GPS lookup failure and fall through.
+    }
+
+    // If GPS is denied or fails, fallback to IP Geolocation immediately
+    if (!coords) {
+        try {
+            console.log('[location-detect] Falling back to IP Geolocation');
+            const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client`);
+            if (res.ok) {
+                const data = await res.json();
+                const cityName = data.city || data.locality || data.principalSubdivision;
+                if (cityName) {
+                    const matched = matchCityInList(cities, cityName);
+                    if (matched) return matched.name;
+                }
+                if (data.latitude && data.longitude) {
+                    coords = { latitude: data.latitude, longitude: data.longitude };
+                }
+            }
+        } catch (e) {
+            console.warn("[location-detect] IP Geolocation fallback failed:", e);
+        }
     }
 
     if (!coords) return null;
