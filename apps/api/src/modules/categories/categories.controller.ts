@@ -16,6 +16,17 @@ export class CategoriesController {
         return this.categoriesService.getPopular(limit);
     }
 
+    @Get('suggest')
+    async suggestCategory(
+        @Query('title') title: string,
+        @Query('description') description: string
+    ): Promise<Category[]> {
+        if (!title && !description) {
+            return [];
+        }
+        return this.categoriesService.suggestCategory(title || '', description || '');
+    }
+
     /**
      * Admin-only: Bulk seed 200+ Google Business Categories into the database.
      * Usage: POST /categories/admin/seed-bulk

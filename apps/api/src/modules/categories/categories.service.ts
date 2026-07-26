@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category, CategoryStatus, CategorySource } from '../../entities/category.entity';
+import { GoogleGenAI } from '@google/genai';
 
 function toSlug(name: string): string {
     return name
@@ -334,5 +335,49 @@ export class CategoriesService implements OnModuleInit {
 
     async getCount(): Promise<number> {
         return this.categoriesRepository.count();
+    }
+
+    async suggestCategory(title: string, description: string): Promise<Category[]> {
+        const categories = await this.findAll();
+        
+        if (!process.env.GEMINI_API_KEY) {
+            console.warn('[CategoriesService] GEMINI_API_KEY is not set. Cannot use AI suggestion.');
+            return [];
+        }
+
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            
+            const categoryNames = categories.map(c => c.name);
+            const categoriesListText = categoryNames.map((name, i) => `${i + 1}. ${name}`).join('\n');
+            
+            const prompt = `You are a highly intelligent business category matching assistant.
+Given a business title and description, you must find the single best matching category from the provided list.
+You must return ONLY the exact name of the category from the list. Do not explain, do not add quotes, just return the exact string.
+
+Business Title: "${title}"
+Business Description: "${description}"
+
+Categories List:
+${categoriesListText}`;
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            const suggestedName = response.text?.trim() || '';
+            const matchedCategory = categories.find(c => c.name.toLowerCase() === suggestedName.toLowerCase());
+
+            if (matchedCategory) {
+                return [matchedCategory];
+            } else {
+                console.warn(`[CategoriesService] Gemini returned a category that doesn't match our list: "${suggestedName}"`);
+                return [];
+            }
+        } catch (error) {
+            console.error('[CategoriesService] Error in AI category suggestion:', error);
+            return [];
+        }
     }
 }
