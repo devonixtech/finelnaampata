@@ -217,11 +217,18 @@ export function matchCityInList(cities: City[], nameToMatch: string): City | und
     return undefined;
 }
 
-export function findNearestCity(cities: City[], latitude: number, longitude: number): City | null {
-    const withCoords = cities.filter(
+export function findNearestCity(cities: City[], latitude: number, longitude: number, country?: string): City | null {
+    let withCoords = cities.filter(
         (c) => c.latitude != null && c.longitude != null && !isNaN(parseFloat(String(c.latitude))) && !isNaN(parseFloat(String(c.longitude))),
     );
     if (withCoords.length === 0) return null;
+
+    if (country) {
+        const countryFiltered = withCoords.filter((c) => cityMatchesCountry(c, country));
+        if (countryFiltered.length > 0) {
+            withCoords = countryFiltered;
+        }
+    }
 
     const toRad = (v: number) => (v * Math.PI) / 180;
     const R = 6371; // Earth radius in km
@@ -262,6 +269,7 @@ export function inferLocationFromCoords(
 
 export async function detectNearestCityName(cities: City[]): Promise<string | null> {
     let coords: GeoCoords | null = null;
+    let detectedCountry: string | null = null;
 
     try {
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -292,6 +300,9 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
                     const matched = matchCityInList(cities, cityName);
                     if (matched) return matched.name;
                 }
+                if (data.countryName) {
+                    detectedCountry = data.countryName;
+                }
                 if (data.latitude && data.longitude) {
                     coords = { latitude: data.latitude, longitude: data.longitude };
                 }
@@ -316,6 +327,9 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
                 if (data.results && data.results.length > 0) {
                     for (const result of data.results) {
                         for (const comp of result.address_components || []) {
+                            if (comp.types.includes('country')) {
+                                detectedCountry = comp.long_name;
+                            }
                             if (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2') || comp.types.includes('sublocality_level_1')) {
                                 const matched = matchCityInList(cities, comp.long_name);
                                 if (matched) return matched.name;
@@ -337,6 +351,7 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
         if (res.ok) {
             const data = await res.json();
             const addr = data.address || {};
+            if (addr.country) detectedCountry = addr.country;
             const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state_district || addr.state;
             if (cityName) {
                 const matched = matchCityInList(cities, cityName);
@@ -352,6 +367,7 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
         const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
         if (res.ok) {
             const data = await res.json();
+            if (data.countryName) detectedCountry = data.countryName;
             const cityName = data.city || data.locality || data.principalSubdivision;
             if (cityName) {
                 const matched = matchCityInList(cities, cityName);
@@ -363,7 +379,7 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
     }
 
     // 4. Fallback: calculate spherical Haversine distance for cities that DO have coordinates
-    const nearest = findNearestCity(cities, lat, lng);
+    const nearest = findNearestCity(cities, lat, lng, detectedCountry || undefined);
     return nearest?.name || null;
 }
 
