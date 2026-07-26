@@ -57,7 +57,9 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
             const suggestions = await api.categories.suggest(formData.title || '', formData.description || '');
             if (suggestions && suggestions.length > 0) {
                 const bestCategory = suggestions[0].id;
+                const bestCategoryName = suggestions[0].name;
                 setFormData(p => ({ ...p, categoryId: bestCategory, subCategoryIds: [] }));
+                alert(`Suggestion Done! 🎉\n\nBased on your business details, we have automatically selected:\n"${bestCategoryName}"`);
             } else {
                 alert("We couldn't find a matching category for your business name/description. Please select one manually.");
             }
