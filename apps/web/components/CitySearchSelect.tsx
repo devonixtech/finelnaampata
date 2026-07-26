@@ -41,7 +41,7 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
     const handleAutoDetect = async () => {
         setIsLocating(true);
         try {
-            const cityName = await detectNearestCityName(sortedCities);
+            const cityName = await detectNearestCityName(sortedCities, true);
             if (cityName) {
                 onChange(cityName);
                 setIsOpen(false);

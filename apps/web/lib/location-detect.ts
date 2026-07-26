@@ -267,22 +267,20 @@ export function inferLocationFromCoords(
     };
 }
 
-export async function detectNearestCityName(cities: City[]): Promise<string | null> {
+export async function detectNearestCityName(cities: City[], showAlertIfDenied = false): Promise<string | null> {
     let coords: GeoCoords | null = null;
     let detectedCountry: string | null = null;
 
     try {
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            coords = await new Promise<GeoCoords | null>((resolve) => {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                    (err) => {
-                        console.warn('[location-detect] Geolocation failed/denied:', err.message);
-                        resolve(null);
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
-                );
-            });
+            const gpsResult = await tryDetectDeviceLocation();
+            if (gpsResult.ok) {
+                coords = gpsResult.coords;
+            } else {
+                if (showAlertIfDenied && gpsResult.reason === 'denied') {
+                    alert(gpsResult.message);
+                }
+            }
         }
     } catch {
         // Ignore GPS lookup failure and fall through.
