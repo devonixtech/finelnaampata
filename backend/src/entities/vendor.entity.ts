@@ -58,6 +58,9 @@ export class Vendor {
     @Column({ name: 'business_hours', nullable: true, type: 'jsonb' })
     businessHours: Record<string, { isOpen: boolean, openTime: string, closeTime: string }>;
 
+    @Column({ name: 'shop_photos', type: 'jsonb', nullable: true, default: '[]' })
+    shopPhotos: string[];
+
     @Column({ name: 'social_links', nullable: true, type: 'jsonb', default: '[]' })
     socialLinks: { platform: string, url: string, label?: string }[];
 

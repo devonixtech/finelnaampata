@@ -26,9 +26,9 @@ type ListingFilter = 'processing' | 'approved' | 'rejected' | 'all';
 const StatusPill = ({ status }: { status: string }) => {
     const map: Record<string, { label: string; cls: string; Icon: any }> = {
         pending_geocode: { label: 'Map Processing', cls: 'bg-amber-50 text-amber-700 border-amber-200', Icon: Clock },
-        approved: { label: 'Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: CheckCircle2 },
-        rejected: { label: 'Rejected', cls: 'bg-red-50 text-red-600 border-red-200', Icon: XCircle },
-        suspended: { label: 'Suspended', cls: 'bg-slate-100 text-slate-500 border-slate-200', Icon: AlertCircle },
+        approved: { label: 'Active', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: CheckCircle2 },
+        rejected: { label: 'Blocked', cls: 'bg-red-50 text-red-600 border-red-200', Icon: XCircle },
+        suspended: { label: 'Blocked', cls: 'bg-slate-100 text-slate-500 border-slate-200', Icon: AlertCircle },
     };
     const resolved = map[status] || map.pending_geocode;
     return (
@@ -80,7 +80,7 @@ export default function AdminListingsPage() {
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Listing Status Monitor</h1>
                     <p className="text-slate-400 font-medium mt-1">
-                        {meta.total} listings across processing, approved, rejected, and suspended states.
+                        {meta.total} listings across processing, active, blocked, and map processing states.
                     </p>
                 </div>
                 <button
@@ -92,11 +92,11 @@ export default function AdminListingsPage() {
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {(['processing', 'approved', 'rejected', 'all'] as const).map((tab) => (
+                {(['processing', 'approved', 'suspended', 'all'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => {
-                            setFilter(tab);
+                            setFilter(tab as ListingFilter);
                             setPage(1);
                         }}
                         className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-black text-sm transition-all border whitespace-nowrap ${
@@ -105,7 +105,7 @@ export default function AdminListingsPage() {
                                 : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
                         }`}
                     >
-                        <span className="capitalize">{tab}</span>
+                        <span className="capitalize">{tab === 'processing' ? 'Map Processing' : tab === 'approved' ? 'Active' : tab === 'suspended' ? 'Blocked' : 'All Listings'}</span>
                         {filter === tab && (
                             <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] text-white">
                                 {meta.total}

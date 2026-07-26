@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobLeadsService } from './job-leads.service';
 import { JobLeadsController } from './job-leads.controller';
 import { JobLead, JobLeadResponse, Listing, Vendor, Category } from '../../entities';
+import { SystemSetting } from '../../entities/system-setting.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
@@ -14,6 +15,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
             Listing,
             Vendor,
             Category,
+            SystemSetting,
         ]),
         NotificationsModule,
         SubscriptionsModule,

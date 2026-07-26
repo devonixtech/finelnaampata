@@ -238,6 +238,14 @@ export class VendorsService {
             vendor.slug = await this.ensureUniqueSlug(vendor.businessName || 'vendor', vendor.id);
         }
 
+        // Restrict shopPhotos to paid plans
+        if (updateVendorDto.shopPhotos !== undefined) {
+            const features = this.resolvePublicFeatures(vendor);
+            if (!features.canCreateAlbums && updateVendorDto.shopPhotos.length > 0) {
+                throw new ForbiddenException('Shop photos are available on paid plans only. Please upgrade your subscription.');
+            }
+        }
+
         Object.assign(vendor, updateVendorDto);
         await this.vendorRepository.save(vendor);
         console.log(`[VendorsService] Vendor profile saved successfully for user ${userId}`);

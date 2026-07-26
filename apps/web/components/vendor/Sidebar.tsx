@@ -12,14 +12,27 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl, api } from '../../lib/api';
 import BusinessAvatar from '../BusinessAvatar';
-import { chatApi } from '../../services/chat.service';
 import { usePlanFeature, DashboardFeatures } from '../../hooks/usePlanFeature';
 import { useSocket } from '../../context/SocketContext';
 
 interface SidebarProps {
     isOpen: boolean;
     onClose: () => void;
+}
 
+interface MenuItem {
+    name: string;
+    icon: any;
+    href: string;
+    badge: string | null;
+    feature?: keyof DashboardFeatures;
+    iconColor?: string;
+    description?: string;
+}
+
+interface MenuSection {
+    title: string;
+    items: MenuItem[];
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -46,13 +59,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isVendorOrAdmin = user?.role === 'vendor' || user?.role === 'admin' || user?.role === 'superadmin';
             if (!isVendorOrAdmin) return;
 
-            api.broadcasts.getStats()
+            api.broadcasts.getStats({ silent: true })
                 .then((res: any) => setNewBroadcastCount(res?.newCount || 0))
                 .catch(() => { });
         };
 
         if (user?.role === 'vendor') {
-            api.businessSetup.getStatus()
+            api.businessSetup.getStatus({ silent: true })
                 .then((res: any) => setIsSetupComplete(res?.isCompleted || false))
                 .catch(() => setIsSetupComplete(false));
         } else {
@@ -64,80 +77,99 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         return () => clearInterval(interval);
     }, [user]);
 
-    const menuItems: { name: string; icon: any; href: string; badge: string | null; feature?: keyof DashboardFeatures; iconColor?: string; description?: string }[] = [
-        { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null, description: 'Overview of your activity' },
-        { name: 'List Your Business', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
-        { name: 'My Listings', icon: ListTree, href: '/listings', badge: null, feature: 'showListings', description: 'Manage your published businesses' },
-        { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing', description: 'Add a new business listing' },
-        { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },
-        { name: 'Deals', icon: Megaphone, href: '/deals', badge: null, feature: 'showOffers', description: 'Promotional offers you have published' },
-        { name: 'Events', icon: Clock, href: '/manage-events', badge: null, feature: 'showOffers', description: 'Upcoming events you are hosting' },
-        { name: 'Reviews', icon: Star, href: '/reviews', badge: null, feature: 'showReviews', description: 'My Reviews — ratings left by customers' },
-        { name: 'Analytics', icon: BarChart, href: '/analytics', badge: null, feature: 'showAnalytics', description: 'Performance and traffic insights' },
-        { name: 'Saved Businesses', icon: Heart, href: '/saved', badge: null, feature: 'showSaved', description: 'Businesses you have bookmarked' },
-        { name: 'Following', icon: UserPlus, href: '/following', badge: null, feature: 'showFollowing', description: 'Businesses you follow for updates' },
-        { name: 'Queries', icon: Send, href: '/messages', badge: newEnquiryCount > 0 ? String(newEnquiryCount) : null, feature: 'showQueries', description: 'Direct customer messages & contact requests' },
-        { name: 'Live Chat', icon: MessageSquare, iconColor: 'text-emerald-500', href: '/chat', badge: unreadChatCount > 0 ? String(unreadChatCount) : null, feature: 'showChat', description: 'Real-time chat with customers' },
-        { name: 'Customer Notes', icon: FileText, href: '/notes', badge: null, feature: 'showCustomerNotes', description: 'Private notes for customer follow-ups & CRM' },
-        { name: 'Hot Demand Insights', icon: TrendingUp, href: '/demand', badge: null, feature: 'showDemand', description: 'Trending searches in your categories' },
-        { name: 'Subscription & Billing', icon: CreditCard, href: '/subscription', badge: null, description: 'Your plan, invoices and renewals' },
-        { name: 'Broadcast Feed', icon: Megaphone, href: '/broadcasts', badge: newBroadcastCount > 0 ? String(newBroadcastCount) : null, feature: 'showBroadcast', description: 'My Broadcasts — service requests from customers' },
-        { name: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : null, description: 'Alerts — system & engagement notifications' },
-        { name: 'Affiliate', icon: Gift, href: '/affiliate', badge: 'Rewards', description: 'Refer friends and earn rewards' },
-        { name: 'Settings', icon: Settings, href: '/settings', badge: null, description: 'Account preferences and security' },
+    const rawSections: MenuSection[] = [
+        {
+            title: "OVERVIEW",
+            items: [
+                { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null, description: 'Overview of your activity' },
+                { name: 'List Your Business', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
+            ]
+        },
+        {
+            title: "BUSINESS & PROMOTIONS",
+            items: [
+                { name: 'My Listings', icon: ListTree, href: '/listings', badge: null, feature: 'showListings', description: 'Manage your published businesses' },
+                { name: 'Add Listing', icon: Plus, href: '/add-listing', badge: null, feature: 'canAddListing', description: 'Add a new business listing' },
+                { name: 'Offers', icon: Megaphone, href: '/deals', badge: null, feature: 'showOffers', description: 'Promotional offers you have published' },
+                { name: 'Events', icon: Clock, href: '/manage-events', badge: null, feature: 'showOffers', description: 'Upcoming events you are hosting' },
+            ]
+        },
+        {
+            title: "LEADS & CUSTOMERS",
+            items: [
+                { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },
+                { name: 'Queries', icon: Send, href: '/messages', badge: newEnquiryCount > 0 ? String(newEnquiryCount) : null, feature: 'showQueries', description: 'Direct customer messages & contact requests' },
+                { name: 'Live Chat', icon: MessageSquare, iconColor: 'text-emerald-500', href: '/chat', badge: unreadChatCount > 0 ? String(unreadChatCount) : null, feature: 'showChat', description: 'Real-time chat with customers' },
+                { name: 'Reviews', icon: Star, href: '/reviews', badge: null, feature: 'showReviews', description: 'My Reviews — ratings left by customers' },
+                { name: 'Broadcast Feed', icon: Megaphone, href: '/broadcasts', badge: newBroadcastCount > 0 ? String(newBroadcastCount) : null, feature: 'showBroadcast', description: 'My Broadcasts — service requests from customers' },
+                { name: 'Customer Notes', icon: FileText, href: '/notes', badge: null, feature: 'showCustomerNotes', description: 'Private notes for customer follow-ups & CRM' },
+            ]
+        },
+        {
+            title: "INSIGHTS & GROWTH",
+            items: [
+                { name: 'Analytics', icon: BarChart, href: '/analytics', badge: null, feature: 'showAnalytics', description: 'Performance and traffic insights' },
+                { name: 'Hot Demand Insights', icon: TrendingUp, href: '/demand', badge: null, feature: 'showDemand', description: 'Trending searches in your categories' },
+                { name: 'Affiliate Rewards', icon: Gift, href: '/affiliate', badge: 'Rewards', description: 'Refer friends and earn rewards' },
+            ]
+        },
+        {
+            title: "ACCOUNT & SETTINGS",
+            items: [
+                { name: 'Subscription & Billing', icon: CreditCard, href: '/subscription', badge: null, description: 'Your plan, invoices and renewals' },
+                { name: 'Notifications', icon: Bell, href: '/notifications', badge: unreadNotificationCount > 0 ? String(unreadNotificationCount) : null, description: 'Alerts — system & engagement notifications' },
+                { name: 'Saved Businesses', icon: Heart, href: '/saved', badge: null, feature: 'showSaved', description: 'Businesses you have bookmarked' },
+                { name: 'Following', icon: UserPlus, href: '/following', badge: null, feature: 'showFollowing', description: 'Businesses you follow for updates' },
+                { name: 'Settings', icon: Settings, href: '/settings', badge: null, description: 'Account preferences and security' },
+            ]
+        }
     ];
 
-    const filteredItems = menuItems.filter(item => {
-        // Show all items to admins except upgrade CTA
-        if (user?.role === 'admin' || user?.role === 'superadmin') {
-            return item.name !== 'List Your Business';
-        }
+    // Filter items based on user role and plan features
+    const filteredSections: MenuSection[] = rawSections.map(section => {
+        const validItems = section.items.filter(item => {
+            if (user?.role === 'admin' || user?.role === 'superadmin') {
+                return item.name !== 'List Your Business';
+            }
 
-        if (user?.role === 'vendor') {
-            if (isSetupComplete !== true) {
-                const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
-                if (!allowedForUsers) return false;
+            if (user?.role === 'vendor') {
+                // User requested: Even if profile is not complete, show all things
+                // But keep 'List Your Business' visible so they can finish it
                 return item.feature ? hasFeature(item.feature) : true;
             }
-            if (item.name === 'List Your Business') return false;
-            return item.feature ? hasFeature(item.feature) : true;
-        }
 
-        // For regular users/customers, show a limited subset
-        const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
-        if (!allowedForUsers) return false;
-        return item.feature ? hasFeature(item.feature) : true;
-    });
+            // Customer / Regular User
+            const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
+            if (!allowedForUsers) return false;
+            return item.feature ? hasFeature(item.feature) : true;
+        });
+
+        return { title: section.title, items: validItems };
+    }).filter(section => section.items.length > 0);
 
     const SidebarInner = () => (
         <div className="flex flex-col h-full">
             {/* Brand Logo or User Profile Section */}
-            <div className="flex flex-col items-center mb-10 pt-4 px-4">
-                <div className="relative mb-5 group cursor-pointer">
+            <div className="flex flex-col items-center mb-6 pt-4 px-4 shrink-0">
+                <div className="relative mb-4 group cursor-pointer">
                     <div className="absolute inset-0 bg-indigo-500 rounded-[32px] blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
                     <BusinessAvatar
                         src={getImageUrl(user?.avatarUrl)}
                         alt={user?.fullName || 'Business User'}
                         size="lg"
-                        className="relative z-10  shadow-indigo-100 transition-all duration-500 group-hover:scale-[1.02] ring-4 ring-white"
+                        className="relative z-10 shadow-indigo-100 transition-all duration-500 group-hover:scale-[1.02] ring-4 ring-white"
                     />
-
                 </div>
 
                 <div className="text-center w-full">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <h2 className="text-lg font-black text-slate-900 truncate max-w-[180px] tracking-tight">
+                        <h2 className="text-base font-black text-slate-900 truncate max-w-[180px] tracking-tight">
                             {user?.fullName?.split(' ')[0] || 'Member'}
                         </h2>
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     </div>
 
                     <div className="flex flex-col items-center gap-1.5">
-                        {/* <div className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-xl">
-                            <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.15em] block">
-                                {user?.role || 'User'} Account
-                            </span>
-                        </div> */}
                         {user?.role === 'vendor' && (
                             <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 rounded-lg border border-indigo-100/50">
                                 <TrendingUp className="w-3 h-3 text-indigo-600" />
@@ -148,63 +180,68 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
             </div>
 
-            {/* Nav */}
-            <nav className="flex-grow space-y-1 overflow-y-auto px-4 custom-scrollbar">
-                {filteredItems.map(item => {
-                    const isActive = pathname === item.href;
-                    const isEnquiries = item.name === 'Queries';
-                    return (
-                        <Link
-                            key={item.name}
-                            href={item.href}
-                            title={item.description || item.name}
-                            aria-label={item.description || item.name}
-                            className={`flex items-center justify-between px-4 py-3.5 rounded-2xl group transition-all duration-300 relative overflow-hidden ${isActive
-                                ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 translate-x-1'
-                                : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 hover:translate-x-1'
-                            }`}
-                        >
-                            <div className="flex items-center gap-3.5 relative z-10">
-                                <item.icon className={`w-5 h-5 transition-all duration-500 ${isActive
-                                    ? 'text-white'
-                                    : (item as any).iconColor && !isActive
-                                        ? `${(item as any).iconColor} group-hover:scale-110`
-                                        : 'text-slate-400 group-hover:text-indigo-500 group-hover:scale-110'
-                                    }`} />
-                                <span className={`text-[13px] tracking-tight transition-all ${isActive ? 'font-black' : 'font-bold'}`}>
-                                    {item.name}
-                                </span>
-                            </div>
+            {/* Nav with Section Headers */}
+            <nav className="flex-grow space-y-6 overflow-y-auto px-4 custom-scrollbar">
+                {filteredSections.map(section => (
+                    <div key={section.title} className="space-y-1.5">
+                        <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                            {section.title}
+                        </p>
+                        <div className="space-y-1">
+                            {section.items.map(item => {
+                                const isActive = pathname === item.href;
+                                const isEnquiries = item.name === 'Queries';
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        title={item.description || item.name}
+                                        aria-label={item.description || item.name}
+                                        className={`flex items-center justify-between px-3.5 py-3 rounded-2xl group transition-all duration-200 relative overflow-hidden ${isActive
+                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 translate-x-1 font-black'
+                                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 hover:translate-x-1 font-bold'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            <item.icon className={`w-4 h-4 transition-all duration-300 ${isActive
+                                                ? 'text-white'
+                                                : (item as any).iconColor && !isActive
+                                                    ? `${(item as any).iconColor} group-hover:scale-110`
+                                                    : 'text-slate-400 group-hover:text-indigo-600 group-hover:scale-110'
+                                                }`} />
+                                            <span className="text-xs tracking-tight">
+                                                {item.name}
+                                            </span>
+                                        </div>
 
-                            {item.badge && (
-                                <span className={`flex items-center justify-center px-2.5 min-w-[22px] h-5.5 rounded-lg text-[9px] font-black shadow-sm relative z-10 ${isActive
-                                    ? 'bg-white/20 text-white backdrop-blur-md'
-                                    : isEnquiries
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-[#FF7A30] text-white'
-                                    }`}>
-                                    {item.badge}
-                                </span>
-                            )}
-
-                            {isActive && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-indigo-500 opacity-100" />
-                            )}
-                        </Link>
-                    );
-                })}
+                                        {item.badge && (
+                                            <span className={`flex items-center justify-center px-2 min-w-[20px] h-5 rounded-lg text-[9px] font-black shadow-sm relative z-10 ${isActive
+                                                ? 'bg-white/20 text-white backdrop-blur-md'
+                                                : isEnquiries
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'bg-[#FF7A30] text-white'
+                                                }`}>
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </nav>
 
             {/* Logout */}
-            <div className="mt-auto pt-6 px-4 pb-6">
+            <div className="mt-auto pt-4 px-4 pb-6 shrink-0 border-t border-slate-100">
                 <button
                     onClick={logout}
-                    className="flex items-center gap-3.5 px-5 py-4 w-full rounded-2xl text-slate-500 hover:text-red-600 hover:bg-red-50/50 transition-all group active:scale-[0.98] border border-transparent hover:border-red-100"
+                    className="flex items-center gap-3 px-4 py-3.5 w-full rounded-2xl text-slate-500 hover:text-red-600 hover:bg-red-50/50 transition-all group active:scale-[0.98] border border-transparent hover:border-red-100"
                 >
-                    <div className="p-2 bg-slate-50 group-hover:bg-red-100/50 rounded-xl transition-colors">
+                    <div className="p-1.5 bg-slate-50 group-hover:bg-red-100/50 rounded-xl transition-colors">
                         <LogOut className="w-4 h-4 text-slate-400 group-hover:text-red-600 transition-all" />
                     </div>
-                    <span className="font-extrabold text-[13px] tracking-tight">Sign Out</span>
+                    <span className="font-extrabold text-xs tracking-tight">Sign Out</span>
                 </button>
             </div>
         </div>
@@ -212,7 +249,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     return (
         <>
-            {/* ── Mobile backdrop overlay ── */}
+            {/* Mobile backdrop overlay */}
             {isOpen && (
                 <div
                     className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[40] lg:hidden animate-in fade-in duration-500"
@@ -220,7 +257,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 />
             )}
 
-            {/* ── Sidebar (Combined Desktop & Mobile Logic) ── */}
+            {/* Sidebar (Combined Desktop & Mobile Logic) */}
             <aside
                 className={`
                     fixed inset-y-0 left-0 z-[50] w-72 bg-white border-r border-slate-100
@@ -243,4 +280,3 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </>
     );
 }
-

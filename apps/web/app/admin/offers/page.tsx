@@ -81,7 +81,7 @@ export default function AdminOffersPage() {
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                             <Megaphone className="w-10 h-10 text-orange-500" />
-                            Deals & Events
+                            Offers & Events
                         </h1>
                         <p className="text-slate-500 font-bold mt-2 flex items-center gap-4">
                             Manage all business offers and feature them on home/category pages.

@@ -32,7 +32,8 @@ import {
     Facebook,
     Youtube,
     Linkedin,
-    Twitter
+    Twitter,
+    RotateCcw
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -943,6 +944,22 @@ function BusinessSetupWizardContent() {
             }, 2000);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        try {
+            await handleSaveStep(false);
+            toast.success('Draft saved successfully! You can resume later.');
+            router.push('/dashboard');
+        } catch (error) {
+            toast.error('Failed to save draft.');
+        }
+    };
+
+    const handleReset = () => {
+        if (window.confirm('Are you sure you want to reset the form to its last saved state? Unsaved changes will be lost.')) {
+            window.location.reload();
         }
     };
 
@@ -2937,48 +2954,64 @@ function BusinessSetupWizardContent() {
     const progressPercent = ((currentStep + 1) / 21) * 100;
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col">
+        <div className="min-h-screen bg-slate-50 flex flex-col relative">
             <Navbar />
 
-            <main className="flex-grow py-12 px-4">
-                <div className="max-w-3xl mx-auto">
-                    <div className="text-center mb-10">
-                        <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
+            <main className="flex-grow py-12 px-4 relative">
+                {/* Decorative Premium Background Header */}
+                <div className="absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 rounded-b-[40px] shadow-xl pointer-events-none overflow-hidden">
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] -mr-64 -mt-64" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[120px] -ml-32 -mb-32" />
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                </div>
+
+                <div className="max-w-3xl mx-auto relative z-10">
+                    <div className="text-center mb-10 text-white">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md shadow-xl mb-6">
+                            <Sparkles className="w-8 h-8 text-blue-300" />
+                        </div>
+                        <br />
+                        <span className="inline-block px-4 py-1.5 bg-white/10 text-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20 backdrop-blur-sm">
                             21-Step Configuration
                         </span>
-                        <h1 className="text-3xl md:text-5xl font-black text-slate-900 mb-2 tracking-tight">
+                        <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight drop-shadow-md">
                             Complete Your Business Profile
                         </h1>
-                        <p className="text-slate-500 font-bold text-sm">
-                            Submit detailed profile data to strengthen your business profile and unlock all vendor features.
+                        <p className="text-blue-100/80 font-medium text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+                            Submit detailed profile data to strengthen your business presence, rank higher in search, and unlock all premium vendor features.
                         </p>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="mb-8">
-                        <div className="flex justify-between items-end mb-3">
+                    {/* Progress Bar (Glassmorphism theme) */}
+                    <div className="mb-8 bg-white/10 p-5 rounded-3xl backdrop-blur-md border border-white/10 shadow-2xl">
+                        <div className="flex justify-between items-end mb-4">
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration Progress</p>
-                                <p className="text-xs font-black text-slate-600 uppercase tracking-wider mt-1">Step {currentStep + 1} of 21</p>
+                                <p className="text-[10px] font-black text-blue-200/70 uppercase tracking-widest">Configuration Progress</p>
+                                <p className="text-xs font-black text-white uppercase tracking-wider mt-1">Step {currentStep + 1} of 21</p>
                             </div>
-                            <p className="text-xs font-black text-blue-600 tracking-widest">{Math.round(progressPercent)}% COMPLETE</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+                                <p className="text-xs font-black text-emerald-300 tracking-widest">{Math.round(progressPercent)}% COMPLETE</p>
+                            </div>
                         </div>
-                        <div className="h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-white/50">
+                        <div className="h-3 bg-slate-900/50 rounded-full overflow-hidden shadow-inner border border-white/5">
                             <div 
-                                className="h-full bg-blue-600 transition-all duration-500 ease-out shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(59,130,246,0.6)]"
                                 style={{ width: `${progressPercent}%` }}
                             />
                         </div>
                     </div>
 
                     {/* Form Card */}
-                    <div className="p-8 rounded-3xl bg-white border border-slate-100 shadow-2xl relative overflow-visible mb-8">
+                    <div className="flex flex-col rounded-3xl bg-white border border-slate-100 shadow-2xl relative overflow-hidden mb-8">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
                         
-                        {renderStepContent()}
+                        <div className="p-8 pb-4 overflow-y-auto max-h-[65vh]">
+                            {renderStepContent()}
+                        </div>
 
                         {/* Navigation controls */}
-                        <div className="flex justify-between items-center pt-8 border-t border-slate-100 mt-8">
+                        <div className="flex justify-between items-center p-6 bg-slate-50 border-t border-slate-100 sticky bottom-0 z-50">
                             <button
                                 type="button"
                                 onClick={() => handleSaveStep(false)}
@@ -2988,32 +3021,51 @@ function BusinessSetupWizardContent() {
                                 <ChevronLeft className="w-4 h-4" /> Back
                             </button>
 
-                            {currentStep === 20 ? (
+                            <div className="flex items-center gap-3">
                                 <button
                                     type="button"
-                                    onClick={handleFinalSubmit}
-                                    disabled={
-                                        saving ||
-                                        !stepData.termsAccepted ||
-                                        !stepData.privacyAccepted ||
-                                        !stepData.moderationAccepted ||
-                                        !stepData.accuracyConfirmed ||
-                                        !stepData.publicLocationConsent
-                                    }
-                                    className="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-40"
-                                >
-                                    {saving ? 'Saving...' : 'Agree & Finish'}
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={handleNextBtnClick}
+                                    onClick={handleReset}
                                     disabled={saving}
-                                    className="inline-flex items-center gap-1.5 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-60"
+                                    className="px-4 py-3 rounded-2xl font-black text-xs text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm hidden sm:flex disabled:opacity-30 disabled:pointer-events-none uppercase tracking-wider"
+                                    title="Reset form to last saved state"
                                 >
-                                    {saving ? 'Saving...' : 'Save & Continue'} <ChevronRight className="w-4 h-4" />
+                                    <RotateCcw className="w-4 h-4" /> Reset
                                 </button>
-                            )}
+                                <button
+                                    type="button"
+                                    onClick={handleSaveDraft}
+                                    disabled={saving}
+                                    className="px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                                >
+                                    Save Draft
+                                </button>
+                                {currentStep === 20 ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleFinalSubmit}
+                                        disabled={
+                                            saving ||
+                                            !stepData.termsAccepted ||
+                                            !stepData.privacyAccepted ||
+                                            !stepData.moderationAccepted ||
+                                            !stepData.accuracyConfirmed ||
+                                            !stepData.publicLocationConsent
+                                        }
+                                        className="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-40"
+                                    >
+                                        {saving ? 'Saving...' : 'Agree & Finish'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleNextBtnClick}
+                                        disabled={saving}
+                                        className="inline-flex items-center gap-1.5 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-60"
+                                    >
+                                        {saving ? 'Saving...' : 'Save & Continue'} <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

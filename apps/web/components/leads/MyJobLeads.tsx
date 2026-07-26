@@ -73,9 +73,11 @@ export default function MyJobLeads() {
                                         <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
                                             {lead.category?.name || 'General'}
                                         </span>
-                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${lead.status === 'closed' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'
+                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                            lead.status === 'pending' ? 'bg-amber-50 text-amber-600' :
+                                            lead.status === 'closed' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'
                                             }`}>
-                                            {lead.status === 'open' ? 'Live & Active' : lead.status}
+                                            {lead.status === 'pending' ? 'Awaiting Approval' : lead.status === 'open' ? 'Live & Active' : lead.status}
                                         </span>
                                     </div>
                                     <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors leading-tight tracking-tight">{lead.title}</h3>

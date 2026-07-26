@@ -198,6 +198,7 @@ export enum OfferType {
     EVENT = 'event',
 }
 export enum JobLeadStatus {
+    PENDING = 'pending',
     OPEN = 'open',
     BROADCASTED = 'broadcasted',
     RESPONDED = 'responded',

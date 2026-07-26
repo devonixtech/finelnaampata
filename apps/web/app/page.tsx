@@ -868,134 +868,87 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials - What People Are Saying */}
-      <section className="py-24 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 mb-16">
-          <div className="flex items-center justify-center gap-4 mb-16 text-center">
-            <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
-            <h2 className="text-3xl md:text-4xl font-bold text-[#112D4E] tracking-tight px-4">
-              What People Are Saying
-            </h2>
-            <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
-          </div>
-        </div>
+      {(() => {
+        const communityReviews = statsComments && Array.isArray(statsComments)
+          ? statsComments
+            .filter(rev => rev.comment && rev.comment.trim().length > 0)
+            .map((rev) => ({
+              id: rev.id,
+              name: rev.user?.fullName || "Anonymous",
+              location: rev.user?.branch || rev.user?.city || "",
+              role: "Local Resident",
+              text: rev.comment,
+              rating: rev.rating || 5,
+              img: rev.user?.avatarUrl || null,
+              date: rev.createdAt,
+              business: rev.business?.title || "Local Business",
+            }))
+          : [];
 
-        {(() => {
-          const fallbackReviews = [
-            {
-              id: "f1",
-              name: "Ahmed S.",
-              location: "Karachi",
-              text: "Found a great plumber in Karachi in minutes. Highly recommend!",
-              rating: 5,
-              img: "https://i.pravatar.cc/150?u=ahmed",
-            },
-            {
-              id: "f2",
-              name: "Zainab R.",
-              location: "Lahore",
-              text: "Excellent service. Easy to find and contact businesses in Lahore.",
-              rating: 5,
-              img: "https://i.pravatar.cc/150?u=zainab",
-            },
-            {
-              id: "f3",
-              name: "Bilal K.",
-              location: "Islamabad",
-              text: "Active and reliable listings. Best platform for Pakistan.",
-              rating: 5,
-              img: "https://i.pravatar.cc/150?u=bilal",
-            },
-            {
-              id: "f4",
-              name: "Sara M.",
-              location: "Faisalabad",
-              text: "Booking appointments has never been so easy. Love this platform!",
-              rating: 4,
-              img: "https://i.pravatar.cc/150?u=sara",
-            },
-            {
-              id: "f5",
-              name: "Usman T.",
-              location: "Rawalpindi",
-              text: "Great variety of businesses listed. Found exactly what I needed.",
-              rating: 5,
-              img: "https://i.pravatar.cc/150?u=usman",
-            },
-            {
-              id: "f6",
-              name: "Hina N.",
-              location: "Multan",
-              text: "Very user-friendly! Found a top doctor in my area within seconds.",
-              rating: 5,
-              img: "https://i.pravatar.cc/150?u=hina",
-            },
-          ];
-          // Fallback to professional reviews if no community results
-          const communityReviews = statsComments && Array.isArray(statsComments)
-            ? statsComments
-              .filter(rev => rev.comment && rev.comment.trim().length > 0)
-              .map((rev) => ({
-                id: rev.id,
-                name: rev.user?.fullName || "Aman U.",
-                location: rev.user?.branch || rev.user?.city || "",
-                role: "Local Resident",
-                text: rev.comment,
-                rating: rev.rating || 5,
-                img: rev.user?.avatarUrl || null,
-                date: rev.createdAt,
-                business: rev.business?.title || "Local Shop",
-              }))
-            : [];
+        if (communityReviews.length === 0) {
+            return null;
+        }
 
-          const cards = communityReviews.length > 0 ? communityReviews : fallbackReviews;
+        const cards = communityReviews;
+        // Do not duplicate cards artificially to avoid making them look like static/fake reviews.
+        // We will just use the available dynamic reviews.
+        const row1 = cards;
+        const row2 = cards.length > 3 ? cards.slice().reverse() : cards;
 
-
-          const row1 = [...cards, ...cards, ...cards];
-          const row2 = [...cards, ...cards, ...cards];
-
-          const ReviewCard = ({
-            card,
-            idx,
-          }: {
-            card: (typeof row1)[0];
-            idx: number;
-          }) => (
-            <div
-              key={`${card.id}-${idx}`}
-              className="flex-shrink-0 w-80 bg-[#F8FAFC] p-6 rounded-2xl border border-slate-100 flex items-start gap-4 shadow-sm mx-3"
-            >
-              <div className="w-12 h-12 rounded-full border-2 border-white shadow bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base uppercase overflow-hidden flex-shrink-0">
-                {card.img ? (
-                  <img
-                    src={card.img}
-                    alt={card.name}
-                    className="w-full h-full object-cover"
+        const ReviewCard = ({
+          card,
+          idx,
+        }: {
+          card: (typeof row1)[0];
+          idx: number;
+        }) => (
+          <div
+            key={`${card.id}-${idx}`}
+            className="flex-shrink-0 w-80 bg-[#F8FAFC] p-6 rounded-2xl border border-slate-100 flex items-start gap-4 shadow-sm mx-3"
+          >
+            <div className="w-12 h-12 rounded-full border-2 border-white shadow bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base uppercase overflow-hidden flex-shrink-0">
+              {card.img ? (
+                <img
+                  src={card.img}
+                  alt={card.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                card.name[0].toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-bold text-slate-900 text-sm mb-0.5 truncate">
+                {card.name}
+                {card.location ? `, ${card.location}` : ""}
+              </h4>
+              <div className="flex gap-0.5 mb-1.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-3 h-3 ${i < (card.rating || 5) ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
                   />
-                ) : (
-                  card.name[0].toUpperCase()
-                )}
+                ))}
               </div>
-              <div className="min-w-0">
-                <h4 className="font-bold text-slate-900 text-sm mb-0.5 truncate">
-                  {card.name}
-                  {card.location ? `, ${card.location}` : ""}
-                </h4>
-                <div className="flex gap-0.5 mb-1.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 ${i < (card.rating || 5) ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-slate-600 text-sm italic leading-relaxed line-clamp-3">
-                  "{card.text}"
-                </p>
+              <p className="text-slate-600 text-sm italic leading-relaxed line-clamp-3">
+                "{card.text}"
+              </p>
+            </div>
+          </div>
+        );
+
+        return (
+          <section className="py-24 bg-white overflow-hidden">
+            <div className="max-w-7xl mx-auto px-4 mb-16">
+              <div className="flex items-center justify-center gap-4 mb-16 text-center">
+                <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
+                <h2 className="text-3xl md:text-4xl font-bold text-[#112D4E] tracking-tight px-4">
+                  What People Are Saying
+                </h2>
+                <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
               </div>
             </div>
-          );
 
-          return (
             <div className="max-w-7xl mx-auto px-4 overflow-hidden">
               <div className="space-y-4">
                 <div className="relative">
@@ -1039,8 +992,9 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          );
-        })()}
+          </section>
+        );
+      })()}
 
         <style>{`
           @keyframes marquee-rtl {
@@ -1052,7 +1006,6 @@ export default function HomePage() {
             100% { transform: translateX(0); }
           }
         `}</style>
-      </section>
 
       {/* Own a Business Section - Matching the reference image */}
       <section className="py-24 px-4 bg-white">

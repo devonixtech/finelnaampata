@@ -67,6 +67,7 @@ export default function GenericDashboard() {
         return { percent, missing };
     }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor, vendorProfile]);
 
+
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!user) return;
@@ -74,45 +75,22 @@ export default function GenericDashboard() {
                 setLoading(true);
 
                 const [favoritesData, followsData] = await Promise.all([
-                    api.users.getFavorites(),
-                    api.follows.myFollows()
+                    api.users.getFavorites({ silent: true }).catch(() => ({ data: [] })),
+                    api.follows.myFollows({ silent: true }).catch(() => ({ data: [] }))
                 ]);
 
-                setSavedBusinesses(favoritesData.data || []);
-                setFollowedBusinesses(followsData.data || []);
+                setSavedBusinesses(favoritesData?.data || []);
+                setFollowedBusinesses(followsData?.data || []);
 
                 if (isVendor || isAdmin) {
                     const [statsData, businessProfile, affiliateData] = await Promise.all([
-                        api.businessProfiles.getStats(),
-                        api.businessProfiles.getProfile(),
-                        api.affiliate.getStats().catch(() => null)
+                        api.businessProfiles.getStats({ silent: true }).catch(() => null),
+                        api.businessProfiles.getProfile({ silent: true }).catch(() => null),
+                        api.affiliate.getStats({ silent: true }).catch(() => null)
                     ]);
                     setStats(statsData);
                     setVendorProfile(businessProfile);
                     setAffiliateStats(affiliateData);
-
-                    if (businessProfile?.id) {
-                        const [reviewsData, leadsData] = await Promise.all([
-                            api.reviews.findAll({ vendorId: businessProfile.id, limit: 5 }),
-                            api.leads.getForVendor({ limit: 5 }),
-                        ]);
-                        setRecentReviews(reviewsData.data || []);
-                        setLeads(leadsData.data || []);
-                        setNewLeadsCount(leadsData.meta?.total || 0);
-                    }
-
-                    const demandData = await api.demand.getNearby();
-                    setDemandInsights(demandData || []);
-                    const statusData = await api.businessSetup.getStatus().catch(() => null);
-                    setSetupStatus(statusData);
-                } else {
-                    const [reviewsData, notifsData] = await Promise.all([
-                        api.reviews.findAll({ userId: user.id, limit: 5 }),
-                        api.users.getNotifications({ limit: 5 })
-                    ]);
-                    setRecentReviews(reviewsData.data || []);
-                    setNotifications(notifsData.data || []);
-
                     setStats({
                         savedCount: favoritesData.data?.length || 0,
                         reviewsCount: reviewsData.data?.length || 0,
@@ -234,33 +212,6 @@ export default function GenericDashboard() {
         );
     }
 
-    if (isVendor && !isAdmin && (!setupStatus || !setupStatus.isCompleted)) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-                <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-8 sm:p-12 shadow-2xl max-w-2xl w-full text-center border border-slate-800 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
-                    
-                    <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <BadgeCheck className="w-10 h-10 text-blue-400" />
-                    </div>
-                    
-                    <h2 className="text-3xl font-black text-white mb-4">Complete Your Business Profile</h2>
-                    <p className="text-slate-400 text-lg mb-8 max-w-lg mx-auto">
-                        You've started setting up your business, but haven't finished yet. Complete your profile to unlock all vendor features, manage listings, and start receiving leads.
-                    </p>
-                    
-                    <Link
-                        href="/business-setup"
-                        className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-blue-600/20 active:scale-95"
-                    >
-                        <Zap className="w-5 h-5 animate-pulse" />
-                        Resume Business Setup
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6 lg:space-y-10 pb-20">
             {/* Welcome Header */}
@@ -292,8 +243,6 @@ export default function GenericDashboard() {
                     </Link>
                 )}
             </motion.div>
-
-            {/* Plan Status Banner */}
             {(isVendor || isAdmin) && user?.vendor?.activeSubscription && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}

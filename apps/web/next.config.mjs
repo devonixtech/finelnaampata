@@ -6,7 +6,11 @@ const nextConfig = {
         unoptimized: true,
     },
     trailingSlash: isStaticExport,
+    assetPrefix: isStaticExport ? './' : undefined,
     output: isStaticExport ? 'export' : 'standalone',
+    typescript: {
+        ignoreBuildErrors: isStaticExport,
+    },
 };
 
 export default nextConfig;

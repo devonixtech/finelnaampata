@@ -4,9 +4,9 @@ import BusinessDetailClient from './BusinessDetailClient';
 import { api } from '../../../lib/api';
 
 // Render all business pages dynamically on-demand (SSR) to avoid slow builds
-export const dynamicParams = true;
+
 export async function generateStaticParams() {
-  return [];
+    return [{ businessSlug: 'template' }];
 }
 
 

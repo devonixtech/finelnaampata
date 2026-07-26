@@ -12,6 +12,7 @@ import { JobLeadResponse, JobResponseStatus } from '../../entities/job-lead-resp
 import { Listing, BusinessStatus } from '../../entities/business.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { Category } from '../../entities/category.entity';
+import { SystemSetting } from '../../entities/system-setting.entity';
 import { CreateJobLeadDto } from './dto/create-job-lead.dto';
 import { CreateJobResponseDto } from './dto/create-job-response.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
@@ -31,6 +32,8 @@ export class JobLeadsService {
         private vendorRepository: Repository<Vendor>,
         @InjectRepository(Category)
         private categoryRepository: Repository<Category>,
+        @InjectRepository(SystemSetting)
+        private settingsRepository: Repository<SystemSetting>,
         private notificationsGateway: NotificationsGateway,
         private subscriptionsService: SubscriptionsService,
     ) { }
@@ -39,16 +42,22 @@ export class JobLeadsService {
         const category = await this.categoryRepository.findOne({ where: { id: dto.categoryId } });
         if (!category) throw new NotFoundException('Category not found');
 
+        // Check auto_approve_broadcasts setting
+        const autoApproveSetting = await this.settingsRepository.findOne({ where: { key: 'auto_approve_broadcasts' } });
+        const autoApprove = autoApproveSetting?.value === 'true';
+
         const lead = this.jobLeadRepository.create({
             ...dto,
             userId,
-            status: JobLeadStatus.OPEN,
+            status: autoApprove ? JobLeadStatus.OPEN : JobLeadStatus.PENDING,
         });
 
         const savedLead = await this.jobLeadRepository.save(lead);
 
-        // Broadcast to relevant vendors
-        this.broadcastLead(savedLead);
+        // Only broadcast if auto-approve is ON
+        if (autoApprove) {
+            this.broadcastLead(savedLead);
+        }
 
         return savedLead;
     }
@@ -94,18 +103,25 @@ export class JobLeadsService {
     }
 
     private async notifyVendors(lead: JobLead, vendorUserIds: string[]) {
-        this.logger.log(`Notifying ${vendorUserIds.length} vendors for lead ${lead.id}`);
+        this.logger.log(`Notifying up to ${vendorUserIds.length} vendors for lead ${lead.id}`);
+        
+        let notifiedCount = 0;
         for (const vendorUserId of vendorUserIds) {
-            this.notificationsGateway.sendToUser(vendorUserId, 'new_job_lead', {
-                leadId: lead.id,
-                title: lead.title,
-                category: lead.categoryId,
-                city: lead.city,
-                createdAt: lead.createdAt,
-            });
+            // Check if vendor has the paid feature to receive/respond to broadcasts
+            const canView = await this.subscriptionsService.canPerformAction(vendorUserId, 'canRespondBroadcast');
+            if (canView) {
+                this.notificationsGateway.sendToUser(vendorUserId, 'new_job_lead', {
+                    leadId: lead.id,
+                    title: lead.title,
+                    category: lead.categoryId,
+                    city: lead.city,
+                    createdAt: lead.createdAt,
+                });
+                notifiedCount++;
+            }
         }
 
-        if (vendorUserIds.length > 0) {
+        if (notifiedCount > 0) {
             lead.status = JobLeadStatus.BROADCASTED;
             await this.jobLeadRepository.save(lead);
         }
@@ -139,6 +155,12 @@ export class JobLeadsService {
             if (!vendor) {
                 this.logger.warn(`User ${userId} is not a vendor`);
                 throw new ForbiddenException('Not a vendor');
+            }
+
+            const canView = await this.subscriptionsService.canPerformAction(userId, 'canRespondBroadcast');
+            if (!canView) {
+                this.logger.log(`Vendor ${vendor.id} does not have broadcast feature access`);
+                return [];
             }
 
             if (!vendor.businesses || vendor.businesses.length === 0) {
@@ -292,6 +314,9 @@ export class JobLeadsService {
         
         if (!vendor || !vendor.businesses?.length) return { newCount: 0 };
 
+        const canView = await this.subscriptionsService.canPerformAction(userId, 'canRespondBroadcast');
+        if (!canView) return { newCount: 0 };
+
         const categoryIds = vendor.businesses.map(b => b.categoryId).filter(id => !!id);
         const cities = vendor.businesses.map(b => b.city).filter(c => !!c);
 
@@ -322,5 +347,110 @@ export class JobLeadsService {
 
         const newCount = await query.getCount();
         return { newCount };
+    }
+
+    async approveLead(leadId: string): Promise<JobLead> {
+        const lead = await this.jobLeadRepository.findOne({ where: { id: leadId } });
+        if (!lead) throw new NotFoundException('Lead not found');
+        if (lead.status !== JobLeadStatus.PENDING) {
+            throw new BadRequestException('Only pending leads can be approved');
+        }
+
+        lead.status = JobLeadStatus.OPEN;
+        const saved = await this.jobLeadRepository.save(lead);
+
+        // Now broadcast to relevant vendors
+        this.broadcastLead(saved);
+
+        return saved;
+    }
+
+    async getPendingLeads(): Promise<JobLead[]> {
+        return this.jobLeadRepository.find({
+            where: { status: JobLeadStatus.PENDING },
+            relations: ['category', 'user'],
+            order: { createdAt: 'ASC' },
+        });
+    }
+
+    async getBroadcastAnalytics(): Promise<any> {
+        const totalBroadcasts = await this.jobLeadRepository.count();
+
+        const statusCounts = await this.jobLeadRepository
+            .createQueryBuilder('lead')
+            .select('lead.status', 'status')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('lead.status')
+            .getRawMany();
+
+        const totalResponses = await this.responseRepository.count();
+
+        const uniqueVendorsResponded = await this.responseRepository
+            .createQueryBuilder('resp')
+            .select('COUNT(DISTINCT resp.vendorId)', 'count')
+            .getRawOne();
+
+        // Average response time (lead created → first response)
+        const avgResponseTime = await this.responseRepository
+            .createQueryBuilder('resp')
+            .innerJoin('resp.jobLead', 'lead')
+            .select('AVG(EXTRACT(EPOCH FROM (resp.createdAt - lead.createdAt)))', 'avgSeconds')
+            .getRawOne();
+
+        // Category-wise breakdown
+        const categoryBreakdown = await this.jobLeadRepository
+            .createQueryBuilder('lead')
+            .leftJoin('lead.category', 'category')
+            .select('category.name', 'categoryName')
+            .addSelect('COUNT(*)', 'total')
+            .addSelect("COUNT(CASE WHEN lead.status = 'responded' THEN 1 END)", 'responded')
+            .groupBy('category.name')
+            .orderBy('total', 'DESC')
+            .limit(10)
+            .getRawMany();
+
+        // City-wise breakdown (top 10)
+        const cityBreakdown = await this.jobLeadRepository
+            .createQueryBuilder('lead')
+            .select('lead.city', 'city')
+            .addSelect('COUNT(*)', 'total')
+            .where('lead.city IS NOT NULL')
+            .groupBy('lead.city')
+            .orderBy('total', 'DESC')
+            .limit(10)
+            .getRawMany();
+
+        // Last 7 days trend
+        const weeklyTrend = await this.jobLeadRepository
+            .createQueryBuilder('lead')
+            .select("DATE(lead.createdAt)", 'date')
+            .addSelect('COUNT(*)', 'total')
+            .where("lead.createdAt >= NOW() - INTERVAL '7 days'")
+            .groupBy("DATE(lead.createdAt)")
+            .orderBy('date', 'ASC')
+            .getRawMany();
+
+        const statusMap: Record<string, number> = {};
+        statusCounts.forEach((s: any) => { statusMap[s.status] = parseInt(s.count); });
+
+        const responseRate = totalBroadcasts > 0
+            ? Math.round(((uniqueVendorsResponded?.count || 0) / totalBroadcasts) * 100)
+            : 0;
+
+        return {
+            totalBroadcasts,
+            totalPending: statusMap['pending'] || 0,
+            totalOpen: statusMap['open'] || 0,
+            totalBroadcasted: statusMap['broadcasted'] || 0,
+            totalResponded: statusMap['responded'] || 0,
+            totalClosed: statusMap['closed'] || 0,
+            totalResponses,
+            uniqueVendorsResponded: parseInt(uniqueVendorsResponded?.count || '0'),
+            avgResponseTimeSeconds: avgResponseTime?.avgSeconds ? Math.round(parseFloat(avgResponseTime.avgSeconds)) : null,
+            responseRate,
+            categoryBreakdown,
+            cityBreakdown,
+            weeklyTrend,
+        };
     }
 }

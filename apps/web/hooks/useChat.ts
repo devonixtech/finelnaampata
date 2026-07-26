@@ -51,7 +51,7 @@ function getSocket(token: string): Socket {
         });
 
         sharedSocket.on('connect_error', (err) => {
-            console.error('[useChat] Socket connection error:', err.message);
+            console.warn('[useChat] Socket connection error:', err.message);
         });
     } else if (!sharedSocket.connected && !sharedSocket.active) {
         console.log('[useChat] Reconnecting existing chat socket...');

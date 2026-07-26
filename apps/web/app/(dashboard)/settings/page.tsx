@@ -41,6 +41,7 @@ export default function AccountSettings() {
         businessAddress: '',
         timezone: '',
         businessHours: {} as Record<string, { isOpen: boolean, openTime: string, closeTime: string }>,
+        shopPhotos: [] as string[],
         socialLinks: [] as { platform: string, url: string }[],
         notificationSettings: {
             email: {
@@ -57,6 +58,9 @@ export default function AccountSettings() {
             }
         }
     });
+
+    const [vendorFeatures, setVendorFeatures] = useState<{ canCreateAlbums?: boolean }>({});
+    const [uploadingShopPhotos, setUploadingShopPhotos] = useState(false);
 
     // Password State
     const [pwdSaving, setPwdSaving] = useState(false);
@@ -131,6 +135,7 @@ export default function AccountSettings() {
                             saturday: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
                             sunday: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
                         },
+                        shopPhotos: profile.vendor?.shopPhotos || [],
                         socialLinks: profile.vendor?.socialLinks || [],
                         notificationSettings: profile.notificationSettings || prev.notificationSettings
                     }));
@@ -139,6 +144,9 @@ export default function AccountSettings() {
                     }
                     if (updateUser) {
                         updateUser(profile);
+                    }
+                    if (profile.vendor?.planFeatures) {
+                        setVendorFeatures(profile.vendor.planFeatures);
                     }
                 }
                 console.log('[AccountSettings] fetch success', { profile: !!profile });
@@ -234,6 +242,35 @@ export default function AccountSettings() {
         });
     };
 
+    const handleShopPhotosUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+        try {
+            setUploadingShopPhotos(true);
+            const response = await api.businessProfiles.uploadImage(file);
+            setFormData(prev => ({
+                ...prev,
+                shopPhotos: [...prev.shopPhotos, response.url]
+            }));
+            if (success) setSuccess(false);
+            if (error) setError(null);
+        } catch (err) {
+            console.error('Failed to upload shop photo', err);
+            setError('Failed to upload photo. Please try again.');
+        } finally {
+            setUploadingShopPhotos(false);
+        }
+    };
+
+    const removeShopPhoto = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            shopPhotos: prev.shopPhotos.filter((_, i) => i !== index)
+        }));
+        if (success) setSuccess(false);
+        if (error) setError(null);
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -283,6 +320,7 @@ export default function AccountSettings() {
                     businessAddress: formData.businessAddress || undefined,
                     timezone: formData.timezone || undefined,
                     businessHours: formData.businessHours,
+                    shopPhotos: formData.shopPhotos,
                     socialLinks: formData.socialLinks,
                 };
                 Object.keys(vendorPayload).forEach(k => {
@@ -315,8 +353,9 @@ export default function AccountSettings() {
                 businessPhone: finalFullProfile.vendor?.businessPhone || '',
                 businessAddress: finalFullProfile.vendor?.businessAddress || '',
                 timezone: finalFullProfile.vendor?.timezone || formData.timezone,
-                businessHours: finalFullProfile.vendor?.businessHours || formData.businessHours,
-                socialLinks: finalFullProfile.vendor?.socialLinks || [],
+                businessHours: finalFullProfile.vendor?.businessHours || prev.businessHours,
+                shopPhotos: finalFullProfile.vendor?.shopPhotos || prev.shopPhotos,
+                socialLinks: finalFullProfile.vendor?.socialLinks || prev.socialLinks,
                 notificationSettings: finalFullProfile.notificationSettings || formData.notificationSettings
             }));
 
@@ -746,6 +785,83 @@ export default function AccountSettings() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                )}
+
+                {/* Shop Photos (Business Only) */}
+                {user?.role === 'vendor' && (
+                    <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden relative">
+                        {/* PREMIUM GATE FOR SHOP PHOTOS */}
+                        {(!vendorFeatures?.canCreateAlbums && !user?.vendor?.subscriptions?.some((sub: any) => sub.status === 'active' && sub.plan?.name?.toLowerCase() !== 'free')) && (
+                            <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-white/60 flex flex-col items-center justify-center p-6 text-center rounded-[20px] border border-orange-100/50">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 shadow-lg shadow-orange-500/20">
+                                    <Lock className="w-6 h-6 text-white" />
+                                </div>
+                                <h4 className="text-lg font-black text-slate-900 mb-2">Premium Feature</h4>
+                                <p className="text-sm font-bold text-slate-600 mb-4 max-w-sm">Upgrade your plan to upload and display shop photos on your profile.</p>
+                                <a href="/subscription" className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-xl shadow-slate-900/20">
+                                    Upgrade Plan
+                                </a>
+                            </div>
+                        )}
+
+                        <div className="p-8 lg:p-12 border-b border-slate-50 bg-slate-50/30 flex items-start gap-4">
+                            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center shrink-0">
+                                <Camera className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between gap-4 flex-wrap">
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-900 mb-2">Shop Photos</h3>
+                                        <p className="text-sm text-slate-500 font-medium">Upload photos of your shop to be displayed in your profile gallery.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 lg:p-12 space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {formData.shopPhotos.map((url, idx) => (
+                                    <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200">
+                                        <img src={getImageUrl(url)} alt={`Shop Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeShopPhoto(idx)}
+                                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer text-slate-400 hover:text-blue-600">
+                                    {uploadingShopPhotos ? (
+                                        <Loader2 className="w-8 h-8 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Plus className="w-8 h-8" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">Add Photo</span>
+                                        </>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleShopPhotosUpload}
+                                        disabled={uploadingShopPhotos}
+                                    />
+                                </label>
+                            </div>
+                            
+                            <div className="pt-8 flex justify-end">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={saving}
+                                    className="flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                                >
+                                    {saving ? 'Updating...' : 'Save Photos'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 

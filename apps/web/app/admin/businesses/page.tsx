@@ -17,9 +17,9 @@ type BusinessStatus = 'pending_geocode' | 'approved' | 'rejected' | 'suspended';
 
 const STATUS_CONFIG: Record<BusinessStatus, { label: string; cls: string; Icon: any }> = {
     pending_geocode: { label: 'Map Processing', cls: 'bg-amber-50/50 text-amber-600 border-amber-100', Icon: Clock },
-    approved: { label: 'Approved', cls: 'bg-emerald-50/50 text-emerald-600 border-emerald-100', Icon: CheckCircle2 },
-    rejected: { label: 'Rejected', cls: 'bg-rose-50/50 text-rose-600 border-rose-100', Icon: XCircle },
-    suspended: { label: 'Suspended', cls: 'bg-slate-50 text-slate-500 border-slate-200', Icon: AlertCircle },
+    approved: { label: 'Active', cls: 'bg-emerald-50/50 text-emerald-600 border-emerald-100', Icon: CheckCircle2 },
+    rejected: { label: 'Blocked', cls: 'bg-rose-50/50 text-rose-600 border-rose-100', Icon: XCircle },
+    suspended: { label: 'Blocked', cls: 'bg-rose-50/50 text-rose-600 border-rose-100', Icon: AlertCircle },
 };
 
 const StatusBadge = ({ status }: { status: BusinessStatus }) => {
@@ -144,7 +144,7 @@ export default function AdminBusinessesPage() {
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                    {(['all', 'approved', 'rejected', 'suspended', 'pending_geocode'] as const).map(s => (
+                    {(['all', 'approved', 'suspended', 'pending_geocode'] as const).map(s => (
                         <button
                             key={s}
                             onClick={() => setStatusFilter(s)}
@@ -153,7 +153,7 @@ export default function AdminBusinessesPage() {
                                 : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
                                 }`}
                         >
-                            {s === 'all' ? 'All Listings' : s === 'pending_geocode' ? 'Map Processing' : s.charAt(0).toUpperCase() + s.slice(1)}
+                            {s === 'all' ? 'All Listings' : s === 'approved' ? 'Active' : s === 'suspended' ? 'Blocked' : 'Map Processing'}
                         </button>
                     ))}
                 </div>
@@ -672,9 +672,9 @@ export default function AdminBusinessesPage() {
                                 {b.status !== 'suspended' && (
                                     <button
                                         onClick={() => handleSuspension(b.id, true)}
-                                        className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-slate-900 hover:bg-slate-50 transition-all text-left uppercase tracking-wider group"
+                                        className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-rose-600 hover:bg-rose-50 transition-all text-left uppercase tracking-wider group"
                                     >
-                                        <XCircle className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" /> Block Business
+                                        <XCircle className="w-4 h-4 text-rose-400 group-hover:text-rose-600 transition-colors" /> Block Business
                                     </button>
                                 )}
 
@@ -683,7 +683,7 @@ export default function AdminBusinessesPage() {
                                         onClick={() => handleSuspension(b.id, false)}
                                         className="flex items-center gap-3 w-full px-6 py-3 text-xs font-black text-emerald-600 hover:bg-emerald-50 transition-all text-left uppercase tracking-wider group"
                                     >
-                                        <RefreshCw className="w-4 h-4 text-emerald-400 group-hover:rotate-180 transition-transform" /> Unblock Business
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-400 group-hover:text-emerald-600 transition-colors" /> Activate Business
                                     </button>
                                 )}
 

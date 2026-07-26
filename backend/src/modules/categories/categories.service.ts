@@ -717,28 +717,34 @@ export class CategoriesService {
     async remove(id: string): Promise<void> {
         const category = await this.categoryRepository.findOne({
             where: { id },
-            relations: ['subcategories', 'businesses'],
         });
 
         if (!category) {
             throw new NotFoundException('Category not found');
         }
 
-        // Check if category has subcategories
-        if (category.subcategories && category.subcategories.length > 0) {
-            throw new BadRequestException(
-                'Cannot delete category with subcategories. Delete subcategories first.',
-            );
-        }
+        try {
+            // Unlink parentId for child subcategories
+            await this.categoryRepository.update({ parentId: id }, { parentId: null });
 
-        // Check if category has businesses
-        if (category.businesses && category.businesses.length > 0) {
-            throw new BadRequestException(
-                'Cannot delete category with businesses. Reassign businesses first.',
-            );
-        }
+            // Unlink businesses pointing to this category
+            await this.categoryRepository.query(
+                `UPDATE businesses SET category_id = NULL WHERE category_id = $1`,
+                [id],
+            ).catch(() => null);
 
-        await this.categoryRepository.remove(category);
+            // Clean up join tables if any
+            await this.categoryRepository.query(
+                `DELETE FROM business_subcategories WHERE subcategory_id = $1`,
+                [id],
+            ).catch(() => null);
+
+            // Delete the category
+            await this.categoryRepository.delete(id);
+        } catch (err: any) {
+            console.error('Error deleting category:', err);
+            throw new BadRequestException('Could not delete category: ' + (err.message || 'database error'));
+        }
     }
 
     /**

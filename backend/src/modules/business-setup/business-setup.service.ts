@@ -390,6 +390,12 @@ export class BusinessSetupService implements OnModuleInit {
         const vendor = await this.vendorRepository.findOne({ where: { userId } });
         if (!vendor) return { isCompleted: false, answers: {} };
 
+        // FIX: If they already have a listing, setup is definitely complete!
+        const listingCount = await this.listingRepository.count({ where: { vendorId: vendor.id } });
+        if (listingCount > 0) {
+            return { isCompleted: true, answers: {} };
+        }
+
         const savedAttributes = await this.attributeRepository.find({ where: { vendorId: vendor.id } });
         
         const answers: Record<string, string[]> = {};

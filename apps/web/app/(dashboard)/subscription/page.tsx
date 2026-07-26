@@ -522,7 +522,7 @@ export default function BusinessSubscriptionPage() {
         if (authLoading) return; // Don't redirect while auth is still initializing
         if (!user) {
             router.replace('/login');
-        } else if (user.role !== 'vendor') {
+        } else if (!['vendor', 'admin', 'superadmin'].includes(user.role)) {
             router.replace('/');
         }
     }, [user, authLoading, router]);

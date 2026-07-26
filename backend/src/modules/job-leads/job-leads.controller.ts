@@ -57,6 +57,24 @@ export class JobLeadsController {
         return this.jobLeadsService.getVendorInboxStats(user.id);
     }
 
+    @Get('analytics')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get broadcast analytics (admin only)' })
+    @ApiResponse({ status: 200, description: 'Analytics retrieved' })
+    async getAnalytics() {
+        return this.jobLeadsService.getBroadcastAnalytics();
+    }
+
+    @Get('pending')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get pending broadcasts for admin approval' })
+    @ApiResponse({ status: 200, description: 'Pending leads retrieved' })
+    async getPending() {
+        return this.jobLeadsService.getPendingLeads();
+    }
+
     @Post(':id/respond')
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
@@ -68,6 +86,15 @@ export class JobLeadsController {
         @Body() dto: CreateJobResponseDto,
     ) {
         return this.jobLeadsService.submitResponse(user.id, id, dto);
+    }
+
+    @Post(':id/approve')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Admin approves a pending broadcast lead' })
+    @ApiResponse({ status: 200, description: 'Lead approved and broadcasted' })
+    async approve(@Param('id', ParseUuidPipe) id: string) {
+        return this.jobLeadsService.approveLead(id);
     }
 
     @Get(':id/responses')

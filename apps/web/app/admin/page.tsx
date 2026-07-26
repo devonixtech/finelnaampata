@@ -56,7 +56,7 @@ export default function AdminDashboard() {
             shadow: 'shadow-purple-500/20'
         },
         {
-            label: 'Total Deals',
+            label: 'Total Offers',
             value: stats?.totalDeals || '0',
             icon: Tag,
             color: 'bg-gradient-to-br from-[#EC4899] to-[#BE185D]',

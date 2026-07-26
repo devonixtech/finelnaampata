@@ -199,21 +199,49 @@ export function cityMatchesCountry(city: City, selectedCountry?: string | null):
     return cityCountry === target;
 }
 
+export function matchCityInList(cities: City[], nameToMatch: string): City | undefined {
+    if (!nameToMatch || !nameToMatch.trim()) return undefined;
+    const target = nameToMatch.trim().toLowerCase();
+
+    // 1. Exact match
+    let match = cities.find(c => (c.name || '').trim().toLowerCase() === target);
+    if (match) return match;
+
+    // 2. Partial match: city in DB includes target or target includes city in DB
+    match = cities.find(c => {
+        const cName = (c.name || '').trim().toLowerCase();
+        return cName.length > 2 && (target.includes(cName) || cName.includes(target));
+    });
+    if (match) return match;
+
+    return undefined;
+}
+
 export function findNearestCity(cities: City[], latitude: number, longitude: number): City | null {
     const withCoords = cities.filter(
         (c) => c.latitude != null && c.longitude != null && !isNaN(parseFloat(String(c.latitude))) && !isNaN(parseFloat(String(c.longitude))),
     );
     if (withCoords.length === 0) return null;
 
-    return withCoords.reduce<{ city: City | null; score: number }>(
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+
+    return withCoords.reduce<{ city: City | null; distance: number }>(
         (acc, city) => {
-            const dLat = parseFloat(String(city.latitude)) - latitude;
-            const dLng = parseFloat(String(city.longitude)) - longitude;
-            const score = dLat * dLat + dLng * dLng;
-            if (!acc.city || score < acc.score) return { city, score };
+            const cLat = parseFloat(String(city.latitude));
+            const cLng = parseFloat(String(city.longitude));
+            const dLat = toRad(cLat - latitude);
+            const dLng = toRad(cLng - longitude);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(latitude)) * Math.cos(toRad(cLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c;
+
+            if (!acc.city || distance < acc.distance) return { city, distance };
             return acc;
         },
-        { city: null, score: Number.POSITIVE_INFINITY },
+        { city: null, distance: Number.POSITIVE_INFINITY },
     ).city;
 }
 
@@ -241,7 +269,7 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
                 navigator.geolocation.getCurrentPosition(
                     (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
                     () => resolve(null),
-                    { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
                 );
             });
         }
@@ -251,24 +279,67 @@ export async function detectNearestCityName(cities: City[]): Promise<string | nu
 
     if (!coords) return null;
 
-    // Try accurate reverse geocoding first (helps when cities in DB lack coordinates)
+    const lat = coords.latitude;
+    const lng = coords.longitude;
+
+    // 1. Try Google Maps Geocoding API if key is available
+    const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (googleApiKey) {
+        try {
+            const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${googleApiKey}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.results && data.results.length > 0) {
+                    for (const result of data.results) {
+                        for (const comp of result.address_components || []) {
+                            if (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2') || comp.types.includes('sublocality_level_1')) {
+                                const matched = matchCityInList(cities, comp.long_name);
+                                if (matched) return matched.name;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("[location-detect] Google Geocode failed:", e);
+        }
+    }
+
+    // 2. Try OpenStreetMap Nominatim reverse geocode
     try {
-        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.latitude}&longitude=${coords.longitude}&localityLanguage=en`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+            headers: { 'Accept-Language': 'en' }
+        });
         if (res.ok) {
             const data = await res.json();
-            const cityName = data.city || data.locality;
+            const addr = data.address || {};
+            const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state_district || addr.state;
             if (cityName) {
-                // Find a match in our provided cities array
-                const matched = cities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
+                const matched = matchCityInList(cities, cityName);
                 if (matched) return matched.name;
             }
         }
     } catch (e) {
-        console.warn("Reverse geocode failed", e);
+        console.warn("[location-detect] Nominatim Geocode failed:", e);
     }
 
-    // Fallback: calculate Euclidean distance for cities that DO have coordinates
-    const nearest = findNearestCity(cities, coords.latitude, coords.longitude);
+    // 3. Try BigDataCloud reverse geocode
+    try {
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+        if (res.ok) {
+            const data = await res.json();
+            const cityName = data.city || data.locality || data.principalSubdivision;
+            if (cityName) {
+                const matched = matchCityInList(cities, cityName);
+                if (matched) return matched.name;
+            }
+        }
+    } catch (e) {
+        console.warn("[location-detect] BigDataCloud Geocode failed:", e);
+    }
+
+    // 4. Fallback: calculate spherical Haversine distance for cities that DO have coordinates
+    const nearest = findNearestCity(cities, lat, lng);
     return nearest?.name || null;
 }
 

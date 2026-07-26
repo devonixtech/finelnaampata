@@ -40,8 +40,7 @@ export default function Footer() {
               {[
                 { label: 'Sign Up', href: '/register' },
                 { label: 'Business Login', href: '/login' },
-                { label: 'Forgot Password', href: '/forgot-password' },
-                { label: 'Pricing Plans', href: '/pricing' }
+                { label: 'Forgot Password', href: '/forgot-password' }
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className="text-slate-600 text-sm font-bold hover:text-orange-500 transition-colors">
@@ -79,9 +78,7 @@ export default function Footer() {
             &copy; {currentYear} naampata. All rights reserved.
           </p>
           <div className="flex gap-8 text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Twitter</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Linkedin</a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">Instagram</a>
+            {/* Social links removed as requested */}
           </div>
         </div>
       </div>

@@ -786,7 +786,11 @@ export default function BusinessDetailClient({
   );
 
   const imagePaths = new Set(
-    [business.coverImageUrl, ...(business.images || [])].filter(Boolean),
+    [
+      business.coverImageUrl, 
+      ...(business.images || []),
+      ...(business.vendor?.shopPhotos || [])
+    ].filter(Boolean)
   );
 
   const actualImages = Array.from(imagePaths)

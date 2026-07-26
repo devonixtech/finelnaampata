@@ -112,6 +112,7 @@ export default function PricingPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
     useEffect(() => {
         api.subscriptions.getPlans()
@@ -129,11 +130,11 @@ export default function PricingPage() {
 
     const getCtaHref = (plan: Plan) => {
         if (!user) return `/register?plan=${plan.planType}`;
-        if (user.role === "vendor") {
+        if (['vendor', 'admin', 'superadmin'].includes(user.role)) {
             if (plan.planType === "free") return "/dashboard";
-            return `/dashboard?upgrade=${plan.id}`;
+            return `/subscription`;
         }
-        return "/dashboard";
+        return "/upgrade";
     };
 
     const getCtaLabel = (plan: Plan) => {
@@ -175,13 +176,33 @@ export default function PricingPage() {
                 {/* ── Plan Cards ── */}
                 <section className="py-20 px-4 bg-slate-50">
                     <div className="max-w-4xl mx-auto">
+                        
+                        {/* ── Toggle ── */}
+                        <div className="flex justify-center mb-12">
+                            <div className="bg-slate-200/50 p-1 rounded-2xl inline-flex relative shadow-inner">
+                                <button
+                                    onClick={() => setBillingCycle("monthly")}
+                                    className={`relative z-10 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${billingCycle === "monthly" ? "text-white bg-[#112D4E] shadow-lg shadow-blue-900/20" : "text-slate-500 hover:text-slate-700"}`}
+                                >
+                                    Monthly
+                                </button>
+                                <button
+                                    onClick={() => setBillingCycle("yearly")}
+                                    className={`relative z-10 px-8 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${billingCycle === "yearly" ? "text-white bg-[#112D4E] shadow-lg shadow-blue-900/20" : "text-slate-500 hover:text-slate-700"}`}
+                                >
+                                    Yearly
+                                    <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">SAVE 25%</span>
+                                </button>
+                            </div>
+                        </div>
+
                         {loading ? (
                             <div className="flex items-center justify-center py-24">
                                 <Loader2 className="w-8 h-8 animate-spin text-[#FF7A30]" />
                             </div>
                         ) : (
                             <div className="grid md:grid-cols-2 gap-8 items-stretch">
-                                {plans.map((plan) => {
+                                {plans.filter(p => (p.billingCycle || "monthly").toLowerCase() === billingCycle).map((plan) => {
                                     const config = PLAN_FEATURES[plan.planType as keyof typeof PLAN_FEATURES] || PLAN_FEATURES.free;
                                     const PlanIcon = config.icon;
                                     const isBasic = plan.planType === "basic";

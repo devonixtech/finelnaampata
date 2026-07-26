@@ -87,9 +87,9 @@ export default function BroadcastCard({ lead, canRespond = true, onRespond }: Br
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                 <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${lead.hasResponded ? 'bg-indigo-500' : lead.status === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+                    <div className={`w-2 h-2 rounded-full ${lead.status === 'pending' ? 'bg-amber-500 animate-pulse' : lead.hasResponded ? 'bg-indigo-500' : lead.status === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {lead.hasResponded ? 'Proposal Sent' : lead.status === 'open' ? 'Live Broadcast' : lead.status}
+                        {lead.status === 'pending' ? 'Awaiting Approval' : lead.hasResponded ? 'Proposal Sent' : lead.status === 'open' ? 'Live Broadcast' : lead.status}
                     </span>
                 </div>
                 <button

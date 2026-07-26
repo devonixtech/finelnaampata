@@ -969,6 +969,9 @@ export const api = {
         getStats: () => fetcher<{ newCount: number }>('/broadcasts/business/stats'),
         respond: (id: string, data: any) => fetcher<any>(`/broadcasts/${id}/respond`, { method: 'POST', body: JSON.stringify(data) }),
         getResponses: (id: string) => fetcher<any[]>(`/broadcasts/${id}/responses`),
+        getAnalytics: () => fetcher<any>('/broadcasts/analytics'),
+        getPending: () => fetcher<any[]>('/broadcasts/pending'),
+        approve: (id: string) => fetcher<any>(`/broadcasts/${id}/approve`, { method: 'POST' }),
     },
     promotions: {
         getVisibilityRate: (type: 'deal' | 'event' = 'deal', options?: FetcherOptions) =>

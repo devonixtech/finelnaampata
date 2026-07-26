@@ -101,7 +101,7 @@ export default function BusinessDealsPage() {
   const { user } = useAuth();
   const pathname = usePathname();
   
-  const featureName = "Deals";
+  const featureName = "Offers";
   const { features, getFeatureValue } = usePlanFeature();
   const [offers, setOffers] = useState<OfferItem[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);

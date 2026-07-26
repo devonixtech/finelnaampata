@@ -14,6 +14,7 @@ import { Category } from './category.entity';
 import { JobLeadResponse } from './job-lead-response.entity';
 
 export enum JobLeadStatus {
+    PENDING = 'pending',
     OPEN = 'open',
     BROADCASTED = 'broadcasted',
     RESPONDED = 'responded',

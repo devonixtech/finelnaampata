@@ -741,9 +741,9 @@ function AddListingContent() {
     const progress = (activeStep / STEPS.length) * 100;
 
     return (
-        <div className="max-w-3xl mx-auto pb-16">
+        <div className="max-w-4xl mx-auto pb-6 h-[calc(100vh-100px)] flex flex-col">
             {/* Header & Progress */}
-            <div className="mb-8">
+            <div className="mb-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                     <h1 className="text-2xl md:text-3xl font-black text-slate-900">Add Your Business</h1>
                     <span className="px-4 py-1.5 bg-orange-50 text-orange-600 font-black text-sm rounded-full border border-orange-200">
@@ -756,18 +756,18 @@ function AddListingContent() {
             </div>
 
             {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3 shrink-0">
                     ⚠ {error}
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl">
-                <div className="p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl">
+            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl flex flex-col min-h-0 flex-1 relative">
+                <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl shrink-0">
                     <h2 className="text-xl font-black text-slate-900">{currentStepConfig?.label}</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">{currentStepConfig?.description}</p>
                 </div>
 
-                <div className="p-8 min-h-[300px]">
+                <div className="p-6 md:p-8 flex-1 overflow-y-auto">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeStep}
@@ -781,13 +781,13 @@ function AddListingContent() {
                     </AnimatePresence>
                 </div>
 
-                <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-4 rounded-b-3xl">
+                <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex items-center justify-between gap-4 rounded-b-3xl">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
                             onClick={handlePrev}
                             disabled={activeStep === 1 || loading}
-                            className="px-6 py-3 rounded-xl font-black text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                            className="px-6 py-3 rounded-xl font-black text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
                         >
                             <ArrowLeft className="w-4 h-4" /> Back
                         </button>
@@ -799,7 +799,7 @@ function AddListingContent() {
                                     toast.success('Data saved successfully!', { icon: '💾' });
                                 }
                             }}
-                            className="px-6 py-3 rounded-xl font-black text-sm text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-all flex items-center gap-2 active:scale-95"
+                            className="px-6 py-3 rounded-xl font-black text-sm text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
                         >
                             Save Data
                         </button>
@@ -813,7 +813,7 @@ function AddListingContent() {
                                     setError(null);
                                 }
                             }}
-                            className="px-4 py-3 rounded-xl font-black text-sm text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all flex items-center gap-2 active:scale-95"
+                            className="px-4 py-3 rounded-xl font-black text-sm text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm hidden sm:flex"
                             title="Reset all form fields"
                         >
                             <RotateCcw className="w-4 h-4" /> Reset

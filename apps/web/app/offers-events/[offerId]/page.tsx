@@ -4,7 +4,7 @@ import OfferEventDetailClient from './OfferEventDetailClient';
 import { api } from '../../../lib/api';
 
 // Render all offer/event pages dynamically on-demand (SSR) to avoid slow builds
-export const dynamicParams = true;
+
 export async function generateStaticParams() {
     return [];
 }

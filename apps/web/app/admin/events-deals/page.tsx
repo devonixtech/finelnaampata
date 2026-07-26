@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { api } from '../../../lib/api';
+import { api, getImageUrl } from '../../../lib/api';
 import {
     Loader2,
     Search,
@@ -16,7 +16,17 @@ import {
     CheckCircle2,
     Clock,
     DollarSign,
-    ExternalLink
+    ExternalLink,
+    Eye,
+    SlidersHorizontal,
+    MapPin,
+    Building2,
+    Mail,
+    Phone,
+    Info,
+    Percent,
+    Layers,
+    Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
@@ -33,6 +43,16 @@ export default function AdminEventsDealsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'featured'>('all');
 
+    // Item Details Modal
+    const [selectedItem, setSelectedItem] = useState<any | null>(null);
+
+    // Price Settings State
+    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const [priceTarget, setPriceTarget] = useState<'offer' | 'event'>('offer');
+    const [offerPrice, setOfferPrice] = useState<number>(500);
+    const [eventPrice, setEventPrice] = useState<number>(1000);
+    const [savingPrices, setSavingPrices] = useState(false);
+
     // Payment history modal
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [payments, setPayments] = useState<any[]>([]);
@@ -43,14 +63,22 @@ export default function AdminEventsDealsPage() {
         try {
             setLoading(true);
             setError(null);
-            const [eventsRes, dealsRes] = await Promise.all([
+            const [eventsRes, dealsRes, settingsRes] = await Promise.all([
                 api.events.adminGetAll(1, 100).catch(() => ({ data: [] })),
-                api.deals.adminGetAll(1, 100).catch(() => ({ data: [] }))
+                api.deals.adminGetAll(1, 100).catch(() => ({ data: [] })),
+                api.admin.getSettings().catch(() => ({} as Record<string, string>))
             ]);
             setEvents(eventsRes?.data || eventsRes || []);
             setDeals(dealsRes?.data || dealsRes || []);
+
+            if (settingsRes?.offer_price_per_day) {
+                setOfferPrice(Number(settingsRes.offer_price_per_day) || 500);
+            }
+            if (settingsRes?.event_price_per_day) {
+                setEventPrice(Number(settingsRes.event_price_per_day) || 1000);
+            }
         } catch (err: any) {
-            console.error('Failed to fetch events and deals:', err);
+            console.error('Failed to fetch events and offers:', err);
             setError(err.message || 'Failed to fetch items');
         } finally {
             setLoading(false);
@@ -76,6 +104,28 @@ export default function AdminEventsDealsPage() {
     const handleOpenPayments = () => {
         setIsPaymentModalOpen(true);
         fetchPaymentHistory();
+    };
+
+    const handleOpenPriceModal = (target: 'offer' | 'event') => {
+        setPriceTarget(target);
+        setIsPriceModalOpen(true);
+    };
+
+    const handleSavePrices = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setSavingPrices(true);
+            await api.admin.updateSettings({
+                offer_price_per_day: String(offerPrice),
+                event_price_per_day: String(eventPrice)
+            });
+            setIsPriceModalOpen(false);
+            alert('Prices updated successfully!');
+        } catch (err: any) {
+            alert(err.message || 'Failed to save price settings');
+        } finally {
+            setSavingPrices(false);
+        }
     };
 
     const handleToggleFeatured = async (id: string, isEvent: boolean, currentFeatured: boolean) => {
@@ -155,23 +205,45 @@ export default function AdminEventsDealsPage() {
     return (
         <div className="space-y-8 pb-16">
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-black uppercase tracking-widest rounded-full flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5" /> Superadmin Operations
                         </span>
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold rounded-full flex items-center gap-1">
+                            <Tag className="w-3.5 h-3.5" /> Offer Price: PKR {offerPrice}/day
+                        </span>
+                        <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs font-bold rounded-full flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" /> Event Price: PKR {eventPrice}/day
+                        </span>
                     </div>
-                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Events & Deals Management</h1>
-                    <p className="text-slate-500 font-bold mt-1 text-base">Monitor platform-wide promotional deals, event listings, and payment revenues.</p>
+                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Events & Offers Management</h1>
+                    <p className="text-slate-500 font-bold mt-1 text-base">Monitor platform-wide promotional offers, event listings, set pricing rates, and payment logs.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={() => handleOpenPriceModal('offer')}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-pink-50 text-pink-700 border border-pink-200 hover:bg-pink-100 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm"
+                    >
+                        <DollarSign className="w-4 h-4 text-pink-600" />
+                        Set Offer Price
+                    </button>
+
+                    <button
+                        onClick={() => handleOpenPriceModal('event')}
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm"
+                    >
+                        <DollarSign className="w-4 h-4 text-purple-600" />
+                        Set Event Price
+                    </button>
+
                     <button
                         onClick={handleOpenPayments}
-                        className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700 transition-all active:scale-95"
+                        className="flex items-center justify-center gap-2.5 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl font-black text-xs shadow-xl shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700 transition-all active:scale-95"
                     >
-                        <Receipt className="w-5 h-5" />
+                        <Receipt className="w-4 h-4" />
                         Billing & Payment History
                     </button>
                 </div>
@@ -204,7 +276,7 @@ export default function AdminEventsDealsPage() {
                         onClick={() => setActiveTab('deals')}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'deals' ? 'bg-pink-600 text-white shadow-md shadow-pink-500/20' : 'text-slate-500 hover:text-slate-900'}`}
                     >
-                        <Tag className="w-3.5 h-3.5" /> Deals ({deals.length})
+                        <Tag className="w-3.5 h-3.5" /> Offers ({deals.length})
                     </button>
                 </div>
 
@@ -258,7 +330,7 @@ export default function AdminEventsDealsPage() {
                                 <tr>
                                     <td colSpan={6} className="px-6 py-16 text-center">
                                         <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-3" />
-                                        <p className="text-sm font-bold text-slate-400">Loading events and deals...</p>
+                                        <p className="text-sm font-bold text-slate-400">Loading events and offers...</p>
                                     </td>
                                 </tr>
                             ) : filteredItems.length === 0 ? (
@@ -278,7 +350,7 @@ export default function AdminEventsDealsPage() {
                                     const vendorEmail = item.vendor?.businessEmail || item.vendor?.user?.email || '';
 
                                     return (
-                                        <tr key={`${item._itemType}-${item.id}`} className="hover:bg-slate-50/50 transition-colors group">
+                                        <tr key={`${item._itemType}-${item.id}`} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => setSelectedItem(item)}>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 ${isEvent ? 'bg-purple-100 text-purple-600' : 'bg-pink-100 text-pink-600'}`}>
@@ -287,7 +359,7 @@ export default function AdminEventsDealsPage() {
                                                     <div>
                                                         <div className="flex items-center gap-2">
                                                             <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md ${isEvent ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700'}`}>
-                                                                {isEvent ? 'Event' : 'Deal'}
+                                                                {isEvent ? 'Event' : 'Offer'}
                                                             </span>
                                                             {item.isFeatured && (
                                                                 <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-amber-100 text-amber-700 flex items-center gap-1">
@@ -295,7 +367,7 @@ export default function AdminEventsDealsPage() {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="font-black text-slate-900 text-sm mt-1 max-w-xs line-clamp-1">{item.title}</p>
+                                                        <p className="font-black text-slate-900 text-sm mt-1 max-w-xs line-clamp-1 group-hover:text-purple-600 transition-colors">{item.title}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -342,8 +414,15 @@ export default function AdminEventsDealsPage() {
                                                     {item.isPublished ? 'Published' : 'Draft'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedItem(item)}
+                                                        className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
                                                     <button
                                                         onClick={() => handleToggleFeatured(item.id, isEvent, item.isFeatured)}
                                                         disabled={actionLoading === `feat-${item.id}`}
@@ -371,6 +450,239 @@ export default function AdminEventsDealsPage() {
                 </div>
             </div>
 
+            {/* Set Price Modal */}
+            <AnimatePresence>
+                {isPriceModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100"
+                        >
+                            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-900 to-slate-900 text-white flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                                        <DollarSign className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-white">Set {priceTarget === 'offer' ? 'Offer' : 'Event'} Pricing</h2>
+                                        <p className="text-xs text-purple-200 font-bold">Configure rates for vendors posting on platform</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsPriceModalOpen(false)}
+                                    className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSavePrices} className="p-6 space-y-5">
+                                <div>
+                                    <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">
+                                        Offer Price per Day (PKR)
+                                    </label>
+                                    <div className="relative">
+                                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            required
+                                            value={offerPrice}
+                                            onChange={e => setOfferPrice(Number(e.target.value))}
+                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base focus:outline-none focus:border-purple-600 transition-all"
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 font-bold mt-1.5">This price is charged per active day when a vendor creates an Offer.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">
+                                        Event Price per Day (PKR)
+                                    </label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            required
+                                            value={eventPrice}
+                                            onChange={e => setEventPrice(Number(e.target.value))}
+                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base focus:outline-none focus:border-purple-600 transition-all"
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 font-bold mt-1.5">This price is charged per active day when a vendor posts an Event.</p>
+                                </div>
+
+                                <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPriceModalOpen(false)}
+                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-black text-xs transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={savingPrices}
+                                        className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs transition-all active:scale-95 shadow-lg shadow-purple-500/20 disabled:opacity-50"
+                                    >
+                                        {savingPrices ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                        Save Price Rates
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* View Item Details Modal */}
+            <AnimatePresence>
+                {selectedItem && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-slate-100"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-slate-100 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${selectedItem._itemType === 'event' ? 'bg-purple-500/20 text-purple-300' : 'bg-pink-500/20 text-pink-300'}`}>
+                                        {selectedItem._itemType === 'event' ? <Calendar className="w-5 h-5" /> : <Tag className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md ${selectedItem._itemType === 'event' ? 'bg-purple-500/20 text-purple-300' : 'bg-pink-500/20 text-pink-300'}`}>
+                                                {selectedItem._itemType === 'event' ? 'Event Details' : 'Offer Details'}
+                                            </span>
+                                            {selectedItem.isFeatured && (
+                                                <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                                                    <Star className="w-2.5 h-2.5 fill-amber-300 text-amber-300" /> Featured
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h2 className="text-xl font-black text-white mt-1 max-w-md truncate">{selectedItem.title}</h2>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedItem(null)}
+                                    className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Scrollable Body */}
+                            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                                {/* Banner / Image Preview if any */}
+                                {(selectedItem.bannerUrl || selectedItem.imageUrl || selectedItem.coverImageUrl) && (
+                                    <div className="w-full h-48 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+                                        <img
+                                            src={getImageUrl(selectedItem.bannerUrl || selectedItem.imageUrl || selectedItem.coverImageUrl) || ''}
+                                            alt={selectedItem.title}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Key Highlights Grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Price / Cost</p>
+                                        <p className="text-base font-black text-slate-900 mt-0.5">
+                                            {selectedItem._itemType === 'event'
+                                                ? (selectedItem.price ? `PKR ${Number(selectedItem.price).toLocaleString()}` : 'Free Entry')
+                                                : `PKR ${Number(selectedItem.dealPrice || selectedItem.discountedPrice || selectedItem.price || 0).toLocaleString()}`
+                                            }
+                                        </p>
+                                    </div>
+
+                                    {selectedItem.originalPrice && selectedItem._itemType === 'deal' && (
+                                        <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Original Price</p>
+                                            <p className="text-base font-black text-slate-400 line-through mt-0.5">
+                                                PKR {Number(selectedItem.originalPrice).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Publication Status</p>
+                                        <p className={`text-sm font-black mt-0.5 ${selectedItem.isPublished ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                            {selectedItem.isPublished ? 'Published Live' : 'Draft'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Vendor Information */}
+                                <div className="bg-purple-50/50 rounded-2xl p-4 border border-purple-100/60 space-y-2">
+                                    <p className="text-[10px] font-black text-purple-700 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Building2 className="w-3.5 h-3.5" /> Vendor & Business Profile
+                                    </p>
+                                    <p className="text-base font-black text-slate-900">{selectedItem.vendor?.businessName || selectedItem.vendor?.user?.fullName || 'N/A'}</p>
+                                    <p className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {selectedItem.vendor?.businessEmail || selectedItem.vendor?.user?.email || 'No Email'}
+                                    </p>
+                                </div>
+
+                                {/* Dates & Venue */}
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Schedule & Validity</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold text-slate-700">
+                                        {selectedItem._itemType === 'event' ? (
+                                            <>
+                                                <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl">
+                                                    <Calendar className="w-4 h-4 text-purple-600" />
+                                                    <span>Start: {selectedItem.startDate ? new Date(selectedItem.startDate).toLocaleDateString() : 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl">
+                                                    <Clock className="w-4 h-4 text-purple-600" />
+                                                    <span>Time: {selectedItem.startTime || 'All day'}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl col-span-2">
+                                                <Calendar className="w-4 h-4 text-pink-600" />
+                                                <span>Valid Until: {selectedItem.endDate ? new Date(selectedItem.endDate).toLocaleDateString() : 'Ongoing'}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Description & Terms</p>
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-slate-700 text-xs font-medium leading-relaxed whitespace-pre-line">
+                                        {selectedItem.description || 'No detailed description provided for this item.'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+                                <button
+                                    onClick={() => handleToggleFeatured(selectedItem.id, selectedItem._itemType === 'event', selectedItem.isFeatured)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${selectedItem.isFeatured ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}
+                                >
+                                    <Star className={`w-4 h-4 ${selectedItem.isFeatured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                                    {selectedItem.isFeatured ? 'Remove Featured' : 'Mark Featured'}
+                                </button>
+                                <button
+                                    onClick={() => setSelectedItem(null)}
+                                    className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-black text-xs hover:bg-slate-800 transition-all"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Payments History Modal */}
             <AnimatePresence>
                 {isPaymentModalOpen && (
@@ -389,7 +701,7 @@ export default function AdminEventsDealsPage() {
                                             <DollarSign className="w-3 h-3" /> Financial Records
                                         </span>
                                     </div>
-                                    <h2 className="text-xl lg:text-2xl font-black tracking-tight text-white">Event & Deal Payment History</h2>
+                                    <h2 className="text-xl lg:text-2xl font-black tracking-tight text-white">Event & Offer Payment History</h2>
                                 </div>
 
                                 <button
@@ -462,7 +774,7 @@ export default function AdminEventsDealsPage() {
                                             <tr>
                                                 <td colSpan={7} className="px-4 py-12 text-center">
                                                     <p className="text-slate-900 font-black text-base">No payment history found</p>
-                                                    <p className="text-xs text-slate-400 mt-1">Transactions will appear when vendors boost events or deals.</p>
+                                                    <p className="text-xs text-slate-400 mt-1">Transactions will appear when vendors boost events or offers.</p>
                                                 </td>
                                             </tr>
                                         ) : (
@@ -476,7 +788,7 @@ export default function AdminEventsDealsPage() {
                                                     <td className="px-4 py-2.5">
                                                         <div>
                                                             <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md ${pay.type === 'Event' ? 'bg-purple-100 text-purple-700' : 'bg-pink-100 text-pink-700'}`}>
-                                                                {pay.type}
+                                                                {pay.type === 'Deal' ? 'Offer' : pay.type}
                                                             </span>
                                                             <p className="font-black text-slate-900 text-xs mt-1 max-w-[150px] truncate" title={pay.itemName}>{pay.itemName}</p>
                                                         </div>

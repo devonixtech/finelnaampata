@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StepProps, ListingFormData } from '../types';
-import { ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock, Check, Facebook, Instagram, Twitter, Linkedin, Youtube, Music2, Image as ImageIcon, MessageCircle } from 'lucide-react';
+import { ChevronDown, Phone, MapPin, Tag, Plus, Trash2, ImagePlus, Loader2, Lock, Check, Facebook, Instagram, Twitter, Linkedin, Youtube, Music2, Image as ImageIcon, MessageCircle, Sparkles } from 'lucide-react';
 
 const getSocialIcon = (key: string, className = "w-5 h-5") => {
     switch(key) {
@@ -18,6 +18,7 @@ const getSocialIcon = (key: string, className = "w-5 h-5") => {
 import { DEFAULT_DIAL_CODES } from '../../../../lib/phone-codes';
 import { SOCIAL_PLATFORMS, AMENITIES } from '../../../../lib/constants/listing-options';
 import { parsePhoneNumberFromString, CountryCode } from 'libphonenumber-js';
+import { api } from '../../../../lib/api';
 import { usePlanFeature } from '../../../../hooks/usePlanFeature';
 import CategorySearchSelect from '../../../../components/CategorySearchSelect';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
@@ -42,10 +43,39 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
         ? categories.filter(c => c.parentId === formData.categoryId) 
         : [];
 
+    const [suggesting, setSuggesting] = useState(false);
+
+    const handleAiSuggest = async () => {
+        if (!formData.title && !formData.description) return;
+        setSuggesting(true);
+        try {
+            const suggestions = await api.categories.suggest(formData.title || '', formData.description || '');
+            if (suggestions && suggestions.length > 0) {
+                const bestCategory = suggestions[0].id;
+                setFormData(p => ({ ...p, categoryId: bestCategory, subCategoryIds: [] }));
+            }
+        } catch (err) {
+            console.error("AI suggestion failed", err);
+        } finally {
+            setSuggesting(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div>
-                <label className={labelClass}>Main Category</label>
+                <div className="flex items-center justify-between mb-2">
+                    <label className={labelClass + " !mb-0"}>Main Category</label>
+                    <button 
+                        type="button" 
+                        onClick={handleAiSuggest}
+                        disabled={suggesting || categoriesLoading}
+                        className="flex items-center gap-2 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        {suggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        {suggesting ? 'Suggesting...' : '✨ Auto-Suggest Category'}
+                    </button>
+                </div>
                 <CategorySearchSelect
                     categories={categories.filter(c => !c.parentId)}
                     value={formData.categoryId}

@@ -113,6 +113,12 @@ export class UpdateVendorDto {
     @IsOptional()
     businessHours?: Record<string, { isOpen: boolean, openTime: string, closeTime: string }>;
 
+    @ApiPropertyOptional({ example: ['url1.jpg', 'url2.jpg'] })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    shopPhotos?: string[];
+
     @ApiPropertyOptional({ example: [{ platform: 'facebook', url: 'https://facebook.com/mybusiness' }] })
     @IsOptional()
     @IsArray()

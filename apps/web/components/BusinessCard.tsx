@@ -6,6 +6,10 @@ import { Star, Heart, MapPin, Phone, Send } from 'lucide-react';
 import { Business } from '../types/api';
 import { ListingImage } from './ListingImage';
 
+import { useAuth } from '../context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { api } from '../lib/api';
+
 const RatingStars = ({ rating, count }: { rating: number, count?: number }) => {
     return (
         <div className="flex items-center gap-2 mt-1 mb-4">
@@ -34,6 +38,12 @@ interface BusinessCardProps {
 }
 
 const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
+    const { user } = useAuth();
+    const router = useRouter();
+    const [isFavorite, setIsFavorite] = React.useState(false);
+    
+    // Check initial favorite state if needed, though without user context on list fetch, it might be false by default
+    // We keep it simple for now as requested.
 
     const businessUrl = business.slug
         ? `/business/${business.slug}`
@@ -46,18 +56,51 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
     // Fallback logic for open now (replace with actual logic if backend provides it)
     const isOpen = business.vendor?.isOnline !== false;
 
+    const handleAction = async (e: React.MouseEvent, action: 'like' | 'call' | 'enquiry') => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!user) {
+            // For Call and Enquiry, we want to redirect the user to the business page after login
+            // so they don't lose context. For 'like', redirecting to the current page is fine.
+            const redirectUrl = (action === 'call' || action === 'enquiry') ? businessUrl : window.location.pathname;
+            router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+            return;
+        }
+
+        if (action === 'like') {
+            try {
+                if (isFavorite) {
+                    await api.users.removeFavorite(business.id);
+                    setIsFavorite(false);
+                } else {
+                    await api.users.addFavorite(business.id);
+                    setIsFavorite(true);
+                }
+            } catch (err) {
+                console.error("Failed to toggle favorite:", err);
+            }
+        } else {
+            // For Call and Send, just navigate to details page since the modals are there
+            router.push(businessUrl);
+        }
+    };
+
     return (
         <div className="bg-white rounded-[24px] border border-slate-100/60 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-200 transition-all duration-300 overflow-hidden flex flex-col h-full group">
 
             {/* Image Section */}
-            <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-50">
+            <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-50 cursor-pointer" onClick={() => router.push(businessUrl)}>
                 <ListingImage
                     src={business.coverImageUrl}
                     alt={business.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
-                <button className="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                    <Heart className="w-4 h-4 text-slate-400 hover:text-red-500 transition-colors" />
+                <button 
+                    onClick={(e) => handleAction(e, 'like')}
+                    className="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform z-10"
+                >
+                    <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-400 hover:text-red-500'}`} />
                 </button>
             </div>
 
@@ -95,7 +138,10 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
 
                 {/* Action Buttons */}
                 <div className="mt-auto pt-2 flex items-center gap-2">
-                    <button className="w-10 h-10 shrink-0 border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                    <button 
+                        onClick={(e) => handleAction(e, 'call')}
+                        className="w-10 h-10 shrink-0 border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                    >
                         <Phone className="w-4 h-4" />
                     </button>
                     <Link 
@@ -104,7 +150,10 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
                     >
                         View Details
                     </Link>
-                    <button className="w-10 h-10 shrink-0 bg-[#2563eb] rounded-xl flex items-center justify-center text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5">
+                    <button 
+                        onClick={(e) => handleAction(e, 'enquiry')}
+                        className="w-10 h-10 shrink-0 bg-[#2563eb] rounded-xl flex items-center justify-center text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5"
+                    >
                         <Send className="w-4 h-4 ml-[-2px]" />
                     </button>
                 </div>
