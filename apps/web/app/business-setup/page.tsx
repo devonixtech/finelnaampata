@@ -957,9 +957,14 @@ function BusinessSetupWizardContent() {
         }
     };
 
-    const handleReset = () => {
-        if (window.confirm('Are you sure you want to reset the form to its last saved state? Unsaved changes will be lost.')) {
-            window.location.reload();
+    const handleReset = async () => {
+        if (window.confirm('Are you sure you want to completely reset the form and start from the beginning? All unsaved data will be lost.')) {
+            try {
+                await api.businessSetup.saveAnswers({});
+            } catch (e) {
+                console.error("Failed to clear draft", e);
+            }
+            window.location.href = '/business-setup';
         }
     };
 
