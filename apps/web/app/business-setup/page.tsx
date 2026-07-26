@@ -2994,7 +2994,7 @@ function BusinessSetupWizardContent() {
                     <div className="flex flex-col rounded-3xl bg-white border border-slate-100 shadow-2xl relative mb-8">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" style={{ clipPath: 'inset(0 0 0 0 round 1.5rem)' }} />
                         
-                        <div className="p-8 pb-4 min-h-[40vh] relative z-[100]">
+                        <div className="p-8 pb-4 min-h-[40vh] relative z-10">
                             {renderStepContent()}
                         </div>
 
