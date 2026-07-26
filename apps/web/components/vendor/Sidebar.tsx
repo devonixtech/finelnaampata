@@ -133,9 +133,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             }
 
             if (user?.role === 'vendor') {
-                // User requested: Even if profile is not complete, show all things
-                // But keep 'List Your Business' visible so they can finish it
-                return item.feature ? hasFeature(item.feature) : true;
+                // User requested: Even if profile is not complete or they are on Starter Plan, show all things
+                // Let the individual pages handle feature gating/upsells.
+                return true;
             }
 
             // Customer / Regular User
