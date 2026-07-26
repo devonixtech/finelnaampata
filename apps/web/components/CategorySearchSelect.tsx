@@ -42,7 +42,7 @@ export default function CategorySearchSelect({ categories, value, onChange, load
     }, []);
 
     return (
-        <div className="relative" ref={containerRef}>
+        <div className={`relative ${isOpen ? 'z-[120]' : 'z-10'}`} ref={containerRef}>
             <button
                 type="button"
                 onClick={() => !loading && setIsOpen(!isOpen)}

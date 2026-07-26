@@ -81,7 +81,7 @@ export function SearchableSelect({
     };
 
     return (
-        <div className={`relative ${className}`} ref={containerRef}>
+        <div className={`relative ${className} ${isOpen ? 'z-[120]' : 'z-10'}`} ref={containerRef}>
             <button
                 type="button"
                 disabled={disabled || loading}
