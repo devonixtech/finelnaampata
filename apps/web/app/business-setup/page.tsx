@@ -134,6 +134,123 @@ const OPERATIONAL_STRUCTURE_SECTIONS = {
     }
 };
 
+const INITIAL_STEP_DATA = {
+    // Step 1: Business Name & Tagline
+    businessName: '',
+    businessTagline: '',
+    contactPersonTitle: '',
+    contactPersonName: '',
+
+    // Step 2: Business Type (Presence)
+    businessType: [] as string[],
+
+    // Step 3: Core Business Nature
+    coreNature: [] as string[],
+
+    // Step 4: Operational Structure
+    operationalStructure: [] as string[],
+
+    // Step 5: Business Category
+    primaryCategory: '',
+    subcategory1: '',
+    subcategory2: '',
+    subcategory3: '',
+    customCategoryTag: '',
+
+    // Step 6: Target Market
+    targetMarket: [] as string[],
+
+    // Step 7: What Your Business Offers
+    offers: [] as string[],
+
+    // Step 8: Business Address
+    country: '',
+    city: '',
+    state: '',
+    address: '',
+    addressLine2: '',
+    zipCode: '',
+
+    // Step 9: Map Pin
+    latitude: '',
+    longitude: '',
+    mapConfirmed: false,
+
+    // Step 10: Contact Details
+    phoneCode: '+92',
+    phoneNumber: '',
+    whatsappCode: '+92',
+    whatsappNumber: '',
+    whatsappSameAsPhone: false,
+    businessEmail: '',
+    namedPhoneNumbers: [] as Array<{ label: string; personName: string; title: string; number: string }>,
+
+    // Step 11: Business Hours
+    open247: false,
+    timezone: getBrowserTimezone(),
+    hours: {} as Record<string, { isOpen: boolean; openTime: string; closeTime: string }>,
+
+    // Step 12: Business Description
+    bio: '',
+    languages: [] as string[],
+    languagesText: '',
+
+    // Step 13: Year Established & Team
+    yearEstablished: '',
+    employeeSize: '',
+    hasMultipleBranches: false,
+
+    // Step 14: Website & Social Media
+    website: '',
+    socialLinks: {
+        facebook: '',
+        instagram: '',
+        youtube: '',
+        linkedin: '',
+        tiktok: '',
+        twitter: '',
+        pinterest: '',
+        snapchat: '',
+        customLinks: [] as Array<{ label: string; url: string }>
+    },
+
+    // Step 15: Amenities & Facilities
+    amenities: [] as string[],
+
+    // Step 16: Specialised Sectors
+    specialisedSectors: [] as string[],
+
+    // Step 17: Keywords
+    keywords: [] as string[],
+
+    // Step 18: FAQs
+    faqs: [] as Array<{ question: string; answer: string }>,
+
+    // Step 19: Business Opportunities
+    franchiseOpportunity: 'No',
+    franchiseAreas: [] as string[],
+    franchiseInvestment: '',
+    franchiseSupport: [] as string[],
+    franchiseMinSpace: '',
+    dealersResellers: 'No',
+    importerExporter: 'No',
+    areasServed: [] as string[],
+
+    // Step 20: Logo & Cover Image
+    logoUrl: '',
+    coverImageUrl: '',
+    galleryUrls: [] as string[],
+    imageCaptions: {} as Record<string, string>,
+
+    // Step 21: Legal Consent
+    termsAccepted: false,
+    privacyAccepted: false,
+    moderationAccepted: false,
+    accuracyConfirmed: false,
+    publicLocationConsent: false,
+    marketingUpdatesConsent: false
+};
+
 function BusinessSetupWizardContent() {
     const { user, loading: authLoading, syncProfile } = useAuth();
     const router = useRouter();
@@ -181,122 +298,7 @@ function BusinessSetupWizardContent() {
     }, [searchParams]);
 
     // Dynamic states for 21 steps
-    const [stepData, setStepData] = useState({
-        // Step 1: Business Name & Tagline
-        businessName: '',
-        businessTagline: '',
-        contactPersonTitle: '',
-        contactPersonName: '',
-
-        // Step 2: Business Type (Presence)
-        businessType: [] as string[],
-
-        // Step 3: Core Business Nature
-        coreNature: [] as string[],
-
-        // Step 4: Operational Structure
-        operationalStructure: [] as string[],
-
-        // Step 5: Business Category
-        primaryCategory: '',
-        subcategory1: '',
-        subcategory2: '',
-        subcategory3: '',
-        customCategoryTag: '',
-
-        // Step 6: Target Market
-        targetMarket: [] as string[],
-
-        // Step 7: What Your Business Offers
-        offers: [] as string[],
-
-        // Step 8: Business Address
-        country: '',
-        city: '',
-        state: '',
-        address: '',
-        addressLine2: '',
-        zipCode: '',
-
-        // Step 9: Map Pin
-        latitude: '',
-        longitude: '',
-        mapConfirmed: false,
-
-        // Step 10: Contact Details
-        phoneCode: '+92',
-        phoneNumber: '',
-        whatsappCode: '+92',
-        whatsappNumber: '',
-        whatsappSameAsPhone: false,
-        businessEmail: '',
-        namedPhoneNumbers: [] as Array<{ label: string; personName: string; title: string; number: string }>,
-
-        // Step 11: Business Hours
-        open247: false,
-        timezone: getBrowserTimezone(),
-        hours: {} as Record<string, { isOpen: boolean; openTime: string; closeTime: string }>,
-
-        // Step 12: Business Description
-        bio: '',
-        languages: [] as string[],
-        languagesText: '',
-
-        // Step 13: Year Established & Team
-        yearEstablished: '',
-        employeeSize: '',
-        hasMultipleBranches: false,
-
-        // Step 14: Website & Social Media
-        website: '',
-        socialLinks: {
-            facebook: '',
-            instagram: '',
-            youtube: '',
-            linkedin: '',
-            tiktok: '',
-            twitter: '',
-            pinterest: '',
-            snapchat: '',
-            customLinks: [] as Array<{ label: string; url: string }>
-        },
-
-        // Step 15: Amenities & Facilities
-        amenities: [] as string[],
-
-        // Step 16: Specialised Sectors
-        specialisedSectors: [] as string[],
-
-        // Step 17: Keywords
-        keywords: [] as string[],
-
-        // Step 18: FAQs
-        faqs: [] as Array<{ question: string; answer: string }>,
-
-        // Step 19: Business Opportunities
-        franchiseOpportunity: 'No',
-        franchiseAreas: [] as string[],
-        franchiseInvestment: '',
-        franchiseSupport: [] as string[],
-        franchiseMinSpace: '',
-        dealersResellers: 'No',
-        importerExporter: 'No',
-        areasServed: [] as string[],
-
-        // Step 20: Logo & Cover Image
-        logoUrl: '',
-        coverImageUrl: '',
-        galleryUrls: [] as string[],
-        imageCaptions: {} as Record<string, string>,
-
-        // Step 21: Legal Consent
-        termsAccepted: false,
-        privacyAccepted: false,
-        moderationAccepted: false,
-        accuracyConfirmed: false,
-        publicLocationConsent: false,
-        marketingUpdatesConsent: false
-    });
+    const [stepData, setStepData] = useState(INITIAL_STEP_DATA);
     const [addressConfig, setAddressConfig] = useState<any>(null);
 
     const [consentMeta, setConsentMeta] = useState({
@@ -966,7 +968,9 @@ function BusinessSetupWizardContent() {
             } catch (e) {
                 console.error("Failed to clear draft", e);
             }
-            window.location.href = '/business-setup';
+            setStepData(INITIAL_STEP_DATA);
+            setCurrentStep(0);
+            router.replace('/business-setup');
         }
     };
 
