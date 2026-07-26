@@ -957,8 +957,8 @@ export const api = {
             fetcher<{ isFollowing: boolean; followersCount: number }>(`/follows/${businessId}/check`, { silent: true }),
         count: (businessId: string) =>
             fetcher<{ followersCount: number }>(`/follows/${businessId}/count`, { silent: true }),
-        myFollows: (page = 1, limit = 20) =>
-            fetcher<{ data: Business[]; meta: any }>(`/follows/my?page=${page}&limit=${limit}`),
+        myFollows: (page = 1, limit = 20, options?: FetcherOptions) =>
+            fetcher<{ data: Business[]; meta: any }>(`/follows/my?page=${page}&limit=${limit}`, options),
     },
     broadcasts: {
         create: (data: any) => fetcher<any>('/broadcasts', { method: 'POST', body: JSON.stringify(data) }),

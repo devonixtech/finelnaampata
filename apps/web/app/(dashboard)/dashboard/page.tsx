@@ -74,9 +74,11 @@ export default function GenericDashboard() {
             try {
                 setLoading(true);
 
-                const [favoritesData, followsData] = await Promise.all([
+                const [favoritesData, followsData, reviewsData, notifsData] = await Promise.all([
                     api.users.getFavorites({ silent: true }).catch(() => ({ data: [] })),
-                    api.follows.myFollows({ silent: true }).catch(() => ({ data: [] }))
+                    api.follows.myFollows(1, 20, { silent: true }).catch(() => ({ data: [] })),
+                    api.reviews.myReviews({ silent: true }).catch(() => ({ data: [] })),
+                    api.notifications.getAll({ silent: true }).catch(() => ({ data: [] }))
                 ]);
 
                 setSavedBusinesses(favoritesData?.data || []);
@@ -88,9 +90,15 @@ export default function GenericDashboard() {
                         api.businessProfiles.getProfile({ silent: true }).catch(() => null),
                         api.affiliate.getStats({ silent: true }).catch(() => null)
                     ]);
-                    setStats(statsData);
+                    setStats({
+                        ...(statsData || {}),
+                        savedCount: favoritesData.data?.length || 0,
+                        reviewsCount: reviewsData.data?.length || 0,
+                        unreadNotifs: notifsData.data?.filter((n: any) => !n.isRead).length || 0
+                    });
                     setVendorProfile(businessProfile);
                     setAffiliateStats(affiliateData);
+                } else if (user) {
                     setStats({
                         savedCount: favoritesData.data?.length || 0,
                         reviewsCount: reviewsData.data?.length || 0,
