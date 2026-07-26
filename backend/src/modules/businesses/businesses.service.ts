@@ -1020,9 +1020,8 @@ export class BusinessesService implements OnModuleInit {
             });
         }
 
-        // Distance Filter & Selection using PostGIS or earthdistance fallback
+        // Distance Filter & Selection using PostGIS with earth_distance fallback
         if (latitude && longitude) {
-            /* 
             if (this.isPostgisAvailable) {
                 queryBuilder.addSelect(
                     `ST_Distance(listing.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography)`,
@@ -1036,7 +1035,6 @@ export class BusinessesService implements OnModuleInit {
                     );
                 }
             } else {
-            */
                 queryBuilder.addSelect(
                     `earth_distance(ll_to_earth(listing.latitude, listing.longitude), ll_to_earth(:lat, :lng))`,
                     'distance_meters'
@@ -1049,7 +1047,7 @@ export class BusinessesService implements OnModuleInit {
                         { radiusMeters }
                     );
                 }
-            // }
+            }
             queryBuilder.setParameter('lat', latitude);
             queryBuilder.setParameter('lng', longitude);
         }
@@ -1443,7 +1441,7 @@ export class BusinessesService implements OnModuleInit {
         // Update basic text fields
         const textFields = [
             'description', 'shortDescription', 'email', 'phone', 'whatsapp',
-            'website', 'address', 'addressLine2', 'city', 'state', 'pincode', 'latitude', 'longitude',
+            'website', 'address', 'addressLine2', 'landmark', 'city', 'state', 'pincode', 'latitude', 'longitude',
             'logoUrl', 'coverImageUrl', 'images', 'imageCaptions', 'namedPhoneNumbers', 'metaTitle', 'metaDescription',
             'metaKeywords', 'hasOffer', 'offerTitle', 'offerDescription', 'offerBadge',
             'offerExpiresAt', 'offerBannerUrl', 'faqs', 'businessTagline', 'contactPersonTitle', 'open247', 'searchKeywords'

@@ -339,6 +339,28 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     <p className="text-xs text-red-500 font-bold mt-1">Invalid {postalLabel.toLowerCase()} format for {formData.country || 'this country'}.</p>
                 )}
             </div>
+            <div>
+                <label className={labelClass}>Address Line 2 (Optional)</label>
+                <input
+                    type="text"
+                    value={formData.addressLine2}
+                    onChange={e => setFormData(p => ({ ...p, addressLine2: e.target.value }))}
+                    className={inputClass}
+                    placeholder="Apartment, suite, floor, etc."
+                    maxLength={100}
+                />
+            </div>
+            <div>
+                <label className={labelClass}>Landmark / Additional Info (Optional)</label>
+                <input
+                    type="text"
+                    value={formData.landmark}
+                    onChange={e => setFormData(p => ({ ...p, landmark: e.target.value }))}
+                    className={inputClass}
+                    placeholder="Floor number, building name, nearest landmark, etc."
+                    maxLength={100}
+                />
+            </div>
         </div>
     );
 };
@@ -501,16 +523,46 @@ export const Step17FAQs = ({ formData, setFormData }: StepProps) => {
 
             <div className="space-y-3">
                 {safeFaqs.map((faq, idx) => (
-                    <div key={idx} className="p-4 border border-slate-200 rounded-xl relative group pr-12">
+                    <div key={idx} className="p-4 border border-slate-200 rounded-xl relative group pr-20">
                         <h4 className="font-bold text-sm text-slate-900">{faq.question}</h4>
                         <p className="text-sm text-slate-600 mt-1">{faq.answer}</p>
-                        <button 
-                            type="button" 
-                            onClick={() => setFormData(p => ({ ...p, faqs: p.faqs.filter((_, i) => i !== idx) }))}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </button>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => {
+                                    if (idx === 0) return;
+                                    const updated = [...safeFaqs];
+                                    [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+                                    setFormData(p => ({ ...p, faqs: updated }));
+                                }}
+                                className="p-1 text-slate-400 hover:text-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Move up"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                            </button>
+                            <button
+                                type="button"
+                                disabled={idx === safeFaqs.length - 1}
+                                onClick={() => {
+                                    if (idx === safeFaqs.length - 1) return;
+                                    const updated = [...safeFaqs];
+                                    [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+                                    setFormData(p => ({ ...p, faqs: updated }));
+                                }}
+                                className="p-1 text-slate-400 hover:text-orange-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Move down"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => setFormData(p => ({ ...p, faqs: p.faqs.filter((_, i) => i !== idx) }))}
+                                className="p-1 text-slate-400 hover:text-red-500"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>

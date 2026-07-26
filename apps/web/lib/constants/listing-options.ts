@@ -66,16 +66,19 @@ export const INDUSTRY_SUB_TYPES_SECTIONS = {
     industrial: {
         label: 'Industrial, Manufacturing & B2B',
         options: [
-            'Manufacturer', 'OEM / Original Equipment Manufacturer', 'Fabricator',
-            'Wholesale / B2B Supplier', 'Industrial Services', 'Exporter', 'Importer',
-            'Distributor', 'Supplier', 'Contract Manufacturer',
+            'Factory', 'Manufacturing Unit', 'Industrial Supplier',
+            'Packaging Company', 'Printing Press', 'Textile Mill',
+            'Garment Factory', 'Warehouse', 'Cold Storage',
+            'Wholesale Market / Mandi', 'Export House', 'Import Clearance Agent',
         ],
     },
     agriculture: {
         label: 'Agriculture, Farming & Rural Businesses',
         options: [
-            'Farmer / Agricultural Producer', 'Livestock / Dairy', 'Organic Farming',
-            'Rural Services', 'Agri-Tech', 'Food Processing', 'Farm Equipment',
+            'Seed Store', 'Fertilizer Store', 'Pesticide Shop',
+            'Dairy Farm', 'Poultry Farm', 'Cattle Farm',
+            'Tractor Dealer', 'Agricultural Equipment', 'Grain Market',
+            'Livestock Market', 'Irrigation Supplies', 'Organic Farm',
         ],
     },
 };
@@ -127,15 +130,17 @@ export const SOCIAL_PLATFORMS = [
 ];
 
 export const EMPLOYEE_COUNT_OPTIONS = [
-    'Only me',
-    '2-5',
-    '6-10',
-    '11-20',
-    '21-50',
-    '51-100',
-    '101-250',
-    '251-500',
-    '500+',
+    'Just Me (Solo)',
+    '2 – 5',
+    '6 – 10',
+    '11 – 25',
+    '26 – 50',
+    '51 – 100',
+    '101 – 250',
+    '251 – 500',
+    '501 – 1,000',
+    '1,000+',
+    'Prefer not to say',
 ];
 
 export const STEPS = [

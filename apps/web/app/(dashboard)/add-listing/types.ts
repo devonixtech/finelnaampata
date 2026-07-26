@@ -17,6 +17,7 @@ export interface ListingFormData {
     
     address: string;
     addressLine2: string;
+    landmark: string;
     city: string;
     state: string;
     country: string;
@@ -29,6 +30,7 @@ export interface ListingFormData {
     phoneNumber: string;
     whatsapp: string;
     whatsappSameAsPrimary: boolean;
+    businessEmail: string;
     contactPersonTitle: string;
     contactPersonName: string;
     namedPhoneNumbers: { label: string; personName?: string; title?: string; number: string }[];

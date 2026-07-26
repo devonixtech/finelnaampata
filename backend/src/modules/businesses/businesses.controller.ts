@@ -174,12 +174,17 @@ export class BusinessesController {
         }
 
         if (before) {
+            // Invalidate OLD city/category caches
             await this.searchLocationService.invalidateCity(before.city);
             await this.searchLocationService.invalidateCityCategory(
                 before.city,
                 before.category?.slug || before.categoryId || 'all',
             );
+            // Also invalidate profile cache
+            await this.searchLocationService.invalidateBusinessProfile(id, before.slug);
         }
+
+        // Invalidate NEW city/category caches
         await this.searchLocationService.invalidateCity(result.city);
         await this.searchLocationService.invalidateCityCategory(
             result.city,

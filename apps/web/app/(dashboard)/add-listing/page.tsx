@@ -135,6 +135,7 @@ function AddListingContent() {
         customCategoryTag: '',
         address: '',
         addressLine2: '',
+        landmark: '',
         city: '',
         state: '',
         country: 'Pakistan',
@@ -145,6 +146,7 @@ function AddListingContent() {
         phoneNumber: '',
         whatsapp: '',
         whatsappSameAsPrimary: false,
+        businessEmail: '',
         contactPersonTitle: '',
         contactPersonName: '',
         namedPhoneNumbers: [],
@@ -199,6 +201,7 @@ function AddListingContent() {
         customCategoryTag: '',
         address: '',
         addressLine2: '',
+        landmark: '',
         city: '',
         state: '',
         country: 'Pakistan',
@@ -209,6 +212,7 @@ function AddListingContent() {
         phoneNumber: '',
         whatsapp: '',
         whatsappSameAsPrimary: false,
+        businessEmail: '',
         contactPersonTitle: '',
         contactPersonName: '',
         namedPhoneNumbers: [],
@@ -462,6 +466,8 @@ function AddListingContent() {
             shortDescription: rawData.shortDescription.trim() || undefined,
             phone,
             whatsapp,
+            businessEmail: rawData.businessEmail?.trim() || undefined,
+            email: rawData.businessEmail?.trim() || undefined,
             namedPhoneNumbers: Array.isArray(rawData.namedPhoneNumbers) && rawData.namedPhoneNumbers.length
                 ? rawData.namedPhoneNumbers
                     .filter((item) => item.label?.trim() && item.number?.trim())
@@ -470,6 +476,7 @@ function AddListingContent() {
             website,
             address: rawData.address.trim(),
             addressLine2: rawData.addressLine2.trim() || undefined,
+            landmark: rawData.landmark?.trim() || undefined,
             city: rawData.city.trim(),
             state: rawData.state.trim(),
             country: rawData.country.trim() || undefined,

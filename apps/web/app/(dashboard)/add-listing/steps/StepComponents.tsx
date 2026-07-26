@@ -12,15 +12,17 @@ const toggleArrayItem = (arr: string[], item: string) =>
 export const Step1NameTagline = ({ formData, setFormData }: StepProps) => (
     <div className="space-y-6">
         <div>
-            <label className={labelClass}>Business Name</label>
+            <label className={labelClass}>Business Name *</label>
             <input 
                 type="text" 
                 className={inputClass} 
                 placeholder="e.g., Al-Madina Super Store"
                 value={formData.title}
                 onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
+                maxLength={100}
+                required
             />
-            <p className="text-xs text-slate-500 mt-2">Enter the exact name as it appears on your storefront or official documents.</p>
+            <p className="text-xs text-slate-500 mt-2">{formData.title.length}/100 characters. Enter the exact name as it appears on your storefront or official documents.</p>
         </div>
         <div>
             <label className={labelClass}>Business Tagline (Optional)</label>
@@ -142,25 +144,54 @@ export const Step11Description = ({ formData, setFormData }: StepProps) => (
                 onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
                 maxLength={2000}
             />
-            <p className="text-xs text-slate-500 mt-2">{formData.description.trim().length}/2000 characters. Add at least 20 characters if you want the description to appear stronger on your profile.</p>
+            <p className="text-xs text-slate-500 mt-2">
+                {formData.description.trim().length}/2000 characters.
+                {formData.description.trim().length > 0 && formData.description.trim().length < 20 && (
+                    <span className="text-amber-600 font-bold"> Minimum 20 characters required for description to appear on profile.</span>
+                )}
+            </p>
+        </div>
+        <div>
+            <label className={labelClass}>Business Languages</label>
+            <input 
+                type="text" 
+                className={inputClass} 
+                placeholder="e.g., English, Urdu, Arabic (comma-separated)"
+                value={Array.isArray(formData.businessLanguages) ? formData.businessLanguages.join(', ') : ''}
+                onChange={e => {
+                    const langs = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                    setFormData(p => ({ ...p, businessLanguages: langs }));
+                }}
+            />
+            <p className="text-xs text-slate-500 mt-2">What languages does your business operate in? Helps users find businesses that serve them in their language.</p>
         </div>
     </div>
 );
 
-export const Step12Experience = ({ formData, setFormData }: StepProps) => (
+export const Step12Experience = ({ formData, setFormData }: StepProps) => {
+    const currentYear = new Date().getFullYear();
+    const yearOptions = Array.from({ length: currentYear - 1899 }, (_, i) => (1900 + i).toString()).reverse();
+
+    return (
     <div className="space-y-6">
         <div>
             <label className={labelClass}>Year Established</label>
-            <input 
-                type="number" 
-                className={inputClass} 
-                placeholder="e.g., 2015"
+            <select
+                className={inputClass + " appearance-none cursor-pointer"}
                 value={formData.yearEstablished}
                 onChange={e => setFormData(p => ({ ...p, yearEstablished: e.target.value }))}
-            />
+            >
+                <option value="">Select year</option>
+                {yearOptions.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                ))}
+            </select>
+            {formData.yearEstablished && (
+                <p className="text-xs text-orange-500 mt-2 font-bold">{new Date().getFullYear() - parseInt(formData.yearEstablished)} years in business</p>
+            )}
         </div>
         <div>
-            <label className={labelClass}>Employee Count</label>
+            <label className={labelClass}>Number of Employees</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {EMPLOYEE_COUNT_OPTIONS.map(opt => (
                     <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.employeeCount === opt ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
@@ -177,16 +208,19 @@ export const Step12Experience = ({ formData, setFormData }: StepProps) => (
             </div>
         </div>
         <div>
-            <label className={labelClass}>Business Languages</label>
-            <input 
-                type="text" 
-                className={inputClass} 
-                placeholder="e.g., English, Urdu, Arabic (comma-separated)"
-                value={Array.isArray(formData.businessLanguages) ? formData.businessLanguages.join(',') : ''}
-                onChange={e => {
-                    setFormData(p => ({ ...p, businessLanguages: e.target.value.split(',') }));
-                }}
-            />
+            <label className="flex items-center p-4 border rounded-xl cursor-pointer transition-all hover:bg-slate-50">
+                <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                    checked={formData.chainOrMultipleBranches}
+                    onChange={(e) => setFormData(p => ({ ...p, chainOrMultipleBranches: e.target.checked }))}
+                />
+                <div className="ml-3">
+                    <span className="block text-sm font-semibold text-slate-800">Chain / Multiple Branches</span>
+                    <span className="block text-xs text-slate-500">If Yes: Each branch must be registered as a separate listing.</span>
+                </div>
+            </label>
         </div>
     </div>
-);
+    );
+};

@@ -14,6 +14,8 @@ export class SearchLocationService {
     private readonly INDEX_NAME = 'businesses';
     private readonly SEARCH_TTL_MS = 15 * 60 * 1000;
     private readonly SEARCH_TTL_SECONDS = 15 * 60;
+    private readonly PROFILE_TTL_MS = 30 * 60 * 1000;
+    private readonly PROFILE_TTL_SECONDS = 30 * 60;
     private readonly CITY_INDEX_PREFIX = 'search:index:city:';
     private readonly CITY_CATEGORY_INDEX_PREFIX = 'search:index:city-category:';
 
@@ -132,6 +134,18 @@ export class SearchLocationService {
 
     async invalidateCityCategory(city?: string | null, category?: string | null) {
         await this.invalidateIndex(this.cityCategoryIndexKey(city, category));
+    }
+
+    async invalidateBusinessProfile(businessId: string, slug?: string) {
+        const prefix = '/api/v1/businesses';
+        try {
+            await Promise.all([
+                this.cacheManager.del(`${prefix}/${businessId}`),
+                slug ? this.cacheManager.del(`${prefix}/slug/${slug}`) : Promise.resolve(),
+            ]);
+        } catch (error) {
+            this.logger.warn(`Profile cache invalidation failed for ${businessId}: ${error.message}`);
+        }
     }
 
     async searchHybrid(dto: SearchBusinessDto): Promise<any[]> {

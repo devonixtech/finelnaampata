@@ -244,17 +244,62 @@ export const Step18Expansion = ({ formData, setFormData }: StepProps) => (
         {formData.franchiseOpportunities && (
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
                 <div>
-                    <label className={labelClass}>Investment Range</label>
-                    <input 
-                        type="text" 
-                        className={inputClass} 
-                        placeholder="e.g. 5 Million - 10 Million PKR"
-                        value={formData.franchiseInvestmentRange}
-                        onChange={e => setFormData(p => ({ ...p, franchiseInvestmentRange: e.target.value }))}
-                    />
+                    <label className={labelClass}>Franchise Available In</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {['Across the World', 'Within the Country only'].map(opt => (
+                            <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${(formData.franchiseAvailableIn || []).includes(opt) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                                <input 
+                                    type="checkbox" 
+                                    className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                    checked={(formData.franchiseAvailableIn || []).includes(opt)}
+                                    onChange={() => {
+                                        const current = formData.franchiseAvailableIn || [];
+                                        setFormData(p => ({ ...p, franchiseAvailableIn: current.includes(opt) ? current.filter(i => i !== opt) : [...current, opt] }));
+                                    }}
+                                />
+                                <span className="ml-3 text-sm font-semibold text-slate-800">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
                 </div>
                 <div>
-                    <label className={labelClass}>Minimum Space Required (sq ft)</label>
+                    <label className={labelClass}>Investment Range</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {['Under $1,000', '$1k – $10k', '$10k – $50k', '$50k – $100k', '$100k+'].map(opt => (
+                            <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.franchiseInvestmentRange === opt ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                                <input 
+                                    type="radio" 
+                                    name="investmentRange"
+                                    className="w-5 h-5 text-orange-500 rounded-full border-slate-300 focus:ring-orange-500"
+                                    checked={formData.franchiseInvestmentRange === opt}
+                                    onChange={() => setFormData(p => ({ ...p, franchiseInvestmentRange: opt }))}
+                                />
+                                <span className="ml-3 text-sm font-semibold text-slate-800">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <label className={labelClass}>Franchise Support Provided</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {['Training', 'Marketing', 'Equipment', 'Setup Assistance', 'Staff Training', 'Inventory Support', 'Technology / Software', 'Ongoing Support'].map(opt => {
+                            const current = formData.franchiseSupport || [];
+                            return (
+                                <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${current.includes(opt) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                        checked={current.includes(opt)}
+                                        onChange={() => setFormData(p => ({ ...p, franchiseSupport: current.includes(opt) ? current.filter(i => i !== opt) : [...current, opt] }))}
+                                    />
+                                    <span className="ml-3 text-sm font-semibold text-slate-800">{opt}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </div>
+                <div>
+                    <label className={labelClass}>Minimum Space Required</label>
                     <input 
                         type="text" 
                         className={inputClass} 
@@ -278,6 +323,40 @@ export const Step18Expansion = ({ formData, setFormData }: StepProps) => (
                     <span className="block text-sm font-semibold text-slate-800">We are looking for dealers/distributors</span>
                 </div>
             </label>
+        </div>
+
+        <div>
+            <label className="flex items-center p-4 border rounded-xl cursor-pointer transition-all hover:bg-slate-50">
+                <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                    checked={formData.isImporterExporter}
+                    onChange={(e) => setFormData(p => ({ ...p, isImporterExporter: e.target.checked }))}
+                />
+                <div className="ml-3">
+                    <span className="block text-sm font-semibold text-slate-800">Importer / Exporter</span>
+                </div>
+            </label>
+        </div>
+
+        <div>
+            <label className={labelClass}>Areas Served</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {['Local', 'National', 'International'].map(opt => {
+                    const current = formData.areasServed || [];
+                    return (
+                        <label key={opt} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${current.includes(opt) ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                            <input 
+                                type="checkbox" 
+                                className="w-5 h-5 text-orange-500 rounded border-slate-300 focus:ring-orange-500"
+                                checked={current.includes(opt)}
+                                onChange={() => setFormData(p => ({ ...p, areasServed: current.includes(opt) ? current.filter(i => i !== opt) : [...current, opt] }))}
+                            />
+                            <span className="ml-3 text-sm font-semibold text-slate-800">{opt}</span>
+                        </label>
+                    );
+                })}
+            </div>
         </div>
     </div>
 );
@@ -380,6 +459,7 @@ export const Step19Media = ({ formData, setFormData }: StepProps) => {
                     </div>
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
+                <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">Recommended: 1200×400px, PNG or JPG. Max 10MB.</p>
             </div>
 
             <div>

@@ -170,6 +170,12 @@ export class CreateBusinessDto {
     @MaxLength(255)
     addressLine2?: string;
 
+    @ApiPropertyOptional({ example: 'Near City Mall, 2nd Floor' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    landmark?: string;
+
     @ApiProperty({ example: 'New York' })
     @IsString()
     @MinLength(2)

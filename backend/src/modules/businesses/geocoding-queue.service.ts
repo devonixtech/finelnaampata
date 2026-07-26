@@ -7,6 +7,9 @@ import { NotificationsService, NotificationType } from '../notifications/notific
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../auth/mail.service';
 import { Queue, Worker } from 'bullmq';
+import { Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 type GeocodeJob = {
     listingId: string;
@@ -21,6 +24,9 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
     private geocodeQueue: Queue;
     private geocodeWorker: Worker;
 
+    private readonly DAILY_GEOCODE_LIMIT = 1000; // Google Geocoding API free tier limit per day
+    private readonly DAILY_QUOTA_KEY = 'geocoding:daily_quota';
+
     constructor(
         @InjectRepository(Listing)
         private readonly listingRepository: Repository<Listing>,
@@ -28,6 +34,7 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
         private readonly notificationsService: NotificationsService,
         private readonly configService: ConfigService,
         private readonly mailService: MailService,
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     ) {}
 
     onModuleInit() {
@@ -120,13 +127,34 @@ export class GeocodingQueueService implements OnModuleInit, OnModuleDestroy {
             return;
         }
 
-        // 2. Call provider geocoder if no duplicate addresses are found
+        // 2. Check daily quota before calling Google Geocoding API
+        const quotaKey = `${this.DAILY_QUOTA_KEY}:${new Date().toISOString().split('T')[0]}`;
+        const currentCount = (await this.cacheManager.get<number>(quotaKey)) || 0;
+
+        if (currentCount >= this.DAILY_GEOCODE_LIMIT) {
+            this.logger.warn(`🚨 Daily geocoding quota exhausted (${this.DAILY_GEOCODE_LIMIT}). Delaying job for listing "${listing.title}".`);
+            // Notify admin about quota exhaustion
+            await this.notificationsService
+                .notifyAdmin({
+                    title: 'Geocoding Quota Exhausted',
+                    message: `Daily geocoding limit (${this.DAILY_GEOCODE_LIMIT}) reached. Listing "${listing.title}" queued for next day.`,
+                    type: NotificationType.SYSTEM_UPDATE,
+                    data: { listingId: listing.id, address: canonical, quotaExhausted: true },
+                })
+                .catch(() => undefined);
+            throw new Error(`Daily geocoding quota exhausted. Job will be retried tomorrow.`);
+        }
+
+        // 3. Call provider geocoder if no duplicate addresses are found and quota available
         const coords = await this.geocoderService.geocodeAddress(canonical);
         if (!coords) {
             throw new Error(`Geocoding returned null or empty results for address: ${canonical}`);
         }
 
-        this.logger.log(`📍 Geocoded listing "${listing.title}" successfully: (${coords.lat}, ${coords.lng})`);
+        // 4. Increment daily quota counter (TTL = 25 hours to cover timezone differences)
+        await this.cacheManager.set(quotaKey, currentCount + 1, 25 * 60 * 60 * 1000);
+
+        this.logger.log(`📍 Geocoded listing "${listing.title}" successfully: (${coords.lat}, ${coords.lng}) [Quota: ${currentCount + 1}/${this.DAILY_GEOCODE_LIMIT}]`);
         listing.latitude = coords.lat;
         listing.longitude = coords.lng;
         (listing as any).location = `POINT(${coords.lng} ${coords.lat})`;

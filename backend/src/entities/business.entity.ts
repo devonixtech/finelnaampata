@@ -94,6 +94,9 @@ export class Listing {
     @Column({ name: 'address_line_2', nullable: true, type: 'text' })
     addressLine2: string;
 
+    @Column({ name: 'landmark', nullable: true, type: 'varchar', length: 100 })
+    landmark: string;
+
     @Column({ length: 100, nullable: true })
     @Index()
     city: string;

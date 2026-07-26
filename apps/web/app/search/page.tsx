@@ -356,6 +356,8 @@ function SearchResults() {
                                         { value: '1', label: 'Within 1 km', count: 25 },
                                         { value: '5', label: 'Within 5 km', count: 68 },
                                         { value: '10', label: 'Within 10 km', count: 96 },
+                                        { value: '25', label: 'Within 25 km', count: 0 },
+                                        { value: '50', label: 'Within 50 km', count: 0 },
                                         { value: '0', label: 'Any Distance', count: 120 },
                                     ].map(d => (
                                         <label key={d.value} className="flex items-center justify-between cursor-pointer group">

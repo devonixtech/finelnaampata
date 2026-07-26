@@ -221,13 +221,17 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
         <div className="space-y-6 pb-4">
             <div>
                 <label className={labelClass}>Contact Person Title (Optional)</label>
-                <input
-                    type="text"
-                    className={inputClass}
-                    placeholder="e.g. Owner, Manager, Sales Lead"
+                <select
+                    className={inputClass + " appearance-none cursor-pointer"}
                     value={formData.contactPersonTitle}
                     onChange={e => setFormData(p => ({ ...p, contactPersonTitle: e.target.value }))}
-                />
+                >
+                    <option value="">Select title</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Dr.">Dr.</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
             <div>
                 <label className={labelClass}>Contact Person Name</label>
@@ -305,6 +309,17 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
                         className="flex-1 min-w-0 w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400"
                     />
                 </div>
+            </div>
+            <div>
+                <label className={labelClass}>Business Email (Optional)</label>
+                <input
+                    type="email"
+                    className={inputClass}
+                    placeholder="e.g. info@yourbusiness.com"
+                    value={formData.businessEmail}
+                    onChange={e => setFormData(p => ({ ...p, businessEmail: e.target.value }))}
+                />
+                <p className="text-xs text-slate-500 mt-2">Publicly displayed on your profile for customers to reach you via email.</p>
             </div>
             <div className="space-y-3 border-t border-slate-100 pt-4">
                 <div className="flex items-center justify-between gap-3">
