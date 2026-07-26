@@ -77,7 +77,7 @@ export default function GenericDashboard() {
                 const [favoritesData, followsData, reviewsData, notifsData] = await Promise.all([
                     api.users.getFavorites({ silent: true }).catch(() => ({ data: [] })),
                     api.follows.myFollows(1, 20, { silent: true }).catch(() => ({ data: [] })),
-                    api.reviews.myReviews({ silent: true }).catch(() => ({ data: [] })),
+                    api.reviews.getAll('authorId=me', { silent: true }).catch(() => ({ data: [] })),
                     api.notifications.getAll({ silent: true }).catch(() => ({ data: [] }))
                 ]);
 

@@ -63,6 +63,7 @@ async function fetcher<T>(endpoint: string, options?: FetcherOptions): Promise<T
 
     try {
         const response = await fetch(url, {
+            cache: 'no-store', // Disable Next.js aggressive fetch caching
             ...options,
             headers,
             signal: controller.signal,

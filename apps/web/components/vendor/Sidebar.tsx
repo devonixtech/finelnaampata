@@ -133,6 +133,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             }
 
             if (user?.role === 'vendor') {
+                if (item.name === 'List Your Business') return false;
                 // User requested: Even if profile is not complete or they are on Starter Plan, show all things
                 // Let the individual pages handle feature gating/upsells.
                 return true;
