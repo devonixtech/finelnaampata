@@ -22,7 +22,6 @@
     "swagger:generate": "ts-node -r tsconfig-paths/register src/scripts/generate-swagger.ts"
   },
   "dependencies": {
-    "@google/genai": "^2.13.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.14",
@@ -37,6 +36,7 @@
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
     "dotenv": "^16.6.1",
+    "openai": "^6.49.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.18.0",

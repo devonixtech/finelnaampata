@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category, CategoryStatus, CategorySource } from '../../entities/category.entity';
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 
 function toSlug(name: string): string {
     return name
@@ -340,13 +340,13 @@ export class CategoriesService implements OnModuleInit {
     async suggestCategory(title: string, description: string): Promise<Category[]> {
         const categories = await this.findAll();
         
-        if (!process.env.GEMINI_API_KEY) {
-            console.warn('[CategoriesService] GEMINI_API_KEY is not set. Cannot use AI suggestion.');
+        if (!process.env.OPENAI_API_KEY) {
+            console.warn('[CategoriesService] OPENAI_API_KEY is not set. Cannot use AI suggestion.');
             return [];
         }
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
             
             const categoryNames = categories.map(c => c.name);
             const categoriesListText = categoryNames.map((name, i) => `${i + 1}. ${name}`).join('\n');
@@ -361,18 +361,18 @@ Business Description: "${description}"
 Categories List:
 ${categoriesListText}`;
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: prompt,
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
             });
 
-            const suggestedName = response.text?.trim() || '';
+            const suggestedName = response.choices[0]?.message?.content?.trim() || '';
             const matchedCategory = categories.find(c => c.name.toLowerCase() === suggestedName.toLowerCase());
 
             if (matchedCategory) {
                 return [matchedCategory];
             } else {
-                console.warn(`[CategoriesService] Gemini returned a category that doesn't match our list: "${suggestedName}"`);
+                console.warn(`[CategoriesService] OpenAI returned a category that doesn't match our list: "${suggestedName}"`);
                 return [];
             }
         } catch (error) {
