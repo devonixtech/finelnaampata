@@ -46,6 +46,11 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
     const [suggesting, setSuggesting] = useState(false);
 
     const handleAiSuggest = async () => {
+        if (!formData.title?.trim() && !formData.description?.trim()) {
+            alert("Please enter a Business Name or Description in the previous steps first so we can suggest a category.");
+            return;
+        }
+
         if (!formData.title && !formData.description) return;
         setSuggesting(true);
         try {
@@ -53,9 +58,12 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
             if (suggestions && suggestions.length > 0) {
                 const bestCategory = suggestions[0].id;
                 setFormData(p => ({ ...p, categoryId: bestCategory, subCategoryIds: [] }));
+            } else {
+                alert("We couldn't find a matching category for your business name/description. Please select one manually.");
             }
         } catch (err) {
             console.error("AI suggestion failed", err);
+            alert("Suggestion service is currently unavailable. Please select a category manually.");
         } finally {
             setSuggesting(false);
         }
