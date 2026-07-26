@@ -2958,45 +2958,33 @@ function BusinessSetupWizardContent() {
             <Navbar />
 
             <main className="flex-grow py-12 px-4 relative">
-                {/* Decorative Premium Background Header */}
-                <div className="absolute top-0 left-0 right-0 h-[420px] bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 rounded-b-[40px] shadow-xl pointer-events-none overflow-hidden">
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px] -mr-64 -mt-64" />
-                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[120px] -ml-32 -mb-32" />
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-                </div>
-
-                <div className="max-w-3xl mx-auto relative z-10">
-                    <div className="text-center mb-10 text-white">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md shadow-xl mb-6">
-                            <Sparkles className="w-8 h-8 text-blue-300" />
-                        </div>
-                        <br />
-                        <span className="inline-block px-4 py-1.5 bg-white/10 text-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/20 backdrop-blur-sm">
+                <div className="max-w-3xl mx-auto relative z-10 mt-6">
+                    <div className="text-center mb-8">
+                        <span className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-blue-100">
                             21-Step Configuration
                         </span>
-                        <h1 className="text-3xl md:text-5xl font-black mb-4 tracking-tight drop-shadow-md">
+                        <h1 className="text-3xl md:text-4xl font-black mb-3 tracking-tight text-slate-900">
                             Complete Your Business Profile
                         </h1>
-                        <p className="text-blue-100/80 font-medium text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+                        <p className="text-slate-500 font-medium text-sm md:text-base max-w-xl mx-auto leading-relaxed">
                             Submit detailed profile data to strengthen your business presence, rank higher in search, and unlock all premium vendor features.
                         </p>
                     </div>
 
-                    {/* Progress Bar (Glassmorphism theme) */}
-                    <div className="mb-8 bg-white/10 p-5 rounded-3xl backdrop-blur-md border border-white/10 shadow-2xl">
+                    {/* Progress Bar */}
+                    <div className="mb-8 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-end mb-4">
                             <div>
-                                <p className="text-[10px] font-black text-blue-200/70 uppercase tracking-widest">Configuration Progress</p>
-                                <p className="text-xs font-black text-white uppercase tracking-wider mt-1">Step {currentStep + 1} of 21</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration Progress</p>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-wider mt-1">Step {currentStep + 1} of 21</p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-                                <p className="text-xs font-black text-emerald-300 tracking-widest">{Math.round(progressPercent)}% COMPLETE</p>
+                                <p className="text-xs font-black text-emerald-600 tracking-widest">{Math.round(progressPercent)}% COMPLETE</p>
                             </div>
                         </div>
-                        <div className="h-3 bg-slate-900/50 rounded-full overflow-hidden shadow-inner border border-white/5">
+                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                             <div 
-                                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 transition-all duration-700 ease-out shadow-[0_0_20px_rgba(59,130,246,0.6)]"
+                                className="h-full bg-blue-600 transition-all duration-700 ease-out"
                                 style={{ width: `${progressPercent}%` }}
                             />
                         </div>
