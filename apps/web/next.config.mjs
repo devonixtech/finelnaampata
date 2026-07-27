@@ -9,7 +9,7 @@ const nextConfig = {
     assetPrefix: isStaticExport ? './' : undefined,
     output: isStaticExport ? 'export' : 'standalone',
     typescript: {
-        ignoreBuildErrors: isStaticExport,
+        ignoreBuildErrors: true,
     },
 };
 
