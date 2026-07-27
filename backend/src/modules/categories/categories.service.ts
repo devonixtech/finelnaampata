@@ -806,13 +806,13 @@ export class CategoriesService {
             combined.push(cat);
         };
 
-        // 1. OpenAI semantic ranking (optional)
-        if (process.env.OPENAI_API_KEY) {
+        // 1. AI semantic ranking via Groq (optional, OpenAI-compatible API)
+        if (process.env.GROQ_API_KEY) {
             try {
                 const aiPicks = await this.openAiRankCategories(query);
                 for (const pick of aiPicks) pushUnique(pick);
             } catch (err) {
-                console.error('[CategoriesService] OpenAI suggestion error:', err);
+                console.error('[CategoriesService] AI suggestion error:', err);
             }
         }
 
@@ -874,14 +874,15 @@ export class CategoriesService {
     }
 
     /**
-     * Use OpenAI to semantically rank active categories against the user's title+description.
+     * Use Groq AI to semantically rank active categories against the user's title+description.
      * Returns the top N matches. Returns [] on any error so the caller can fall back.
      *
-     * Plug-and-play: only runs when OPENAI_API_KEY is set in the environment.
+     * Plug-and-play: only runs when GROQ_API_KEY is set in the environment.
      * The category catalogue is trimmed to {name, slug} to keep tokens low.
+     * Uses Groq's OpenAI-compatible API endpoint.
      */
     private async openAiRankCategories(query: string): Promise<any[]> {
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = process.env.GROQ_API_KEY;
         if (!apiKey) return [];
 
         const catalogue = await this.categoryRepository.find({
@@ -890,7 +891,7 @@ export class CategoriesService {
         });
         if (catalogue.length === 0) return [];
 
-        const model = process.env.OPENAI_CATEGORY_MODEL || 'gpt-4o-mini';
+        const model = process.env.AI_CATEGORY_MODEL || 'llama-3.3-70b-versatile';
         const systemPrompt =
             'You are a category-classification assistant. Given a business title+description and a list ' +
             'of available categories, return the most relevant 5 category names from the list, ordered ' +
@@ -900,7 +901,7 @@ export class CategoriesService {
             .map((c) => `- ${c.name} (slug: ${c.slug})`)
             .join('\n')}`;
 
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -919,7 +920,7 @@ export class CategoriesService {
 
         if (!res.ok) {
             const errText = await res.text();
-            throw new Error(`OpenAI API ${res.status}: ${errText}`);
+            throw new Error(`Groq API ${res.status}: ${errText}`);
         }
 
         const data: any = await res.json();
