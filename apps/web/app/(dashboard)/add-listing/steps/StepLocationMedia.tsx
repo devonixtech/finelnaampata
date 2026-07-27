@@ -211,7 +211,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                     />
                     {countryDropdownOpen && countryMatches.length > 0 && (
                         <div
-                            className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+                            className="w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg mt-1"
                             onMouseDown={(e) => e.preventDefault()}
                         >
                             {countryMatches.map((country) => (
@@ -263,7 +263,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                         />
                         {cityDropdownOpen && cityMatches.length > 0 && (
                             <div
-                                className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar"
+                                className="w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar mt-1"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {cityMatches.map((city) => (
@@ -304,7 +304,7 @@ export const Step7Address = ({ formData, setFormData }: StepProps) => {
                         />
                         {stateDropdownOpen && stateMatches.length > 0 && (
                             <div
-                                className="absolute z-50 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar"
+                                className="w-full max-h-64 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg custom-scrollbar mt-1"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {stateMatches.map((stateName) => (
