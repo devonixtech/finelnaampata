@@ -270,768 +270,185 @@ export default function HomePage() {
       }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const handleSearch = () => {
-    if (!searchQuery.trim() && !selectedCity) return;
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) params.append("q", searchQuery);
-    if (selectedCountry) params.append("country", selectedCountry);
-    if (selectedCity) params.append("city", selectedCity);
-    if (userLocation) {
-      params.append("latitude", String(userLocation.lat));
-      params.append("longitude", String(userLocation.lng));
-    }
-    window.location.href = `/search?${params.toString()}`;
-  };
-
-  const handleBroadcastClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    if (user?.role === "vendor") {
-      setShowUsersOnlyModal(true);
-      return;
-    }
-
-    router.push("/broadcast-request");
-  };
-
-  // Debounced search logging for "Live Search" heatmap
-  useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 3) return;
-
-    const timer = setTimeout(() => {
-      api.demand
-        .logSearch({
-          keyword: searchQuery,
-          city: selectedCity || undefined,
-          latitude: userLocation?.lat,
-          longitude: userLocation?.lng,
-        })
-        .catch((err) => console.error("Live demand logging failed:", err));
-    }, 2000); // 2 second debounce
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedCity, userLocation]);
-
-  // Debounced search suggestions
-  useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 2) {
-      setSearchSuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      api.listings.getSuggestions(searchQuery)
-        .then((suggestions) => setSearchSuggestions(suggestions))
-        .catch(() => setSearchSuggestions([]));
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Detect when Google Maps API is ready
-  useEffect(() => {
-    if ((window as any).google) {
-      setMapReady(true);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if ((window as any).google) {
-        setMapReady(true);
-        clearInterval(interval);
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Do not auto-request user location on app launch.
-  // User can select city manually via the location picker.
-  useEffect(() => {
-    return;
-  }, [mapReady, selectedCity]);
-
-  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#FF7A30]" />
-          <p className="text-slate-500 font-bold animate-pulse">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const filteredCategories = categoriesList
-    .filter((cat) => cat.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .slice(0, 5);
-
-  const filteredCities = citiesList
-    .filter((city) =>
-      city.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-    .slice(0, 5);
-
-  return (
-    <div className=" bg-white font-sans text-slate-900 overflow-x-hidden">
-      <Navbar />
-      {/* Google Maps Script is handled in layout.tsx */}
-
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-4 bg-[#FDFCFB]">
-        {/* Subtle background patterns like in the image */}
-        <div className="absolute top-10 left-10 opacity-20">
-          <div className="grid grid-cols-4 gap-2">
-            {[...Array(12)].map((_, i) => <div key={i} className="w-1 h-1 bg-gray-400 rounded-full" />)}
+    <div className="bg-white min-h-screen font-sans text-slate-900 pb-20 md:pb-0 overflow-x-hidden selection:bg-orange-500 selection:text-white">
+      <div className="max-w-2xl mx-auto bg-white min-h-screen relative shadow-none md:shadow-2xl md:border-x border-slate-100 overflow-hidden">
+        
+        {/* Mobile Top Header */}
+        <header className="flex items-center justify-between px-5 py-4 bg-white/95 backdrop-blur-md sticky top-0 z-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center shrink-0 cursor-pointer hover:scale-105 transition-transform">
+              {user?.avatarUrl ? (
+                <img src={getImageUrl(user.avatarUrl)} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-slate-500 font-bold text-sm">{user?.fullName?.[0] || 'U'}</span>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="absolute bottom-10 right-10 opacity-20">
-          <div className="grid grid-cols-4 gap-2">
-            {[...Array(12)].map((_, i) => <div key={i} className="w-1 h-1 bg-gray-400 rounded-full" />)}
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            {/* <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-50 border border-orange-100 mb-8">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">✨ Your Local. Your Choice.</span>
-            </div> */}
-
-            <h1 className="text-5xl md:text-7xl font-black text-[#112D4E] mb-6 tracking-tight leading-[1.1]">
-              Discover Local Businesses <br />
-              <span className="text-orange-500">Instantly</span>
+          
+          <div className="flex-1 flex justify-center pl-4">
+            <h1 className="text-[26px] font-black tracking-[-0.05em] flex items-center cursor-pointer" style={{fontFamily: 'Arial, sans-serif'}}>
+              <span className="text-[#0052cc]">Just</span><span className="text-[#ff6b00]">dial</span>
             </h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button className="relative hover:scale-110 transition-transform active:scale-95">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-[#111]">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#ff6b00] text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white">1</span>
+            </button>
+            <button className="hover:scale-110 transition-transform active:scale-95">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#111]">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
 
-            <p className="text-lg md:text-xl text-slate-500 mb-12 max-w-2xl mx-auto font-medium">
-              Search, compare & contact the best services near you — <br className="hidden md:block" />
-              fast and reliable.
-            </p>
-          </motion.div>
+        {/* Search Bar */}
+        <div className="px-5 py-3 mb-4">
+          <div className="flex items-center bg-white border border-slate-300 rounded-[12px] px-3.5 py-3 shadow-sm focus-within:shadow-md focus-within:border-blue-400 transition-all">
+            <Search className="w-5 h-5 text-[#0052cc] shrink-0 stroke-[2.5]" />
+            <input
+              type="text"
+              placeholder="Packers and Movers"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="flex-1 bg-transparent border-none outline-none px-3 text-[16px] text-slate-800 placeholder:text-slate-400 font-medium"
+            />
+            <div className="flex items-center gap-4 shrink-0">
+              <button className="hover:scale-110 transition-transform">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-700">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                  <rect x="7" y="7" width="10" height="10" rx="1"></rect>
+                </svg>
+              </button>
+              <button className="hover:scale-110 transition-transform">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-700">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" x2="12" y1="19" y2="22"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
 
-          {/* New Search Bar Design */}
-          <motion.div
-            ref={searchRef}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="max-w-5xl mx-auto mb-12"
-          >
-            <div className="bg-white rounded-[32px]  border border-gray-100 p-3 flex flex-col md:flex-row items-center gap-2">
-              {/* Country Filter */}
-              <div className="w-full md:w-auto flex items-center px-4 py-4 md:border-r border-gray-100 group">
-                <Globe className="w-5 h-5 text-slate-300 mr-3 group-hover:text-orange-500 transition-colors shrink-0" />
-                <div className="w-full min-w-[150px]">
-                  <SearchableSelect
-                    options={[
-                      { label: "All Countries", value: "" },
-                      ...COUNTRIES_STATES.map(c => ({ label: c.name, value: c.name }))
-                    ]}
-                    value={selectedCountry}
-                    onChange={(val) => { setSelectedCountry(val); setSelectedCity(''); }}
-                    minimal
-                  />
-                </div>
-              </div>
-
-              {/* City Selection */}
-              <div className="flex-1 w-full flex items-center px-6 py-4 md:border-r border-gray-100 group">
-                <div className="flex flex-col items-start text-left flex-1">
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Your Area</span>
-                  <CitySearchSelect
-                    cities={countryCities}
-                    value={selectedCity}
-                    onChange={setSelectedCity}
-                    minimal
-                  />
-                </div>
-              </div>
-
-              {/* Search Input */}
-              <div className="flex-[1.5] w-full flex items-center px-6 py-4 group relative">
-                <Search className="w-5 h-5 text-slate-300 mr-4 group-hover:text-orange-500 transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Search categories or businesses..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setIsSuggestionsOpen(true);
-                  }}
-                  onFocus={() => setIsSuggestionsOpen(true)}
-                  onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full bg-transparent border-none outline-none text-slate-900 text-lg font-medium placeholder:text-slate-300"
-                />
-                {isSuggestionsOpen && searchSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden">
-                    {searchSuggestions.map((suggestion, idx) => (
-                      <button
-                        key={idx}
-                        onMouseDown={() => {
-                          setSearchQuery(suggestion);
-                          setIsSuggestionsOpen(false);
-                          handleSearch();
-                        }}
-                        className="w-full text-left px-6 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm font-medium text-slate-700"
-                      >
-                        <Search className="w-4 h-4 text-slate-300" />
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
+        {/* Categories Grid with Emojis to simulate colorful icons */}
+        <div className="px-5 pb-6">
+          <div className="grid grid-cols-4 gap-y-7 gap-x-2">
+            {[
+              { name: 'B2B', iconUrl: 'https://img.icons8.com/color/96/handshake.png', slug: 'b2b' },
+              { name: 'Doctors', iconUrl: 'https://img.icons8.com/color/96/medical-doctor.png', slug: 'doctors' },
+              { name: 'Travel', iconUrl: 'https://img.icons8.com/color/96/airplane-take-off.png', slug: 'travel' },
+              { name: 'Beauty', iconUrl: 'https://img.icons8.com/color/96/cosmetics.png', slug: 'beauty' },
+              { name: 'Education', iconUrl: 'https://img.icons8.com/color/96/graduation-cap.png', slug: 'education' },
+              { name: 'Consultants', iconUrl: 'https://img.icons8.com/color/96/consultation.png', slug: 'consultants' },
+              { name: 'Rent & Hire', iconUrl: 'https://img.icons8.com/color/96/key.png', slug: 'rent-hire' },
+              { name: 'Wedding', iconUrl: 'https://img.icons8.com/color/96/wedding-rings.png', slug: 'wedding' },
+              { name: 'Interiors', iconUrl: 'https://img.icons8.com/color/96/sofa.png', slug: 'interiors' },
+              { name: 'Home Serv.', iconUrl: 'https://img.icons8.com/color/96/broom.png', slug: 'home-services' },
+              { name: 'Repairs', iconUrl: 'https://img.icons8.com/color/96/maintenance.png', slug: 'repairs' },
+              { name: 'Contractors', iconUrl: 'https://img.icons8.com/color/96/worker-male.png', slug: 'contractors' },
+              { name: 'Loans', iconUrl: 'https://img.icons8.com/color/96/money-bag.png', badge: 'Instant', slug: 'loans' },
+              { name: 'Real Estate', iconUrl: 'https://img.icons8.com/color/96/house.png', slug: 'real-estate' },
+              { name: 'Jd Xperts', iconUrl: 'https://img.icons8.com/color/96/service.png', badge: 'New', slug: 'jd-xperts' },
+            ].map((cat, idx) => (
+              <Link key={idx} href={`/search?category=${cat.slug}`} className="flex flex-col items-center group relative cursor-pointer active:scale-95 transition-transform">
+                {cat.badge && (
+                  <span className="absolute -bottom-2 px-1.5 py-[1px] bg-white text-red-500 border border-red-200 text-[9px] font-bold rounded-sm z-10 tracking-wide uppercase">{cat.badge}</span>
                 )}
-              </div>
-
-              <button
-                onClick={handleSearch}
-                className="w-full md:w-auto bg-[#FF7A30] hover:bg-[#E86920] text-white px-10 py-5 rounded-[24px] font-black text-lg transition-all active:scale-95  flex items-center justify-center gap-3"
-              >
-                <Search className="w-5 h-5" />
-                Search
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Call to Action Cards - Matching the image */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-10">
-            {/* Hot Local Deals */}
-            <Link
-              href="/offers-events"
-              className="bg-white rounded-[18px] border border-gray-50 shadow-[0_15px_45px_rgba(0,0,0,0.04)] p-8 flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all group"
-            >
-              <div className="w-16 h-16 rounded-[22px] bg-orange-50 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform shrink-0">
-                <Tag className="w-8 h-8" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-black text-[#112D4E] text-xl mb-1 group-hover:text-orange-500 transition-colors">Hot Local Deals</h3>
-                <p className="text-slate-400 text-base font-medium">Best deals & events near you</p>
-              </div>
-            </Link>
-
-            {/* Get Expert Quotes */}
-            <Link
-              href="/expert-quote"
-              className="bg-white rounded-[28px] border border-gray-50 shadow-[0_15px_45px_rgba(0,0,0,0.04)] p-8 flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all group"
-            >
-              <div className="w-16 h-16 rounded-[22px] bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform shrink-0">
-                <Megaphone className="w-8 h-8" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-black text-[#112D4E] text-xl mb-1 group-hover:text-blue-500 transition-colors">Get Expert Quotes</h3>
-                <p className="text-slate-400 text-base font-medium">Post your requirement easily</p>
-              </div>
-            </Link>
-          </div>
-
-          <AnimatePresence>
-            {showUsersOnlyModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[120] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
-                onClick={() => setShowUsersOnlyModal(false)}
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 16, scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                  className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-2xl border border-slate-100 text-left"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-[#FF7A30] mb-5">
-                    <Megaphone className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-3">Users Only Feature</h3>
-                  <p className="text-sm leading-7 text-slate-500 font-medium mb-6">
-                    This feature is available just for users. Business accounts can receive and respond to quotes, but they cannot create broadcast requests.
-                  </p>
-                  <button
-                    onClick={() => setShowUsersOnlyModal(false)}
-                    className="w-full rounded-2xl bg-[#FF7A30] px-5 py-3.5 text-sm font-black text-white hover:bg-[#E86920] transition-colors"
-                  >
-                    Got it
-                  </button>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Feature Highlights Bar - Matching the image */}
-          <div className="max-w-6xl mx-auto bg-white/50 backdrop-blur-sm rounded-[32px] border border-gray-100 shadow-sm p-4 md:p-8 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-            {highlights.map((h, i) => (
-              <div key={i} className="flex items-center gap-4 px-8 py-4 md:py-0 first:pt-0 last:pb-0">
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-50 shrink-0">
-                  {h.icon}
+                <div className="w-[52px] h-[52px] mb-1 flex items-center justify-center transition-colors rounded-full group-hover:bg-blue-50/50">
+                  <img src={cat.iconUrl} alt={cat.name} className="w-9 h-9 drop-shadow-sm group-hover:scale-110 transition-transform object-contain" />
                 </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-[#112D4E] text-[11px] uppercase tracking-wider mb-0.5">
-                    {h.title}
-                  </h4>
-                  <p className="text-slate-400 text-[10px] font-medium leading-tight">{h.desc}</p>
-                </div>
-              </div>
+                <span className="text-[12px] font-semibold text-slate-700 text-center leading-[1.1] group-hover:text-blue-600 transition-colors">
+                  {cat.name}
+                </span>
+              </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Categories */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center mb-16 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#202124] tracking-tight relative pb-4">
-              Popular Categories
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF7A30] rounded-full"></div>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {categories.map((cat, idx) => (
-              <motion.div
-                key={cat.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.05 }}
-              >
-                <Link
-                  href={`/search?category=${cat.slug}`}
-                  className="group block"
-                >
-                  <div className="bg-slate-50 p-5 rounded-2xl border  flex items-center gap-6 hover:bg-white  hover:-translate-y-1 transition-all duration-500">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center group-hover:border-blue-200 group-hover:bg-blue-50/30 transition-all text-blue-600">
-                      <DynamicIcon name={cat.icon} className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">
-                        {cat.name}
-                      </h3>
-                      <p className="text-sm text-slate-500 font-bold uppercase tracking-widest opacity-80">
-                        {cat.businessCount || 0}+ Listings
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Businesses */}
-      <section className="py-24 bg-white relative overflow-hidden">
-
-        <div ref={featuredSectionRef} className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="flex flex-col items-center justify-center mb-16 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#202124] tracking-tight relative pb-4">
-              Featured Businesses
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF7A30] rounded-full"></div>
-            </h2>
-          </div>
-
-          <div className="relative min-h-[300px]">
-            {/* Section-level loading overlay */}
-            {businessesLoading && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm rounded-[40px]">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#FF7A30]" />
-                  <p className="text-slate-900 font-black text-xs uppercase tracking-widest animate-pulse">Refreshing...</p>
-                </div>
-              </div>
-            )}
-            <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-10 transition-all duration-500 ${businessesLoading ? "opacity-40 blur-[2px] pointer-events-none scale-95" : "opacity-100 scale-100"}`}>
-              {featuredBusinesses.length > 0 ? (
-                featuredBusinesses.map((biz, idx) => (
-                  <motion.div
-                    key={biz.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: (idx % 4) * 0.1, duration: 0.5 }}
-                  >
-                    <BusinessCard
-                      business={biz}
-                    />
-                  </motion.div>
-                ))
-              ) : (
-                <div className="col-span-full py-24 text-center bg-white rounded-[40px] border border-slate-100 shadow-sm">
-                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Search className="w-8 h-8 text-slate-300" />
-                  </div>
-                  <h3 className="text-xl font-black text-slate-900 mb-2">No featured businesses found</h3>
-                  <p className="text-slate-500 font-medium">Check back later for new premium listings in your area.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Pagination Bar */}
-          {paginationMetadata.totalPages > 1 && (
-            <div className="mt-16 flex justify-center items-center gap-4">
-              <button
-                onClick={() =>
-                  setPaginationMetadata((prev) => ({
-                    ...prev,
-                    page: Math.max(1, prev.page - 1),
-                  }))
-                }
-                disabled={paginationMetadata.page === 1}
-                className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center hover:bg-white hover:shadow-lg transition-all disabled:opacity-30 disabled:hover:shadow-none"
-              >
-                <ChevronDown className="w-6 h-6 rotate-90" />
-              </button>
-
-              <div className="flex items-center gap-2">
-                {[...Array(paginationMetadata.totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() =>
-                      setPaginationMetadata((prev) => ({
-                        ...prev,
-                        page: i + 1,
-                      }))
-                    }
-                    className={`w-12 h-12 rounded-full font-black transition-all ${paginationMetadata.page === i + 1
-                      ? "bg-[#FF7A30] text-white shadow-lg"
-                      : "hover:bg-white hover:shadow-md text-slate-600"
-                      }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={() =>
-                  setPaginationMetadata((prev) => ({
-                    ...prev,
-                    page: Math.min(prev.totalPages, prev.page + 1),
-                  }))
-                }
-                disabled={
-                  paginationMetadata.page === paginationMetadata.totalPages
-                }
-                className="w-12 h-12 rounded-full border border-slate-200 flex items-center justify-center hover:bg-white hover:shadow-lg transition-all disabled:opacity-30 disabled:hover:shadow-none"
-              >
-                <ChevronDown className="w-6 h-6 -rotate-90" />
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center mb-16 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#202124] tracking-tight relative pb-4">
-              How It Works
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF7A30] rounded-full"></div>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-12 max-w-5xl mx-auto">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                <Search className="w-6 h-6 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-bold text-[#202124] mb-3">Search & Find</h3>
-              <p className="text-[#70757a] text-sm leading-relaxed">
-                Choose the service you need from our top categories.
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                <Heart className="w-6 h-6 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-bold text-[#202124] mb-3">Compare & Review</h3>
-              <p className="text-[#70757a] text-sm leading-relaxed">
-                Read reviews & select the best local providers.
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                <Phone className="w-6 h-6 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-bold text-[#202124] mb-3">Contact & Connect</h3>
-              <p className="text-[#70757a] text-sm leading-relaxed">
-                Reach out directly to your chosen business in seconds.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Special Offers & Events */}
-      <section className="py-24 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center mb-16 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#202124] tracking-tight relative pb-4">
-              Offers & Events
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF7A30] rounded-full"></div>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {latestOffers.length > 0 ? (
-              latestOffers.map((offer, idx) => (
-                <motion.div
-                  key={offer.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: (idx % 4) * 0.1 }}
-                >
-                  <OfferCard
-                    offer={offer}
-                    onEnquire={() => router.push(`/offers-events/${offer.id}`)}
-                  />
-                </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-slate-100">
-                <p className="text-slate-500 font-bold">
-                  More offers and events coming soon from local businesses.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-16 text-center">
-            <Link
-              href="/offers-events"
-              className="text-orange-500 font-bold hover:gap-4 transition-all inline-flex items-center gap-2 text-lg"
-            >
-              View All Offers & Events <ArrowRight className="w-5 h-5" />
+            
+            {/* Show More Button */}
+            <Link href="/categories" className="flex flex-col items-center group cursor-pointer active:scale-95 transition-transform">
+               <div className="w-[52px] h-[52px] rounded-full bg-[#4b6bf5] mb-2 flex items-center justify-center shadow-md shadow-blue-200 group-hover:bg-[#3451d1] transition-colors">
+                  <ChevronDown className="w-7 h-7 text-white stroke-[2.5]" />
+               </div>
+               <span className="text-[12px] font-semibold text-slate-700 text-center leading-[1.1] group-hover:text-blue-600 transition-colors">
+                  Show More
+               </span>
             </Link>
           </div>
         </div>
-      </section>
 
-      {/* Top Cities We Serve */}
-      <section className="py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col items-center justify-center mb-16 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#202124] tracking-tight relative pb-4">
-              Top Cities We Serve
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#FF7A30] rounded-full"></div>
-            </h2>
-          </div>
+        {/* Bottom Sheet Section */}
+        <div className="bg-white rounded-t-[24px] pt-4 border-t border-slate-200 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] relative z-10 min-h-[400px]">
+          {/* Handle */}
+          <div className="w-12 h-[5px] bg-[#d1d5db] rounded-full mx-auto mb-6"></div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {popularCities.slice(0, 10).map((city, idx) => (
-              <motion.div
-                key={city.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Link
-                  href={`/search?city=${city.name}`}
-                  className="relative h-48 rounded-2xl overflow-hidden block group shadow-lg"
-                >
-                  <ListingImage
-                    src={city.heroImageUrl || city.imageUrl}
-                    alt={city.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 brightness-75 group-hover:brightness-90"
-                    iconSize={48}
-                  />
-                  <div className="absolute inset-x-0 bottom-6 text-center">
-                    <span className="text-white text-xl font-black drop-shadow-lg tracking-tight">
-                      {city.name}
-                    </span>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <Link
-              href="/cities"
-              className="text-blue-600 font-bold hover:gap-4 transition-all inline-flex items-center gap-2 text-lg"
-            >
-              View All Cities <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials - What People Are Saying */}
-      {(() => {
-        const communityReviews = statsComments && Array.isArray(statsComments)
-          ? statsComments
-            .filter(rev => rev.comment && rev.comment.trim().length > 0)
-            .map((rev) => ({
-              id: rev.id,
-              name: rev.user?.fullName || "Anonymous",
-              location: rev.user?.branch || rev.user?.city || "",
-              role: "Local Resident",
-              text: rev.comment,
-              rating: rev.rating || 5,
-              img: rev.user?.avatarUrl || null,
-              date: rev.createdAt,
-              business: rev.business?.title || "Local Business",
-            }))
-          : [];
-
-        if (communityReviews.length === 0) {
-            return null;
-        }
-
-        const cards = communityReviews;
-        // Do not duplicate cards artificially to avoid making them look like static/fake reviews.
-        // We will just use the available dynamic reviews.
-        const row1 = cards;
-        const row2 = cards.length > 3 ? cards.slice().reverse() : cards;
-
-        const ReviewCard = ({
-          card,
-          idx,
-        }: {
-          card: (typeof row1)[0];
-          idx: number;
-        }) => (
-          <div
-            key={`${card.id}-${idx}`}
-            className="flex-shrink-0 w-80 bg-[#F8FAFC] p-6 rounded-2xl border border-slate-100 flex items-start gap-4 shadow-sm mx-3"
-          >
-            <div className="w-12 h-12 rounded-full border-2 border-white shadow bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base uppercase overflow-hidden flex-shrink-0">
-              {card.img ? (
-                <img
-                  src={card.img}
-                  alt={card.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                card.name[0].toUpperCase()
-              )}
-            </div>
-            <div className="min-w-0">
-              <h4 className="font-bold text-slate-900 text-sm mb-0.5 truncate">
-                {card.name}
-                {card.location ? `, ${card.location}` : ""}
-              </h4>
-              <div className="flex gap-0.5 mb-1.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-3 h-3 ${i < (card.rating || 5) ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
-                  />
-                ))}
-              </div>
-              <p className="text-slate-600 text-sm italic leading-relaxed line-clamp-3">
-                "{card.text}"
-              </p>
-            </div>
-          </div>
-        );
-
-        return (
-          <section className="py-24 bg-white overflow-hidden">
-            <div className="max-w-7xl mx-auto px-4 mb-16">
-              <div className="flex items-center justify-center gap-4 mb-16 text-center">
-                <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
-                <h2 className="text-3xl md:text-4xl font-bold text-[#112D4E] tracking-tight px-4">
-                  What People Are Saying
-                </h2>
-                <div className="flex-1 h-px bg-slate-200 hidden md:block max-w-[200px]" />
-              </div>
-            </div>
-
-            <div className="max-w-7xl mx-auto px-4 overflow-hidden">
-              <div className="space-y-4">
-                <div className="relative">
-                  <div
-                    className="flex"
-                    style={{
-                      animation: "marquee-rtl 35s linear infinite",
-                      width: "max-content",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.animationPlayState = "paused")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.animationPlayState = "running")
-                    }
-                  >
-                    {row1.map((card, idx) => (
-                      <ReviewCard key={idx} card={card} idx={idx} />
-                    ))}
-                  </div>
+          {/* Promo Cards Scroll */}
+          <div className="overflow-x-auto custom-scrollbar px-5 pb-6">
+            <div className="flex gap-3 w-max">
+              {/* Order Food */}
+              <Link href="/search?q=food" className="w-[105px] h-[105px] rounded-[16px] overflow-hidden relative group cursor-pointer active:scale-95 transition-all shadow-sm border border-orange-100">
+                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000&auto=format&fit=crop" alt="Food" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-2.5 left-2.5">
+                  <span className="text-white font-black text-[14px] leading-[1.1] tracking-wide text-shadow-md">ORDER<br/>FOOD</span>
                 </div>
+              </Link>
 
-                <div className="relative">
-                  <div
-                    className="flex"
-                    style={{
-                      animation: "marquee-ltr 35s linear infinite",
-                      width: "max-content",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.animationPlayState = "paused")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.animationPlayState = "running")
-                    }
-                  >
-                    {row2.map((card, idx) => (
-                      <ReviewCard key={idx} card={card} idx={idx} />
-                    ))}
-                  </div>
+              {/* Gift Cards */}
+              <Link href="/search?q=gift" className="w-[105px] h-[105px] rounded-[16px] overflow-hidden relative bg-[#5E2CA5] group flex flex-col justify-end p-2.5 cursor-pointer active:scale-95 transition-all shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#4c1d95] to-[#7c3aed]"></div>
+                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-400/20 rounded-full blur-xl"></div>
+                <span className="absolute top-2 right-2 text-3xl drop-shadow-md group-hover:scale-110 transition-transform origin-bottom-left">🎁</span>
+                <span className="text-white font-black text-[14px] leading-[1.1] relative z-10 tracking-wide">GIFT<br/>CARDS</span>
+              </Link>
+
+              {/* Shopping */}
+              <Link href="/search?q=shopping" className="w-[105px] h-[105px] rounded-[16px] overflow-hidden relative bg-[#1F8D98] group cursor-pointer active:scale-95 transition-all shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#14b8a6] to-[#0f766e]"></div>
+                <span className="absolute top-2 right-2 text-3xl drop-shadow-md group-hover:-translate-y-1 transition-transform">🛍️</span>
+                <div className="absolute bottom-2.5 left-2.5">
+                  <span className="text-white font-black text-[14px] leading-[1.1] tracking-wide">SHOPPING</span>
                 </div>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
+              </Link>
 
-        <style>{`
-          @keyframes marquee-rtl {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-33.333%); }
-          }
-          @keyframes marquee-ltr {
-            0%   { transform: translateX(-33.333%); }
-            100% { transform: translateX(0); }
-          }
-        `}</style>
-
-      {/* Own a Business Section - Matching the reference image */}
-      <section className="py-24 px-4 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-[#112D4E] rounded-[24px] p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
-            <div className="text-center md:text-left">
-              <h3 className="text-3xl md:text-3xl font-black text-white mb-4 tracking-tight">
-                Own a Business? Get More Customers Today!
-              </h3>
-              <p className="text-slate-300 text-lg md:text-xl font-medium">
-                List your business for free and grow your reach.
-              </p>
-            </div>
-            <div className="shrink-0 w-full md:w-auto">
-              <Link
-                href="/register"
-                className="bg-[#FF7A30] hover:bg-[#E86920] text-white px-10 py-5 rounded-[16px] font-black text-lg transition-all shadow-[0_10px_30px_rgba(255,122,48,0.3)] active:scale-95 whitespace-nowrap block text-center"
-              >
-                Sign Up
+              {/* Pay Bills */}
+              <Link href="/search?q=bills" className="w-[105px] h-[105px] rounded-[16px] overflow-hidden relative bg-[#152B6A] group flex flex-col justify-end p-2.5 cursor-pointer active:scale-95 transition-all shadow-sm">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#1e3a8a] to-[#1e40af]"></div>
+                <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[55px] font-black text-[#ff6b00] leading-none drop-shadow-lg group-hover:scale-105 transition-transform">B</span>
+                <span className="text-white font-black text-[14px] leading-[1.1] relative z-10 text-center tracking-wide">PAY BILLS</span>
               </Link>
             </div>
           </div>
-        </div>
-      </section>
 
-      <Footer />
+          {/* Banner Ad */}
+          <div className="px-5 pb-10">
+            <div className="bg-[#2a2c3a] rounded-[12px] overflow-hidden flex relative p-4 shadow-md group cursor-pointer active:scale-[0.98] transition-transform h-[110px]">
+              <div className="z-10 w-[65%] flex flex-col justify-center">
+                <h3 className="text-white font-bold text-[14px] leading-[1.25] mb-1">Propel your career towards growth</h3>
+                <p className="text-slate-300 text-[11px] mb-2.5">Connect with Career Experts</p>
+                <div className="mt-auto">
+                  <button className="bg-[#a62b3b] text-white text-[11px] font-bold px-3 py-1.5 rounded-[4px] hover:bg-[#8a222f] transition-colors">Enquire Now</button>
+                </div>
+              </div>
+              <div className="absolute right-0 bottom-0 w-[35%] h-full overflow-hidden flex items-end justify-end">
+                <span className="text-[60px] opacity-80 translate-x-2 translate-y-2 group-hover:scale-110 transition-transform origin-bottom-right">🎯</span>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
     </div>
   );
 }
