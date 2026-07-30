@@ -335,20 +335,7 @@ export default function AffiliateDashboard() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setShowPayoutModal(true)}
-                            disabled={!stats?.balance || stats.balance <= 0}
-                            className={`w-full p-6 rounded-[28px] text-left transition-all ${stats?.balance > 0 ? 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer shadow-lg shadow-orange-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Available Balance</p>
-                                <Wallet className="w-6 h-6" />
-                            </div>
-                            <p className="text-3xl font-black mb-1">Rs. {(stats?.balance || 0).toLocaleString()}</p>
-                            <p className={`text-xs font-bold ${stats?.balance > 0 ? 'text-orange-100' : 'text-slate-400'}`}>
-                                {stats?.balance > 0 ? 'Tap to withdraw' : 'Earn referrals to unlock'}
-                            </p>
-                        </button>
+
 
                         <div className="p-8 bg-blue-600 rounded-[28px] text-white overflow-hidden relative group">
                             <Share2 className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform duration-500" />
