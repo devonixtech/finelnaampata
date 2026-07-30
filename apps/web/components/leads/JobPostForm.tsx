@@ -29,7 +29,7 @@ export default function JobPostForm({ onSuccess }: JobPostFormProps) {
         const loadSearchData = async () => {
             try {
                 const [catsData, citiesData] = await Promise.all([
-                    api.categories.getAll(),
+                    api.categories.getRoot(),
                     api.cities.getAll()
                 ]);
                 setCategories(catsData || []);

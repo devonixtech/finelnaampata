@@ -45,8 +45,8 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
     useEffect(() => {
         const loadSearchData = async () => {
             try {
-                const [catsData, citiesData] = await Promise.all([
-                    api.categories.getAll(),
+                    const [catsData, citiesData] = await Promise.all([
+                    api.categories.getRoot(),
                     api.cities.getAll()
                 ]);
                 setCategories(catsData || []);

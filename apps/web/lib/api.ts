@@ -192,6 +192,7 @@ export const api = {
         getAll: (options?: FetcherOptions & { includeSubcategories?: boolean }) => { const query = options?.includeSubcategories ? '?includeSubcategories=true' : ''; return fetcher<Category[]>('/categories' + query, options); },
         getPopular: (limit = 8, options?: FetcherOptions) => fetcher<Category[]>(`/categories/popular?limit=${limit}`, options),
         getTree: (options?: FetcherOptions) => fetcher<Category[]>('/categories/tree', options),
+        getRoot: (options?: FetcherOptions) => fetcher<Category[]>('/categories/root', options),
         getBySlug: (slug: string, options?: FetcherOptions) => fetcher<Category>(`/categories/slug/${slug}`, options),
         // Admin endpoints
         adminGetAll: (page = 1, limit = 10, search = '') => {
