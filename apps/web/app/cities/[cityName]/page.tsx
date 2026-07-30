@@ -8,8 +8,10 @@ import { api } from '../../../lib/api';
 
 // Render all city pages dynamically on-demand (SSR) to avoid building thousands of static pages at build time
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
-    return [];
+    return [{ cityName: 'template' }];
 }
 
 export default async function CityPage({ params }: { params: Promise<{ cityName: string }> }) {

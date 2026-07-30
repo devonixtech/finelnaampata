@@ -1,15 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsOptional, IsNumber, Min, MaxLength } from 'class-validator';
 
 export class CreateJobLeadDto {
     @ApiProperty({ example: 'Plumbing Repair' })
     @IsString()
     @IsNotEmpty()
+    @MaxLength(255)
     title: string;
 
     @ApiProperty({ example: 'Leaking pipe in the kitchen' })
     @IsString()
     @IsNotEmpty()
+    @MaxLength(2000)
     description: string;
 
     @ApiProperty({ example: 'category-uuid' })

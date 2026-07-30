@@ -143,7 +143,7 @@ export default function BusinessDealsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const priceRequestRef = useRef(0);
 
-  // Deals are freely available to all businesses.
+  // Offers are freely available to all businesses.
   // Premium plan purchases (via /offer-plans) are for boosting/featuring only.
 
   const loadOffers = async (p = 1) => {

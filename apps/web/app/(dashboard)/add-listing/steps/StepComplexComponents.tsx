@@ -22,6 +22,7 @@ import { api } from '../../../../lib/api';
 import { usePlanFeature } from '../../../../hooks/usePlanFeature';
 import CategorySearchSelect from '../../../../components/CategorySearchSelect';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
+import toast from 'react-hot-toast';
 
 const inputClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all placeholder:text-slate-400";
 const selectClass = "w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all appearance-none cursor-pointer pr-10";
@@ -47,7 +48,7 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
 
     const handleAiSuggest = async () => {
         if (!formData.title?.trim() && !formData.description?.trim()) {
-            alert("Please enter a Business Name or Description in the previous steps first so we can suggest a category.");
+            toast.error("Please enter a Business Name or Description in the previous steps first.");
             return;
         }
 
@@ -56,16 +57,28 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
         try {
             const suggestions = await api.categories.suggest(formData.title || '', formData.description || '');
             if (suggestions && suggestions.length > 0) {
-                const bestCategory = suggestions[0].id;
-                const bestCategoryName = suggestions[0].name;
-                setFormData(p => ({ ...p, categoryId: bestCategory, subCategoryIds: [] }));
-                alert(`Suggestion Done! 🎉\n\nBased on your business details, we have automatically selected:\n"${bestCategoryName}"`);
+                const best = suggestions[0];
+                const allCats = categories;
+                const parentCats = allCats.filter(c => !c.parentId);
+                const childCats = allCats.filter(c => !!c.parentId);
+
+                if (parentCats.some(c => c.id === best.id)) {
+                    setFormData(p => ({ ...p, categoryId: best.id, subCategoryIds: [] }));
+                } else {
+                    const parent = childCats.find(c => c.id === best.id);
+                    if (parent) {
+                        setFormData(p => ({ ...p, categoryId: parent.parentId, subCategoryIds: [best.id] }));
+                    } else {
+                        setFormData(p => ({ ...p, categoryId: best.id, subCategoryIds: [] }));
+                    }
+                }
+                toast.success(`AI selected: "${best.name}"`, { duration: 4000 });
             } else {
-                alert("We couldn't find a matching category for your business name/description. Please select one manually.");
+                toast.error("No matching category found. Please select one manually.");
             }
         } catch (err) {
             console.error("AI suggestion failed", err);
-            alert("Suggestion service is currently unavailable. Please select a category manually.");
+            toast.error("Suggestion service unavailable. Please select manually.");
         } finally {
             setSuggesting(false);
         }
@@ -95,7 +108,7 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
             </div>
 
             {relatedSubcategories.length > 0 && (
-                <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100">
+                <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-100 overflow-visible">
                     <h4 className="text-sm font-black text-slate-900 mb-3">
                         {maxSubCategories > 0 ? `Subcategories (Select up to ${maxSubCategories})` : 'Subcategories (Paid plans unlock up to 3)'}
                     </h4>

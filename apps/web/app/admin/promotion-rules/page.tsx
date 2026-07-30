@@ -50,7 +50,7 @@ const PLACEMENT_INFO: Record<
 > = {
   offer: {
     title: "Deal Visibility",
-    description: "Per-day rate when businesses publish deals and offers.",
+    description: "Per-day rate when businesses publish offers and events.",
     icon: Tag,
     color: "bg-emerald-600",
     lightColor: "bg-emerald-50",

@@ -236,7 +236,7 @@ const PLAN_FEATURES: Record<string, { label: string, included: boolean }[]> = {
         { label: "Up to 5 Named Phone Numbers", included: false },
         { label: "Respond to Broadcast Leads", included: false },
         { label: "Customer Notes", included: false },
-        { label: "Deals & Events (Add-on)", included: false },
+        { label: "Offers & Events (Add-on)", included: false },
     ],
     basic: [
         { label: "Everything in Free Plan", included: true },
@@ -251,7 +251,7 @@ const PLAN_FEATURES: Record<string, { label: string, included: boolean }[]> = {
         { label: "Up to 5 Named Phone Numbers", included: true },
         { label: "Respond to Broadcast Leads", included: true },
         { label: "Customer Notes", included: true },
-        { label: "Deals & Events (Add-on)", included: false },
+        { label: "Offers & Events (Add-on)", included: false },
     ]
 };
 
@@ -507,6 +507,7 @@ export default function BusinessSubscriptionPage() {
     const [successMsg, setSuccessMsg] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
+    const [referralCode, setReferralCode] = useState('');
     const [billingCycleFilter, setBillingCycleFilter] = useState<'Monthly' | 'Yearly'>('Monthly');
 
     // Custom Alert State

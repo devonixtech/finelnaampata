@@ -54,33 +54,34 @@ export class JobLeadsService {
 
         const savedLead = await this.jobLeadRepository.save(lead);
 
-        // Only broadcast if auto-approve is ON
+        // Broadcast if auto-approve is ON
         if (autoApprove) {
-            this.broadcastLead(savedLead);
+            try {
+                await this.broadcastLead(savedLead);
+                savedLead.status = JobLeadStatus.BROADCASTED;
+                await this.jobLeadRepository.save(savedLead);
+            } catch (err) {
+                this.logger.error(`Broadcast failed for lead ${savedLead.id}:`, err);
+            }
         }
 
         return savedLead;
     }
 
     private async broadcastLead(lead: JobLead) {
-        // Find vendors who have a business in this category
         const query = this.listingRepository
             .createQueryBuilder('listing')
             .innerJoinAndSelect('listing.vendor', 'vendor')
             .where('listing.categoryId = :categoryId', { categoryId: lead.categoryId })
-            .andWhere('listing.status = :status', { status: 'approved' });
+            .andWhere('listing.status = :status', { status: BusinessStatus.APPROVED });
 
-        // If lead has coordinates, we can do proximity matching
-        // Otherwise fallback to city matching
-        if (lead.latitude && lead.longitude) {
+        if (lead.latitude != null && lead.longitude != null) {
             this.logger.log(`Broadcasting lead ${lead.id} using geo-proximity: ${lead.latitude}, ${lead.longitude}`);
-            // Use Haversine formula in SQL if possible, or filter in memory if listings are few
-            // For now, let's filter in memory for better cross-DB compatibility unless there are thousands of vendors
             const listings = await query.getMany();
             
-            const radius = 20; // 20km radius for "nearest"
+            const radius = 20;
             const matchedListings = listings.filter(l => {
-                if (!l.latitude || !l.longitude) return false;
+                if (l.latitude == null || l.longitude == null) return false;
                 const dist = this.calculateDistance(
                     Number(lead.latitude), 
                     Number(lead.longitude), 
@@ -90,14 +91,16 @@ export class JobLeadsService {
                 return dist <= radius;
             });
 
-            const vendorUserIds = [...new Set(matchedListings.map(l => l.vendor.userId))].filter(id => id !== lead.userId);
+            const vendorUserIds = [...new Set(matchedListings.map(l => l.vendor.userId).filter(id => id != null))]
+                .filter(id => id !== lead.userId);
             await this.notifyVendors(lead, vendorUserIds);
         } else {
             if (lead.city) {
                 query.andWhere('listing.city ILIKE :city', { city: `%${lead.city}%` });
             }
             const listings = await query.getMany();
-            const vendorUserIds = [...new Set(listings.map(l => l.vendor.userId))].filter(id => id !== lead.userId);
+            const vendorUserIds = [...new Set(listings.map(l => l.vendor.userId).filter(id => id != null))]
+                .filter(id => id !== lead.userId);
             await this.notifyVendors(lead, vendorUserIds);
         }
     }
@@ -195,7 +198,8 @@ export class JobLeadsService {
                 });
 
             if (cities.length > 0) {
-                query.andWhere('(lead.city IS NULL OR lead.city IN (:...cities))', { cities });
+                const lowerCities = cities.map(c => c.toLowerCase());
+                query.andWhere('(lead.city IS NULL OR LOWER(lead.city) IN (:...lowerCities))', { lowerCities });
             }
 
             const leads = await query.orderBy('lead.createdAt', 'DESC').getMany();
@@ -235,6 +239,10 @@ export class JobLeadsService {
 
         const lead = await this.jobLeadRepository.findOne({ where: { id: leadId }, relations: ['user'] });
         if (!lead) throw new NotFoundException('Lead not found');
+
+        if (lead.status === JobLeadStatus.CLOSED) {
+            throw new BadRequestException('This lead is closed and no longer accepting responses');
+        }
 
         if (lead.userId === vendorUserId) {
             throw new BadRequestException('You cannot respond to your own lead');
@@ -331,7 +339,8 @@ export class JobLeadsService {
             });
 
         if (cities.length > 0) {
-            query.andWhere('(lead.city IS NULL OR lead.city IN (:...cities))', { cities });
+            const lowerCities = cities.map(c => c.toLowerCase());
+            query.andWhere('(lead.city IS NULL OR LOWER(lead.city) IN (:...lowerCities))', { lowerCities });
         }
 
         // Optimized check: "New" means NOT responded yet
@@ -360,7 +369,11 @@ export class JobLeadsService {
         const saved = await this.jobLeadRepository.save(lead);
 
         // Now broadcast to relevant vendors
-        this.broadcastLead(saved);
+        try {
+            await this.broadcastLead(saved);
+        } catch (err) {
+            this.logger.error(`Broadcast failed for lead ${saved.id}:`, err);
+        }
 
         return saved;
     }

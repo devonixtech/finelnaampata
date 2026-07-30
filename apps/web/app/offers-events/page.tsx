@@ -185,7 +185,7 @@ const OffersEventsContent = () => {
                                 <span className="text-orange-500">& Local Events.</span>
                             </h1>
                             <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-xl">
-                                Discover extraordinary deals and curated experiences across Pakistan's finest establishments.
+                                Discover extraordinary offers and curated experiences across Pakistan's finest establishments.
                             </p>
                         </div>
 

@@ -5,8 +5,10 @@ import { api } from '../../../lib/api';
 
 // Render all offer/event pages dynamically on-demand (SSR) to avoid slow builds
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
-    return [];
+    return [{ offerId: 'template' }];
 }
 
 

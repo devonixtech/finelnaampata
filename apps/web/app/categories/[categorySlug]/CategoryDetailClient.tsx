@@ -197,7 +197,7 @@ export default function CategoryDetailClient({ slug }: CategoryDetailClientProps
                             <div className="flex items-center gap-4 mb-12">
                                 <div className="h-px w-12 bg-orange-200" />
                                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-orange-500">
-                                    Exclusive {category.name} Deals
+                                    Exclusive {category.name} Offers
                                 </h2>
                             </div>
 

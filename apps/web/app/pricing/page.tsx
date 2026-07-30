@@ -39,7 +39,7 @@ const PLAN_FEATURES = {
             { label: "Up to 5 Named Phone Numbers", included: false, icon: Users },
             { label: "Respond to Broadcast Leads", included: false, icon: Megaphone },
             { label: "Customer Notes", included: false, icon: Building2 },
-            { label: "Deals & Events (Add-on)", included: false, icon: Tag },
+            { label: "Offers & Events (Add-on)", included: false, icon: Tag },
         ],
     },
     basic: {
@@ -63,7 +63,7 @@ const PLAN_FEATURES = {
             { label: "Up to 5 Named Phone Numbers", included: true, icon: Users },
             { label: "Respond to Broadcast Leads", included: true, icon: Megaphone },
             { label: "Customer Notes", included: true, icon: Building2 },
-            { label: "Deals & Events (Add-on)", included: false, icon: Tag },
+            { label: "Offers & Events (Add-on)", included: false, icon: Tag },
         ],
     },
 };
@@ -326,7 +326,7 @@ export default function PricingPage() {
                                 { feature: "Profile FAQs", free: "0", basic: "Up to 10" },
                                 { feature: "Named Phone Numbers", free: "1", basic: "Up to 5" },
                                 { feature: "Customer Notes", free: false, basic: true },
-                                { feature: "Deals & Events (Add-on)", free: false, basic: false },
+                                { feature: "Offers & Events (Add-on)", free: false, basic: false },
                             ].map(({ feature, free, basic }, i) => (
                                 <div
                                     key={feature}

@@ -733,6 +733,12 @@ export class CategoriesService {
                 [id],
             ).catch(() => null);
 
+            // Unlink job_leads pointing to this category
+            await this.categoryRepository.query(
+                `UPDATE job_leads SET category_id = NULL WHERE category_id = $1`,
+                [id],
+            ).catch(() => null);
+
             // Clean up join tables if any
             await this.categoryRepository.query(
                 `DELETE FROM business_subcategories WHERE subcategory_id = $1`,

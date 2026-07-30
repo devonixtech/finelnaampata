@@ -263,7 +263,7 @@ export default function Navbar() {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-bold text-slate-900">Offers & Events</span>
-                                                        <span className="text-[10px] text-slate-400 font-medium italic">Latest local deals and happenings</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium italic">Latest local offers and happenings</span>
                                                     </div>
                                                 </Link>
                                             </div>

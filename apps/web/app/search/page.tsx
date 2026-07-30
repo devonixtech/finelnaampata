@@ -152,10 +152,10 @@ function SearchResults() {
                     <div className="absolute top-0 left-0 w-full h-full border-[0.5px] border-white/20 [mask-image:radial-gradient(circle_at_center,black,transparent_80%)]" style={{ backgroundSize: '40px 40px', backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)' }} />
                 </div>
                 
-                <div className="max-w-[1600px] mx-auto px-4 relative z-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-12">
                         
-                        <div className="max-w-xl flex-1">
+                        <div className="max-w-xl flex-1 pl-4 md:pl-10">
                             <h1 className="text-4xl md:text-[40px] font-bold text-white tracking-tight leading-[1.1] mb-2">
                                 {city ? (
                                     <>Explore <span className="text-[#8ab4f8] italic font-medium">Locals</span> in {city}</>

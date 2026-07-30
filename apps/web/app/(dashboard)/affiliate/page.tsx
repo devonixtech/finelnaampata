@@ -145,35 +145,6 @@ export default function AffiliateDashboard() {
                             <p className="text-base font-black text-slate-900">{stats.referrerName || 'Affiliate Partner'}</p>
                         </div>
                     )}
-                    {!stats?.hasRegisteredBusiness && !user?.vendor?.id && !stats?.hasReferrer && (
-                        <div className="mb-12 p-6 bg-slate-50 border border-slate-100 rounded-3xl max-w-md mx-auto text-left space-y-3 shadow-sm">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enter Referral Code</p>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    placeholder="Referral Code"
-                                    id="affiliate-ref-input"
-                                    className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-orange-500 transition-all"
-                                />
-                                <button
-                                    onClick={async () => {
-                                        const input = document.getElementById('affiliate-ref-input') as HTMLInputElement;
-                                        if (!input?.value?.trim()) return;
-                                        try {
-                                            await api.affiliate.applyReferral(input.value.trim());
-                                            showAlert('Code Applied', 'Referral code applied successfully!', 'success');
-                                            setTimeout(() => window.location.reload(), 1500);
-                                        } catch (err: any) {
-                                            showAlert('Error', err.message || 'Invalid referral code', 'error');
-                                        }
-                                    }}
-                                    className="px-6 py-3 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-orange-500 transition-all active:scale-95"
-                                >
-                                    Apply
-                                </button>
-                            </div>
-                        </div>
-                    )}
                     <div className="w-24 h-24 bg-orange-50 rounded-[28px] flex items-center justify-center mx-auto mb-8">
                         <Gift className="w-12 h-12 text-orange-500" />
                     </div>

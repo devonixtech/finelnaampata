@@ -12,6 +12,16 @@ interface BroadcastCardProps {
 }
 
 export default function BroadcastCard({ lead, canRespond = true, onRespond }: BroadcastCardProps) {
+    const timeAgo = (() => {
+        try {
+            const date = new Date(lead.createdAt);
+            if (isNaN(date.getTime())) return '';
+            return formatDistanceToNow(date, { addSuffix: true });
+        } catch {
+            return '';
+        }
+    })();
+
     return (
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all group relative overflow-hidden">
             {/* Proximity Indicator */}
@@ -29,7 +39,7 @@ export default function BroadcastCard({ lead, canRespond = true, onRespond }: Br
                         </span>
                         <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
                             <Clock className="w-3 h-3" />
-                            {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
+                            {timeAgo}
                         </span>
                     </div>
                     <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors leading-tight mb-2 tracking-tight">
@@ -40,7 +50,7 @@ export default function BroadcastCard({ lead, canRespond = true, onRespond }: Br
                             <MapPin className="w-3 h-3 text-slate-400" />
                             {lead.city || 'Anywhere'}
                         </span>
-                        {lead.budget && (
+                        {lead.budget != null && lead.budget > 0 && (
                             <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg font-black text-xs">
                                 <span>PKR</span>
                                 {lead.budget.toLocaleString()}

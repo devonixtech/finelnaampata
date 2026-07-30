@@ -53,7 +53,7 @@ export default function BusinessOfferPlansPage() {
                     </div>
                     <Link href="/deals" className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl font-black text-sm transition-all backdrop-blur-md">
                         <FileText className="w-4 h-4" />
-                        Manage Deals
+                        Manage Offers
                     </Link>
                 </div>
             </div>

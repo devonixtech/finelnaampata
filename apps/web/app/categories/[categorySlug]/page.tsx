@@ -8,8 +8,10 @@ import { api } from '../../../lib/api';
 
 // Render all category pages dynamically on-demand (SSR) to avoid building 25,000+ static pages at build time
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
-    return [];
+    return [{ categorySlug: 'template' }];
 }
 
 // Dynamic route handling for categories

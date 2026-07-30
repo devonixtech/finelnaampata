@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api, getImageUrl } from '../../../lib/api';
+import toast from 'react-hot-toast';
 import {
     Loader2,
     Search,
@@ -120,9 +121,9 @@ export default function AdminEventsDealsPage() {
                 event_price_per_day: String(eventPrice)
             });
             setIsPriceModalOpen(false);
-            alert('Prices updated successfully!');
+            toast.success('Prices updated successfully!');
         } catch (err: any) {
-            alert(err.message || 'Failed to save price settings');
+            toast.error(err.message || 'Failed to save price settings');
         } finally {
             setSavingPrices(false);
         }
@@ -138,7 +139,7 @@ export default function AdminEventsDealsPage() {
             }
             await fetchData();
         } catch (err: any) {
-            alert(err.message || 'Failed to update featured status');
+            toast.error(err.message || 'Failed to update featured status');
         } finally {
             setActionLoading(null);
         }
@@ -155,7 +156,7 @@ export default function AdminEventsDealsPage() {
             }
             await fetchData();
         } catch (err: any) {
-            alert(err.message || 'Failed to delete item');
+            toast.error(err.message || 'Failed to delete item');
         } finally {
             setActionLoading(null);
         }

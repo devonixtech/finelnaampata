@@ -136,7 +136,7 @@ const OffersContent = () => {
                                 <span className="text-orange-500">From Local Businesses.</span>
                             </h1>
                             <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-xl">
-                                Discover the best deals and promotions from businesses near you.
+                                Discover the best offers and promotions from businesses near you.
                             </p>
                         </div>
 
@@ -325,7 +325,7 @@ const OffersContent = () => {
                         ) : (
                             <div className="py-40 text-center">
                                 <h3 className="text-4xl font-black text-slate-900 mb-6 tracking-tighter">No Offers Found.</h3>
-                                <p className="text-slate-400 font-bold mb-10">No offers currently match your criteria. Check back later for new deals.</p>
+                                <p className="text-slate-400 font-bold mb-10">No offers currently match your criteria. Check back later for new offers.</p>
                                 <button 
                                     onClick={() => {
                                         setQuery('');

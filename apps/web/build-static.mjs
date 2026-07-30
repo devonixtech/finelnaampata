@@ -117,15 +117,16 @@ RewriteRule ^ /index.html [L]
   writeFileSync(resolve(outDir, '.htaccess'), htaccess, 'utf-8');
   console.log('Step 2.5a: .htaccess written');
 
-  // web.config - IIS/LiteSpeed config
+  // web.config - IIS/LiteSpeed config (MIME types only, no rewrite rules)
+  // Rewrite rules are handled by404.html SPA shell instead
   const webConfig = `<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <system.webServer>
     <directoryBrowse enabled="false" />
     <defaultDocument enabled="true">
       <files>
-        <add value="router.php" />
         <add value="index.html" />
+        <add value="router.php" />
       </files>
     </defaultDocument>
     <staticContent>
@@ -137,61 +138,19 @@ RewriteRule ^ /index.html [L]
       <remove fileExtension=".woff" /><mimeMap fileExtension=".woff" mimeType="font/woff" />
       <remove fileExtension=".woff2" /><mimeMap fileExtension=".woff2" mimeType="font/woff2" />
       <remove fileExtension=".ttf" /><mimeMap fileExtension=".ttf" mimeType="font/ttf" />
+      <remove fileExtension=".otf" /><mimeMap fileExtension=".otf" mimeType="font/otf" />
       <remove fileExtension=".eot" /><mimeMap fileExtension=".eot" mimeType="application/vnd.ms-fontobject" />
       <remove fileExtension=".webp" /><mimeMap fileExtension=".webp" mimeType="image/webp" />
+      <remove fileExtension=".txt" /><mimeMap fileExtension=".txt" mimeType="text/plain" />
+      <remove fileExtension=".xml" /><mimeMap fileExtension=".xml" mimeType="application/xml" />
+      <remove fileExtension=".html" /><mimeMap fileExtension=".html" mimeType="text/html" />
+      <remove fileExtension=".png" /><mimeMap fileExtension=".png" mimeType="image/png" />
+      <remove fileExtension=".jpg" /><mimeMap fileExtension=".jpg" mimeType="image/jpeg" />
+      <remove fileExtension=".jpeg" /><mimeMap fileExtension=".jpeg" mimeType="image/jpeg" />
+      <remove fileExtension=".gif" /><mimeMap fileExtension=".gif" mimeType="image/gif" />
+      <remove fileExtension=".ico" /><mimeMap fileExtension=".ico" mimeType="image/x-icon" />
+      <remove fileExtension=".pdf" /><mimeMap fileExtension=".pdf" mimeType="application/pdf" />
     </staticContent>
-    <rewrite>
-      <rules>
-        <rule name="StaticFiles" stopProcessing="true">
-          <match url="^(.*)" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" /></conditions>
-          <action type="None" />
-        </rule>
-        <rule name="Directories" stopProcessing="true">
-          <match url="^(.*)" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsDirectory" /></conditions>
-          <action type="None" />
-        </rule>
-        <rule name="BusinessDetail" stopProcessing="true">
-          <match url="^business/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="business/template/index.html" />
-        </rule>
-        <rule name="VendorDetail" stopProcessing="true">
-          <match url="^vendors/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="vendors/template/index.html" />
-        </rule>
-        <rule name="BusinessListing" stopProcessing="true">
-          <match url="^businesses/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="businesses/template/index.html" />
-        </rule>
-        <rule name="CityPages" stopProcessing="true">
-          <match url="^cities/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="cities/template/index.html" />
-        </rule>
-        <rule name="CategoryPages" stopProcessing="true">
-          <match url="^categories/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="categories/template/index.html" />
-        </rule>
-        <rule name="OffersPages" stopProcessing="true">
-          <match url="^offers-events/([^/]+)/?$" />
-          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
-          <action type="Rewrite" url="offers-events/template/index.html" />
-        </rule>
-        <rule name="HtmlFallback" stopProcessing="true">
-          <match url="^(.*)$" />
-          <conditions>
-            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-          </conditions>
-          <action type="Rewrite" url="index.html" />
-        </rule>
-      </rules>
-    </rewrite>
   </system.webServer>
 </configuration>`;
   writeFileSync(resolve(outDir, 'web.config'), webConfig, 'utf-8');

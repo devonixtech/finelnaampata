@@ -229,7 +229,7 @@ export default function BusinessProfileClient({ slugOrId, initialData }: { slugO
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search listings, deals, or events"
+                                    placeholder="Search listings, offers, or events"
                                     className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-medium text-slate-900 outline-none"
                                 />
                             </div>
@@ -282,7 +282,7 @@ export default function BusinessProfileClient({ slugOrId, initialData }: { slugO
                             <section className="space-y-5">
                                 <div className="flex items-center gap-3">
                                     <Gift className="w-5 h-5 text-slate-400" />
-                                    <h3 className="text-2xl font-black text-slate-900">Deals</h3>
+                                    <h3 className="text-2xl font-black text-slate-900">Offers</h3>
                                 </div>
                                 <div className="grid md:grid-cols-2 gap-5">
                                     {filteredOffers.map((offer) => (
