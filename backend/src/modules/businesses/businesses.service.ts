@@ -695,9 +695,30 @@ export class BusinessesService implements OnModuleInit {
 
         const savedListing = await this.listingRepository.save(listing);
 
-        if (createBusinessDto.socialLinks !== undefined) {
-            vendor.socialLinks = normalizedSocialLinks;
-            await this.vendorRepository.save(vendor);
+        // Auto-sync listing data to vendor profile
+        const vendorUpdates: any = {};
+        if (createBusinessDto.title && (!vendor.businessName || vendor.businessName.includes("'s Business"))) {
+            vendorUpdates.businessName = createBusinessDto.title;
+        }
+        if (createBusinessDto.phoneNumber) {
+            const normalizedPhone = createBusinessDto.phoneNumber.replace(/^0+/, '');
+            const phoneCode = createBusinessDto.phoneCode || '+92';
+            vendorUpdates.businessPhone = `${phoneCode}${normalizedPhone}`;
+        }
+        if (createBusinessDto.businessEmail) vendorUpdates.businessEmail = createBusinessDto.businessEmail;
+        if (createBusinessDto.address) vendorUpdates.businessAddress = createBusinessDto.address;
+        if (createBusinessDto.city) vendorUpdates.city = createBusinessDto.city;
+        if (createBusinessDto.state) vendorUpdates.state = createBusinessDto.state;
+        if (createBusinessDto.country) vendorUpdates.country = createBusinessDto.country;
+        if (createBusinessDto.timezone) vendorUpdates.timezone = createBusinessDto.timezone;
+        if (createBusinessDto.description) vendorUpdates.bio = createBusinessDto.description;
+        if (createBusinessDto.businessHours) vendorUpdates.businessHours = createBusinessDto.businessHours;
+        if (createBusinessDto.socialLinks !== undefined) vendorUpdates.socialLinks = normalizedSocialLinks;
+        if (createBusinessDto.logoUrl) vendorUpdates.logoUrl = createBusinessDto.logoUrl;
+        if (createBusinessDto.coverImageUrl) vendorUpdates.coverImageUrl = createBusinessDto.coverImageUrl;
+
+        if (Object.keys(vendorUpdates).length > 0) {
+            await this.vendorRepository.save({ ...vendor, ...vendorUpdates });
         }
 
         if (createBusinessDto.legalConsentAccepted) {
