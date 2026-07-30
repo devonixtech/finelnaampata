@@ -517,15 +517,15 @@ export default function HomePage() {
 
             {/* Get Expert Quotes */}
             <Link
-              href="/expert-quote"
+              href="/broadcast-request"
               className="bg-white rounded-[28px] border border-gray-50 shadow-[0_15px_45px_rgba(0,0,0,0.04)] p-8 flex items-center gap-6 hover:shadow-xl hover:-translate-y-1 transition-all group"
             >
               <div className="w-16 h-16 rounded-[22px] bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform shrink-0">
                 <Megaphone className="w-8 h-8" />
               </div>
               <div className="text-left">
-                <h3 className="font-black text-[#112D4E] text-xl mb-1 group-hover:text-blue-500 transition-colors">Get Expert Quotes</h3>
-                <p className="text-slate-400 text-base font-medium">Post your requirement easily</p>
+                <h3 className="font-black text-[#112D4E] text-xl mb-1 group-hover:text-blue-500 transition-colors">Broadcast Your Requirement</h3>
+                <p className="text-slate-400 text-base font-medium">Connect with local experts instantly</p>
               </div>
             </Link>
           </div>

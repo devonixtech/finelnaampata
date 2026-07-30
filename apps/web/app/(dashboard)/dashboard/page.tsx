@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StatsGrid from '../../../components/business/StatsGrid';
 import PerformanceChart from '../../../components/business/PerformanceChart';
@@ -41,31 +41,10 @@ export default function GenericDashboard() {
     const [isApplying, setIsApplying] = useState(false);
     const [applyStatus, setApplyStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [conversations, setConversations] = useState<any[]>([]);
-    const [setupStatus, setSetupStatus] = useState<{ isCompleted: boolean; answers: Record<string, string[]> } | null>(null);
-    const [vendorProfile, setVendorProfile] = useState<any>(null);
     const { socket } = useChatSocket();
 
     const isVendor = user?.role === 'vendor';
     const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
-    const profileCompletion = useMemo(() => {
-        if (!isVendor) return null;
-        const percent = typeof stats?.profileCompletion === 'number'
-            ? Math.max(0, Math.min(100, Math.round(stats.profileCompletion)))
-            : 0;
-        const vendor = vendorProfile || user?.vendor;
-        const missing: string[] = [];
-        if (!vendor?.businessName) missing.push('Business Name');
-        if (!vendor?.businessPhone) missing.push('Business Phone');
-        if (!vendor?.businessAddress) missing.push('Business Address');
-        if (!vendor?.city) missing.push('City');
-        if (!vendor?.country) missing.push('Country');
-        if (!vendor?.bio) missing.push('Business Bio');
-        if (!vendor?.businessEmail) missing.push('Business Email');
-        if (!vendor?.socialLinks?.length) missing.push('Social Links');
-        if (!vendor?.businessHours || Object.keys(vendor.businessHours).length === 0) missing.push('Business Hours');
-        if (!stats?.totalBusinesses) missing.push('First Listing');
-        return { percent, missing };
-    }, [isVendor, stats?.profileCompletion, stats?.totalBusinesses, user?.vendor, vendorProfile]);
 
 
     useEffect(() => {
@@ -85,9 +64,8 @@ export default function GenericDashboard() {
                 setFollowedBusinesses(followsData?.data || []);
 
                 if (isVendor || isAdmin) {
-                    const [statsData, businessProfile, affiliateData] = await Promise.all([
+                    const [statsData, affiliateData] = await Promise.all([
                         api.businessProfiles.getStats({ silent: true }).catch(() => null),
-                        api.businessProfiles.getProfile({ silent: true }).catch(() => null),
                         api.affiliate.getStats({ silent: true }).catch(() => null)
                     ]);
                     setStats({
@@ -96,7 +74,6 @@ export default function GenericDashboard() {
                         reviewsCount: reviewsData?.data?.length || 0,
                         unreadNotifs: notifsData?.data?.filter((n: any) => !n.isRead).length || 0
                     });
-                    setVendorProfile(businessProfile);
                     setAffiliateStats(affiliateData);
                 } else if (user) {
                     setStats({
@@ -295,53 +272,6 @@ export default function GenericDashboard() {
             )}
 
             {/* Stats Grid */}
-            {isVendor && profileCompletion && profileCompletion.percent < 100 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 shadow-sm"
-                >
-                    <div className="flex items-center justify-between gap-4 mb-3">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Profile Completion</p>
-                        <span className="text-sm font-black text-blue-700">{profileCompletion.percent}%</span>
-                    </div>
-                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-4">
-                        <div className="h-full bg-blue-600" style={{ width: `${profileCompletion.percent}%` }} />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {(() => {
-                            const stepMap: Record<string, number> = {
-                                'Business Name': 1,
-                                'Business Bio': 12,
-                                'Business Email': 10,
-                                'Business Phone': 10,
-                                'Business Address': 8,
-                                'City': 8,
-                                'Country': 8,
-                                'Social Links': 14,
-                                'Business Hours': 11,
-                                'First Listing': 5,
-                                'Logo': 20,
-                                'Cover Image': 20,
-                                'Map Confirmation': 9,
-                                'Legal Consent': 21,
-                                'Website & Social Media': 14,
-                                'Amenities & Facilities': 15,
-                                'Keywords': 17,
-                            };
-                            return profileCompletion.missing.slice(0, 4).map((item) => (
-                                <Link
-                                    key={item}
-                                    href={item === 'First Listing' ? '/add-listing' : (stepMap[item] ? `/business-setup?step=${stepMap[item]}` : '/business-setup')}
-                                    className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-50 text-amber-700 border border-amber-200"
-                                >
-                                    Complete {item}
-                                </Link>
-                            ));
-                        })()}
-                    </div>
-                </motion.div>
-            )}
             <StatsGrid stats={isVendor || isAdmin ? businessStats : userStats} />
 
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
