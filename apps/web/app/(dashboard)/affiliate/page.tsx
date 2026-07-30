@@ -81,7 +81,7 @@ export default function AffiliateDashboard() {
         const amount = parseFloat(payoutAmount);
 
         if (isNaN(amount) || amount < 500) {
-            showAlert('Invalid Amount', 'Minimum withdrawal is PKR 500', 'error');
+            showAlert('Invalid Amount', 'Minimum withdrawal is Rs. 500', 'error');
             return;
         }
 
@@ -330,10 +330,25 @@ export default function AffiliateDashboard() {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">3</div>
-                                    <p className="text-sm text-slate-300 font-medium">Unlimited referrals! Stack up your free days and keep your listing live for <span className="text-white font-black">Zero PKR</span>.</p>
+                                    <p className="text-sm text-slate-300 font-medium">Unlimited referrals! Stack up your free days and keep your listing live for <span className="text-white font-black">Free</span>.</p>
                                 </div>
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => setShowPayoutModal(true)}
+                            disabled={!stats?.balance || stats.balance <= 0}
+                            className={`w-full p-6 rounded-[28px] text-left transition-all ${stats?.balance > 0 ? 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer shadow-lg shadow-orange-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                        >
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Available Balance</p>
+                                <Wallet className="w-6 h-6" />
+                            </div>
+                            <p className="text-3xl font-black mb-1">Rs. {(stats?.balance || 0).toLocaleString()}</p>
+                            <p className={`text-xs font-bold ${stats?.balance > 0 ? 'text-orange-100' : 'text-slate-400'}`}>
+                                {stats?.balance > 0 ? 'Tap to withdraw' : 'Earn referrals to unlock'}
+                            </p>
+                        </button>
 
                         <div className="p-8 bg-blue-600 rounded-[28px] text-white overflow-hidden relative group">
                             <Share2 className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 group-hover:scale-110 transition-transform duration-500" />
@@ -394,11 +409,11 @@ export default function AffiliateDashboard() {
                             >
                                 <div className="p-10">
                                     <h2 className="text-3xl font-black text-slate-900 mb-2">Withdraw Earnings</h2>
-                                    <p className="text-slate-500 font-medium mb-8">Available balance: <b>PKR {stats?.balance}</b></p>
+                                    <p className="text-slate-500 font-medium mb-8">Available balance: <b>Rs. {stats?.balance}</b></p>
 
                                     <form onSubmit={handleRequestPayout} className="space-y-6">
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Amount (Min PKR 500)</label>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Amount (Min Rs. 500)</label>
                                             <input
                                                 type="number"
                                                 value={payoutAmount}
