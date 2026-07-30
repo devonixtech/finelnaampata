@@ -252,7 +252,20 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                 <div className="relative group max-w-xs mx-auto">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                         <Wallet className="w-5 h-5 text-slate-400" />
-                                        <span className="text-slate-300 font-black text-sm">PKR</span>
+                                        <select
+                                            value={formData.currency}
+                                            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                            className="bg-transparent text-slate-500 font-black text-sm outline-none cursor-pointer appearance-none hover:text-slate-700 transition-colors"
+                                        >
+                                            <option value="PKR">PKR</option>
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                            <option value="GBP">GBP</option>
+                                            <option value="AED">AED</option>
+                                            <option value="SAR">SAR</option>
+                                            <option value="INR">INR</option>
+                                        </select>
+                                        <ChevronDown className="w-3 h-3 text-slate-400 ml-1" />
                                     </div>
                                     <input
                                         type="number"
@@ -340,7 +353,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                             <div>
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Budget Estimate</span>
                                                 <p className="font-black text-emerald-400 mt-1">
-                                                    {formData.budget ? `PKR ${formData.budget}` : 'Flexible'}
+                                                    {formData.budget ? `${formData.currency} ${formData.budget}` : 'Flexible'}
                                                 </p>
                                             </div>
                                         </div>
