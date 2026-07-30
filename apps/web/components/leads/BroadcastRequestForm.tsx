@@ -303,23 +303,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                             setError(null);
                                         }}
                                     />
-                                    <div className="my-6 flex items-center gap-4">
-                                        <div className="h-[1px] bg-slate-200 flex-1" />
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">or use GPS for precision</span>
-                                        <div className="h-[1px] bg-slate-200 flex-1" />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={detectLocation}
-                                        disabled={gettingLocation}
-                                        className={`w-full py-5 rounded-2xl border-4 border-dashed transition-all flex items-center justify-center gap-3 font-black text-sm ${formData.latitude
-                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                            : 'bg-white border-slate-100 text-blue-600 hover:border-blue-200 hover:bg-blue-50/30'
-                                            }`}
-                                    >
-                                        {gettingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
-                                        {formData.latitude ? 'GPS Coordinates Locked' : 'Detect My Location'}
-                                    </button>
+                                    
                                 </div>
                             </div>
                         )}
