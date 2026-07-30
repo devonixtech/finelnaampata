@@ -29,6 +29,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
+    const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
     const [categories, setCategories] = useState<Category[]>([]);
     const [cities, setCities] = useState<City[]>([]);
