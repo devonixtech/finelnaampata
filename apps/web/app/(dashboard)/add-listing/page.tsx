@@ -694,9 +694,6 @@ function AddListingContent() {
         );
     }
 
-    if (isVendor && !isAdmin && setupStatus && !setupStatus.isCompleted) {
-    }
-
     if (!canAddListing && !loading && myListingsCount !== null) {
         return (
             <div className="max-w-4xl mx-auto pb-16">
