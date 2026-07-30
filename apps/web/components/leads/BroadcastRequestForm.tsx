@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { Category, City } from '../../types/api';
 import CategorySearchSelect from '../CategorySearchSelect';
 import CitySearchSelect from '../CitySearchSelect';
+import CountrySearchSelect from '../CountrySearchSelect';
 import { MapPin, Megaphone, Loader2, Navigation, ChevronRight, ChevronLeft, CheckCircle2, Sparkles, Target, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { detectLocationForUi, sortAndDedupeCities, findNearestCity } from '../../lib/location-detect';
