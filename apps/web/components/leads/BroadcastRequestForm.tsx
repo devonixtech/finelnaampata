@@ -36,6 +36,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
         title: '',
         description: '',
         categoryId: '',
+        country: '',
         city: '',
         budget: '',
         latitude: null as number | null,
@@ -96,7 +97,8 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                 title: '',
                 description: '',
                 categoryId: '',
-                city: '',
+        country: '',
+        city: '',
                 budget: '',
                 latitude: null,
                 longitude: null,
@@ -285,8 +287,15 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                     <p className="text-slate-400 font-bold">We match you with experts nearby</p>
                                 </div>
                                 <div className="bg-slate-50 p-8 rounded-[20px] border-2 border-slate-100/50 shadow-inner">
+                                    <CountrySearchSelect
+                                        countries={Array.from(new Set(cities.map(c => c.country))).filter(Boolean)}
+                                        value={formData.country}
+                                        onChange={(countryName) => {
+                                            setFormData({ ...formData, country: countryName, city: '' });
+                                        }}
+                                    />
                                     <CitySearchSelect
-                                        cities={cities}
+                                        cities={formData.country ? cities.filter(c => c.country === formData.country) : cities}
                                         value={formData.city}
                                         onChange={(cityName) => {
                                             setFormData({ ...formData, city: cityName });
