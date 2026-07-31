@@ -182,8 +182,8 @@ export default function AffiliateDashboard() {
                             </div>
                             <h3 className="font-black text-slate-900 mb-2">3. Get Paid</h3>
                             <p className="text-sm text-slate-500 font-medium">Earn credit directly into your wallet for every conversion.</p>
+                        </div>
                     </div>
-                </div>
             </main>
         );
     }
