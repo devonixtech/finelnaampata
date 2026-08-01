@@ -10,11 +10,13 @@ interface Props {
     cities: City[];
     value: string;
     onChange: (cityName: string) => void;
+    onCountryDetected?: (country: string) => void;
+    selectedCountry?: string | null;
     placeholder?: string;
     minimal?: boolean;
 }
 
-export default function CitySearchSelect({ cities, value, onChange, placeholder = "Select City", minimal = false }: Props) {
+export default function CitySearchSelect({ cities, value, onChange, onCountryDetected, selectedCountry, placeholder = "Select City", minimal = false }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [isLocating, setIsLocating] = useState(false);
@@ -41,9 +43,17 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
     const handleAutoDetect = async () => {
         setIsLocating(true);
         try {
-            const cityName = await detectNearestCityName(sortedCities, true);
-            if (cityName) {
-                onChange(cityName);
+            // Prefer the manually selected country, otherwise fall back to the
+            // country of the already-selected city (prevents IP/geo overriding it).
+            const selectedCityCountry = sortedCities.find(c => c.name === value)?.country || null;
+            const preferred = selectedCountry || selectedCityCountry;
+            const result = await detectNearestCityName(sortedCities, true, preferred);
+            if (result) {
+                onChange(result.cityName);
+                // Only auto-select country when user hasn't already picked one manually.
+                if (onCountryDetected && !selectedCountry && result.country) {
+                    onCountryDetected(result.country);
+                }
                 setIsOpen(false);
             } else {
                 alert('Could not match your location to a city. Please select manually.');
@@ -155,6 +165,9 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
                                                 type="button"
                                                 onClick={() => {
                                                     onChange(city.name);
+                                                    if (onCountryDetected && city.country) {
+                                                        onCountryDetected(city.country);
+                                                    }
                                                     setIsOpen(false);
                                                     setSearch('');
                                                 }}
@@ -166,6 +179,11 @@ export default function CitySearchSelect({ cities, value, onChange, placeholder 
                                                 <div className="flex items-center gap-4">
                                                     <MapPin className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-300'}`} />
                                                     <span className="text-base font-bold tracking-tight">{city.name}</span>
+                                                    {city.country && (
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${isSelected ? 'text-white/70' : 'text-slate-400'}`}>
+                                                            {city.country}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {isSelected && <Check className="w-5 h-5 animate-in zoom-in" />}
                                             </button>

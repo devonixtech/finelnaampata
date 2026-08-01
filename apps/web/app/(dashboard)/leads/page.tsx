@@ -127,6 +127,12 @@ function LeadDetailModal({ lead, onClose, onStatusChange }: {
     const [notesLoading, setNotesLoading] = useState(true);
     const [noteDraft, setNoteDraft] = useState('');
     const [noteError, setNoteError] = useState('');
+
+    useEffect(() => {
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = prev || ''; };
+    }, []);
     const [savingNote, setSavingNote] = useState(false);
 
     useEffect(() => {
@@ -186,10 +192,10 @@ function LeadDetailModal({ lead, onClose, onStatusChange }: {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={onClose} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="relative bg-white rounded-[40px] shadow-2xl w-full max-w-xl overflow-hidden z-10 border border-white/20">
+                className="relative bg-white rounded-[40px] shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto z-10 border border-white/20 overscroll-contain">
 
                 {/* Header with Background Gradient */}
                 <div className="h-32 bg-gradient-to-br from-blue-600 to-indigo-700 p-8 relative">

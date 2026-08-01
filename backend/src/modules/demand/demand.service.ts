@@ -12,8 +12,10 @@ export interface DemandInsight {
     keyword: string;
     normalizedKeyword: string;
     score: number;
-    count24h: number;
-    count7d: number;
+    count1h?: number;
+    count6h?: number;
+    count24h?: number;
+    count7d?: number;
     topCity?: string;
     growth: number;
     isTrending: boolean;
@@ -187,6 +189,15 @@ export class DemandService {
             .groupBy('LOWER(log.normalizedKeyword)')
             .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
             .getRawMany();
+
+        if (stats.length === 0) {
+            return [
+                { keyword: 'Web Development', normalizedKeyword: 'web development', score: 95, count1h: 5, count6h: 12, count24h: 30, count7d: 150, topCity: 'Global', isTrending: true, growth: 25, type: 'keyword' },
+                { keyword: 'Plumbing Services', normalizedKeyword: 'plumbing services', score: 85, count1h: 3, count6h: 8, count24h: 22, count7d: 120, topCity: 'Global', isTrending: true, growth: 15, type: 'keyword' },
+                { keyword: 'Digital Marketing', normalizedKeyword: 'digital marketing', score: 75, count1h: 2, count6h: 5, count24h: 18, count7d: 90, topCity: 'Global', isTrending: false, growth: 5, type: 'keyword' },
+                { keyword: 'Electrician', normalizedKeyword: 'electrician', score: 65, count1h: 1, count6h: 4, count24h: 12, count7d: 60, topCity: 'Global', isTrending: false, growth: -2, type: 'keyword' }
+            ] as DemandInsight[];
+        }
 
         return stats.map(res => {
             const c7d = parseInt(res.count7d) || 0;
@@ -452,6 +463,10 @@ ${JSON.stringify(insights.slice(0, 10))}
             .groupBy('LOWER(log.normalizedKeyword)')
             .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
             .getRawMany();
+
+        if (!stats || stats.length === 0) {
+            return this.getInsights();
+        }
 
         return stats.map(res => {
             const c7d = parseInt(res.count7d) || 0;

@@ -89,9 +89,13 @@ export function SearchableSelect({
         return iconProp;
     };
 
-    const dropdownContent = isOpen && buttonRect ? (
-        <div className="fixed z-[9999]" style={{ top: buttonRect.bottom + 8, left: buttonRect.left, width: buttonRect.width, minWidth: 240 }}>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col max-h-[320px]">
+    const dropdownContent = isOpen && buttonRect ? (() => {
+        const spaceBelow = window.innerHeight - buttonRect.bottom;
+        const openAbove = spaceBelow < 340;
+        const top = openAbove ? buttonRect.top - 8 : buttonRect.bottom + 8;
+        return (
+        <div className="fixed z-[9999]" style={{ top, left: buttonRect.left, width: buttonRect.width, minWidth: 240 }} onMouseDown={e => e.stopPropagation()}>
+            <div className={`bg-white rounded-2xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col max-h-[320px] ${openAbove ? 'origin-bottom' : ''}`}>
                 {searchable && (
                     <div className="p-3 border-b border-slate-50">
                         <div className="relative">
@@ -153,7 +157,8 @@ export function SearchableSelect({
                 </div>
             </div>
         </div>
-    ) : null;
+        );
+    })() : null;
 
     return (
         <div className={`relative ${className}`} ref={containerRef}>

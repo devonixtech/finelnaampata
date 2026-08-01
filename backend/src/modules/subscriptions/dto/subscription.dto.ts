@@ -102,6 +102,11 @@ export class CheckoutDto {
     @IsOptional()
     @IsString()
     cycle?: string;
+
+    @ApiPropertyOptional({ description: 'Referral code entered by the buyer during checkout' })
+    @IsOptional()
+    @IsString()
+    referralCode?: string;
 }
 
 export class AssignPlanDto {

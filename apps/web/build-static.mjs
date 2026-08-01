@@ -13,30 +13,7 @@ const files = [
 
 const backups = files.map(f => ({ file: f, content: readFileSync(f, 'utf-8') }));
 
-console.log('Step 1: Patching for static export...');
-for (const { file, content } of backups) {
-  let newContent = content;
-  newContent = newContent.replace(/export const dynamicParams = true;/g, 'export const dynamicParams = false;');
-  // If generateStaticParams returns [], change to return template
-  newContent = newContent.replace(/return \[\];/g, (match) => {
-    // Only replace inside generateStaticParams
-    return match;
-  });
-  writeFileSync(file, newContent, 'utf-8');
-}
-
-// Fix generateStaticParams for each file specifically
-const gspPatches = [
-  { file: `${DIR}/cities/[cityName]/page.tsx`, search: 'return [];', replace: "return [{ cityName: 'template' }];" },
-  { file: `${DIR}/categories/[categorySlug]/page.tsx`, search: 'return [];', replace: "return [{ categorySlug: 'template' }];" },
-  { file: `${DIR}/offers-events/[offerId]/page.tsx`, search: 'return [];', replace: "return [{ offerId: 'template' }];" },
-];
-
-for (const p of gspPatches) {
-  const content = readFileSync(p.file, 'utf-8');
-  const newContent = content.replace(p.search, p.replace);
-  writeFileSync(p.file, newContent, 'utf-8');
-}
+console.log('Step 1: Skipping patches (generateStaticParams now fetches real data)...');
 
 console.log('Step 2: Building static export...');
 try {
@@ -50,8 +27,8 @@ try {
   // Step 2.5: Write cPanel deployment files
   const outDir = resolve(import.meta.dirname, 'out');
 
-  // .htaccess - bulletproof Apache config
-  const htaccess = `# Next.js Static Export - Bulletproof cPanel Configuration
+  // .htaccess - bulletproof Apache/LiteSpeed config
+  const htaccess = `# Next.js Static Export - cPanel Configuration
 Options +FollowSymLinks -MultiViews
 RewriteEngine On
 RewriteBase /
@@ -61,6 +38,9 @@ RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI} -f
 RewriteRule ^ - [L]
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
+
+# Custom 404 - serve SPA shell for client-side routing
+ErrorDocument 404 /404.html
 
 # MIME types
 <IfModule mod_mime.c>
@@ -89,24 +69,29 @@ RewriteRule ^ - [L]
     Header set X-Content-Type-Options "nosniff"
 </IfModule>
 
-DirectoryIndex router.php index.html
-
-# Routes without trailing slash
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_URI} !/$
-RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}/index.html -f
-RewriteRule ^(.+[^/])$ /$1/index.html [L]
+DirectoryIndex index.html
 
 # Dynamic route fallbacks
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^business/([^/]+)/?$ /business/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^vendors/([^/]+)/?$ /vendors/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^businesses/([^/]+)/?$ /businesses/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^cities/([^/]+)/?$ /cities/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^categories/([^/]+)/?$ /categories/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^offers-events/([^/]+)/?$ /offers-events/template/index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^legal/([^/]+)/?$ /legal/template/index.html [L]
 
 # Final HTML fallback
@@ -117,8 +102,7 @@ RewriteRule ^ /index.html [L]
   writeFileSync(resolve(outDir, '.htaccess'), htaccess, 'utf-8');
   console.log('Step 2.5a: .htaccess written');
 
-  // web.config - IIS/LiteSpeed config (MIME types only, no rewrite rules)
-  // Rewrite rules are handled by404.html SPA shell instead
+  // web.config - IIS/LiteSpeed config with custom 404 + rewrite rules
   const webConfig = `<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <system.webServer>
@@ -126,9 +110,69 @@ RewriteRule ^ /index.html [L]
     <defaultDocument enabled="true">
       <files>
         <add value="index.html" />
-        <add value="router.php" />
       </files>
     </defaultDocument>
+    <httpErrors errorMode="Custom" existingResponse="Replace">
+      <remove statusCode="404" />
+      <error statusCode="404" path="/404.html" responseMode="ExecuteURL" />
+    </httpErrors>
+    <rewrite>
+      <rules>
+        <rule name="StaticFiles" stopProcessing="true">
+          <match url="^(.*)" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" /></conditions>
+          <action type="None" />
+        </rule>
+        <rule name="Directories" stopProcessing="true">
+          <match url="^(.*)" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsDirectory" /></conditions>
+          <action type="None" />
+        </rule>
+        <rule name="BusinessDetail" stopProcessing="true">
+          <match url="^business/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="business/template/index.html" />
+        </rule>
+        <rule name="VendorDetail" stopProcessing="true">
+          <match url="^vendors/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="vendors/template/index.html" />
+        </rule>
+        <rule name="BusinessListing" stopProcessing="true">
+          <match url="^businesses/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="businesses/template/index.html" />
+        </rule>
+        <rule name="CityPages" stopProcessing="true">
+          <match url="^cities/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="cities/template/index.html" />
+        </rule>
+        <rule name="CategoryPages" stopProcessing="true">
+          <match url="^categories/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="categories/template/index.html" />
+        </rule>
+        <rule name="OffersPages" stopProcessing="true">
+          <match url="^offers-events/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="offers-events/template/index.html" />
+        </rule>
+        <rule name="LegalPages" stopProcessing="true">
+          <match url="^legal/([^/]+)/?$" />
+          <conditions><add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" /></conditions>
+          <action type="Rewrite" url="legal/template/index.html" />
+        </rule>
+        <rule name="HtmlFallback" stopProcessing="true">
+          <match url="^(.*)$" />
+          <conditions>
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="index.html" />
+        </rule>
+      </rules>
+    </rewrite>
     <staticContent>
       <remove fileExtension=".css" /><mimeMap fileExtension=".css" mimeType="text/css" />
       <remove fileExtension=".js" /><mimeMap fileExtension=".js" mimeType="application/javascript" />
@@ -242,6 +286,39 @@ exit;
   }
 
   console.log('Step 2.5: All cPanel deployment files written to ./out/');
+
+  // Step 2.7: Inject SPA fallback script into index.html
+  // LiteSpeed doesn't process .htaccess/web.config, so /categories/slug, /cities/slug etc.
+  // serve root index.html. This script detects non-template dynamic routes and
+  // redirects to the template page while preserving the slug via sessionStorage.
+  try {
+    const indexPath = resolve(outDir, 'index.html');
+    const indexContent = readFileSync(indexPath, 'utf-8');
+    const spaScript = `<script>
+(function(){
+  var p=window.location.pathname;
+  var routes=['categories','cities','businesses','offers-events','legal'];
+  for(var i=0;i<routes.length;i++){
+    var prefix='/'+routes[i]+'/';
+    if(p.startsWith(prefix)){
+      var rest=p.substring(prefix.length).replace(/\\/$/,'').split('/')[0];
+      if(rest&&rest!=='template'&&rest!=='index'&&rest!==''){
+        try{sessionStorage.setItem('spa_slug',rest)}catch(e){}
+        window.location.replace(prefix+'template/');
+        return;
+      }
+    }
+  }
+})();
+</script>`;
+    if (!indexContent.includes('sessionStorage.setItem')) {
+      const modifiedIndex = indexContent.replace('</head>', spaScript + '\n</head>');
+      writeFileSync(indexPath, modifiedIndex, 'utf-8');
+      console.log('Step 2.7: SPA fallback script injected into index.html');
+    }
+  } catch (e) {
+    console.error('Step 2.7: Failed to inject SPA script:', e.message);
+  }
 
 } finally {
   console.log('Step 3: Restoring original files...');

@@ -24,6 +24,15 @@ export default function CityVendorsClient({ city }: CityVendorsClientProps) {
         if (pathParts[0] === 'cities' && pathParts[1] && pathParts[1] !== 'template' && pathParts[1] !== 'default') {
             effectiveCity = pathParts[1];
             console.log('[CityVendors] Fallback detected, using actual city from URL:', effectiveCity);
+        } else {
+            try {
+                const storedSlug = sessionStorage.getItem('spa_slug');
+                if (storedSlug) {
+                    effectiveCity = storedSlug;
+                    sessionStorage.removeItem('spa_slug');
+                    console.log('[CityVendors] Restored slug from sessionStorage:', effectiveCity);
+                }
+            } catch (e) {}
         }
     }
 

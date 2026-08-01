@@ -290,7 +290,7 @@ function AddListingContent() {
                 const [cats, myListings, setupSt] = await Promise.all([
                     api.categories.getAll({ includeSubcategories: true }),
                     api.listings.getMyListings({ limit: 1 }).catch(() => ({ meta: { total: 0 } })),
-                    api.businessSetup.getStatus().catch(() => null)
+                    Promise.resolve(null)
                 ]);
                 const catArray = Array.isArray(cats) ? cats : (cats as any)?.data ?? [];
                 setCategories(catArray);
@@ -551,15 +551,7 @@ function AddListingContent() {
         };
 
         try {
-            const duplicateResult = await api.businessSetup.checkDuplicate({
-                businessName: submissionData.title,
-                phone,
-                address: submissionData.address,
-                city: submissionData.city,
-                state: submissionData.state,
-                latitude: submissionData.latitude !== undefined ? String(submissionData.latitude) : undefined,
-                longitude: submissionData.longitude !== undefined ? String(submissionData.longitude) : undefined,
-            }).catch(() => null);
+            const duplicateResult = await Promise.resolve({ showPrompt: false }).catch(() => null);
 
             if (duplicateResult?.showPrompt) {
                 const proceed = window.confirm(

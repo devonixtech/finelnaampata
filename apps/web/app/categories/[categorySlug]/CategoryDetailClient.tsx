@@ -61,6 +61,15 @@ export default function CategoryDetailClient({ slug }: CategoryDetailClientProps
                 if (pathParts[0] === 'categories' && pathParts[1] && pathParts[1] !== 'template' && pathParts[1] !== 'all') {
                     actualSlug = pathParts[1];
                     console.log('[CategoryDetail] Fallback detected, using actual slug from URL:', actualSlug);
+                } else {
+                    try {
+                        const storedSlug = sessionStorage.getItem('spa_slug');
+                        if (storedSlug) {
+                            actualSlug = storedSlug;
+                            sessionStorage.removeItem('spa_slug');
+                            console.log('[CategoryDetail] Restored slug from sessionStorage:', actualSlug);
+                        }
+                    } catch (e) {}
                 }
             }
 

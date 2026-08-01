@@ -17,6 +17,8 @@ import { CreateJobLeadDto } from './dto/create-job-lead.dto';
 import { CreateJobResponseDto } from './dto/create-job-response.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { NotificationsService, NotificationType } from '../notifications/notifications.service';
+
 
 @Injectable()
 export class JobLeadsService {
@@ -36,15 +38,16 @@ export class JobLeadsService {
         private settingsRepository: Repository<SystemSetting>,
         private notificationsGateway: NotificationsGateway,
         private subscriptionsService: SubscriptionsService,
+        private notificationsService: NotificationsService,
     ) { }
 
     async createLead(userId: string, dto: CreateJobLeadDto): Promise<JobLead> {
         const category = await this.categoryRepository.findOne({ where: { id: dto.categoryId } });
         if (!category) throw new NotFoundException('Category not found');
 
-        // Check auto_approve_broadcasts setting
+        // Check auto_approve_broadcasts setting (defaults to TRUE so leads always broadcast)
         const autoApproveSetting = await this.settingsRepository.findOne({ where: { key: 'auto_approve_broadcasts' } });
-        const autoApprove = autoApproveSetting?.value === 'true';
+        const autoApprove = autoApproveSetting ? autoApproveSetting.value === 'true' : true;
 
         const lead = this.jobLeadRepository.create({
             ...dto,
@@ -69,23 +72,43 @@ export class JobLeadsService {
     }
 
     private async broadcastLead(lead: JobLead) {
+        // Resolve the lead's category plus its subcategories (children) so we match
+        // businesses filed under the parent category OR any of its subcategories.
+        const leadCategory = await this.categoryRepository.findOne({ where: { id: lead.categoryId } });
+        const childCategories = leadCategory
+            ? await this.categoryRepository.find({ where: { parentId: leadCategory.id } })
+            : [];
+        const categoryIds = [
+            lead.categoryId,
+            ...childCategories.map(c => c.id),
+        ];
+        this.logger.log(`Broadcasting lead ${lead.id} for categories: ${categoryIds.join(', ')}`);
+
         const query = this.listingRepository
             .createQueryBuilder('listing')
             .innerJoinAndSelect('listing.vendor', 'vendor')
-            .where('listing.categoryId = :categoryId', { categoryId: lead.categoryId })
-            .andWhere('listing.status = :status', { status: BusinessStatus.APPROVED });
+            .leftJoinAndSelect('listing.subcategories', 'listingSub')
+            .where('listing.status = :status', { status: BusinessStatus.APPROVED })
+            .andWhere(
+                '(listing.categoryId IN (:...categoryIds) OR listingSub.id IN (:...categoryIds))',
+                { categoryIds }
+            );
 
         if (lead.latitude != null && lead.longitude != null) {
             this.logger.log(`Broadcasting lead ${lead.id} using geo-proximity: ${lead.latitude}, ${lead.longitude}`);
             const listings = await query.getMany();
-            
+
             const radius = 20;
             const matchedListings = listings.filter(l => {
+                // Match by city name first (covers businesses without coordinates)
+                if (lead.city && l.city && l.city.toLowerCase().includes(lead.city.toLowerCase())) {
+                    return true;
+                }
                 if (l.latitude == null || l.longitude == null) return false;
                 const dist = this.calculateDistance(
-                    Number(lead.latitude), 
-                    Number(lead.longitude), 
-                    Number(l.latitude), 
+                    Number(lead.latitude),
+                    Number(lead.longitude),
+                    Number(l.latitude),
                     Number(l.longitude)
                 );
                 return dist <= radius;
@@ -110,18 +133,16 @@ export class JobLeadsService {
         
         let notifiedCount = 0;
         for (const vendorUserId of vendorUserIds) {
-            // Check if vendor has the paid feature to receive/respond to broadcasts
-            const canView = await this.subscriptionsService.canPerformAction(vendorUserId, 'canRespondBroadcast');
-            if (canView) {
-                this.notificationsGateway.sendToUser(vendorUserId, 'new_job_lead', {
-                    leadId: lead.id,
-                    title: lead.title,
-                    category: lead.categoryId,
-                    city: lead.city,
-                    createdAt: lead.createdAt,
-                });
-                notifiedCount++;
-            }
+            // All vendors matching category+city receive the notification. Viewing the
+            // broadcast feed is free; responding requires a paid plan (checked at submit).
+            this.notificationsGateway.sendToUser(vendorUserId, 'new_job_lead', {
+                leadId: lead.id,
+                title: lead.title,
+                category: lead.categoryId,
+                city: lead.city,
+                createdAt: lead.createdAt,
+            });
+            notifiedCount++;
         }
 
         if (notifiedCount > 0) {
@@ -152,7 +173,7 @@ export class JobLeadsService {
         try {
             const vendor = await this.vendorRepository.findOne({ 
                 where: { userId }, 
-                relations: ['businesses'] 
+                relations: ['businesses', 'businesses.subcategories'] 
             });
             
             if (!vendor) {
@@ -160,28 +181,29 @@ export class JobLeadsService {
                 throw new ForbiddenException('Not a vendor');
             }
 
-            const canView = await this.subscriptionsService.canPerformAction(userId, 'canRespondBroadcast');
-            if (!canView) {
-                this.logger.log(`Vendor ${vendor.id} does not have broadcast feature access`);
-                return [];
-            }
-
             if (!vendor.businesses || vendor.businesses.length === 0) {
                 this.logger.log(`Vendor ${vendor.id} has no businesses`);
                 return [];
             }
 
-            const categoryIds = vendor.businesses
-                .map(b => b.categoryId)
-                .filter(id => !!id);
-            
+            // Build the full category tree for the vendor: business.categoryId plus
+            // every subcategory assigned to each business.
+            const categoryIds = new Set<string>();
+            for (const b of vendor.businesses) {
+                if (b.categoryId) categoryIds.add(b.categoryId);
+                (b.subcategories || []).forEach((sc: any) => {
+                    if (sc?.id) categoryIds.add(sc.id);
+                });
+            }
+            const categoryIdList = [...categoryIds].filter(id => !!id);
+
             const cities = vendor.businesses
                 .map(b => b.city)
                 .filter(c => !!c);
 
-            this.logger.log(`Vendor ${vendor.id} has categories: ${categoryIds.join(', ')} and cities: ${cities.join(', ')}`);
+            this.logger.log(`Vendor ${vendor.id} has categories: ${categoryIdList.join(', ')} and cities: ${cities.join(', ')}`);
 
-            if (categoryIds.length === 0) {
+            if (categoryIdList.length === 0) {
                 this.logger.warn(`Vendor ${vendor.id} has businesses but no categories assigned`);
                 return [];
             }
@@ -191,15 +213,19 @@ export class JobLeadsService {
                 .leftJoinAndSelect('lead.category', 'category')
                 .leftJoinAndSelect('lead.user', 'user')
                 .leftJoinAndSelect('lead.responses', 'responses', 'responses.vendorId = :vendorId', { vendorId: vendor.id })
-                .where('lead.categoryId IN (:...categoryIds)', { categoryIds })
+                .where('lead.categoryId IN (:...categoryIds)', { categoryIds: categoryIdList })
                 .andWhere('lead.userId != :userId', { userId })
                 .andWhere('lead.status IN (:...statuses)', { 
                     statuses: [JobLeadStatus.OPEN, JobLeadStatus.BROADCASTED, JobLeadStatus.RESPONDED] 
                 });
 
             if (cities.length > 0) {
-                const lowerCities = cities.map(c => c.toLowerCase());
-                query.andWhere('(lead.city IS NULL OR LOWER(lead.city) IN (:...lowerCities))', { lowerCities });
+                // Flexible city matching: lead city matches ANY of the vendor's cities
+                // by partial match (ILIKE) or is unspecified.
+                const cityClauses = cities.map((_, i) => `LOWER(lead.city) LIKE LOWER(:city${i})`);
+                const cityParams: Record<string, string> = {};
+                cities.forEach((c, i) => { cityParams[`city${i}`] = `%${c.toLowerCase()}%`; });
+                query.andWhere(`(lead.city IS NULL OR ${cityClauses.join(' OR ')})`, cityParams);
             }
 
             const leads = await query.orderBy('lead.createdAt', 'DESC').getMany();
@@ -317,30 +343,36 @@ export class JobLeadsService {
     async getVendorInboxStats(userId: string): Promise<{ newCount: number }> {
         const vendor = await this.vendorRepository.findOne({ 
             where: { userId }, 
-            relations: ['businesses'] 
+            relations: ['businesses', 'businesses.subcategories'] 
         });
         
         if (!vendor || !vendor.businesses?.length) return { newCount: 0 };
 
-        const canView = await this.subscriptionsService.canPerformAction(userId, 'canRespondBroadcast');
-        if (!canView) return { newCount: 0 };
-
-        const categoryIds = vendor.businesses.map(b => b.categoryId).filter(id => !!id);
+        const categoryIds = new Set<string>();
+        for (const b of vendor.businesses) {
+            if (b.categoryId) categoryIds.add(b.categoryId);
+            (b.subcategories || []).forEach((sc: any) => {
+                if (sc?.id) categoryIds.add(sc.id);
+            });
+        }
+        const categoryIdList = [...categoryIds].filter(id => !!id);
         const cities = vendor.businesses.map(b => b.city).filter(c => !!c);
 
-        if (categoryIds.length === 0) return { newCount: 0 };
+        if (categoryIdList.length === 0) return { newCount: 0 };
 
         const query = this.jobLeadRepository
             .createQueryBuilder('lead')
-            .where('lead.categoryId IN (:...categoryIds)', { categoryIds })
+            .where('lead.categoryId IN (:...categoryIds)', { categoryIds: categoryIdList })
             .andWhere('lead.userId != :userId', { userId })
             .andWhere('lead.status IN (:...statuses)', { 
                 statuses: [JobLeadStatus.OPEN, JobLeadStatus.BROADCASTED, JobLeadStatus.RESPONDED] 
             });
 
         if (cities.length > 0) {
-            const lowerCities = cities.map(c => c.toLowerCase());
-            query.andWhere('(lead.city IS NULL OR LOWER(lead.city) IN (:...lowerCities))', { lowerCities });
+            const cityClauses = cities.map((_, i) => `LOWER(lead.city) LIKE LOWER(:city${i})`);
+            const cityParams: Record<string, string> = {};
+            cities.forEach((c, i) => { cityParams[`city${i}`] = `%${c.toLowerCase()}%`; });
+            query.andWhere(`(lead.city IS NULL OR ${cityClauses.join(' OR ')})`, cityParams);
         }
 
         // Optimized check: "New" means NOT responded yet

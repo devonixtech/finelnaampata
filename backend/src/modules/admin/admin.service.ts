@@ -10,6 +10,8 @@ import { SystemSetting } from '../../entities/system-setting.entity';
 import { ModerateReviewDto } from './dto/moderate.dto';
 import { BusinessHours } from '../../entities/business-hours.entity';
 import { BusinessAmenity } from '../../entities/business-amenity.entity';
+import { NotificationsService, NotificationType } from '../notifications/notifications.service';
+
 import { Lead } from '../../entities/lead.entity';
 import { SavedListing } from '../../entities/favorite.entity';
 import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
@@ -358,7 +360,7 @@ export class AdminService {
     }
 
     async setBusinessSuspension(id: string, suspended: boolean) {
-        const business = await this.businessRepository.findOne({ where: { id } });
+        const business = await this.businessRepository.findOne({ where: { id }, relations: ['vendor'] });
         if (!business) throw new NotFoundException('Business not found');
 
         business.status = suspended ? BusinessStatus.SUSPENDED : BusinessStatus.APPROVED;

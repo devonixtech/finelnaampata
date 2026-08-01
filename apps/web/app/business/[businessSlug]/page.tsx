@@ -6,7 +6,17 @@ import { api } from '../../../lib/api';
 // Render all business pages dynamically on-demand (SSR) to avoid slow builds
 
 export async function generateStaticParams() {
-    return [{ businessSlug: 'template' }];
+  try {
+    const result = await api.listings.search({ limit: 500 });
+    if (result?.data && result.data.length > 0) {
+      return result.data
+        .filter((b: any) => b.slug)
+        .map((b: any) => ({ businessSlug: b.slug }));
+    }
+  } catch (error) {
+    console.error('[generateStaticParams] Failed to fetch businesses:', error);
+  }
+  return [{ businessSlug: 'template' }];
 }
 
 

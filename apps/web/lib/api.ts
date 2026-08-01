@@ -778,7 +778,7 @@ export const api = {
         getMyInvoices: (options?: FetcherOptions) => fetcher<any[]>('/subscriptions/my-invoices', options),
         getInvoice: (id: string, options?: FetcherOptions) => fetcher<any>(`/subscriptions/invoice/${id}`, options),
         mockCheckout: (planId: string) => fetcher<any>(`/subscriptions/mock-success/${planId}`, { method: 'POST' }),
-        createCheckout: (planId: string) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId }),
+        createCheckout: (planId: string, referralCode?: string) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId, referralCode }),
         verify: (sessionId: string) => api.post<{ success: boolean; alreadyProcessed: boolean }>('/subscriptions/verify', { sessionId }),
         changePlan: (planId: string) => api.post<any>('/subscriptions/change', { planId }),
 
@@ -987,21 +987,7 @@ export const api = {
             api.post<{ sessionId?: string; checkoutUrl?: string; success?: boolean; bookingId?: string }>('/promotions/book', data),
         verifySession: (sessionId: string) => fetcher<any>(`/promotions/verify-session?session_id=${sessionId}`),
     },
-    businessSetup: {
-        getQuestions: (options?: FetcherOptions) => fetcher<any[]>('/business-setup/questions', { silent: true, ...options }),
-        getStatus: (options?: FetcherOptions) => fetcher<{ isCompleted: boolean; answers: Record<string, string[]> }>('/business-setup/status', { silent: true, ...options }),
-        saveAnswers: (answers: Record<string, string | string[]>) =>
-            api.post<{ success: boolean }>('/business-setup/answers', { answers }),
-        checkDuplicate: (data: {
-            businessName: string;
-            phone: string;
-            address: string;
-            city: string;
-            state?: string;
-            latitude?: string;
-            longitude?: string;
-        }) => api.post<{ showPrompt: boolean; signals: string[]; matchCount: number }>('/business-setup/duplicate-check', data),
-    },
+    
     location: {
         placesAutocomplete: (params: { input: string; sessionToken: string; countryCode?: string }) => {
             const q = new URLSearchParams({

@@ -171,7 +171,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const markChatAsRead = async (conversationId: string) => {
         try {
-            await api.post(`/chat/conversations/${conversationId}/read`, {});
+            await api.post(`/chat/conversations/${conversationId}/mark-as-read`, {});
             // Refresh counts to be sure we have the latest from server
             await fetchCounts();
         } catch (err) {

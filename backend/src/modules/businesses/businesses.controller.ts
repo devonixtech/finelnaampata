@@ -52,7 +52,7 @@ export class BusinessesController {
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @UseGuards(FeatureGateGuard)
     @ApiBearerAuth()
-    @ApiOperation({ summary: 'Create a new listing (Business account only)' })
+    @ApiOperation({ summary: 'Create a new listing (Auto-upgrades User to Business)' })
     @ApiResponse({ status: 201, description: 'Listing created successfully' })
     @ApiResponse({ status: 403, description: 'Only business accounts can create listings' })
     async create(

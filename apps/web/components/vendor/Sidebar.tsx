@@ -64,13 +64,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 .catch(() => { });
         };
 
-        if (user?.role === 'vendor') {
-            api.businessSetup.getStatus({ silent: true })
-                .then((res: any) => setIsSetupComplete(res?.isCompleted || false))
-                .catch(() => setIsSetupComplete(false));
-        } else {
-            setIsSetupComplete(true);
-        }
+        // All users are considered setup complete (business-setup flow removed)
+        setIsSetupComplete(true);
 
         refreshStats();
         const interval = setInterval(refreshStats, 30000);
@@ -82,7 +77,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             title: "OVERVIEW",
             items: [
                 { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', badge: null, description: 'Overview of your activity' },
-                { name: 'List Your Business', icon: Plus, href: '/business-setup', badge: null, description: 'Start the guided business onboarding' },
+                { name: 'List Your Business', icon: Plus, href: '/add-listing', badge: null, description: 'Start the guided business onboarding' },
             ]
         },
         {

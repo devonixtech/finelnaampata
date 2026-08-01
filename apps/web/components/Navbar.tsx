@@ -373,7 +373,7 @@ export default function Navbar() {
                         {user ? (
                             <div className="flex items-center gap-3">
                                 {user.role === 'user' && (
-                                    <Link href="/business-setup" className="hidden sm:inline-block px-4 py-2 rounded-xl bg-[#FF7A30] text-white font-bold text-xs hover:bg-[#E86920] transition-all whitespace-nowrap">
+                                    <Link href="/add-listing" className="hidden sm:inline-block px-4 py-2 rounded-xl bg-[#FF7A30] text-white font-bold text-xs hover:bg-[#E86920] transition-all whitespace-nowrap">
                                         List Business
                                     </Link>
                                 )}
@@ -632,7 +632,7 @@ export default function Navbar() {
                             )}
 
                             {user && user.role === 'user' && (
-                                <Link href="/business-setup" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-4 text-center rounded-2xl font-bold bg-[#FF7A30] text-white mb-3">
+                                <Link href="/add-listing" onClick={() => setIsMobileMenuOpen(false)} className="block w-full py-4 text-center rounded-2xl font-bold bg-[#FF7A30] text-white mb-3">
                                     List Business
                                 </Link>
                             )}

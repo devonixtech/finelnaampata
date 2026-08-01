@@ -89,6 +89,9 @@ export class BusinessesService implements OnModuleInit {
         if (isPaid) {
             if (normalizedMaxSubCategories === 0) normalizedMaxSubCategories = 3; // Ensure at least 3 subcategories
             if (normalizedMaxListings <= 1) normalizedMaxListings = 999; // Ensure unlimited listings for paid
+            if (Number(raw.maxFaqs ?? 0) === 0) raw.maxFaqs = 10; // Ensure FAQs for paid
+            if (Number(raw.maxKeywords ?? 0) === 0) raw.maxKeywords = 20; // Ensure keywords for paid
+            if (Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0) === 0) raw.maxNamedPhoneNumbers = 5; // Ensure phones for paid
         }
 
         return {
@@ -932,6 +935,7 @@ export class BusinessesService implements OnModuleInit {
         const queryBuilder = this.listingRepository
             .createQueryBuilder('listing')
             .leftJoinAndSelect('listing.category', 'category')
+            .leftJoinAndSelect('listing.subcategories', 'subcategories')
             .leftJoinAndSelect('listing.vendor', 'vendor')
             .leftJoinAndSelect('vendor.user', 'user')
             .leftJoinAndSelect('listing.businessHours', 'businessHours')
@@ -1272,6 +1276,7 @@ export class BusinessesService implements OnModuleInit {
             where: { id },
             relations: [
                 'category',
+                'subcategories',
                 'vendor',
                 'vendor.user',
                 'businessHours',
@@ -1329,6 +1334,7 @@ export class BusinessesService implements OnModuleInit {
                 where: { slug },
                 relations: [
                     'category',
+                    'subcategories',
                     'vendor',
                     'vendor.user',
                     'businessHours',
@@ -1588,6 +1594,7 @@ export class BusinessesService implements OnModuleInit {
             where: { vendorId: vendor.id },
             relations: [
                 'category',
+                'subcategories',
                 'businessHours',
                 'businessAmenities',
                 'businessAmenities.amenity'

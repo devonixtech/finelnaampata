@@ -1,9 +1,22 @@
 import React from 'react';
 import BusinessProfileClient from './BusinessProfileClient';
+import { api } from '../../../lib/api';
 
 export const dynamicParams = false;
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+    try {
+        const result = await api.listings.search({ limit: 500 });
+        if (result?.data && result.data.length > 0) {
+            const slugs = result.data
+                .filter((b: any) => b.vendor?.slug)
+                .map((b: any) => ({ businessSlug: b.vendor.slug }));
+            const unique = [...new Map(slugs.map((s: any) => [s.businessSlug, s])).values()];
+            return unique.length > 0 ? unique : [{ businessSlug: 'template' }];
+        }
+    } catch (error) {
+        console.error('[generateStaticParams] Failed to fetch vendor slugs:', error);
+    }
     return [{ businessSlug: 'template' }];
 }
 

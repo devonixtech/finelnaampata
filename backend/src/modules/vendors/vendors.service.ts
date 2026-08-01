@@ -274,21 +274,21 @@ export class VendorsService {
             .createQueryBuilder('listing')
             .select('SUM(listing.totalLeads)', 'total')
             .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
-            .andWhere('listing.status = :status', { status: 'approved' })
+            /* Removed status filter so pending listings also show stats */
             .getRawOne();
 
         const totalViewsRaw = await this.listingRepository
             .createQueryBuilder('listing')
             .select('SUM(listing.totalViews)', 'total')
             .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
-            .andWhere('listing.status = :status', { status: 'approved' })
+            /* Removed status filter so pending listings also show stats */
             .getRawOne();
 
         const totalReviewsRaw = await this.listingRepository
             .createQueryBuilder('listing')
             .select('SUM(listing.totalReviews)', 'total')
             .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
-            .andWhere('listing.status = :status', { status: 'approved' })
+            /* Removed status filter so pending listings also show stats */
             .getRawOne();
 
         const pendingCount = await this.listingRepository.count({
@@ -538,7 +538,7 @@ export class VendorsService {
             .addSelect('AVG(CAST(listing.averageRating AS FLOAT))', 'avgRating')
             .addSelect('SUM(listing.totalViews)', 'totalViews')
             .where('LOWER(listing.city) = LOWER(:city)', { city })
-            .andWhere('listing.status = :status', { status: 'approved' })
+            /* Removed status filter so pending listings also show stats */
             .groupBy('listing.vendorId')
             .getRawMany();
 
@@ -557,7 +557,7 @@ export class VendorsService {
             .createQueryBuilder('listing')
             .leftJoinAndSelect('listing.category', 'category')
             .where('listing.vendorId IN (:...ids)', { ids: vendorIds })
-            .andWhere('listing.status = :status', { status: 'approved' })
+            /* Removed status filter so pending listings also show stats */
             .orderBy('listing.averageRating', 'DESC')
             .getMany();
 

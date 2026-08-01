@@ -221,7 +221,7 @@ export default function BusinessDetailClient({
   }, [business]);
   const additionalPhoneNumbers = useMemo(
     () =>
-      (business?.namedPhoneNumbers || []).filter(
+      (Array.isArray(business?.namedPhoneNumbers) ? business.namedPhoneNumbers : []).filter(
         (item) => item?.label && item?.number
       ),
     [business?.namedPhoneNumbers]
@@ -788,8 +788,8 @@ export default function BusinessDetailClient({
   const imagePaths = new Set(
     [
       business.coverImageUrl, 
-      ...(business.images || []),
-      ...(business.vendor?.shopPhotos || [])
+      ...(Array.isArray(business.images) ? business.images : []),
+      ...(Array.isArray(business.vendor?.shopPhotos) ? business.vendor.shopPhotos : [])
     ].filter(Boolean)
   );
 
@@ -1021,8 +1021,7 @@ export default function BusinessDetailClient({
             {/* Tabs / Content */}
             {(() => {
               const validFaqs =
-                business.faqs?.filter((faq) => faq.question && faq.answer) ||
-                [];
+                (Array.isArray(business.faqs) ? business.faqs : []).filter((faq) => faq.question && faq.answer);
               return (
                 <>
                   <div className="border-b border-slate-100 flex items-center gap-10 md:gap-16 mb-12 overflow-x-auto scrollbar-hide">
@@ -1968,7 +1967,7 @@ export default function BusinessDetailClient({
                   {/* Dynamic Social Links */}
                   {(() => {
                     const validLinks = (
-                      business.vendor?.socialLinks || []
+                      Array.isArray(business.vendor?.socialLinks) ? business.vendor.socialLinks : []
                     ).filter(
                       (link) =>
                         link &&

@@ -448,6 +448,12 @@ export default function HomePage() {
                     cities={countryCities}
                     value={selectedCity}
                     onChange={setSelectedCity}
+                    selectedCountry={selectedCountry}
+                    onCountryDetected={(country) => {
+                      const canonical = country.trim().toLowerCase();
+                      const match = COUNTRIES_STATES.find(c => c.name.toLowerCase() === canonical || c.code?.toLowerCase() === canonical);
+                      if (match) setSelectedCountry(match.name);
+                    }}
                     minimal
                   />
                 </div>

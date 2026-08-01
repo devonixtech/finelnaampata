@@ -8,6 +8,16 @@ import { api } from '../../../lib/api';
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
+    try {
+        const result = await api.offers.search({ limit: 500 });
+        if (result?.data && result.data.length > 0) {
+            return result.data
+                .filter((o: any) => o.id)
+                .map((o: any) => ({ offerId: o.id }));
+        }
+    } catch (error) {
+        console.error('[generateStaticParams] Failed to fetch offers:', error);
+    }
     return [{ offerId: 'template' }];
 }
 

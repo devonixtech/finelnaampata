@@ -25,6 +25,8 @@ import {
 import { ReviewDetectionService } from './review-detection.service';
 import { TrustService } from '../users/trust.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { NotificationsService, NotificationType } from '../notifications/notifications.service';
+
 
 @Injectable()
 export class ReviewsService {
@@ -42,6 +44,7 @@ export class ReviewsService {
         private reviewDetectionService: ReviewDetectionService,
         private trustService: TrustService,
         private subscriptionsService: SubscriptionsService,
+        private notificationsService: NotificationsService,
     ) { }
 
     /**
@@ -63,7 +66,22 @@ export class ReviewsService {
             isApproved: true, // Default to approved unless there's moderation
         });
 
-        return this.reviewReplyRepository.save(reply);
+        
+        const savedReply = await this.reviewReplyRepository.save(reply);
+        
+        // Notify the user who wrote the review
+        if (review.userId) {
+            await this.notificationsService.create({
+                userId: review.userId,
+                title: 'Business Replied to Your Review',
+                message: `The business has replied to your review.`,
+                type: NotificationType.REVIEW_REPLIED,
+                link: `/reviews`,
+            }).catch(e => console.error('Failed to send notification', e));
+        }
+        
+        return savedReply;
+    
     }
 
     /**
@@ -125,7 +143,20 @@ export class ReviewsService {
         review.suspicionScore = analysis.score;
         review.suspicionReason = analysis.reason;
 
+        
         const savedReview = await this.reviewRepository.save(review);
+
+        // Notify the vendor
+        if (listing.vendor && listing.vendor.userId) {
+            await this.notificationsService.create({
+                userId: listing.vendor.userId,
+                title: 'New Review Received! ⭐',
+                message: `You received a ${review.rating}-star review on "${listing.title}".`,
+                type: NotificationType.REVIEW_RECEIVED,
+                link: `/reviews`,
+            }).catch(e => console.error('Failed to send notification', e));
+        }
+    
 
         // Update business rating
         await this.updateBusinessRating(businessId);

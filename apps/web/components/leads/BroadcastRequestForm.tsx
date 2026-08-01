@@ -298,6 +298,7 @@ export default function BroadcastRequestForm({ onSuccess }: BroadcastRequestForm
                                     <CitySearchSelect
                                         cities={formData.country ? cities.filter(c => c.country === formData.country) : cities}
                                         value={formData.city}
+                                        selectedCountry={formData.country}
                                         onChange={(cityName) => {
                                             setFormData({ ...formData, city: cityName });
                                             setError(null);

@@ -267,9 +267,25 @@ export function inferLocationFromCoords(
     };
 }
 
-export async function detectNearestCityName(cities: City[], showAlertIfDenied = false): Promise<string | null> {
+export async function detectNearestCityName(
+    cities: City[],
+    showAlertIfDenied = false,
+    preferredCountry?: string | null,
+): Promise<{ cityName: string; country: string } | null> {
     let coords: GeoCoords | null = null;
-    let detectedCountry: string | null = null;
+    let detectedCountry: string | null = preferredCountry || null;
+
+    const isPreferred = !!preferredCountry;
+    const getCountryFiltered = () => {
+        if (!detectedCountry) return cities;
+        const filtered = cities.filter(c => cityMatchesCountry(c, detectedCountry));
+        return filtered;
+    };
+    const matchCityStrict = (name: string) => matchCityInList(getCountryFiltered(), name);
+    const resolveCountry = (matched: City | undefined) => {
+        if (isPreferred) return preferredCountry as string;
+        return matched?.country || detectedCountry || '';
+    };
 
     try {
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -293,13 +309,14 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
             const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client`);
             if (res.ok) {
                 const data = await res.json();
+                if (!isPreferred && data.countryName) {
+                    detectedCountry = data.countryName;
+                }
                 const cityName = data.city || data.locality || data.principalSubdivision;
                 if (cityName) {
-                    const matched = matchCityInList(cities, cityName);
-                    if (matched) return matched.name;
-                }
-                if (data.countryName) {
-                    detectedCountry = data.countryName;
+                    const searchList = getCountryFiltered();
+                    const matched = matchCityInList(searchList, cityName);
+                    if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
                 }
                 if (data.latitude && data.longitude) {
                     coords = { latitude: data.latitude, longitude: data.longitude };
@@ -315,6 +332,11 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
     const lat = coords.latitude;
     const lng = coords.longitude;
 
+    const matchCity = (name: string) => {
+        const searchList = getCountryFiltered();
+        return matchCityInList(searchList, name);
+    };
+
     // 1. Try Google Maps Geocoding API if key is available
     const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (googleApiKey) {
@@ -326,11 +348,13 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
                     for (const result of data.results) {
                         for (const comp of result.address_components || []) {
                             if (comp.types.includes('country')) {
-                                detectedCountry = comp.long_name;
+                                if (!isPreferred) {
+                                    detectedCountry = comp.long_name;
+                                }
                             }
                             if (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2') || comp.types.includes('sublocality_level_1')) {
-                                const matched = matchCityInList(cities, comp.long_name);
-                                if (matched) return matched.name;
+                                const matched = matchCity(comp.long_name);
+                                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
                             }
                         }
                     }
@@ -349,11 +373,11 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
         if (res.ok) {
             const data = await res.json();
             const addr = data.address || {};
-            if (addr.country) detectedCountry = addr.country;
+            if (!isPreferred && addr.country) detectedCountry = addr.country;
             const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state_district || addr.state;
             if (cityName) {
-                const matched = matchCityInList(cities, cityName);
-                if (matched) return matched.name;
+                const matched = matchCity(cityName);
+                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
             }
         }
     } catch (e) {
@@ -365,11 +389,11 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
         const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
         if (res.ok) {
             const data = await res.json();
-            if (data.countryName) detectedCountry = data.countryName;
+            if (!isPreferred && data.countryName) detectedCountry = data.countryName;
             const cityName = data.city || data.locality || data.principalSubdivision;
             if (cityName) {
-                const matched = matchCityInList(cities, cityName);
-                if (matched) return matched.name;
+                const matched = matchCity(cityName);
+                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
             }
         }
     } catch (e) {
@@ -378,7 +402,7 @@ export async function detectNearestCityName(cities: City[], showAlertIfDenied = 
 
     // 4. Fallback: calculate spherical Haversine distance for cities that DO have coordinates
     const nearest = findNearestCity(cities, lat, lng, detectedCountry || undefined);
-    return nearest?.name || null;
+    return nearest ? { cityName: nearest.name, country: resolveCountry(nearest) } : null;
 }
 
 export function visibilityDayCount(start?: string, end?: string): number {

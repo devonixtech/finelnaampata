@@ -491,6 +491,7 @@ export class SubscriptionsService implements OnModuleInit {
             locale: 'en',
             line_items: [{ price: plan.stripePriceId, quantity: 1 }],
             mode: 'subscription',
+            metadata: checkoutDto.referralCode ? { referralCode: checkoutDto.referralCode } : undefined,
             success_url: `${baseUrl}/subscription/success/?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${baseUrl}/subscription/?canceled=true`,
         });
@@ -602,7 +603,14 @@ export class SubscriptionsService implements OnModuleInit {
 
                         const plan = await this.planRepository.findOne({ where: { stripePriceId: priceId } });
                         if (plan) {
-                            const sub = await this.processSubscriptionSuccess(vendorId, plan.id, session.id, 'Stripe');
+                            const sub = await this.processSubscriptionSuccess(
+                                vendorId,
+                                plan.id,
+                                session.id,
+                                'Stripe',
+                                undefined,
+                                session.metadata?.referralCode,
+                            );
                             // Find the newly created transaction
                             const transaction = await this.transactionRepository.findOne({
                                 where: { gatewayTransactionId: session.id }
@@ -657,7 +665,8 @@ export class SubscriptionsService implements OnModuleInit {
         planId: string,
         gatewayTransactionId: string,
         gateway: 'Stripe' | 'Mock' | 'Admin',
-        amount?: number
+        amount?: number,
+        referralCode?: string
     ): Promise<Subscription> {
         // Idempotency check: Don't process the same transaction twice
         const existingTrans = await this.transactionRepository.findOne({
@@ -776,6 +785,16 @@ export class SubscriptionsService implements OnModuleInit {
             await this.affiliateService.processSuccessfulReferral(vendor.userId, amount ?? plan.price);
         } catch (err) {
             this.logger.error(`Failed to process referral for user ${vendor.userId}: ${err.message}`);
+        }
+
+        // 5b. Apply buyer's referral code (if provided) — gives +10 days to both parties
+        if (referralCode && referralCode.trim()) {
+            try {
+                await this.affiliateService.applyReferralCode(vendor.userId, referralCode.trim());
+                this.logger.log(`🎁 Referral code "${referralCode}" applied for user ${vendor.userId} after successful payment`);
+            } catch (err: any) {
+                this.logger.warn(`Referral code "${referralCode}" could not be applied: ${err.message}`);
+            }
         }
 
 
@@ -1592,7 +1611,14 @@ export class SubscriptionsService implements OnModuleInit {
 
                         const plan = await this.planRepository.findOne({ where: { stripePriceId: priceId } });
                         if (plan) {
-                            await this.processSubscriptionSuccess(vendorId, plan.id, session.id, 'Stripe');
+                            await this.processSubscriptionSuccess(
+                                vendorId,
+                                plan.id,
+                                session.id,
+                                'Stripe',
+                                undefined,
+                                session.metadata?.referralCode,
+                            );
                         }
                     }
                 }

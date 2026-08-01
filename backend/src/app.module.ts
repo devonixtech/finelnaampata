@@ -33,7 +33,6 @@ import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { JobLeadsModule } from './modules/job-leads/job-leads.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
-import { BusinessSetupModule } from './modules/business-setup/business-setup.module';
 import { QaModule } from './modules/qa/qa.module';
 import { SearchAnalyticsModule } from './modules/search-analytics/search-analytics.module';
 import { AddressConfigModule } from './modules/address/address-config.module';
@@ -146,7 +145,6 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
         JobLeadsModule,
         ChatModule,
         PromotionsModule,
-        BusinessSetupModule,
         QaModule,
         SearchAnalyticsModule,
         AddressConfigModule,

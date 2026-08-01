@@ -73,10 +73,19 @@ export default function ContactPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus("sending");
-        // Simulate API call
-        await new Promise((r) => setTimeout(r, 1500));
-        setStatus("success");
-        setForm({ name: "", email: "", subject: "", message: "" });
+        try {
+            const res = await fetch(process.env.NEXT_PUBLIC_API_URL + '/auth/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(form)
+            });
+            if (!res.ok) throw new Error('Failed to send message');
+            setStatus("success");
+            setForm({ name: "", email: "", subject: "", message: "" });
+        } catch (err) {
+            setStatus("idle");
+            alert("Failed to send message. Please try again later.");
+        }
     };
 
     return (
