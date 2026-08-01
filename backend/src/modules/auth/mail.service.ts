@@ -219,6 +219,51 @@ export class MailService {
         }
     }
 
+    async sendContactEmail(name: string, email: string, subject: string, message: string): Promise<boolean> {
+        const fromAddress = this.configService.get<string>('MAIL_FROM_ADDRESS', 'no-reply@naampata.com');
+        const fromName = this.configService.get<string>('MAIL_FROM_NAME', 'naampata');
+        const adminEmail = this.configService.get<string>('ADMIN_EMAIL', 'admin@naampata.com');
+        
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 24px; color: #333; line-height: 1.6;">
+            <div style="max-w-md margin: 0 auto; border: 1px solid #eee; border-radius: 12px; overflow: hidden;">
+                <div style="background-color: #112D4E; padding: 24px; text-align: center;">
+                    <h2 style="color: #FF7A30; margin: 0;">New Contact Form Submission</h2>
+                </div>
+                <div style="padding: 24px;">
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                    <p><strong>Subject:</strong> ${subject}</p>
+                    <div style="margin-top: 20px; padding: 16px; background-color: #f9f9f9; border-radius: 8px; border-left: 4px solid #FF7A30;">
+                        <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+                    </div>
+                </div>
+                <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #64748b;">
+                    <p style="margin: 0;">This email was sent from the contact form on naampata.</p>
+                </div>
+            </div>
+        </body>
+        </html>`;
+
+        try {
+            await this.ensureTransportReady();
+            await this.transporter.sendMail({
+                from: `"${fromName}" <${fromAddress}>`,
+                to: adminEmail,
+                replyTo: email,
+                subject: `[Contact Us] ${subject}`,
+                html: htmlContent,
+            });
+            this.logger.log(`Contact email sent successfully from ${email}`);
+            return true;
+        } catch (error: any) {
+            this.logger.error(`Failed to send contact email: ${error.message}`, error.stack);
+            return false;
+        }
+    }
+
     async sendGeocodingFailureAlert(adminEmail: string, listingTitle: string, address: string): Promise<boolean> {
         const fromAddress = this.configService.get<string>('MAIL_FROM_ADDRESS', 'no-reply@naampata.com');
         const fromName = this.configService.get<string>('MAIL_FROM_NAME', 'naampata');

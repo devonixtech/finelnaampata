@@ -96,6 +96,20 @@ export class SocialLinkDto {
 }
 
 export class CreateBusinessDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    businessEmail?: string;
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    phoneNumber?: string;
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    phoneCode?: string;
+
+
     @ApiProperty({ example: 'Best Restaurant' })
     @IsString()
     @MinLength(2)

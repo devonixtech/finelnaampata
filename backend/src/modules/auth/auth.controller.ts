@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { MailService } from './mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -23,7 +24,10 @@ import { User } from '../../entities/user.entity';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+    constructor(
+        private readonly authService: AuthService,
+        private readonly mailService: MailService
+    ) { }
 
     @Public()
     @Post('register')
@@ -166,5 +170,21 @@ export class AuthController {
             },
             note: 'All devices with a valid JWT token can access the account simultaneously. Logout from a specific device to revoke its session.',
         };
+    }
+
+
+    @Post('contact')
+    @ApiOperation({ summary: 'Send a contact us message to admin' })
+    @ApiResponse({ status: 200, description: 'Message sent successfully' })
+    @ApiResponse({ status: 500, description: 'Failed to send message' })
+    async submitContactForm(@Body() body: { name: string; email: string; subject: string; message: string }) {
+        if (!body.name || !body.email || !body.subject || !body.message) {
+            throw new BadRequestException('All fields are required');
+        }
+        const success = await this.mailService.sendContactEmail(body.name, body.email, body.subject, body.message);
+        if (!success) {
+            throw new InternalServerErrorException('Failed to send your message. Please try again later.');
+        }
+        return { success: true, message: 'Message sent successfully' };
     }
 }

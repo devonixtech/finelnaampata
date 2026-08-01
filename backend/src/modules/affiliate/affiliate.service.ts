@@ -225,6 +225,30 @@ export class AffiliateService implements OnModuleInit {
         });
     }
 
+    async validateCodeForUser(userId: string, code: string) {
+        const normalizedCode = this.normalizeReferralCode(code);
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User not found');
+
+        const existing = await this.referralRepository.findOne({ where: { referredUserId: userId } });
+        if (existing) throw new BadRequestException('You have already been referred');
+
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { referralCode: ILike(normalizedCode) },
+            relations: ['user']
+        });
+
+        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor') {
+            throw new NotFoundException('Invalid referral code');
+        }
+
+        if (affiliate.user.id === userId) {
+            throw new BadRequestException('You cannot refer yourself');
+        }
+
+        return true;
+    }
+
     async applyReferralCode(userId: string, code: string) {
         const normalizedCode = this.normalizeReferralCode(code);
         const user = await this.userRepository.findOne({ where: { id: userId } });

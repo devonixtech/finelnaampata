@@ -1414,19 +1414,8 @@ export class BusinessesService implements OnModuleInit {
         }
 
         if (updateBusinessDto.subCategoryIds !== undefined) {
-            const [activeSub, activeNewPlan] = await Promise.all([
-                this.subscriptionRepository.findOne({
-                    where: { vendorId: listing.vendor.id, status: SubscriptionStatus.ACTIVE, endDate: MoreThan(new Date()) },
-                    relations: ['plan']
-                }),
-                this.activePlanRepository.findOne({
-                    where: { vendorId: listing.vendor.id, status: ActivePlanStatus.ACTIVE, endDate: MoreThan(new Date()) },
-                    relations: ['plan']
-                })
-            ]);
-            
-            const planFeatures = (activeNewPlan?.plan?.features as any) || activeSub?.plan?.dashboardFeatures || { maxSubCategories: 0 };
-            const maxSubCategories = planFeatures.maxSubCategories || 0;
+            const planFeatures = await this.resolvePlanFeatures(listing.vendor.id, user);
+            const maxSubCategories = Number(planFeatures.maxSubCategories || 0);
 
             if (updateBusinessDto.subCategoryIds.length > maxSubCategories && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
                 throw new BadRequestException(`Your current plan allows a maximum of ${maxSubCategories} sub-categories. Please upgrade to add more.`);

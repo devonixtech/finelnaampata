@@ -19,6 +19,11 @@ export class CreateJobLeadDto {
     @IsNotEmpty()
     categoryId: string;
 
+    @ApiPropertyOptional({ example: 'Pakistan' })
+    @IsString()
+    @IsOptional()
+    country?: string;
+
     @ApiPropertyOptional({ example: 'Karachi' })
     @IsString()
     @IsOptional()

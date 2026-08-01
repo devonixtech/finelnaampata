@@ -236,7 +236,6 @@ export class PromotionsService implements OnModuleInit {
         const info = pricing.breakup.map(b => b.label || b.placement).join(', ');
         const session = await this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
-            customer_email: vendor.businessEmail || undefined,
             client_reference_id: vendor.id,
             line_items: [{
                 price_data: {
