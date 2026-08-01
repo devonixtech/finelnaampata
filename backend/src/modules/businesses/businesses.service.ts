@@ -686,12 +686,12 @@ export class BusinessesService implements OnModuleInit {
             offerExpiresAt: sanitizedExpiresAt,
             vendorId: vendor.id,
             slug,
-            status: hasCoordinates ? BusinessStatus.APPROVED : BusinessStatus.PENDING_GEOCODE,
+            status: BusinessStatus.APPROVED,
             isVerified: false,
             isFeatured: false, // Only Superadmin can set isFeatured via admin panel
             isSponsored: hasBoostedSub,
-            approvedAt: hasCoordinates ? now : (null as any),
-            recentUntil: hasCoordinates ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) : (null as any),
+            approvedAt: now,
+            recentUntil: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
             // location: createBusinessDto.latitude && createBusinessDto.longitude ? `POINT(${createBusinessDto.longitude} ${createBusinessDto.latitude})` : null,
             subcategories: createBusinessDto.subCategoryIds?.length ? createBusinessDto.subCategoryIds.map(id => ({ id } as any)) : [],
         });
@@ -1521,9 +1521,7 @@ export class BusinessesService implements OnModuleInit {
             ...updateData
         } = updateBusinessDto;
 
-        if (listing.address && listing.status === BusinessStatus.APPROVED) {
-            this.markPendingGeocode(listing);
-        }
+        // removed markPendingGeocode
 
         await this.listingRepository.save(listing);
         log('Listing saved to database');
