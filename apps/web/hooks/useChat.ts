@@ -90,9 +90,22 @@ export function useChat(conversationId?: string) {
             socket.emit('joinUserRoom');
 
             // Also join vendor room if applicable
-            if (user.role === 'vendor' && user.vendor?.id) {
-                console.log('[useChat] Joining vendor room:', user.vendor.id);
-                socket.emit('joinVendorRoom', { vendorId: user.vendor.id });
+            if (user.role === 'vendor') {
+                const vendorId = user.vendor?.id || (user as any).vendorId;
+                if (vendorId) {
+                    console.log('[useChat] Joining vendor room:', vendorId);
+                    socket.emit('joinVendorRoom', { vendorId });
+                } else {
+                    // Fallback: discover vendorId from conversations API
+                    import('../services/chat.service').then(({ chatApi }) => {
+                        chatApi.getVendorConversations().then((convs: any) => {
+                            if (Array.isArray(convs) && convs.length > 0 && convs[0].vendorId) {
+                                console.log('[useChat] Discovered vendorId:', convs[0].vendorId);
+                                socket.emit('joinVendorRoom', { vendorId: convs[0].vendorId });
+                            }
+                        }).catch(() => {});
+                    });
+                }
             }
         };
 
@@ -299,8 +312,19 @@ export function useChatSocket() {
             // Always join user room
             socket.emit('joinUserRoom');
             
-            if (user.role === 'vendor' && user.vendor?.id) {
-                socket.emit('joinVendorRoom', { vendorId: user.vendor.id });
+            if (user.role === 'vendor') {
+                const vendorId = user.vendor?.id || (user as any).vendorId;
+                if (vendorId) {
+                    socket.emit('joinVendorRoom', { vendorId });
+                } else {
+                    import('../services/chat.service').then(({ chatApi }) => {
+                        chatApi.getVendorConversations().then((convs: any) => {
+                            if (Array.isArray(convs) && convs.length > 0 && convs[0].vendorId) {
+                                socket.emit('joinVendorRoom', { vendorId: convs[0].vendorId });
+                            }
+                        }).catch(() => {});
+                    });
+                }
             }
         };
 
