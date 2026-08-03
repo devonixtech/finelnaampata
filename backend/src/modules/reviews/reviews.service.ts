@@ -27,6 +27,15 @@ import { TrustService } from '../users/trust.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
 
+export enum ReviewSort {
+    NEWEST = 'newest',
+    OLDEST = 'oldest',
+    HIGHEST = 'highest',
+    LOWEST = 'lowest',
+    MOST_HELPFUL = 'most_helpful',
+    MOST_RELEVANT = 'most_relevant',
+}
+
 
 @Injectable()
 export class ReviewsService {
@@ -116,16 +125,17 @@ export class ReviewsService {
             throw new ForbiddenException('You cannot review your own business listing');
         }
 
-        // Check if user already reviewed this business
-        const existingReview = await this.reviewRepository.findOne({
-            where: {
-                businessId,
-                userId: user.id,
-            },
-        });
+        // Check if user already reviewed this business in the last 24 hours
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentReview = await this.reviewRepository
+            .createQueryBuilder('review')
+            .where('review.businessId = :businessId', { businessId })
+            .andWhere('review.userId = :userId', { userId: user.id })
+            .andWhere('review.createdAt >= :since', { since: twentyFourHoursAgo })
+            .getOne();
 
-        if (existingReview) {
-            throw new ConflictException('You have already reviewed this business');
+        if (recentReview) {
+            throw new ConflictException('You can only review a business once every 24 hours');
         }
 
         // Create review - always approved by default.
@@ -178,6 +188,7 @@ export class ReviewsService {
             const page = Number(getReviewsDto.page) || 1;
             const limit = Number(getReviewsDto.limit) || 20;
             const rating = getReviewsDto.rating ? Number(getReviewsDto.rating) : undefined;
+            const sortBy = (getReviewsDto.sortBy as ReviewSort) || ReviewSort.NEWEST;
             
             const skip = calculateSkip(page, limit);
 
@@ -209,8 +220,31 @@ export class ReviewsService {
                 queryBuilder.andWhere('business.vendorId = :vendorId', { vendorId });
             }
 
-            // Order by newest first
-            queryBuilder.orderBy('review.createdAt', 'DESC');
+            // Sort options
+            switch (sortBy) {
+                case ReviewSort.OLDEST:
+                    queryBuilder.orderBy('review.createdAt', 'ASC');
+                    break;
+                case ReviewSort.HIGHEST:
+                    queryBuilder.orderBy('review.rating', 'DESC').addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.LOWEST:
+                    queryBuilder.orderBy('review.rating', 'ASC').addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.MOST_HELPFUL:
+                    queryBuilder.orderBy('review.helpfulCount', 'DESC').addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.MOST_RELEVANT:
+                    // Most relevant = recent + high rating + helpful
+                    queryBuilder.orderBy('review.rating', 'DESC')
+                        .addOrderBy('review.helpfulCount', 'DESC')
+                        .addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.NEWEST:
+                default:
+                    queryBuilder.orderBy('review.createdAt', 'DESC');
+                    break;
+            }
 
             // Get total count and paginated results
             const [reviews, total] = await Promise.all([
@@ -409,6 +443,47 @@ export class ReviewsService {
         if (review) {
             await this.trustService.updateTrustScore(review.userId);
         }
+    }
+
+    /**
+     * Report a review
+     */
+    async reportReview(reviewId: string, user: User, reason: string, details?: string): Promise<{ success: boolean; message: string }> {
+        const review = await this.reviewRepository.findOne({
+            where: { id: reviewId },
+        });
+
+        if (!review) {
+            throw new NotFoundException('Review not found');
+        }
+
+        // Prevent vendors from reporting reviews on their own business
+        if (review.userId === user.id) {
+            throw new ForbiddenException('You cannot report your own review');
+        }
+
+        // Update review as suspicious
+        review.isSuspicious = true;
+        review.suspicionScore = Math.min(review.suspicionScore + 0.3, 1);
+        review.suspicionReason = review.suspicionReason
+            ? `${review.suspicionReason}, User reported: ${reason}`
+            : `User reported: ${reason}`;
+
+        await this.reviewRepository.save(review);
+
+        // Notify admin about the report
+        this.notificationsService.create({
+            userId: user.id,
+            title: 'Review Reported',
+            message: `A review has been reported for: ${reason}`,
+            type: NotificationType.REVIEW_RECEIVED,
+            link: `/admin/reviews`,
+        }).catch(e => console.error('Failed to send notification', e));
+
+        return {
+            success: true,
+            message: 'Review has been reported and will be reviewed by our team.',
+        };
     }
 
     /**

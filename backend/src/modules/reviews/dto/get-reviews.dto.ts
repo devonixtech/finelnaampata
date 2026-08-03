@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, IsUUID, Min, Max } from 'class-validator';
+import { IsOptional, IsInt, IsUUID, Min, Max, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
@@ -26,4 +26,13 @@ export class GetReviewsDto extends PaginationDto {
     @IsOptional()
     @IsUUID()
     vendorId?: string;
+
+    @ApiPropertyOptional({ 
+        description: 'Sort reviews by',
+        enum: ['newest', 'oldest', 'highest', 'lowest', 'most_helpful', 'most_relevant'],
+        default: 'newest'
+    })
+    @IsOptional()
+    @IsString()
+    sortBy?: string;
 }

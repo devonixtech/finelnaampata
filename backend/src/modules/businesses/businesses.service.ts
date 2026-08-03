@@ -94,12 +94,17 @@ export class BusinessesService implements OnModuleInit {
             if (Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0) === 0) raw.maxNamedPhoneNumbers = 5; // Ensure phones for paid
         }
 
+        const normalizedMaxImages = isPaid
+            ? Number(raw.maxImages ?? 999)
+            : 3;
+
         return {
             ...raw,
             maxListings: normalizedMaxListings,
             maxKeywords: Number(raw.maxKeywords ?? 0),
             maxFaqs: Number(raw.maxFaqs ?? 0),
             maxSubCategories: normalizedMaxSubCategories,
+            maxImages: normalizedMaxImages,
             maxNamedPhoneNumbers: Number(raw.maxNamedPhoneNumbers ?? raw.maxAdditionalPhones ?? 0),
             showCustomerNotes:
                 raw.showCustomerNotes !== undefined
@@ -197,6 +202,7 @@ export class BusinessesService implements OnModuleInit {
                 canCreateAlbums: true,
                 maxSubCategories: 999,
                 maxListings: 999,
+                maxImages: 999,
                 showChat: true,
                 showSocialLinks: true,
             };
@@ -509,6 +515,7 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS business_tagline VARCHAR(200) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS open_247 BOOLEAN DEFAULT false;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
             `);
             await this.listingRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
@@ -663,9 +670,13 @@ export class BusinessesService implements OnModuleInit {
         }
 
         this.enforcePremiumContentLimits(createBusinessDto, planFeatures);
-        
-        // Image limit check bypassed to allow free tier saving premium features
-        // -------------------------
+
+        if (createBusinessDto.images?.length && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            const maxImages = Number(planFeatures.maxImages ?? 3);
+            if (createBusinessDto.images.length > maxImages) {
+                throw new BadRequestException(`Your current plan allows a maximum of ${maxImages} image(s). Please upgrade to add more.`);
+            }
+        }
 
         const hasBoostedSub = !!referralPlan || ((activeNewPlan?.plan?.features as any)?.top_ranking);
 
@@ -1219,6 +1230,16 @@ export class BusinessesService implements OnModuleInit {
                 + ` + CASE WHEN "listing"."address" IS NOT NULL THEN 1 ELSE 0 END)`
             );
 
+            // Sponsored boost (5pts)
+            scoreParts.push(
+                `CASE WHEN "listing"."is_sponsored" = true THEN 5 ELSE 0 END`
+            );
+
+            // Admin manual ranking boost (up to 10pts)
+            scoreParts.push(
+                `LEAST(COALESCE("listing"."manual_ranking_boost", 0), 10)`
+            );
+
             const totalScore = scoreParts.length > 0
                 ? scoreParts.join(' + ')
                 : '0';
@@ -1437,9 +1458,12 @@ export class BusinessesService implements OnModuleInit {
             log(`Amenity IDs count: ${updateBusinessDto.amenityIds.length}`);
         }
 
-        // --- Image Limit Enforcement for Update ---
-        // Image limit check bypassed to allow free tier saving premium features
-        // -------------------------
+        if (updateBusinessDto.images !== undefined && ![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            const maxImages = Number(planFeatures.maxImages ?? 3);
+            if (updateBusinessDto.images.length > maxImages) {
+                throw new BadRequestException(`Your current plan allows a maximum of ${maxImages} image(s). Please upgrade to add more.`);
+            }
+        }
 
         const oldSlug = listing.slug;
 
@@ -1759,5 +1783,17 @@ export class BusinessesService implements OnModuleInit {
         listing.albums = (listing.albums || []).map((a) => (a.id === albumId ? { ...a, images } : a));
         await this.listingRepository.save(listing);
         return listing.albums.find((a) => a.id === albumId);
+    }
+
+    async setRankingBoost(id: string, boost: number): Promise<{ success: boolean; boost: number }> {
+        const listing = await this.listingRepository.findOne({ where: { id } });
+        if (!listing) throw new NotFoundException('Listing not found');
+
+        // Clamp boost between -10 and 10
+        const clampedBoost = Math.max(-10, Math.min(10, Math.round(boost)));
+        listing.manualRankingBoost = clampedBoost;
+        await this.listingRepository.save(listing);
+
+        return { success: true, boost: clampedBoost };
     }
 }

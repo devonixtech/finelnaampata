@@ -100,7 +100,7 @@ export default function DashboardHeader({ toggleSidebar, unreadNotifications: pr
                                                     {categories.map((cat) => (
                                                         <Link
                                                             key={cat.id}
-                                                            href={`/categories/${cat.slug}`}
+                                                            href={`/search?category=${cat.slug}`}
                                                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group/item"
                                                             onClick={() => setActiveDropdown(null)}
                                                         >

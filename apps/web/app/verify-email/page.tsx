@@ -23,7 +23,9 @@ export default function VerifyEmailPage() {
             if (!user) {
                 router.replace('/login');
             } else if (user.isEmailVerified || user.provider === 'google') {
-                router.replace('/dashboard');
+                const params = new URLSearchParams(window.location.search);
+                const redirect = params.get('redirect');
+                router.replace(redirect || '/dashboard');
             }
         }
     }, [user, loading, router]);
@@ -115,7 +117,12 @@ export default function VerifyEmailPage() {
 
         setIsSubmitting(true);
         try {
-            await verifyEmail(code);
+            let redirectPath = undefined;
+            if (typeof window !== 'undefined') {
+                const params = new URLSearchParams(window.location.search);
+                redirectPath = params.get('redirect') || undefined;
+            }
+            await verifyEmail(code, redirectPath);
             setSuccessMsg("Email verified successfully! Redirecting...");
         } catch (err: any) {
             setError(err.message || "Invalid or expired verification code.");

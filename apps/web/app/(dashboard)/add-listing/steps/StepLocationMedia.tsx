@@ -406,7 +406,7 @@ export const Step8Map = ({ formData, setFormData }: StepProps) => {
                 <span className="text-[11px] text-slate-500 font-medium">We will ask for browser permission and set the pin automatically.</span>
             </div>
             {geoError && <p className="text-xs font-bold text-amber-600">{geoError}</p>}
-            <div className="h-96 w-full rounded-2xl overflow-hidden border border-slate-200">
+            <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-slate-200">
                 <DraggablePinMap
                     latitude={formData.latitude || 30.3753}
                     longitude={formData.longitude || 69.3451}

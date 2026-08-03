@@ -1,15 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository, InjectEntityManager } from '@nestjs/typeorm';
 import { Repository, Not, EntityManager, MoreThan } from 'typeorm';
 import { ChatConversation, ChatMessage, User, Listing, Vendor, CustomerNote } from '../../entities';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
 import { ActivePlan, ActivePlanStatus } from '../../entities/active-plan.entity';
 import { LeadsService } from '../leads/leads.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
 import { Inject, forwardRef } from '@nestjs/common';
 
 @Injectable()
 export class ChatService implements OnModuleInit {
+    private readonly logger = new Logger(ChatService.name);
+
     constructor(
         @InjectRepository(ChatConversation)
         private conversationRepository: Repository<ChatConversation>,
@@ -27,6 +30,8 @@ export class ChatService implements OnModuleInit {
         private activePlanRepository: Repository<ActivePlan>,
         @Inject(forwardRef(() => LeadsService))
         private leadsService: LeadsService,
+        @Inject(forwardRef(() => SubscriptionsService))
+        private subscriptionsService: SubscriptionsService,
         private notificationsService: NotificationsService,
         @InjectEntityManager()
         private readonly entityManager: EntityManager,
@@ -63,6 +68,17 @@ export class ChatService implements OnModuleInit {
 
             if (!business) {
                 throw new NotFoundException('Business not found');
+            }
+
+            // Paid gate: Vendors need a paid plan to chat
+            const vendorUser = await this.vendorRepository.findOne({ where: { id: business.vendor.id } });
+            if (vendorUser) {
+                const canChat = await this.subscriptionsService.canPerformAction(vendorUser.userId, 'showChat');
+                if (!canChat) {
+                    throw new ForbiddenException(
+                        'This business does not have in-chat messaging enabled. Please contact them via phone or email.'
+                    );
+                }
             }
 
             conversation = this.conversationRepository.create({
@@ -105,6 +121,16 @@ export class ChatService implements OnModuleInit {
 
         if (!isCustomer && !isVendor) {
             throw new ForbiddenException('Not authorized to send message in this conversation');
+        }
+
+        // Paid gate: Vendors need a paid plan to send messages
+        if (isVendor) {
+            const canChat = await this.subscriptionsService.canPerformAction(userId, 'showChat');
+            if (!canChat) {
+                throw new ForbiddenException(
+                    'In-app chat requires a paid subscription. Please upgrade your plan to message customers.'
+                );
+            }
         }
 
         const message = this.messageRepository.create({

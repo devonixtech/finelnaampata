@@ -43,6 +43,9 @@ export class Payout {
     @Column({ name: 'admin_notes', type: 'text', nullable: true })
     adminNotes: string;
 
+    @Column({ name: 'payment_reference', nullable: true })
+    paymentReference: string;
+
     @Column({ name: 'processed_at', type: 'timestamp', nullable: true })
     processedAt: Date;
 

@@ -18,6 +18,9 @@ import { CreateJobResponseDto } from './dto/create-job-response.dto';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
+import { MailService } from '../auth/mail.service';
+import { User } from '../../entities/user.entity';
+import { ConfigService } from '@nestjs/config';
 
 
 @Injectable()
@@ -34,6 +37,10 @@ export class JobLeadsService {
         private vendorRepository: Repository<Vendor>,
         @InjectRepository(Category)
         private categoryRepository: Repository<Category>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
+        private mailService: MailService,
+        private configService: ConfigService,
         @InjectRepository(SystemSetting)
         private settingsRepository: Repository<SystemSetting>,
         private notificationsGateway: NotificationsGateway,

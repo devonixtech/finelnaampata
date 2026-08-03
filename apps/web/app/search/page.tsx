@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, MapPin, Star, X, Filter, Navigation, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Search, MapPin, Star, X, Filter, Navigation, LayoutGrid, List, ChevronDown, Clock, Zap, Globe, Award, ShieldCheck } from 'lucide-react';
 import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -31,9 +31,11 @@ function SearchResults() {
     const experience = searchParams.get('experience') === 'true';
     const mostContacted = searchParams.get('mostContacted') === 'true';
     const sortBy = searchParams.get('sortBy') || 'relevance';
+    const filterParam = searchParams.get('filter') || '';
 
     const [results, setResults] = useState<Business[]>([]);
     const [cities, setCities] = useState<City[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const [geoLoading, setGeoLoading] = useState(false);
@@ -49,6 +51,7 @@ function SearchResults() {
 
     useEffect(() => {
         api.cities.getAll().then(setCities).catch(console.error);
+        api.categories.getAll().then(setCategories).catch(console.error);
     }, []);
 
     useEffect(() => {
@@ -94,6 +97,7 @@ function SearchResults() {
                     experience: experience || undefined,
                     mostContacted: mostContacted || undefined,
                     sortBy: sortBy || undefined,
+                    featuredOnly: filterParam === 'featured' ? true : undefined,
                     limit: 20
                 });
                 setResults(searchRes.data);
@@ -119,11 +123,23 @@ function SearchResults() {
 
     const updateFilter = (key: string, value: string | boolean | null) => {
         const params = new URLSearchParams(searchParams.toString());
-        if (value === null || value === false) {
+        if (value === null || value === false || value === '') {
             params.delete(key);
         } else {
             params.set(key, String(value));
         }
+        router.push(`/search?${params.toString()}`);
+    };
+
+    const updateMultipleFilters = (updates: Record<string, string | boolean | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === null || value === false || value === '') {
+                params.delete(key);
+            } else {
+                params.set(key, String(value));
+            }
+        });
         router.push(`/search?${params.toString()}`);
     };
 
@@ -196,8 +212,7 @@ function SearchResults() {
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 setIsSuggestionsOpen(false);
-                                                updateFilter('q', searchQuery);
-                                                updateFilter('city', searchLocation);
+                                                updateMultipleFilters({ q: searchQuery, city: searchLocation });
                                             }
                                         }}
                                         className="bg-transparent border-none outline-none text-sm font-medium text-slate-700 w-full placeholder:font-normal"
@@ -211,8 +226,7 @@ function SearchResults() {
                                                         e.preventDefault();
                                                         setSearchQuery(suggestion);
                                                         setIsSuggestionsOpen(false);
-                                                        updateFilter('q', suggestion);
-                                                        updateFilter('city', searchLocation);
+                                                        updateMultipleFilters({ q: suggestion, city: searchLocation });
                                                     }}
                                                     className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3 text-sm font-medium text-slate-700"
                                                 >
@@ -226,8 +240,7 @@ function SearchResults() {
                                 <button 
                                     onClick={() => {
                                         setIsSuggestionsOpen(false);
-                                        updateFilter('q', searchQuery);
-                                        updateFilter('city', searchLocation);
+                                        updateMultipleFilters({ q: searchQuery, city: searchLocation });
                                     }}
                                     className="w-10 h-10 bg-[#1a73e8] hover:bg-blue-700 rounded-lg flex items-center justify-center shrink-0 shadow-md transition-colors"
                                 >
@@ -278,24 +291,20 @@ function SearchResults() {
                                     Categories
                                 </h4>
                                 <div className="space-y-3">
-                                    {[
-                                        { id: 'restaurants', label: 'Restaurants', count: 32 },
-                                        { id: 'beauty-wellness', label: 'Beauty & Wellness', count: 18 },
-                                        { id: 'health-medical', label: 'Health & Medical', count: 15 },
-                                        { id: 'education', label: 'Education', count: 12 },
-                                        { id: 'automotive', label: 'Automotive', count: 9 },
-                                    ].map(cat => (
+                                    {categories.slice(0, 10).map((cat: any) => (
                                         <label key={cat.id} className="flex items-center justify-between cursor-pointer group">
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox"
-                                                    checked={categorySlug === cat.id}
-                                                    onChange={(e) => updateFilter('category', e.target.checked ? cat.id : null)}
+                                                    checked={categorySlug === cat.slug}
+                                                    onChange={(e) => updateFilter('category', e.target.checked ? cat.slug : null)}
                                                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                                                 />
-                                                <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition">{cat.label}</span>
+                                                <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition">{cat.name}</span>
                                             </div>
-                                            <span className="text-xs text-slate-400 font-medium">{cat.count}</span>
+                                            {cat.businessCount !== undefined && (
+                                                <span className="text-xs text-slate-400 font-medium">{cat.businessCount}</span>
+                                            )}
                                         </label>
                                     ))}
                                 </div>
@@ -389,6 +398,31 @@ function SearchResults() {
                     {/* Results Area */}
                     <div className="lg:col-span-9 xl:col-span-10 w-full">
                         
+                        {/* Smart Filter Pills */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {[
+                                { key: 'openNow', label: 'Open Now', icon: Clock, active: openNow },
+                                { key: 'fastResponse', label: 'Fast Response', icon: Zap, active: fastResponse },
+                                { key: 'onlineNow', label: 'Online Now', icon: Globe, active: onlineNow },
+                                { key: 'verifiedOnly', label: 'Verified', icon: ShieldCheck, active: verifiedOnly },
+                                { key: 'experience', label: 'Experienced', icon: Award, active: experience },
+                                { key: 'mostContacted', label: 'Most Contacted', icon: Star, active: mostContacted },
+                            ].map(pill => (
+                                <button
+                                    key={pill.key}
+                                    onClick={() => updateFilter(pill.key, pill.active ? null : true)}
+                                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${
+                                        pill.active
+                                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                                    }`}
+                                >
+                                    <pill.icon className="w-3.5 h-3.5" />
+                                    {pill.label}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Results Header (Count & Sort) */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <h2 className="text-base font-medium text-slate-700">
@@ -405,6 +439,8 @@ function SearchResults() {
                                         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.2em 1.2em' }}
                                     >
                                         <option value="relevance">Recommended</option>
+                                        <option value="newest">Newest</option>
+                                        <option value="oldest">Oldest</option>
                                         <option value="distance">Nearest</option>
                                         <option value="rating">Top Rated</option>
                                         <option value="reviews">Most Reviewed</option>

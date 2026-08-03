@@ -171,29 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const redirectUser = (user: any, isSignup: boolean = false) => {
-        if (user.role === 'admin' || user.role === 'superadmin') {
-            router.push('/admin');
-            return;
-        }
-        if (isSignup && !user.isEmailVerified && user.provider !== 'google') {
-            router.push('/verify-email');
-            return;
-        }
-        
-        // Check for redirect parameter in URL
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            const redirectPath = params.get('redirect');
-            if (redirectPath) {
-                router.push(redirectPath);
-                return;
-            }
-        }
-        
-        router.push('/dashboard');
-    };
-
     const login = async (credentials: any) => {
         const response = await api.auth.login(credentials);
         localStorage.setItem('token', response.tokens.accessToken);
@@ -204,7 +181,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         startPing();
         // Sync profile to ensure full data (relations like subscriptions)
         await syncProfile();
-        redirectUser(response.user, false);
     };
 
     const googleLogin = async (credential: string, role?: string, referralCode?: string) => {
@@ -217,8 +193,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         startPing();
         // Sync profile to ensure full data (relations like subscriptions)
         await syncProfile();
-        
-        redirectUser(response.user, true);
     };
 
     const register = async (userData: any) => {
@@ -229,7 +203,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         startPing();
         // Sync profile to ensure full data (relations like subscriptions)
         await syncProfile();
-        redirectUser(response.user, true);
     };
 
     const updateUser = (userData: any) => {
@@ -238,14 +211,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
-    const verifyEmail = async (otp: string) => {
+    const verifyEmail = async (otp: string, redirectPath?: string) => {
         if (!user?.email) throw new Error('No user email found.');
         await api.auth.verifyEmail(user.email, otp);
         // Mark user as verified in local state
         const updated = { ...user, isEmailVerified: true };
         setUser(updated);
         localStorage.setItem('user', JSON.stringify(updated));
-        router.push('/dashboard');
     };
 
     const resendOtp = async () => {

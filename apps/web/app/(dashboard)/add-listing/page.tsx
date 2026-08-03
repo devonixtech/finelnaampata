@@ -93,7 +93,7 @@ const getDefaultBusinessTimezone = () => {
 };
 
 function AddListingContent() {
-    const { user } = useAuth();
+    const { user, syncProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
@@ -568,6 +568,9 @@ function AddListingContent() {
                 // Clear draft after successful submission — next listing should start fresh
                 localStorage.removeItem('naampata_listing_draft');
             }
+            if (syncProfile) {
+                await syncProfile().catch((e) => console.error("Failed to sync profile after listing creation", e));
+            }
             setSuccess(true);
             setTimeout(() => router.push('/listings'), 2000);
         } catch (err: any) {
@@ -713,7 +716,7 @@ function AddListingContent() {
     const progress = (activeStep / STEPS.length) * 100;
 
     return (
-        <div className="max-w-4xl mx-auto pb-6 h-[calc(100vh-100px)] flex flex-col">
+        <div className="max-w-4xl mx-auto pb-6 h-[calc(100vh-40px)] flex flex-col">
             {/* Header & Progress */}
             <div className="mb-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">

@@ -19,6 +19,8 @@ import {
     MapPin,
     MessageSquare,
     Calendar,
+    DollarSign,
+    Handshake,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../lib/api';
@@ -56,6 +58,7 @@ const menuSections: MenuSection[] = [
             { name: 'Users', icon: Users, href: '/admin/users', badge: null },
             { name: 'Plans', icon: CreditCard, href: '/admin/plans', badge: null },
             { name: 'Subscriptions', icon: Receipt, href: '/admin/subscriptions', badge: null },
+            { name: 'Affiliates', icon: Handshake, href: '/admin/affiliates', badge: null },
             { name: 'Referrals', icon: Users, href: '/admin/referrals', badge: null },
         ]
     },
@@ -72,6 +75,8 @@ const menuSections: MenuSection[] = [
         items: [
             { name: 'Demand Insights', icon: Activity, href: '/admin/demand', badge: null },
             { name: 'Search Analytics', icon: Activity, href: '/admin/analytics', badge: null },
+            { name: 'Revenue Tracking', icon: DollarSign, href: '/admin/analytics/revenue', badge: null },
+            { name: 'Live Activity', icon: Activity, href: '/admin/analytics/activity', badge: 'Live' },
         ]
     },
     {

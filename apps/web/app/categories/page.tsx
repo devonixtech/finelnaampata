@@ -171,7 +171,7 @@ export default function CategoriesPage() {
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    <Link href={`/categories/${cat.slug}`} className="group block h-full">
+                                    <Link href={`/search?category=${cat.slug}`} className="group block h-full">
                                         <div className="bg-white border border-slate-100 rounded-[24px] p-6 h-full transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-100 flex flex-col items-start relative overflow-hidden">
                                             
                                             {/* Hover gradient background effect */}

@@ -96,6 +96,17 @@ export class SubscriptionCronService {
                         }
                     }
 
+                    // Clear subscription tier on vendor's businesses if subscription expired
+                    if ((plan.plan as any)?.type === PricingPlanType.SUBSCRIPTION) {
+                        const vendorBusinesses = await this.listingRepo.find({ where: { vendorId: plan.vendorId } });
+                        if (vendorBusinesses.length > 0) {
+                            await this.listingRepo.update(
+                                vendorBusinesses.map(b => b.id),
+                                { subscriptionTier: 0 }
+                            );
+                        }
+                    }
+
                     this.logger.log(`[Cron] Deactivated expired ActivePlan ${plan.id} for vendor ${plan.vendorId}`);
                     
                     // Trigger auto-move to Free plan if no other plan is coming up
@@ -190,6 +201,15 @@ export class SubscriptionCronService {
                 });
                 await this.activePlanRepo.save(newActiveFree);
                 this.logger.log(`[Cron] Auto-upgraded/moved vendor ${vendorId} to Free plan after expiration.`);
+
+                // Reset subscription tier on vendor's businesses
+                const vendorBusinesses = await this.listingRepo.find({ where: { vendorId } });
+                if (vendorBusinesses.length > 0) {
+                    await this.listingRepo.update(
+                        vendorBusinesses.map(b => b.id),
+                        { subscriptionTier: 0 }
+                    );
+                }
             }
         } catch (err: any) {
             this.logger.error(`[Cron] Failed to ensure plan for vendor ${vendorId}: ${err.message}`);

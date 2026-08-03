@@ -250,6 +250,7 @@ export const api = {
             return fetcher<SearchResponse>(`/businesses/search?${query}`);
         },
         getSuggestions: (q: string) => fetcher<string[]>(`/businesses/search/suggestions?q=${encodeURIComponent(q)}`),
+        getDetailedMetrics: (businessId: string) => fetcher<any>(`/businesses/${businessId}/detailed-metrics`, { silent: true }),
         getBySlug: (slug: string, options?: FetcherOptions) => fetcher<Business>(`/businesses/slug/${slug}`, options),
         getFeatured: (page = 1, limit = 12, options?: FetcherOptions) => fetcher<SearchResponse>(`/businesses/search?featuredOnly=true&page=${page}&limit=${limit}`, options),
         uploadImage: async (file: File) => {
@@ -383,6 +384,12 @@ export const api = {
         adminDelete: (id: string) => fetcher<void>(`/reviews/admin/${id}`, {
             method: 'DELETE',
         }),
+        report: (id: string, reason: string, details?: string) => fetcher<{ success: boolean; message: string }>(`/reviews/${id}/report`, {
+            method: 'POST',
+            body: JSON.stringify({ reason, details }),
+        }),
+        markHelpful: (id: string) => fetcher<any>(`/reviews/${id}/helpful`, { method: 'POST' }),
+        removeHelpful: (id: string) => fetcher<any>(`/reviews/${id}/helpful`, { method: 'DELETE' }),
     },
     cloudinary: {
         getSignature: () => fetcher<{ timestamp: number, signature: string, apiKey: string, cloudName: string }>('/cloudinary/sign', {
@@ -713,11 +720,36 @@ export const api = {
                 method: 'PATCH',
                 body: JSON.stringify({ status, notes }),
             }),
+            approvePayout: (id: string, paymentReference?: string) => fetcher<any>(`/affiliate/admin/payout/${id}/approve`, {
+                method: 'POST',
+                body: JSON.stringify({ paymentReference }),
+            }),
+            rejectPayout: (id: string, reason: string) => fetcher<any>(`/affiliate/admin/payout/${id}/reject`, {
+                method: 'POST',
+                body: JSON.stringify({ reason }),
+            }),
+            markAsPaid: (id: string, paymentReference: string) => fetcher<any>(`/affiliate/admin/payout/${id}/mark-paid`, {
+                method: 'POST',
+                body: JSON.stringify({ paymentReference }),
+            }),
+            getAffiliates: () => fetcher<any[]>('/affiliate/admin/affiliates'),
+            approveAffiliate: (id: string) => fetcher<any>(`/affiliate/admin/approve/${id}`, { method: 'POST' }),
+            suspendAffiliate: (id: string) => fetcher<any>(`/affiliate/admin/suspend/${id}`, { method: 'POST' }),
+            reviewKyc: (id: string, status: 'approved' | 'rejected') => fetcher<any>(`/affiliate/admin/kyc/${id}/review`, {
+                method: 'POST',
+                body: JSON.stringify({ status }),
+            }),
+            exportAffiliates: (format: 'csv' | 'json') => fetcher<any>(`/affiliate/admin/export?format=${format}`),
+            setRankingBoost: (businessId: string, boost: number) => fetcher<any>(`/businesses/${businessId}/admin/ranking-boost`, {
+                method: 'PATCH',
+                body: JSON.stringify({ boost }),
+            }),
             updateSettings: (settings: any) => fetcher<any>('/affiliate/admin/settings', {
                 method: 'PATCH',
                 body: JSON.stringify(settings),
             }),
         },
+        activityFeed: (limit?: number) => fetcher<any[]>(`/admin/activity-feed?limit=${limit || 50}`),
         searchAnalytics: {
             getOverview: (params?: { startDate?: string; endDate?: string; city?: string }) => {
                 const query = new URLSearchParams(params as any).toString();
@@ -762,13 +794,21 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ code }),
         }),
-
+        getEarningsBreakdown: () => fetcher<any>('/affiliate/earnings/breakdown'),
+        submitKyc: (documentUrl: string) => fetcher('/affiliate/kyc/submit', {
+            method: 'POST',
+            body: JSON.stringify({ documentUrl }),
+        }),
         requestPayout: (data: { amount: number; method: string; details: string }) => fetcher('/affiliate/payouts', {
             method: 'POST',
             body: JSON.stringify(data),
         }),
         getPayouts: () => fetcher<any[]>('/affiliate/payouts'),
         getSettings: () => fetcher<any>('/affiliate/settings'),
+        trackBusinessClick: (affiliateCode: string, businessId: string) => fetcher('/affiliate/track/business-click', {
+            method: 'POST',
+            body: JSON.stringify({ affiliateCode, businessId }),
+        }),
     },
     subscriptions: {
         getPlans: (options?: FetcherOptions) => fetcher<any[]>('/subscriptions/plans', options),
@@ -777,6 +817,7 @@ export const api = {
         getActivePromotions: (options?: FetcherOptions) => fetcher<any>('/subscriptions/active-promotions', options),
         getMyInvoices: (options?: FetcherOptions) => fetcher<any[]>('/subscriptions/my-invoices', options),
         getInvoice: (id: string, options?: FetcherOptions) => fetcher<any>(`/subscriptions/invoice/${id}`, options),
+        getDetailedAnalytics: (businessId: string) => fetcher<any>(`/businesses/${businessId}/analytics`, { silent: true }),
         mockCheckout: (planId: string) => fetcher<any>(`/subscriptions/mock-success/${planId}`, { method: 'POST' }),
         createCheckout: (planId: string, referralCode?: string) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId, referralCode }),
         verify: (sessionId: string) => api.post<{ success: boolean; alreadyProcessed: boolean }>('/subscriptions/verify', { sessionId }),

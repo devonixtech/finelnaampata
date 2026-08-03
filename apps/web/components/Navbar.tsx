@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Menu, ChevronDown, LogOut, X, Search, Building2, Globe, Bell, Check, Trash2, BellRing, Megaphone, MessageSquare, Filter, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,7 @@ import { usePushNotifications } from '../lib/usePushNotifications';
 
 export default function Navbar() {
     const router = useRouter();
+    const pathname = usePathname();
     const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [mobileDropdown, setMobileDropdown] = useState<string | null>(null);
@@ -129,8 +130,10 @@ export default function Navbar() {
         fetchData();
     }, []);
 
-    const handleDropdownToggle = (name: string) => {
-        setActiveDropdown(activeDropdown === name ? null : name);
+
+
+    const handleDropdownToggle = (dropdown: string) => {
+        setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
     };
 
     const openBroadcastRequest = (e: React.MouseEvent) => {
@@ -185,7 +188,7 @@ export default function Navbar() {
                                                 {categories.map((cat) => (
                                                     <Link
                                                         key={cat.id}
-                                                        href={`/categories/${cat.slug}`}
+                                                        href={`/search?category=${cat.slug}`}
                                                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group"
                                                         onClick={() => setActiveDropdown(null)}
                                                     >
@@ -574,7 +577,7 @@ export default function Navbar() {
                                     {mobileDropdown === 'categories' && (
                                         <div className="grid grid-cols-1 gap-2 p-2 bg-slate-50/50 rounded-2xl mt-1 border border-slate-100">
                                             {categories.map((cat) => (
-                                                <Link key={cat.id} href={`/categories/${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all">
+                                                <Link key={cat.id} href={`/search?category=${cat.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white transition-all">
                                                     <span className="text-sm font-semibold text-slate-700">{cat.name}</span>
                                                 </Link>
                                             ))}

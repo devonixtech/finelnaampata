@@ -107,10 +107,6 @@ export default function AdminEventsDealsPage() {
         fetchPaymentHistory();
     };
 
-    const handleOpenPriceModal = (target: 'offer' | 'event') => {
-        setPriceTarget(target);
-        setIsPriceModalOpen(true);
-    };
 
     const handleSavePrices = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -173,8 +169,8 @@ export default function AdminEventsDealsPage() {
         if (activeTab === 'deals' && item._itemType !== 'deal') return false;
 
         if (statusFilter === 'featured' && !item.isFeatured) return false;
-        if (statusFilter === 'published' && !item.isPublished) return false;
-        if (statusFilter === 'draft' && item.isPublished) return false;
+        if (statusFilter === 'published' && !item.isActive) return false;
+        if (statusFilter === 'draft' && item.isActive) return false;
 
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
@@ -225,19 +221,11 @@ export default function AdminEventsDealsPage() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     <button
-                        onClick={() => handleOpenPriceModal('offer')}
-                        className="flex items-center justify-center gap-2 px-4 py-3 bg-pink-50 text-pink-700 border border-pink-200 hover:bg-pink-100 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm"
-                    >
-                        <DollarSign className="w-4 h-4 text-pink-600" />
-                        Set Offer Price
-                    </button>
-
-                    <button
-                        onClick={() => handleOpenPriceModal('event')}
+                        onClick={() => setIsPriceModalOpen(true)}
                         className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm"
                     >
                         <DollarSign className="w-4 h-4 text-purple-600" />
-                        Set Event Price
+                        Set Global Pricing
                     </button>
 
                     <button
@@ -400,7 +388,8 @@ export default function AdminEventsDealsPage() {
                                                 <div className="text-xs font-bold text-slate-600">
                                                     {isEvent ? (
                                                         <>
-                                                            <p>Date: {item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}</p>
+                                                            <p>Start: {item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}</p>
+                                                            <p>End: {item.endDate ? new Date(item.endDate).toLocaleDateString() : 'Ongoing'}</p>
                                                             <p className="text-slate-400">Time: {item.startTime || 'All day'}</p>
                                                         </>
                                                     ) : (
@@ -411,8 +400,8 @@ export default function AdminEventsDealsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg ${item.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                    {item.isPublished ? 'Published' : 'Draft'}
+                                                <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg ${item.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                    {item.isActive ? 'Published' : 'Draft'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
@@ -461,13 +450,13 @@ export default function AdminEventsDealsPage() {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100"
                         >
-                            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-900 to-slate-900 text-white flex items-center justify-between">
+                            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-900 to-slate-900 text-white flex items-center justify-between rounded-t-[2rem]">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
                                         <DollarSign className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-white">Set {priceTarget === 'offer' ? 'Offer' : 'Event'} Pricing</h2>
+                                        <h2 className="text-xl font-black text-white">Set Platform Pricing</h2>
                                         <p className="text-xs text-purple-200 font-bold">Configure rates for vendors posting on platform</p>
                                     </div>
                                 </div>
@@ -613,8 +602,8 @@ export default function AdminEventsDealsPage() {
 
                                     <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Publication Status</p>
-                                        <p className={`text-sm font-black mt-0.5 ${selectedItem.isPublished ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                            {selectedItem.isPublished ? 'Published Live' : 'Draft'}
+                                        <p className={`text-sm font-black mt-0.5 ${selectedItem.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                            {selectedItem.isActive ? 'Published Live' : 'Draft'}
                                         </p>
                                     </div>
                                 </div>
@@ -695,7 +684,7 @@ export default function AdminEventsDealsPage() {
                             className="bg-white rounded-[2rem] w-[95vw] max-w-5xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] my-auto"
                         >
                             {/* Modal Header */}
-                            <div className="p-5 md:p-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shrink-0">
+                            <div className="p-5 md:p-6 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between shrink-0 rounded-t-[2rem]">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1">

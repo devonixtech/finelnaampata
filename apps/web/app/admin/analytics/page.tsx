@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import {
     Search,
@@ -11,7 +12,10 @@ import {
     Activity,
     AlertTriangle,
     BarChart3,
-    Table as TableIcon
+    Table as TableIcon,
+    DollarSign,
+    Zap,
+    ArrowUpRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
@@ -115,20 +119,39 @@ export default function SearchAnalyticsPage() {
                     </p>
                 </div>
 
-                <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
-                        <div className="flex items-center gap-2 pl-4 border-r border-slate-100 pr-2">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">From</span>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold outline-none text-slate-700 p-0"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 pl-2 pr-4">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To</span>
-                            <input
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Quick Links to Revenue & Activity */}
+                    <Link
+                        href="/admin/analytics/revenue"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <DollarSign className="w-4 h-4 text-emerald-500" /> Revenue
+                        <ArrowUpRight className="w-3 h-3 text-slate-400" />
+                    </Link>
+                    <Link
+                        href="/admin/analytics/activity"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <Zap className="w-4 h-4 text-blue-500" /> Live Activity
+                        <ArrowUpRight className="w-3 h-3 text-slate-400" />
+                    </Link>
+                </div>
+            </div>
+
+            <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
+                    <div className="flex items-center gap-2 pl-4 border-r border-slate-100 pr-2">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">From</span>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-transparent border-none focus:ring-0 text-sm font-bold outline-none text-slate-700 p-0"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 pl-2 pr-4">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To</span>
+                        <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
@@ -156,7 +179,6 @@ export default function SearchAnalyticsPage() {
                         {loading ? 'Applying...' : 'Apply Filters'}
                     </button>
                 </form>
-            </div>
 
             {/* Quick Stats (Overview) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -42,6 +42,10 @@ import {
   Info,
   Award,
   Activity,
+  Flag,
+  ArrowUpDown,
+  ChevronDown,
+  ThumbsUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../../../components/Navbar";
@@ -176,6 +180,15 @@ export default function BusinessDetailClient({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
+
+  // Review sort & report state
+  const [reviewSort, setReviewSort] = useState<string>("newest");
+  const [reportingReview, setReportingReview] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [showReportModal, setShowReportModal] = useState<string | null>(null);
+  const [helpfulLoading, setHelpfulLoading] = useState<string | null>(null);
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
   const chatRef = useRef<ChatTriggerHandle>(null);
 
   // Enquiry modal state
@@ -603,6 +616,7 @@ export default function BusinessDetailClient({
         businessId: business.id,
         rating: reviewRating,
         comment: reviewComment.trim(),
+        images: reviewImages.length > 0 ? reviewImages : undefined,
       });
       // Refresh reviews
       const reviewsData = await api.reviews.getByBusiness(business.id);
@@ -610,6 +624,7 @@ export default function BusinessDetailClient({
       setShowReviewModal(false);
       setReviewComment("");
       setReviewRating(5);
+      setReviewImages([]);
     } catch (err: any) {
       alert(err.message || "Failed to submit review");
     } finally {
@@ -640,6 +655,64 @@ export default function BusinessDetailClient({
       alert(err.message || "Failed to submit reply");
     } finally {
       setSubmittingReply(false);
+    }
+  };
+
+  const loadReviews = async (sortBy?: string) => {
+    if (!business) return;
+    try {
+      const reviewsData = await api.reviews.findAll({
+        businessId: business.id,
+        sortBy: sortBy || reviewSort,
+      });
+      setComments(reviewsData.data || []);
+    } catch (ce) {
+      console.error("[BusinessDetail] Failed to load reviews:", ce);
+    }
+  };
+
+  const handleReportReview = async (reviewId: string) => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!reportReason.trim()) {
+      alert("Please provide a reason for reporting.");
+      return;
+    }
+    setReportingReview(reviewId);
+    try {
+      await api.reviews.report(reviewId, reportReason, reportDetails);
+      alert("Review reported successfully. Our team will investigate.");
+      setShowReportModal(null);
+      setReportReason("");
+      setReportDetails("");
+    } catch (err: any) {
+      alert(err.message || "Failed to report review");
+    } finally {
+      setReportingReview(null);
+    }
+  };
+
+  const handleHelpful = async (reviewId: string) => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    setHelpfulLoading(reviewId);
+    try {
+      const comment = comments.find((c: any) => c.id === reviewId);
+      if (comment?.userHelpful) {
+        await api.reviews.removeHelpful(reviewId);
+        setComments(prev => prev.map((c: any) => c.id === reviewId ? { ...c, helpfulCount: Math.max(0, (c.helpfulCount || 1) - 1), userHelpful: false } : c));
+      } else {
+        await api.reviews.markHelpful(reviewId);
+        setComments(prev => prev.map((c: any) => c.id === reviewId ? { ...c, helpfulCount: (c.helpfulCount || 0) + 1, userHelpful: true } : c));
+      }
+    } catch (err: any) {
+      console.error("Helpful toggle failed:", err);
+    } finally {
+      setHelpfulLoading(null);
     }
   };
 
@@ -1031,6 +1104,7 @@ export default function BusinessDetailClient({
                       "Amenities",
                       "Q&A",
                       "FAQs",
+                      "Offers",
                     ].map((tab) => (
                       <button
                         key={tab}
@@ -1130,31 +1204,55 @@ export default function BusinessDetailClient({
                       className={activeTab === "Reviews" ? "block" : "hidden"}
                     >
                       <div className="space-y-8 animate-in fade-in duration-500">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <h3 className="text-2xl font-bold text-slate-900">
                             Customer Reviews
                           </h3>
-                          {isOwner ? (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-                              <ShieldCheck className="w-4 h-4 text-blue-500" />
-                              <span className="text-xs font-bold text-blue-600">
-                                Your Business
-                              </span>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (!user) {
-                                  router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-                                  return;
-                                }
-                                setShowReviewModal(true);
-                              }}
-                              className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-                            >
-                              Write a Review
-                            </button>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {/* Sort Dropdown */}
+                            {comments.length > 1 && (
+                              <div className="relative">
+                                <ArrowUpDown className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <select
+                                  value={reviewSort}
+                                  onChange={(e) => {
+                                    setReviewSort(e.target.value);
+                                    loadReviews(e.target.value);
+                                  }}
+                                  className="appearance-none pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none cursor-pointer"
+                                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
+                                >
+                                  <option value="newest">Newest First</option>
+                                  <option value="oldest">Oldest First</option>
+                                  <option value="highest">Highest Rated</option>
+                                  <option value="lowest">Lowest Rated</option>
+                                  <option value="most_helpful">Most Helpful</option>
+                                  <option value="most_relevant">Most Relevant</option>
+                                </select>
+                              </div>
+                            )}
+                            {isOwner ? (
+                              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                                <ShieldCheck className="w-4 h-4 text-blue-500" />
+                                <span className="text-xs font-bold text-blue-600">
+                                  Your Business
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  if (!user) {
+                                    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                                    return;
+                                  }
+                                  setShowReviewModal(true);
+                                }}
+                                className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
+                              >
+                                Write a Review
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {comments.length > 0 ? (
@@ -1216,6 +1314,48 @@ export default function BusinessDetailClient({
                                   <p className="text-slate-600 leading-relaxed italic">
                                     "{comment.comment}"
                                   </p>
+                                )}
+
+                                {/* Report Button */}
+                                {user && !isOwner && user.id !== comment.userId && (
+                                  <div className="mt-3 flex items-center gap-4">
+                                    <button
+                                      onClick={() => handleHelpful(comment.id)}
+                                      disabled={helpfulLoading === comment.id}
+                                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold transition-colors uppercase tracking-wider ${
+                                        comment.userHelpful ? 'text-blue-500' : 'text-slate-400 hover:text-blue-500'
+                                      }`}
+                                    >
+                                      {helpfulLoading === comment.id ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <ThumbsUp className={`w-3 h-3 ${comment.userHelpful ? 'fill-blue-500' : ''}`} />
+                                      )}
+                                      Helpful {comment.helpfulCount > 0 ? `(${comment.helpfulCount})` : ''}
+                                    </button>
+                                    <button
+                                      onClick={() => setShowReportModal(comment.id)}
+                                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
+                                    >
+                                      <Flag className="w-3 h-3" />
+                                      Report
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Review Photos */}
+                                {comment.images && comment.images.length > 0 && (
+                                  <div className="mt-3 flex gap-2 flex-wrap">
+                                    {comment.images.map((img: string, imgIdx: number) => (
+                                      <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer">
+                                        <img
+                                          src={img}
+                                          alt={`Review photo ${imgIdx + 1}`}
+                                          className="w-16 h-16 rounded-lg object-cover border border-slate-100 hover:border-blue-300 transition-colors cursor-pointer"
+                                        />
+                                      </a>
+                                    ))}
+                                  </div>
                                 )}
 
                                 {/* Business Response (if any) */}
@@ -1659,7 +1799,7 @@ export default function BusinessDetailClient({
 
                     <div
                       className={
-                        activeTab === "Offer / Deal" ? "block" : "hidden"
+                        activeTab === "Offers" ? "block" : "hidden"
                       }
                     >
                       <div className="animate-in fade-in duration-500">
@@ -1715,6 +1855,14 @@ export default function BusinessDetailClient({
                                   <Phone className="w-4 h-4" /> Call to Claim
                                 </button>
                               )}
+                              {business.phone && (
+                                <a
+                                  href={`sms:${business.phone}`}
+                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+                                >
+                                  <MessageSquare className="w-4 h-4" /> SMS
+                                </a>
+                              )}
                               {(business.whatsapp || business.phone) && (
                                 <button
                                   onClick={() => handleContactIntent("whatsapp")}
@@ -1722,6 +1870,14 @@ export default function BusinessDetailClient({
                                 >
                                   <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" /> WhatsApp
                                 </button>
+                              )}
+                              {business.email && (
+                                <a
+                                  href={`mailto:${business.email}`}
+                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-orange-500 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
+                                >
+                                  <Mail className="w-4 h-4" /> Email
+                                </a>
                               )}
                             </div>
                             {business.offerExpiresAt && (
@@ -1854,6 +2010,14 @@ export default function BusinessDetailClient({
                       <Phone className="w-5 h-5" /> Call Business
                     </button>
                   )}
+                  {business.phone && (
+                    <a
+                      href={`sms:${business.phone}`}
+                      className="w-full py-5 bg-blue-600 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-500/20 active:scale-95"
+                    >
+                      <MessageSquare className="w-5 h-5" /> Send SMS
+                    </a>
+                  )}
                   {(business.whatsapp || business.phone) && (
                     <button
                       onClick={() => handleContactIntent("whatsapp")}
@@ -1861,6 +2025,14 @@ export default function BusinessDetailClient({
                     >
                       <WhatsAppIcon className="w-6 h-6" /> WhatsApp
                     </button>
+                  )}
+                  {business.email && (
+                    <a
+                      href={`mailto:${business.email}`}
+                      className="w-full py-5 bg-orange-500 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-orange-600 transition-all duration-300 shadow-xl shadow-orange-500/20 active:scale-95"
+                    >
+                      <Mail className="w-5 h-5" /> Email Business
+                    </a>
                   )}
                 </div>
 
@@ -1944,6 +2116,44 @@ export default function BusinessDetailClient({
                         </div>
                       );
                     })()}
+
+                    {/* Full Weekly Hours */}
+                    {business.businessHours && business.businessHours.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 mb-3">
+                          Business Hours
+                        </p>
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                          const hour = business.businessHours.find(
+                            (h) => h.dayOfWeek.toLowerCase() === day
+                          );
+                          const today = new Date()
+                            .toLocaleDateString("en-US", { weekday: "long" })
+                            .toLowerCase();
+                          const isToday = day === today;
+
+                          return (
+                            <div
+                              key={day}
+                              className={`flex items-center justify-between text-xs py-1.5 ${
+                                isToday ? 'text-white font-bold' : 'text-slate-400'
+                              }`}
+                            >
+                              <span className="capitalize">{day}</span>
+                              <span className={
+                                hour?.isOpen ? (isToday ? 'text-white' : 'text-slate-300') : 'text-rose-400'
+                              }>
+                                {hour
+                                  ? hour.isOpen
+                                    ? `${hour.openTime} - ${hour.closeTime}`
+                                    : 'Closed'
+                                  : 'N/A'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {business.website && (
@@ -2313,26 +2523,56 @@ export default function BusinessDetailClient({
       {/* Mobile Sticky Action Bar */}
       {!isOwner && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom duration-500">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {business.phone && (
               <button
                 onClick={() => handleContactIntent("call")}
-                className="flex-1 h-12 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
+                className="flex-1 h-12 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
               >
                 <Phone className="w-4 h-4" /> Call
               </button>
             )}
+            {business.phone && (
+              <a
+                href={`sms:${business.phone}`}
+                className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
+              >
+                <MessageSquare className="w-4 h-4" /> SMS
+              </a>
+            )}
             {(business.whatsapp || business.phone) && (
               <button
                 onClick={() => handleContactIntent("whatsapp")}
-                className="flex-1 h-12 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
+                className="flex-1 h-12 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
               >
                 <WhatsAppIcon className="w-5 h-5" /> WhatsApp
               </button>
             )}
+            {business.email && (
+              <a
+                href={`mailto:${business.email}`}
+                className="flex-1 h-12 bg-orange-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
+              >
+                <Mail className="w-4 h-4" /> Email
+              </a>
+            )}
+            {!isOwner && (
+              <button
+                onClick={() => {
+                  if (!user) {
+                    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                    return;
+                  }
+                  chatRef.current?.open();
+                }}
+                className="flex-1 h-12 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
+              >
+                <MessageSquare className="w-4 h-4" /> Chat
+              </button>
+            )}
             <button
               onClick={() => openEnquiryModal()}
-              className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+              className="w-12 h-12 bg-violet-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-violet-500/20"
             >
               <Send className="w-5 h-5" />
             </button>
@@ -2395,6 +2635,45 @@ export default function BusinessDetailClient({
                   placeholder="Tell others what you liked or disliked..."
                   className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 text-sm md:text-base text-slate-600"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Photos (optional, max 3)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  max={3}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []).slice(0, 3);
+                    files.forEach(file => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setReviewImages(prev => [...prev.slice(0, 2), reader.result as string]);
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                  }}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all"
+                />
+                {reviewImages.length > 0 && (
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    {reviewImages.map((img, idx) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Preview ${idx + 1}`} className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                        <button
+                          type="button"
+                          onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -2768,6 +3047,87 @@ export default function BusinessDetailClient({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Report Review Modal */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowReportModal(null); setReportReason(""); setReportDetails(""); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[24px] shadow-2xl overflow-hidden p-8"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                  <Flag className="w-5 h-5 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Report Review</h3>
+                  <p className="text-xs text-slate-400 font-medium">Help us maintain quality</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Reason *</label>
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-red-500/20 outline-none"
+                  >
+                    <option value="">Select a reason...</option>
+                    <option value="spam">Spam or fake review</option>
+                    <option value="inappropriate">Inappropriate content</option>
+                    <option value="offtopic">Off-topic or irrelevant</option>
+                    <option value="conflict">Conflict of interest</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Additional Details</label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-red-500/20 outline-none resize-none"
+                    placeholder="Optional: provide more context..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => { setShowReportModal(null); setReportReason(""); setReportDetails(""); }}
+                  className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-black text-sm hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleReportReview(showReportModal)}
+                  disabled={!reportReason.trim() || reportingReview === showReportModal}
+                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-black text-sm hover:bg-red-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  {reportingReview === showReportModal ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Flag className="w-4 h-4" /> Submit Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

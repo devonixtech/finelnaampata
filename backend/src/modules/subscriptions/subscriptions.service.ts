@@ -9,7 +9,7 @@ import {
     forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThanOrEqual, IsNull } from 'typeorm';
+import { Repository, MoreThan, LessThanOrEqual, IsNull, Not, In, ILike } from 'typeorm';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
 import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
 import { PricingPlan, PricingPlanType, PricingPlanUnit } from '../../entities/pricing-plan.entity';
@@ -790,8 +790,21 @@ export class SubscriptionsService implements OnModuleInit {
         // 5b. Apply buyer's referral code (if provided) — gives +10 days to both parties
         if (referralCode && referralCode.trim()) {
             try {
-                await this.affiliateService.applyReferralCode(vendor.userId, referralCode.trim());
-                this.logger.log(`🎁 Referral code "${referralCode}" applied for user ${vendor.userId} after successful payment`);
+                const affiliate = await this.affiliateRepository.findOne({
+                    where: { referralCode: ILike(referralCode.trim()) },
+                });
+
+                if (affiliate) {
+                    const fraudResult = await this.affiliateService.detectFraud(affiliate.id, vendor.userId);
+                    if (fraudResult.isFraud) {
+                        this.logger.warn(`[Fraud] Referral code "${referralCode}" BLOCKED for user ${vendor.userId}: ${fraudResult.reason}. No bonus granted.`);
+                    } else {
+                        await this.affiliateService.applyReferralCode(vendor.userId, referralCode.trim());
+                        this.logger.log(`🎁 Referral code "${referralCode}" applied for user ${vendor.userId} after successful payment`);
+                    }
+                } else {
+                    this.logger.warn(`Referral code "${referralCode}" not found, skipping fraud check and referral application`);
+                }
             } catch (err: any) {
                 this.logger.warn(`Referral code "${referralCode}" could not be applied: ${err.message}`);
             }
@@ -1302,6 +1315,18 @@ export class SubscriptionsService implements OnModuleInit {
             }
             // Note: HOMEPAGE_FEATURED and CATEGORY_FEATURED plan types no longer auto-set isFeatured.
             // isFeatured is exclusively controlled by Superadmin via admin panel.
+        }
+
+        // Update subscription tier on vendor's businesses
+        if (plan.type === PricingPlanType.SUBSCRIPTION) {
+            const tier = Number(plan.price) > 0 ? 1 : 0;
+            const vendorBusinesses = await this.listingRepo.find({ where: { vendorId } });
+            if (vendorBusinesses.length > 0) {
+                await this.listingRepo.update(
+                    vendorBusinesses.map(b => b.id),
+                    { subscriptionTier: tier }
+                );
+            }
         }
 
         // 4. Record Transaction (Invoice)

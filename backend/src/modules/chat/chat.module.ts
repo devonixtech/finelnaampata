@@ -12,6 +12,7 @@ import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { WsJwtGuard } from '../notifications/ws-jwt.guard';
 import { LeadsModule } from '../leads/leads.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import { LeadsModule } from '../leads/leads.module';
         AuthModule,
         UsersModule,
         forwardRef(() => LeadsModule),
+        forwardRef(() => SubscriptionsModule),
     ],
     providers: [ChatService, ChatGateway, WsJwtGuard],
     controllers: [ChatController],

@@ -225,6 +225,13 @@ export class SearchService implements OnModuleInit {
                             timezone: { type: 'keyword' },
                             createdAt: { type: 'date' },
                             updatedAt: { type: 'date' },
+                            reviewCount: { type: 'integer' },
+                            profileViews: { type: 'integer' },
+                            contacts: { type: 'integer' },
+                            clickCount: { type: 'integer' },
+                            isSponsored: { type: 'boolean' },
+                            manualRankingBoost: { type: 'integer' },
+                            subscriptionTier: { type: 'integer' },
                         },
                     },
                 },
@@ -288,6 +295,13 @@ export class SearchService implements OnModuleInit {
                 timezone: business.timezone || 'UTC',
                 createdAt: business.createdAt,
                 updatedAt: business.updatedAt,
+                reviewCount: business.totalReviews || 0,
+                profileViews: business.totalViews || 0,
+                contacts: business.totalLeads || 0,
+                clickCount: business.clickCount || 0,
+                isSponsored: business.isSponsored || false,
+                manualRankingBoost: business.manualRankingBoost || 0,
+                subscriptionTier: business.subscriptionTier || 0,
             },
         });
     }
@@ -534,7 +548,7 @@ export class SearchService implements OnModuleInit {
         const functions: any[] = [
             // Boost Verified
             {
-                filter: { term: { is_verified: true } }, // Changed to is_verified
+                filter: { term: { is_verified: true } },
                 weight: 1.5
             },
             // Rating Score
@@ -550,6 +564,65 @@ export class SearchService implements OnModuleInit {
                 field_value_factor: {
                     field: 'followersCount',
                     factor: 0.1,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Review Count
+            {
+                field_value_factor: {
+                    field: 'reviewCount',
+                    factor: 0.15,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Profile Views
+            {
+                field_value_factor: {
+                    field: 'profileViews',
+                    factor: 0.05,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Contacts (Leads)
+            {
+                field_value_factor: {
+                    field: 'contacts',
+                    factor: 0.1,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Click Count
+            {
+                field_value_factor: {
+                    field: 'clickCount',
+                    factor: 0.08,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Sponsored Boost
+            {
+                filter: { term: { isSponsored: true } },
+                weight: 2.0
+            },
+            // Manual Ranking Boost
+            {
+                field_value_factor: {
+                    field: 'manualRankingBoost',
+                    factor: 1.0,
+                    modifier: 'none',
+                    missing: 0
+                }
+            },
+            // Subscription Tier Boost
+            {
+                field_value_factor: {
+                    field: 'subscriptionTier',
+                    factor: 1.5,
                     modifier: 'log1p',
                     missing: 0
                 }

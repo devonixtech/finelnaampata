@@ -5,10 +5,11 @@ import {
     BadRequestException,
     ConflictException,
     OnModuleInit,
+    ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, MoreThan } from 'typeorm';
-import { Affiliate } from '../../entities/affiliate.entity';
+import { Affiliate, KycStatus } from '../../entities/affiliate.entity';
 import { AffiliateReferral, ReferralStatus, ReferralType } from '../../entities/referral.entity';
 import { Payout, PayoutStatus } from '../../entities/payout.entity';
 import { User } from '../../entities/user.entity';
@@ -180,6 +181,8 @@ export class AffiliateService implements OnModuleInit {
             convertedReferrals: conversions,
             totalEarnings: affiliate.totalEarnings,
             balance: affiliate.balance,
+            balanceHeld: affiliate.balanceHeld,
+            holdUntil: affiliate.holdUntil,
             totalWithdrawals: affiliate.totalWithdrawals,
             conversionRate: referrals > 0 ? (conversions / referrals) * 100 : 0,
             hasReferrer,
@@ -339,37 +342,22 @@ export class AffiliateService implements OnModuleInit {
         return { success: true, message: 'Referral click tracked successfully' };
     }
 
-    // --- Payout Logic ---
-
-    async requestPayout(userId: string, amount: number, method: string, details: string) {
-        const affiliate = await this.affiliateRepository.findOne({
-            where: { user: { id: userId } },
-        });
-
-        if (!affiliate) throw new NotFoundException('Affiliate not found');
-
-        if (amount < 500) {
-            throw new BadRequestException('Minimum withdrawal amount is Rs. 500');
+    private async releaseHeldFunds(affiliate: Affiliate): Promise<void> {
+        if (!affiliate.holdUntil) return;
+        const now = new Date();
+        if (now >= new Date(affiliate.holdUntil)) {
+            const heldAmount = Number(affiliate.balanceHeld);
+            if (heldAmount > 0) {
+                affiliate.balance = Number(affiliate.balance) + heldAmount;
+                affiliate.balanceHeld = 0;
+                affiliate.holdUntil = null;
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`[Hold] Released ${heldAmount} from held balance for affiliate ${affiliate.id}`);
+            }
         }
-
-        if (affiliate.balance < amount) {
-            throw new BadRequestException('Insufficient balance');
-        }
-
-        const payout = this.payoutRepository.create({
-            affiliateId: affiliate.id,
-            amount,
-            paymentMethod: method,
-            paymentDetails: details,
-            status: PayoutStatus.PENDING,
-        });
-
-        // Deduct balance immediately (or hold it)
-        affiliate.balance = Number(affiliate.balance) - amount;
-        await this.affiliateRepository.save(affiliate);
-
-        return this.payoutRepository.save(payout);
     }
+
+    // --- Payout Logic ---
 
     async getPayoutHistory(userId: string) {
         const affiliate = await this.affiliateRepository.findOne({
@@ -382,20 +370,6 @@ export class AffiliateService implements OnModuleInit {
             where: { affiliateId: affiliate.id },
             order: { createdAt: 'DESC' },
         });
-    }
-
-    // --- Admin Logic ---
-
-    async adminGetAllStats() {
-        const totalAffiliates = await this.affiliateRepository.count();
-        const totalEarnings = await this.affiliateRepository.sum('totalEarnings');
-        const pendingPayouts = await this.payoutRepository.count({ where: { status: PayoutStatus.PENDING } });
-
-        return {
-            totalAffiliates,
-            totalEarnings: totalEarnings || 0,
-            pendingPayouts,
-        };
     }
 
     async adminGetAllPayouts() {
@@ -431,6 +405,8 @@ export class AffiliateService implements OnModuleInit {
         await this.affiliateRepository.save(payout.affiliate);
         return this.payoutRepository.save(payout);
     }
+
+    // --- KYC Methods ---
 
     async adminGetAllAffiliates() {
         return this.affiliateRepository.find({
@@ -489,6 +465,341 @@ export class AffiliateService implements OnModuleInit {
             relations: ['affiliate', 'affiliate.user', 'referredUser'],
             order: { createdAt: 'DESC' }
         });
+    }
+
+    // --- KYC Methods ---
+
+    async submitKyc(userId: string, documentUrl: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { user: { id: userId } },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        if (affiliate.kycStatus === KycStatus.APPROVED) {
+            throw new BadRequestException('KYC already approved');
+        }
+
+        affiliate.kycDocumentUrl = documentUrl;
+        affiliate.kycStatus = KycStatus.PENDING;
+        affiliate.kycSubmittedAt = new Date();
+
+        return this.affiliateRepository.save(affiliate);
+    }
+
+    async reviewKyc(affiliateId: string, status: 'approved' | 'rejected', adminId: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { id: affiliateId },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        if (affiliate.kycStatus !== KycStatus.PENDING) {
+            throw new BadRequestException('No pending KYC to review');
+        }
+
+        affiliate.kycStatus = status === 'approved' ? KycStatus.APPROVED : KycStatus.REJECTED;
+        affiliate.kycReviewedAt = new Date();
+        affiliate.kycReviewedBy = adminId;
+
+        return this.affiliateRepository.save(affiliate);
+    }
+
+    // --- Admin Approval Methods ---
+
+    async approveAffiliate(affiliateId: string, adminId: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { id: affiliateId },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        affiliate.adminApproved = true;
+        affiliate.adminApprovedAt = new Date();
+        affiliate.adminApprovedBy = adminId;
+        affiliate.status = 'active';
+
+        return this.affiliateRepository.save(affiliate);
+    }
+
+    async suspendAffiliate(affiliateId: string, adminId: string, reason?: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { id: affiliateId },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        affiliate.status = 'suspended';
+        affiliate.adminApproved = false;
+
+        return this.affiliateRepository.save(affiliate);
+    }
+
+    // --- Enhanced Payout Methods ---
+
+    async requestPayout(userId: string, amount: number, method: string, details: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { user: { id: userId } },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        if (!affiliate.adminApproved) {
+            throw new ForbiddenException('Your affiliate account is not yet approved by admin');
+        }
+
+        if (affiliate.kycStatus !== KycStatus.APPROVED) {
+            throw new ForbiddenException('KYC verification required before requesting payout');
+        }
+
+        if (amount < 500) {
+            throw new BadRequestException('Minimum withdrawal amount is Rs. 500');
+        }
+
+        await this.releaseHeldFunds(affiliate);
+
+        if (Number(affiliate.balance) < amount) {
+            throw new BadRequestException('Insufficient available balance');
+        }
+
+        const payout = this.payoutRepository.create({
+            affiliateId: affiliate.id,
+            amount,
+            paymentMethod: method,
+            paymentDetails: details,
+            status: PayoutStatus.PENDING,
+        });
+
+        affiliate.balance = Number(affiliate.balance) - amount;
+        await this.affiliateRepository.save(affiliate);
+
+        return this.payoutRepository.save(payout);
+    }
+
+    async adminApprovePayout(payoutId: string, adminId: string, paymentReference?: string) {
+        const payout = await this.payoutRepository.findOne({
+            where: { id: payoutId },
+            relations: ['affiliate'],
+        });
+
+        if (!payout) throw new NotFoundException('Payout request not found');
+
+        if (payout.status === PayoutStatus.PAID || payout.status === PayoutStatus.REJECTED) {
+            throw new BadRequestException('Payout already processed');
+        }
+
+        await this.releaseHeldFunds(payout.affiliate);
+
+        payout.status = PayoutStatus.APPROVED;
+        payout.processedAt = new Date();
+        payout.adminNotes = `Approved by admin ${adminId}`;
+        if (paymentReference) {
+            payout.paymentReference = paymentReference;
+        }
+
+        return this.payoutRepository.save(payout);
+    }
+
+    async adminRejectPayout(payoutId: string, reason: string) {
+        const payout = await this.payoutRepository.findOne({
+            where: { id: payoutId },
+            relations: ['affiliate'],
+        });
+
+        if (!payout) throw new NotFoundException('Payout request not found');
+
+        if (payout.status === PayoutStatus.PAID || payout.status === PayoutStatus.REJECTED) {
+            throw new BadRequestException('Payout already processed');
+        }
+
+        payout.status = PayoutStatus.REJECTED;
+        payout.adminNotes = reason;
+
+        // Refund balance
+        payout.affiliate.balance = Number(payout.affiliate.balance) + Number(payout.amount);
+        await this.affiliateRepository.save(payout.affiliate);
+
+        return this.payoutRepository.save(payout);
+    }
+
+    async adminMarkAsPaid(payoutId: string, adminId: string, paymentReference: string) {
+        const payout = await this.payoutRepository.findOne({
+            where: { id: payoutId },
+            relations: ['affiliate'],
+        });
+
+        if (!payout) throw new NotFoundException('Payout request not found');
+
+        if (payout.status !== PayoutStatus.APPROVED) {
+            throw new BadRequestException('Payout must be approved before marking as paid');
+        }
+
+        payout.status = PayoutStatus.PAID;
+        payout.processedAt = new Date();
+        payout.paymentReference = paymentReference;
+        payout.adminNotes = `Marked as paid by admin ${adminId}`;
+
+        payout.affiliate.totalWithdrawals = Number(payout.affiliate.totalWithdrawals) + Number(payout.amount);
+        await this.affiliateRepository.save(payout.affiliate);
+
+        return this.payoutRepository.save(payout);
+    }
+
+    // --- Fraud Detection ---
+
+    async detectFraud(affiliateId: string, referredUserId: string): Promise<{ isFraud: boolean; reason?: string }> {
+        // Check for self-referral
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { id: affiliateId },
+            relations: ['user'],
+        });
+
+        if (affiliate?.userId === referredUserId) {
+            return { isFraud: true, reason: 'Self-referral detected' };
+        }
+
+        // Check for duplicate referral
+        const existing = await this.referralRepository.findOne({
+            where: { referredUserId },
+        });
+
+        if (existing) {
+            return { isFraud: true, reason: 'Duplicate referral detected' };
+        }
+
+        // Check for rapid signups from same affiliate (more than 10 in last hour)
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentReferrals = await this.referralRepository.count({
+            where: {
+                affiliateId,
+                createdAt: MoreThan(oneHourAgo),
+            },
+        });
+
+        if (recentReferrals > 10) {
+            return { isFraud: true, reason: 'Suspicious rapid signups detected' };
+        }
+
+        return { isFraud: false };
+    }
+
+    // --- Earnings Breakdown ---
+
+    async getEarningsBreakdown(userId: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { user: { id: userId } },
+        });
+
+        if (!affiliate) throw new NotFoundException('Affiliate not found');
+
+        const referrals = await this.referralRepository.count({
+            where: { affiliateId: affiliate.id },
+        });
+
+        const conversions = await this.referralRepository.count({
+            where: { affiliateId: affiliate.id, status: ReferralStatus.CONVERTED },
+        });
+
+        const pendingPayouts = await this.payoutRepository.sum('amount', {
+            affiliateId: affiliate.id,
+            status: PayoutStatus.PENDING,
+        });
+
+        const paidPayouts = await this.payoutRepository.sum('amount', {
+            affiliateId: affiliate.id,
+            status: PayoutStatus.PAID,
+        });
+
+        const clicks = await this.referralRepository.count({
+            where: { affiliateId: affiliate.id },
+        });
+
+        return {
+            signups: referrals,
+            conversions,
+            totalEarned: affiliate.totalEarnings,
+            pendingPayout: pendingPayouts || 0,
+            paidOut: paidPayouts || 0,
+            clicks,
+            conversionRate: referrals > 0 ? (conversions / referrals) * 100 : 0,
+            balance: affiliate.balance,
+            balanceHeld: affiliate.balanceHeld,
+            holdUntil: affiliate.holdUntil,
+        };
+    }
+
+    // --- Enhanced Admin Stats ---
+
+    async adminGetAllStats() {
+        const totalAffiliates = await this.affiliateRepository.count();
+        const activeAffiliates = await this.affiliateRepository.count({ where: { status: 'active' } });
+        const pendingApprovals = await this.affiliateRepository.count({ where: { adminApproved: false } });
+        const totalEarnings = await this.affiliateRepository.sum('totalEarnings') || 0;
+        const totalPaidOut = await this.payoutRepository.sum('amount', { status: PayoutStatus.PAID }) || 0;
+        const totalCommissionOwed = await this.payoutRepository.sum('amount', { status: PayoutStatus.PENDING }) || 0;
+        const pendingPayouts = await this.payoutRepository.count({ where: { status: PayoutStatus.PENDING } });
+        const totalClicks = await this.referralRepository.count();
+
+        return {
+            totalAffiliates,
+            activeAffiliates,
+            pendingApprovals,
+            totalEarnings,
+            totalPaidOut,
+            totalCommissionOwed,
+            pendingPayouts,
+            totalClicks,
+        };
+    }
+
+    // --- Export ---
+
+    async exportAffiliates(format: 'csv' | 'json' = 'csv') {
+        const affiliates = await this.affiliateRepository.find({
+            relations: ['user'],
+            order: { totalEarnings: 'DESC' },
+        });
+
+        if (format === 'json') {
+            return affiliates;
+        }
+
+        // CSV export
+        const headers = ['ID', 'User', 'Referral Code', 'Total Earnings', 'Balance', 'Balance Held', 'Hold Until', 'Status', 'KYC Status', 'Admin Approved', 'Created At'];
+        const rows = affiliates.map(a => [
+            a.id,
+            a.user?.fullName || a.user?.email || 'Unknown',
+            a.referralCode,
+            a.totalEarnings,
+            a.balance,
+            a.balanceHeld,
+            a.holdUntil?.toISOString() || '',
+            a.status,
+            a.kycStatus,
+            a.adminApproved ? 'Yes' : 'No',
+            a.createdAt?.toISOString(),
+        ]);
+
+        return [headers, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    // --- Click Tracking for Business Cards ---
+
+    async trackBusinessClick(affiliateCode: string, businessId: string, ip: string, userAgent: string) {
+        const affiliate = await this.affiliateRepository.findOne({
+            where: { referralCode: ILike(affiliateCode) },
+        });
+
+        if (!affiliate) return;
+
+        await this.listingRepo
+            .createQueryBuilder()
+            .update(Listing)
+            .set({ clickCount: () => '"click_count" + 1' })
+            .where('id = :businessId', { businessId })
+            .execute();
+
+        this.logger.log(`Business click tracked: affiliate=${affiliate.id}, business=${businessId}, ip=${ip}`);
     }
 
     async adminActivateReferral(referralId: string) {
@@ -909,9 +1220,13 @@ export class AffiliateService implements OnModuleInit {
                 if (commission > 0) {
                     const affiliateObj = referral.affiliate;
                     affiliateObj.totalEarnings = Number(affiliateObj.totalEarnings) + commission;
-                    affiliateObj.balance = Number(affiliateObj.balance) + commission;
+                    affiliateObj.balanceHeld = Number(affiliateObj.balanceHeld) + commission;
+                    const holdDays = affiliateObj.referralHoldDays || 30;
+                    const holdEnd = new Date();
+                    holdEnd.setDate(holdEnd.getDate() + holdDays);
+                    affiliateObj.holdUntil = holdEnd;
                     await this.affiliateRepository.save(affiliateObj);
-                    this.logger.log(`[Referral] Commission of PKR ${commission} added to affiliate ${affiliateObj.id} for paid amount PKR ${paidAmount}`);
+                    this.logger.log(`[Referral] Commission of PKR ${commission} placed on ${holdDays}-day hold for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
                 }
             } catch (commErr) {
                 this.logger.error(`[Referral] Failed to calculate commission for referral ${referral.id}: ${commErr.message}`);

@@ -65,7 +65,7 @@ function GoogleSignInButton({ loading, onError, onSuccess }: { loading: boolean;
 function LoginForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const redirect = searchParams.get('redirect');
+    const redirect = React.useRef(searchParams.get('redirect')).current;
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -76,7 +76,13 @@ function LoginForm() {
 
     React.useEffect(() => {
         if (user) {
-            router.replace(redirect || '/dashboard');
+            if (user.role === 'admin' || user.role === 'superadmin') {
+                router.replace('/admin');
+            } else if (!user.isEmailVerified && user.provider !== 'google') {
+                router.replace(redirect ? `/verify-email?redirect=${encodeURIComponent(redirect)}` : '/verify-email');
+            } else {
+                router.replace(redirect || '/dashboard');
+            }
         }
     }, [user, router, redirect]);
 

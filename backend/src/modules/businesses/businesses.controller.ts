@@ -49,7 +49,7 @@ export class BusinessesController {
     ) { }
 
     @Post()
-    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @Roles(UserRole.VENDOR, UserRole.ADMIN, UserRole.USER)
     @UseGuards(FeatureGateGuard)
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Create a new listing (Auto-upgrades User to Business)' })
@@ -314,5 +314,15 @@ export class BusinessesController {
         return this.businessesService.upsertAlbumImages(id, albumId, user, images);
     }
 
+    @Patch(':id/admin/ranking-boost')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Admin: Set manual ranking boost for a listing' })
+    setRankingBoost(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('boost') boost: number,
+    ) {
+        return this.businessesService.setRankingBoost(id, boost);
+    }
 
 }

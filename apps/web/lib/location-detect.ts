@@ -281,10 +281,16 @@ export async function detectNearestCityName(
         const filtered = cities.filter(c => cityMatchesCountry(c, detectedCountry));
         return filtered;
     };
-    const matchCityStrict = (name: string) => matchCityInList(getCountryFiltered(), name);
-    const resolveCountry = (matched: City | undefined) => {
+    
+    // Strict match helper
+    const matchCity = (name: string) => {
+        const searchList = getCountryFiltered();
+        return matchCityInList(searchList, name);
+    };
+
+    const resolveCountry = (matched: City | undefined, fallbackCountry: string) => {
         if (isPreferred) return preferredCountry as string;
-        return matched?.country || detectedCountry || '';
+        return matched?.country || fallbackCountry || detectedCountry || '';
     };
 
     try {
@@ -314,9 +320,12 @@ export async function detectNearestCityName(
                 }
                 const cityName = data.city || data.locality || data.principalSubdivision;
                 if (cityName) {
-                    const searchList = getCountryFiltered();
-                    const matched = matchCityInList(searchList, cityName);
-                    if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
+                    const matched = matchCity(cityName);
+                    // ALWAYS return the actual city, even if not in DB!
+                    return { 
+                        cityName: matched ? matched.name : cityName, 
+                        country: resolveCountry(matched, data.countryName) 
+                    };
                 }
                 if (data.latitude && data.longitude) {
                     coords = { latitude: data.latitude, longitude: data.longitude };
@@ -331,11 +340,6 @@ export async function detectNearestCityName(
 
     const lat = coords.latitude;
     const lng = coords.longitude;
-
-    const matchCity = (name: string) => {
-        const searchList = getCountryFiltered();
-        return matchCityInList(searchList, name);
-    };
 
     // 1. Try Google Maps Geocoding API if key is available
     const googleApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -354,7 +358,10 @@ export async function detectNearestCityName(
                             }
                             if (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2') || comp.types.includes('sublocality_level_1')) {
                                 const matched = matchCity(comp.long_name);
-                                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
+                                return { 
+                                    cityName: matched ? matched.name : comp.long_name, 
+                                    country: resolveCountry(matched, detectedCountry || '') 
+                                };
                             }
                         }
                     }
@@ -377,7 +384,10 @@ export async function detectNearestCityName(
             const cityName = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state_district || addr.state;
             if (cityName) {
                 const matched = matchCity(cityName);
-                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
+                return { 
+                    cityName: matched ? matched.name : cityName, 
+                    country: resolveCountry(matched, addr.country || detectedCountry || '') 
+                };
             }
         }
     } catch (e) {
@@ -393,16 +403,31 @@ export async function detectNearestCityName(
             const cityName = data.city || data.locality || data.principalSubdivision;
             if (cityName) {
                 const matched = matchCity(cityName);
-                if (matched) return { cityName: matched.name, country: resolveCountry(matched) };
+                return { 
+                    cityName: matched ? matched.name : cityName, 
+                    country: resolveCountry(matched, data.countryName || detectedCountry || '') 
+                };
             }
         }
     } catch (e) {
         console.warn("[location-detect] BigDataCloud Geocode failed:", e);
     }
 
-    // 4. Fallback: calculate spherical Haversine distance for cities that DO have coordinates
-    const nearest = findNearestCity(cities, lat, lng, detectedCountry || undefined);
-    return nearest ? { cityName: nearest.name, country: resolveCountry(nearest) } : null;
+    // 4. Fallback: ONLY search within the detected country!
+    if (detectedCountry) {
+        const countryFiltered = cities.filter((c) => cityMatchesCountry(c, detectedCountry as string));
+        if (countryFiltered.length === 0) {
+            // We know the country, but have no cities for it in our DB.
+            return null;
+        }
+        const nearest = findNearestCity(countryFiltered, lat, lng, detectedCountry);
+        if (nearest) return { cityName: nearest.name, country: resolveCountry(nearest, detectedCountry) };
+    } else {
+        const nearest = findNearestCity(cities, lat, lng);
+        if (nearest) return { cityName: nearest.name, country: resolveCountry(nearest, '') };
+    }
+
+    return null;
 }
 
 export function visibilityDayCount(start?: string, end?: string): number {

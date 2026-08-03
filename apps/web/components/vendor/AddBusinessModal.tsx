@@ -88,7 +88,10 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         offerBadge: '',
         offerExpiresAt: '',
         offerBannerUrl: '',
-        faqs: [] as { question: string; answer: string }[]
+        faqs: [] as { question: string; answer: string }[],
+        contactPersonName: '',
+        tagline: '',
+        yearEstablished: ''
     });
 
     const { config: addressConfig, validatePostalCode } = useAddressConfig(formData.country || null);
@@ -315,7 +318,10 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                 offerBannerUrl: business.offerBannerUrl || '',
                 faqs: (business.faqs || []).filter(f => f && f.question && f.answer)
                 ,
-                namedPhoneNumbers: (business as any).namedPhoneNumbers || []
+                namedPhoneNumbers: (business as any).namedPhoneNumbers || [],
+                contactPersonName: (business as any).contactPersonName || '',
+                tagline: (business as any).tagline || '',
+                yearEstablished: (business as any).yearEstablished ? String((business as any).yearEstablished) : ''
             });
             // Pre-fill gallery previews
             setGalleryPreviews(business.images || []);
@@ -633,6 +639,50 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                                 placeholder="Enter business name..."
                                                                 className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
                                                             />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2.5">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Tagline</label>
+                                                        <div className="relative group">
+                                                            <TextQuote className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+                                                            <input
+                                                                name="tagline"
+                                                                value={formData.tagline}
+                                                                onChange={handleChange}
+                                                                placeholder="A short catchy tagline..."
+                                                                className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2.5">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Person</label>
+                                                            <div className="relative group">
+                                                                <input
+                                                                    name="contactPersonName"
+                                                                    value={formData.contactPersonName}
+                                                                    onChange={handleChange}
+                                                                    placeholder="Contact person name..."
+                                                                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2.5">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Year Established</label>
+                                                            <div className="relative group">
+                                                                <input
+                                                                    name="yearEstablished"
+                                                                    type="number"
+                                                                    min="1800"
+                                                                    max={new Date().getFullYear()}
+                                                                    value={formData.yearEstablished}
+                                                                    onChange={handleChange}
+                                                                    placeholder="e.g. 2015"
+                                                                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
 

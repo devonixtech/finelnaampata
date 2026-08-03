@@ -6,6 +6,7 @@ import {
     Info, Star, MessageSquare, Zap, Megaphone,
     Search, Filter, CheckCircle2
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -18,11 +19,13 @@ interface Notification {
     type: string;
     isRead: boolean;
     createdAt: string;
+    link?: string;
     data?: any;
 }
 
 export default function NotificationsPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const { 
         notifications: socketNotifications, 
         markAsRead: socketMarkAsRead, 
@@ -115,13 +118,17 @@ export default function NotificationsPage() {
                 <div className="space-y-4">
                     <AnimatePresence mode='popLayout'>
                         {displayNotifications.map((n: any) => (
-                            <motion.div
+                                <motion.div
                                 layout
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 key={n.id}
-                                className={`group p-5 bg-white rounded-3xl border transition-all ${!n.isRead ? 'border-blue-100 bg-blue-50/20 shadow-sm' : 'border-slate-100 hover:bg-slate-50/50'}`}
+                                onClick={() => {
+                                    if (!n.isRead) handleMarkAsRead(n.id);
+                                    if (n.link) router.push(n.link);
+                                }}
+                                className={`group p-5 bg-white rounded-3xl border transition-all cursor-pointer ${!n.isRead ? 'border-blue-100 bg-blue-50/20 shadow-sm' : 'border-slate-100 hover:bg-slate-50/50'}`}
                             >
                                 <div className="flex gap-5">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${!n.isRead ? 'bg-white text-blue-500' : 'bg-slate-50 text-slate-400'}`}>
@@ -143,7 +150,7 @@ export default function NotificationsPage() {
                                         <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {!n.isRead && (
                                                 <button
-                                                    onClick={() => handleMarkAsRead(n.id)}
+                                                    onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
                                                     className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors shadow-sm"
                                                     title="Mark as read"
                                                 >
@@ -151,7 +158,7 @@ export default function NotificationsPage() {
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => handleDeleteNotification(n.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteNotification(n.id); }}
                                                 className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors shadow-sm"
                                                 title="Delete"
                                             >

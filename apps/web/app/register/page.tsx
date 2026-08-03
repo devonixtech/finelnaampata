@@ -103,11 +103,17 @@ function RegisterForm() {
     const { user, register, googleLogin } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const redirect = searchParams.get('redirect');
+    const redirect = React.useRef(searchParams.get('redirect')).current;
 
     useEffect(() => {
         if (user) {
-            router.replace(redirect || '/dashboard');
+            if (user.role === 'admin' || user.role === 'superadmin') {
+                router.replace('/admin');
+            } else if (!user.isEmailVerified && user.provider !== 'google') {
+                router.replace(redirect ? `/verify-email?redirect=${encodeURIComponent(redirect)}` : '/verify-email');
+            } else {
+                router.replace(redirect || '/dashboard');
+            }
         }
     }, [user, router, redirect]);
 

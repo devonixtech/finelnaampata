@@ -177,6 +177,12 @@ export class Listing {
     @Index()
     isSponsored: boolean;
 
+    @Column({ name: 'manual_ranking_boost', type: 'int', default: 0 })
+    manualRankingBoost: number;
+
+    @Column({ name: 'subscription_tier', type: 'int', default: 0 })
+    subscriptionTier: number;
+
     @Column({ name: 'recent_until', nullable: true, type: 'timestamp' })
     @Index()
     recentUntil: Date;
@@ -193,6 +199,9 @@ export class Listing {
 
     @Column({ name: 'total_leads', default: 0 })
     totalLeads: number;
+
+    @Column({ name: 'click_count', default: 0 })
+    clickCount: number;
 
     @Column({ name: 'followers_count', default: 0 })
     followersCount: number;

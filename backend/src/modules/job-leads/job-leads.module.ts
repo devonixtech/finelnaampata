@@ -5,6 +5,8 @@ import { JobLeadsController } from './job-leads.controller';
 import { JobLead, JobLeadResponse, Listing, Vendor, Category } from '../../entities';
 import { SystemSetting } from '../../entities/system-setting.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
+import { User } from '../../entities/user.entity';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
@@ -15,9 +17,11 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
             Listing,
             Vendor,
             Category,
+            User,
             SystemSetting,
         ]),
         NotificationsModule,
+        AuthModule,
         SubscriptionsModule,
     ],
     providers: [JobLeadsService],

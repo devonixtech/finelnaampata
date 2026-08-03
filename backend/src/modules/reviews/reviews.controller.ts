@@ -11,6 +11,7 @@ import {
     HttpCode,
     HttpStatus,
     Ip,
+    HttpException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
@@ -26,6 +27,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
 import { User, UserRole } from '../../entities/user.entity';
+
+const reviewRateLimitStore = new Map<string, number[]>();
+const REVIEW_RATE_LIMIT = 5;
+const REVIEW_RATE_WINDOW_MS = 60 * 60 * 1000;
 
 @ApiTags('reviews')
 @Controller('reviews')
@@ -65,6 +70,14 @@ export class ReviewsController {
         @CurrentUser() user: User,
         @Ip() ip: string,
     ) {
+        const now = Date.now();
+        const timestamps = reviewRateLimitStore.get(user.id) || [];
+        const recentTimestamps = timestamps.filter(t => now - t < REVIEW_RATE_WINDOW_MS);
+        if (recentTimestamps.length >= REVIEW_RATE_LIMIT) {
+            throw new HttpException('Too many reviews. Please wait before posting again.', HttpStatus.TOO_MANY_REQUESTS);
+        }
+        recentTimestamps.push(now);
+        reviewRateLimitStore.set(user.id, recentTimestamps);
         return this.reviewsService.create(createReviewDto, user, ip);
     }
 
@@ -187,6 +200,19 @@ export class ReviewsController {
     @ApiResponse({ status: 204, description: 'Helpful mark removed' })
     removeHelpfulMark(@Param('id', ParseUuidPipe) id: string, @CurrentUser() user: User) {
         return this.reviewsService.removeHelpfulMark(id, user);
+    }
+
+    @Post(':id/report')
+    @Roles(UserRole.USER, UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Report a review' })
+    @ApiResponse({ status: 200, description: 'Review reported successfully' })
+    reportReview(
+        @Param('id', ParseUuidPipe) id: string,
+        @CurrentUser() user: User,
+        @Body() body: { reason: string; details?: string },
+    ) {
+        return this.reviewsService.reportReview(id, user, body.reason, body.details);
     }
 
 

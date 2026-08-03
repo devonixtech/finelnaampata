@@ -38,7 +38,8 @@ interface MenuSection {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const { user, logout } = useAuth();
     const pathname = usePathname();
-    const { unreadChatCount, unreadCount: unreadNotificationCount, newEnquiryCount } = useSocket();
+    const { unreadChatCount, unreadCount: unreadNotificationCount, newEnquiryCount, notifications } = useSocket();
+    const newReviewCount = notifications?.filter(n => n.type === 'review_received' && !n.isRead).length || 0;
     const [newBroadcastCount, setNewBroadcastCount] = useState(0);
     const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
     const { hasFeature, planName } = usePlanFeature();
@@ -95,7 +96,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 { name: 'Leads', icon: Phone, href: '/leads', badge: null, feature: 'showLeads', description: 'My Inquiries & Claims from customers' },
                 { name: 'Queries', icon: Send, href: '/messages', badge: newEnquiryCount > 0 ? String(newEnquiryCount) : null, feature: 'showQueries', description: 'Direct customer messages & contact requests' },
                 { name: 'Live Chat', icon: MessageSquare, iconColor: 'text-emerald-500', href: '/chat', badge: unreadChatCount > 0 ? String(unreadChatCount) : null, feature: 'showChat', description: 'Real-time chat with customers' },
-                { name: 'Reviews', icon: Star, href: '/reviews', badge: null, feature: 'showReviews', description: 'My Reviews — ratings left by customers' },
+                { name: 'Reviews', icon: Star, href: '/reviews', badge: newReviewCount > 0 ? String(newReviewCount) : null, feature: 'showReviews', description: 'My Reviews — ratings left by customers' },
                 { name: 'Broadcast Feed', icon: Megaphone, href: '/broadcasts', badge: newBroadcastCount > 0 ? String(newBroadcastCount) : null, feature: 'showBroadcast', description: 'My Broadcasts — service requests from customers' },
                 { name: 'Customer Notes', icon: FileText, href: '/notes', badge: null, feature: 'showCustomerNotes', description: 'Private notes for customer follow-ups & CRM' },
             ]

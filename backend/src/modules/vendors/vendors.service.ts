@@ -291,6 +291,12 @@ export class VendorsService {
             /* Removed status filter so pending listings also show stats */
             .getRawOne();
 
+        const totalClicksRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.clickCount)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+
         const pendingCount = await this.listingRepository.count({
             where: {
                 vendorId: vendor.id,
@@ -388,6 +394,7 @@ export class VendorsService {
         });
 
         const totalReviews = Number(totalReviewsRaw?.total) || 0;
+        const totalClicks = Number(totalClicksRaw?.total) || 0;
         const profileCompletion = Math.min(completionScore, 100);
         const activeSubscription = this.resolveActiveMembership(
             vendor.subscriptions || [],
@@ -407,6 +414,7 @@ export class VendorsService {
             totalLeads,
             totalViews,
             totalReviews,
+            totalClicks,
             isVerified: vendor.isVerified,
             profileCompletion,
             analytics: hasActivity ? analytics : [],

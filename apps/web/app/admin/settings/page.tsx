@@ -278,13 +278,7 @@ export default function AdminSettingsPage() {
                                                 title: 'Customer Reviews',
                                                 description: 'When ON, new reviews appear on business profiles right away. When OFF, reviews wait for admin moderation.',
                                                 badge: 'On by default',
-                                            },
-                                            {
-                                                key: 'auto_approve_broadcasts',
-                                                title: 'Customer Broadcasts',
-                                                description: 'When ON, customer broadcast requests are sent to all matching businesses instantly. When OFF, broadcasts are queued for admin review first.',
-                                                badge: 'Manual review recommended',
-                                            },
+                                            }
                                         ].map(item => {
                                             const isOn = (settings[item.key] || 'false') === 'true';
                                             return (

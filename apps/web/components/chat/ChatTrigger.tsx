@@ -5,6 +5,7 @@ import { MessageCircle } from 'lucide-react';
 import ChatWindow from './ChatWindow';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { usePlanFeature } from '../../hooks/usePlanFeature';
 
 export interface ChatTriggerHandle {
     open: () => void;
@@ -21,11 +22,16 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
     const [isOpen, setIsOpen] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
+    const { hasFeature } = usePlanFeature();
 
     useImperativeHandle(ref, () => ({
         open: () => {
             if (!user) {
                 router.push(`/login?redirect=/business/${businessId}`);
+                return;
+            }
+            if (!hasFeature('showChat')) {
+                alert('In-App Chat requires a paid plan. Upgrade to access this feature.');
                 return;
             }
             setIsOpen(true);
@@ -38,6 +44,11 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
         
         if (!user) {
             router.push(`/login?redirect=/business/${businessId}`);
+            return;
+        }
+        
+        if (!hasFeature('showChat')) {
+            alert('In-App Chat requires a paid plan. Upgrade to access this feature.');
             return;
         }
         

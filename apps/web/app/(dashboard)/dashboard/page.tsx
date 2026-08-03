@@ -72,14 +72,14 @@ export default function GenericDashboard() {
                         ...(statsData || {}),
                         savedCount: favoritesData?.data?.length || 0,
                         reviewsCount: reviewsData?.data?.length || 0,
-                        unreadNotifs: notifsData?.data?.filter((n: any) => !n.isRead).length || 0
+                        unreadNotifs: notifsData?.notifications?.filter((n: any) => !n.isRead).length || 0
                     });
                     setAffiliateStats(affiliateData);
                 } else if (user) {
                     setStats({
-                        savedCount: favoritesData.data?.length || 0,
-                        reviewsCount: reviewsData.data?.length || 0,
-                        unreadNotifs: notifsData.data?.filter((n: any) => !n.isRead).length || 0
+                        savedCount: favoritesData?.data?.length || 0,
+                        reviewsCount: reviewsData?.data?.length || 0,
+                        unreadNotifs: notifsData?.notifications?.filter((n: any) => !n.isRead).length || 0
                     });
                 }
 

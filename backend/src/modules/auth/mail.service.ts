@@ -439,4 +439,62 @@ export class MailService {
             return false;
         }
     }
+
+    async sendSystemNotificationEmail(email: string, subject: string, title: string, message: string, actionUrl: string, actionText: string): Promise<boolean> {
+        const fromAddress = this.configService.get<string>('MAIL_FROM_ADDRESS', 'no-reply@naampata.com');
+        const fromName = this.configService.get<string>('MAIL_FROM_NAME', 'naampata');
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; box-shadow: 0 10px 30px rgba(17, 45, 78, 0.05); border: 1px solid #e2e8f0; overflow: hidden; }
+                .header { background: linear-gradient(135deg, #112D4E 0%, #1e40af 100%); padding: 40px 20px; text-align: center; color: white; }
+                .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+                .content { padding: 40px; }
+                .content p { color: #475569; line-height: 1.6; font-size: 16px; margin-bottom: 24px; }
+                .button-container { text-align: center; margin-top: 32px; }
+                .button { display: inline-block; background-color: #FF7A30; color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px; }
+                .footer { background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+                .footer p { color: #94a3b8; font-size: 14px; margin: 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>${title}</h1>
+                </div>
+                <div class="content">
+                    <p>${message}</p>
+                    <div class="button-container">
+                        <a href="${actionUrl}" class="button">${actionText}</a>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>&copy; ${new Date().getFullYear()} naampata. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        try {
+            await this.ensureTransportReady();
+            const mailOptions = {
+                from: `"${fromName}" <${fromAddress}>`,
+                to: email,
+                subject,
+                html: htmlContent,
+            };
+            await this.transporter.sendMail(mailOptions);
+            return true;
+        } catch (error) {
+            this.logger.error(`Failed to send system notification email to ${email}`, error.stack);
+            return false;
+        }
+    }
+
 }

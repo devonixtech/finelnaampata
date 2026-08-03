@@ -19,6 +19,13 @@ export enum AffiliateStatus {
     PENDING = 'pending',
 }
 
+export enum KycStatus {
+    NONE = 'none',
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+}
+
 @Entity('affiliates')
 export class Affiliate {
     @PrimaryGeneratedColumn('uuid')
@@ -41,8 +48,41 @@ export class Affiliate {
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
     balance: number;
 
+    @Column({ name: 'balance_held', type: 'decimal', precision: 10, scale: 2, default: 0 })
+    balanceHeld: number;
+
+    @Column({ name: 'referral_hold_days', type: 'int', default: 30 })
+    referralHoldDays: number;
+
+    @Column({ name: 'hold_until', type: 'timestamp', nullable: true })
+    holdUntil: Date;
+
     @Column({ default: 'active' })
     status: string;
+
+    @Column({ name: 'admin_approved', default: false })
+    adminApproved: boolean;
+
+    @Column({ name: 'admin_approved_at', type: 'timestamp', nullable: true })
+    adminApprovedAt: Date;
+
+    @Column({ name: 'admin_approved_by', nullable: true })
+    adminApprovedBy: string;
+
+    @Column({ name: 'kyc_status', default: 'none' })
+    kycStatus: string;
+
+    @Column({ name: 'kyc_document_url', nullable: true })
+    kycDocumentUrl: string;
+
+    @Column({ name: 'kyc_submitted_at', type: 'timestamp', nullable: true })
+    kycSubmittedAt: Date;
+
+    @Column({ name: 'kyc_reviewed_at', type: 'timestamp', nullable: true })
+    kycReviewedAt: Date;
+
+    @Column({ name: 'kyc_reviewed_by', nullable: true })
+    kycReviewedBy: string;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

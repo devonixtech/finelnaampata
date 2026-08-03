@@ -43,15 +43,12 @@ export default function CitySearchSelect({ cities, value, onChange, onCountryDet
     const handleAutoDetect = async () => {
         setIsLocating(true);
         try {
-            // Prefer the manually selected country, otherwise fall back to the
-            // country of the already-selected city (prevents IP/geo overriding it).
-            const selectedCityCountry = sortedCities.find(c => c.name === value)?.country || null;
-            const preferred = selectedCountry || selectedCityCountry;
-            const result = await detectNearestCityName(sortedCities, true, preferred);
+            // Pass null for preferred country so it detects the TRUE location via GPS/IP
+            const result = await detectNearestCityName(sortedCities, true, null);
             if (result) {
                 onChange(result.cityName);
-                // Only auto-select country when user hasn't already picked one manually.
-                if (onCountryDetected && !selectedCountry && result.country) {
+                // Always update the country dropdown to match the detected location
+                if (onCountryDetected && result.country) {
                     onCountryDetected(result.country);
                 }
                 setIsOpen(false);

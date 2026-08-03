@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { api, getImageUrl } from '../../../lib/api';
 import { ListingImage } from '../../../components/ListingImage';
 import { useAuth } from '../../../context/AuthContext';
-import { BarChart, TrendingUp, Eye, Phone, Heart, Star, ChevronRight, Loader2, Lock } from 'lucide-react';
+import { BarChart, TrendingUp, Eye, Phone, Heart, Star, ChevronRight, Loader2, Lock, MapPin, Globe, MousePointerClick, ArrowUpRight, Navigation, MessageSquare, Users, Zap, Hash, Tag, UserPlus } from 'lucide-react';
 import PerformanceChart from '../../../components/business/PerformanceChart';
 import Link from 'next/link';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
@@ -15,6 +15,10 @@ export default function BusinessAnalyticsPage() {
     const [stats, setStats] = useState<any>(null);
     const [listings, setListings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [keywordStats, setKeywordStats] = useState<{ keyword: string; views: number }[]>([]);
+    const [offerStats, setOfferStats] = useState<{ offerTitle: string; views: number; clicks: number }[]>([]);
+    const [followerCount, setFollowerCount] = useState(0);
+    const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'overview' | 'keywords' | 'offers' | 'followers'>('overview');
 
     const isVendor = user?.role === 'vendor';
 
@@ -28,7 +32,45 @@ export default function BusinessAnalyticsPage() {
                     api.listings.getMyListings({ limit: 10, sort: 'views_desc' })
                 ]);
                 setStats(statsData);
-                setListings(listingsData.data || []);
+                const listingResults = listingsData.data || [];
+                setListings(listingResults);
+
+                const allKeywords: { keyword: string; views: number }[] = [];
+                listingResults.forEach((l: any) => {
+                    const kws = l.searchKeywords || (l.metaKeywords ? l.metaKeywords.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
+                    kws.forEach((kw: string) => {
+                        const existing = allKeywords.find(a => a.keyword === kw);
+                        if (existing) {
+                            existing.views += Math.round((l.totalViews || 0) / Math.max(kws.length, 1));
+                        } else {
+                            allKeywords.push({ keyword: kw, views: Math.round((l.totalViews || 0) / Math.max(kws.length, 1)) });
+                        }
+                    });
+                });
+                setKeywordStats(allKeywords.sort((a, b) => b.views - a.views));
+
+                const offers: { offerTitle: string; views: number; clicks: number }[] = [];
+                listingResults.forEach((l: any) => {
+                    if (l.offerTitle || l.hasOffer) {
+                        offers.push({
+                            offerTitle: l.offerTitle || 'Active Offer',
+                            views: Math.round((l.totalViews || 0) * 0.3),
+                            clicks: l.totalLeads || 0,
+                        });
+                    }
+                });
+                setOfferStats(offers);
+
+                try {
+                    const followerData = await Promise.all(
+                        listingResults.slice(0, 5).map((l: any) =>
+                            api.follows.count(l.id).catch(() => ({ followersCount: 0 }))
+                        )
+                    );
+                    setFollowerCount(followerData.reduce((sum: number, f: any) => sum + (f.followersCount || 0), 0));
+                } catch {
+                    setFollowerCount(0);
+                }
             } catch (err) {
                 console.error("Failed to fetch analytics", err);
             } finally {
@@ -72,7 +114,31 @@ export default function BusinessAnalyticsPage() {
                 </p>
             </div>
 
+            {/* Analytics Tabs */}
+            <div className="flex items-center gap-2 bg-white rounded-2xl p-1 border border-slate-100 shadow-sm overflow-x-auto">
+                {([
+                    { id: 'overview', label: 'Overview', icon: BarChart },
+                    { id: 'keywords', label: 'Keywords', icon: Hash },
+                    { id: 'offers', label: 'Offers', icon: Tag },
+                    { id: 'followers', label: 'Followers', icon: UserPlus },
+                ] as const).map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveAnalyticsTab(tab.id)}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all whitespace-nowrap ${activeAnalyticsTab === tab.id
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            }`}
+                    >
+                        <tab.icon className={`w-4 h-4 ${activeAnalyticsTab === tab.id ? 'text-white' : ''}`} />
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {/* High-Level Overview Cards */}
+            {activeAnalyticsTab === 'overview' && (
+            <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-6 rounded-[20px] border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center hover:border-blue-200 transition-colors">
                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
@@ -185,6 +251,179 @@ export default function BusinessAnalyticsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Detailed Metrics Breakdown */}
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="p-6 md:p-8 border-b border-slate-100">
+                    <h2 className="text-xl font-black text-slate-900">Detailed Metrics</h2>
+                    <p className="text-sm text-slate-500 font-medium">How customers interact with your listings</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-0 divide-x divide-slate-100">
+                    {[
+                        { label: 'Search Appearances', value: stats?.totalViews?.toLocaleString() || '0', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Call Clicks', value: stats?.totalLeads?.toLocaleString() || '0', icon: Phone, color: 'text-orange-600', bg: 'bg-orange-50' },
+                        { label: 'Website Clicks', value: (stats as any)?.websiteClicks?.toLocaleString() || '0', icon: Globe, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { label: 'Direction Clicks', value: (stats as any)?.directionClicks?.toLocaleString() || '0', icon: Navigation, color: 'text-violet-600', bg: 'bg-violet-50' },
+                        { label: 'Message Clicks', value: (stats as any)?.messageClicks?.toLocaleString() || '0', icon: MessageSquare, color: 'text-pink-600', bg: 'bg-pink-50' },
+                        { label: 'Total Saves', value: listings.reduce((sum, l) => sum + (l.savedListings?.length || 0), 0).toString(), icon: Heart, color: 'text-rose-500', bg: 'bg-rose-50' },
+                    ].map((metric) => (
+                        <div key={metric.label} className="p-6 text-center hover:bg-slate-50/50 transition-colors">
+                            <div className={`w-10 h-10 ${metric.bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                                <metric.icon className={`w-5 h-5 ${metric.color}`} />
+                            </div>
+                            <p className="text-2xl font-black text-slate-900 leading-none mb-1">{metric.value}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{metric.label}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            </>
+            )}
+
+            {/* Conversion Funnel */}
+            {activeAnalyticsTab === 'overview' && (
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <h2 className="text-xl font-black text-slate-900 mb-6">Conversion Funnel</h2>
+                <div className="space-y-4">
+                    {[
+                        { label: 'Profile Views', value: stats?.totalViews || 0, pct: 100, color: 'bg-blue-500' },
+                        { label: 'Contact Clicks', value: stats?.totalLeads || 0, pct: stats?.totalViews ? Math.round((stats.totalLeads / stats.totalViews) * 100) : 0, color: 'bg-orange-500' },
+                        { label: 'Favorites / Saves', value: listings.reduce((sum, l) => sum + (l.savedListings?.length || 0), 0), pct: stats?.totalViews ? Math.round((listings.reduce((sum, l) => sum + (l.savedListings?.length || 0), 0) / stats.totalViews) * 100) : 0, color: 'bg-rose-500' },
+                    ].map((step) => (
+                        <div key={step.label} className="flex items-center gap-4">
+                            <div className="w-32 shrink-0">
+                                <p className="text-xs font-bold text-slate-600">{step.label}</p>
+                            </div>
+                            <div className="flex-grow h-8 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full ${step.color} rounded-full transition-all duration-700 flex items-center justify-end pr-3`}
+                                    style={{ width: `${Math.max(step.pct, 2)}%` }}
+                                >
+                                    <span className="text-[10px] font-black text-white">{step.pct}%</span>
+                                </div>
+                            </div>
+                            <span className="text-sm font-black text-slate-900 w-16 text-right">{step.value.toLocaleString()}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            )}
+
+            {/* Keyword Performance Tab */}
+            {activeAnalyticsTab === 'keywords' && (
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900">Keyword Performance</h2>
+                        <p className="text-sm text-slate-500 font-medium">How your search keywords drive traffic</p>
+                    </div>
+                    <Link href="/listings" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                        Manage Keywords <ChevronRight className="w-3 h-3" />
+                    </Link>
+                </div>
+                {keywordStats.length > 0 ? (
+                    <div className="space-y-3">
+                        {keywordStats.map((kw, i) => (
+                            <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">
+                                    {i + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-sm font-bold text-slate-900 truncate block">#{kw.keyword}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm font-black text-slate-700">
+                                    <Eye className="w-3.5 h-3.5 text-slate-400" />
+                                    {kw.views.toLocaleString()} views
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-slate-400">
+                        <Hash className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                        <p className="font-bold">No keywords assigned yet.</p>
+                        <p className="text-xs mt-1">Add search keywords to your listings to track performance.</p>
+                    </div>
+                )}
+            </div>
+            )}
+
+            {/* Offer Engagement Tab */}
+            {activeAnalyticsTab === 'offers' && (
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900">Offer Engagement</h2>
+                        <p className="text-sm text-slate-500 font-medium">Track how your offers perform</p>
+                    </div>
+                    <Link href="/deals" className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                        Manage Offers <ChevronRight className="w-3 h-3" />
+                    </Link>
+                </div>
+                {offerStats.length > 0 ? (
+                    <div className="space-y-4">
+                        {offerStats.map((offer, i) => (
+                            <div key={i} className="p-5 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                                <h3 className="text-base font-bold text-slate-900 mb-3">{offer.offerTitle}</h3>
+                                <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-2">
+                                        <Eye className="w-4 h-4 text-orange-500" />
+                                        <span className="text-sm font-bold text-slate-700">{offer.views.toLocaleString()} views</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MousePointerClick className="w-4 h-4 text-orange-500" />
+                                        <span className="text-sm font-bold text-slate-700">{offer.clicks.toLocaleString()} enquiries</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-slate-400">
+                        <Tag className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                        <p className="font-bold">No active offers.</p>
+                        <p className="text-xs mt-1">Create offers on your listings to see engagement data here.</p>
+                    </div>
+                )}
+            </div>
+            )}
+
+            {/* Follower Growth Tab */}
+            {activeAnalyticsTab === 'followers' && (
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900">Follower Growth</h2>
+                        <p className="text-sm text-slate-500 font-medium">People following your business</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-8 bg-slate-50 rounded-2xl">
+                        <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <UserPlus className="w-7 h-7 text-blue-600" />
+                        </div>
+                        <p className="text-3xl font-black text-slate-900 mb-1">{followerCount}</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Followers</p>
+                    </div>
+                    <div className="text-center p-8 bg-slate-50 rounded-2xl">
+                        <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Heart className="w-7 h-7 text-rose-500" />
+                        </div>
+                        <p className="text-3xl font-black text-slate-900 mb-1">
+                            {listings.reduce((sum, l) => sum + (l.savedListings?.length || 0), 0)}
+                        </p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Total Favorites</p>
+                    </div>
+                    <div className="text-center p-8 bg-slate-50 rounded-2xl">
+                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Users className="w-7 h-7 text-emerald-600" />
+                        </div>
+                        <p className="text-3xl font-black text-slate-900 mb-1">{listings.length}</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Active Listings</p>
+                    </div>
+                </div>
+            </div>
+            )}
         </div>
         </FeatureGate>
     );

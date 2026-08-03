@@ -7,6 +7,7 @@ import {
     UseGuards,
     Param,
     Query,
+    Req,
 } from '@nestjs/common';
 import { AffiliateService } from './affiliate.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -76,6 +77,32 @@ export class AffiliateController {
         return this.affiliateService.getPayoutHistory(user.id);
     }
 
+    @Get('earnings/breakdown')
+    @ApiOperation({ summary: 'Get detailed earnings breakdown' })
+    async getEarningsBreakdown(@CurrentUser() user: User) {
+        return this.affiliateService.getEarningsBreakdown(user.id);
+    }
+
+    @Post('kyc/submit')
+    @ApiOperation({ summary: 'Submit KYC document' })
+    async submitKyc(@CurrentUser() user: User, @Body() body: { documentUrl: string }) {
+        return this.affiliateService.submitKyc(user.id, body.documentUrl);
+    }
+
+    @Post('track/business-click')
+    @ApiOperation({ summary: 'Track affiliate click on business card' })
+    async trackBusinessClick(
+        @Body() body: { affiliateCode: string; businessId: string },
+        @Req() req: any,
+    ) {
+        return this.affiliateService.trackBusinessClick(
+            body.affiliateCode,
+            body.businessId,
+            req.ip || req.connection?.remoteAddress,
+            req.headers['user-agent'],
+        );
+    }
+
     // --- Admin Endpoints ---
 
     @Get('admin/stats')
@@ -105,12 +132,81 @@ export class AffiliateController {
         return this.affiliateService.adminUpdatePayout(id, body.status, body.notes);
     }
 
+    @Post('admin/payout/:id/approve')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Approve payout request' })
+    async adminApprovePayout(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+        @Body() body: { paymentReference?: string },
+    ) {
+        return this.affiliateService.adminApprovePayout(id, user.id, body.paymentReference);
+    }
+
+    @Post('admin/payout/:id/reject')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Reject payout request' })
+    async adminRejectPayout(
+        @Param('id') id: string,
+        @Body() body: { reason: string },
+    ) {
+        return this.affiliateService.adminRejectPayout(id, body.reason);
+    }
+
+    @Post('admin/payout/:id/mark-paid')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Mark payout as paid' })
+    async adminMarkAsPaid(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+        @Body() body: { paymentReference: string },
+    ) {
+        return this.affiliateService.adminMarkAsPaid(id, user.id, body.paymentReference);
+    }
+
     @Get('admin/affiliates')
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Admin: List all affiliates' })
     async adminGetAffiliates() {
         return this.affiliateService.adminGetAllAffiliates();
+    }
+
+    @Post('admin/approve/:id')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Approve affiliate' })
+    async adminApproveAffiliate(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.affiliateService.approveAffiliate(id, user.id);
+    }
+
+    @Post('admin/suspend/:id')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Suspend affiliate' })
+    async adminSuspendAffiliate(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+    ) {
+        return this.affiliateService.suspendAffiliate(id, user.id);
+    }
+
+    @Post('admin/kyc/:id/review')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Review KYC document' })
+    async adminReviewKyc(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+        @Body() body: { status: 'approved' | 'rejected' },
+    ) {
+        return this.affiliateService.reviewKyc(id, body.status, user.id);
     }
 
     @Get('admin/referrals')
@@ -127,6 +223,14 @@ export class AffiliateController {
     @ApiOperation({ summary: 'Admin: Activate a referral and member plan' })
     async adminActivateReferral(@Param('id') id: string) {
         return this.affiliateService.adminActivateReferral(id);
+    }
+
+    @Get('admin/export')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Export affiliates data' })
+    async adminExportAffiliates(@Query('format') format: 'csv' | 'json') {
+        return this.affiliateService.exportAffiliates(format || 'csv');
     }
 
     @Get('settings')
