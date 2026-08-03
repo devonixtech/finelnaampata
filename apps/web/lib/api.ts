@@ -263,12 +263,12 @@ export const api = {
                         maxSizeMB: 1.0,
                         maxWidthOrHeight: 1600,
                         useWebWorker: true,
-                        fileType: 'image/jpeg',
+                        fileType: 'image/webp',
                         initialQuality: 0.8,
                     };
                     const compressedBlob = await imageCompression(file, options);
-                    fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' });
-                    console.log(`[api.ts] Compressed image from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB`);
+                    fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' });
+                    console.log(`[api.ts] Compressed image from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB (WebP)`);
                 } catch (error) {
                     console.warn('[api.ts] Image compression failed, uploading original.', error);
                 }

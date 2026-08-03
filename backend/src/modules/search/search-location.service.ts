@@ -391,35 +391,55 @@ export class SearchLocationService {
             });
         }
 
-        const formattedResults = businesses.map(b => ({
-            id: b.id,
-            title: b.title,
-            description: b.description,
-            category: b.category?.name,
-            city: b.city,
-            location: { lat: b.latitude, lon: b.longitude },
-            rating: b.averageRating,
-            isFeatured: b.isFeatured,
-            isVerified: b.isVerified,
-            status: b.status,
-            slug: b.slug,
-            logoUrl: b.logoUrl,
-            coverImageUrl: b.coverImageUrl,
-            phone: b.phone,
-            address: b.address,
-            followersCount: b.followersCount,
-            createdAt: b.createdAt,
-            distance: (b as any).distance ?? null,
-            reviewCount: b.totalReviews || 0,
-            profileViews: b.totalViews || 0,
-            contacts: b.totalLeads || 0,
-            clickCount: b.clickCount || 0,
-            manualRankingBoost: b.manualRankingBoost || 0,
-            subscriptionTier: b.subscriptionTier || 0,
-            isSponsored: b.isSponsored || false,
-        }));
+        const formattedResults = businesses.map(b => {
+            // --- Weighted Ranking Algorithm ---
+            let relevanceScore = 0;
+            if (b.isSponsored) relevanceScore += 50;
+            if (b.isFeatured) relevanceScore += 30;
+            relevanceScore += (b.subscriptionTier || 0) * 10;
+            relevanceScore += (b.averageRating || 0) * 5;
+            const rc = b.totalReviews || 0;
+            if (rc > 0) relevanceScore += Math.min(20, Math.log2(rc + 1) * 4);
+            if (b.totalViews > 0) relevanceScore += Math.min(10, Math.log2(b.totalViews + 1) * 2);
+            if (b.totalLeads > 0) relevanceScore += Math.min(10, Math.log2(b.totalLeads + 1) * 3);
+            if (b.followersCount > 0) relevanceScore += Math.min(5, Math.log2(b.followersCount + 1) * 2);
+            relevanceScore += (b.manualRankingBoost || 0);
+            if (b.isVerified) relevanceScore += 5;
 
-        // 4. Increment search impressions for all businesses in the result set
+            return {
+                id: b.id,
+                title: b.title,
+                description: b.description,
+                category: b.category?.name,
+                city: b.city,
+                location: { lat: b.latitude, lon: b.longitude },
+                rating: b.averageRating,
+                isFeatured: b.isFeatured,
+                isVerified: b.isVerified,
+                status: b.status,
+                slug: b.slug,
+                logoUrl: b.logoUrl,
+                coverImageUrl: b.coverImageUrl,
+                phone: b.phone,
+                address: b.address,
+                followersCount: b.followersCount,
+                createdAt: b.createdAt,
+                distance: (b as any).distance ?? null,
+                reviewCount: b.totalReviews || 0,
+                profileViews: b.totalViews || 0,
+                contacts: b.totalLeads || 0,
+                clickCount: b.clickCount || 0,
+                manualRankingBoost: b.manualRankingBoost || 0,
+                subscriptionTier: b.subscriptionTier || 0,
+                isSponsored: b.isSponsored || false,
+                relevanceScore: Math.round(relevanceScore * 100) / 100,
+            };
+        });
+
+        // 4. Sort by weighted relevance score (descending)
+        formattedResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+        // 5. Increment search impressions for all businesses in the result set
         if (formattedResults.length > 0) {
             const resultIds = formattedResults.map((r: any) => r.id);
             await this.businessRepository
@@ -430,7 +450,7 @@ export class SearchLocationService {
                 .execute();
         }
 
-        // 5. Cache the results for 15 minutes
+        // 6. Cache the results for 15 minutes
         await this.cacheManager.set(cacheKey, formattedResults, this.SEARCH_TTL_MS);
         await this.trackCacheKey(dto, cacheKey);
 

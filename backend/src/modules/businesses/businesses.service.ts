@@ -347,12 +347,20 @@ export class BusinessesService implements OnModuleInit {
             faqs?: { question: string; answer: string }[];
             namedPhoneNumbers?: Array<{ label?: string; number?: string; personName?: string; title?: string }>;
             whatsapp?: string;
+            galleryImages?: string[];
         },
         _features: Record<string, unknown>,
     ) {
         const maxKeywords = Number(_features.maxKeywords ?? 0);
         const maxFaqs = Number(_features.maxFaqs ?? 0);
         const maxNamedPhoneNumbers = Number(_features.maxNamedPhoneNumbers ?? 0);
+        const maxImages = Number(_features.maxImages ?? 3); // Default to 3 for free plans if undefined
+
+        if (dto.galleryImages && dto.galleryImages.length > maxImages) {
+            throw new BadRequestException(
+                `Your current plan allows a maximum of ${maxImages} images. Please upgrade to add more.`,
+            );
+        }
 
         if (dto.metaKeywords) {
             const keywordCount = dto.metaKeywords
@@ -583,6 +591,18 @@ export class BusinessesService implements OnModuleInit {
                 );
             } else {
                 vendor = await this.ensureVendorForUser(user);
+            }
+        }
+
+        // Enforce 1 business per vendor (admins exempt)
+        if (![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
+            const existingBusinessCount = await this.listingRepository.count({
+                where: { vendorId: vendor.id, hiddenByDeletion: false },
+            });
+            if (existingBusinessCount > 0) {
+                throw new BadRequestException(
+                    'Each vendor can only have one business listing. Please edit your existing listing instead of creating a new one.',
+                );
             }
         }
 
@@ -1115,9 +1135,7 @@ export class BusinessesService implements OnModuleInit {
 
         if (searchDto.experience) {
             const currentYear = new Date().getFullYear();
-            if (searchDto.experience === 'experienced') {
-                queryBuilder.andWhere('listing.yearEstablished IS NOT NULL AND :currentYear - listing.yearEstablished >= 5', { currentYear });
-            }
+            queryBuilder.andWhere('listing.yearEstablished IS NOT NULL AND :currentYear - listing.yearEstablished >= 5', { currentYear });
         }
 
         if (searchDto.mostContacted) {
@@ -1955,5 +1973,14 @@ export class BusinessesService implements OnModuleInit {
 
     async trackAdClick(businessId: string): Promise<void> {
         await this.listingRepository.increment({ id: businessId }, 'adClicks', 1);
+    }
+
+    async trackContact(businessId: string): Promise<void> {
+        await this.listingRepository.increment({ id: businessId }, 'clickToCallCount', 1);
+        await this.listingRepository.increment({ id: businessId }, 'totalLeads', 1);
+    }
+
+    async trackConversion(businessId: string): Promise<void> {
+        await this.listingRepository.increment({ id: businessId }, 'convertedLeads', 1);
     }
 }

@@ -404,7 +404,6 @@ export class VendorsService {
 
         const totalReviews = Number(totalReviewsRaw?.total) || 0;
         const totalClicks = Number(totalClicksRaw?.total) || 0;
-        const messageClicks = Number(messageClicksRaw?.total) || 0;
         const profileCompletion = Math.min(completionScore, 100);
 
         const searchImpressionsRaw = await this.listingRepository

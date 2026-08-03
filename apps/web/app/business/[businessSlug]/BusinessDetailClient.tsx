@@ -512,11 +512,13 @@ export default function BusinessDetailClient({
       });
 
       if (action === "call" && business?.phone) {
+        fetch(`/api/businesses/${business.id}/track/contact`, { method: "POST" }).catch(console.error);
         window.location.href = `tel:${business.phone}`;
       } else if (
         action === "whatsapp" &&
         (business?.whatsapp || business?.phone)
       ) {
+        fetch(`/api/businesses/${business.id}/track/contact`, { method: "POST" }).catch(console.error);
         const waNumber = (business.whatsapp || business.phone).replace(
           /\s+/g,
           "",
@@ -859,126 +861,6 @@ export default function BusinessDetailClient({
   };
 
   if (loading)
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="max-w-7xl mx-auto px-4 py-20 text-center text-slate-400">
-          Loading business details...
-        </div>
-      </div>
-    );
-
-  if (error || !business) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center p-4">
-          <div className="max-w-xl w-full text-center space-y-8 animate-in fade-in zoom-in duration-700">
-            <div className="relative mx-auto w-40 h-40">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                className="absolute inset-0 bg-blue-50 rounded-[28px] rotate-6"
-              />
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 200,
-                  damping: 20,
-                  delay: 0.1,
-                }}
-                className="absolute inset-0 bg-white border-2 border-slate-100 rounded-[28px] shadow-sm flex items-center justify-center"
-              >
-                <Store className="w-16 h-16 text-slate-200" />
-                <div className="absolute -top-2 -right-2 w-10 h-10 bg-rose-500 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/30">
-                  <X className="w-5 h-5 text-white" />
-                </div>
-              </motion.div>
-            </div>
-
-            <div>
-              <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
-                Business Not Found
-              </h1>
-              <p className="text-slate-500 font-medium leading-relaxed max-w-sm mx-auto mb-2">
-                The business you're looking for might have been moved, deleted,
-                or is currently awaiting approval.
-              </p>
-              {error && (
-                <p className="text-rose-500 text-xs font-mono bg-rose-50 p-2 rounded-lg inline-block">
-                  Error: {error}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/search"
-                className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95"
-              >
-                <Search className="w-5 h-5" /> Browse Businesses
-              </Link>
-              <Link
-                href="/"
-                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-95"
-              >
-                <ArrowLeft className="w-5 h-5" /> Go Back Home
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  // Check if current logged-in user is the owner of this business.
-  // STRICT: Both sides must be non-null, non-empty strings before comparing.
-  // Prevents false positives from `undefined === undefined` when API fields are missing.
-  const currentUserId = user?.id;
-  const vendorUserId = business.vendor?.userId || business.vendor?.user?.id;
-  const isOwner = !!(
-    currentUserId &&
-    vendorUserId &&
-    typeof currentUserId === "string" &&
-    typeof vendorUserId === "string" &&
-    currentUserId === vendorUserId
-  );
-
-  const imagePaths = new Set(
-    [
-      business.coverImageUrl, 
-      ...(Array.isArray(business.images) ? business.images : []),
-      ...(Array.isArray(business.vendor?.shopPhotos) ? business.vendor.shopPhotos : [])
-    ].filter(Boolean)
-  );
-
-  const actualImages = Array.from(imagePaths)
-    .map((img) => getImageUrl(img))
-    .filter(Boolean) as string[];
-
-  const galleryImages = actualImages;
-
-  const openLightbox = (index: number) => {
-    setCurrentImageIndex(index);
-    setShowLightbox(true);
-  };
-
-  const nextImage = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
-  };
-
-  const prevImage = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentImageIndex(
-      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length,
-    );
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -998,1119 +880,511 @@ export default function BusinessDetailClient({
       )}
 
       {/* Breadcrumbs */}
-      <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 border-b border-slate-100 flex flex-wrap items-center gap-2 text-xs md:text-sm text-slate-400">
-        <Link href="/" className="hover:text-blue-600 shrink-0">
-          Home
-        </Link>
+      <div className="max-w-5xl mx-auto px-4 py-4 md:py-6 flex flex-wrap items-center gap-2 text-xs md:text-sm text-slate-500">
+        <Link href="/" className="hover:text-blue-600 shrink-0">Home</Link>
         <ChevronRight className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
-        <Link
-          href={`/search?category=${business.category?.slug || ""}`}
-          className="hover:text-blue-600 truncate max-w-[100px] md:max-w-none"
-        >
+        <Link href={`/search?category=${business.category?.slug || ""}`} className="hover:text-blue-600 truncate max-w-[100px] md:max-w-none">
           {business.category?.name || "Category"}
         </Link>
         <ChevronRight className="w-3 h-3 md:w-4 md:h-4 shrink-0" />
         <span className="text-slate-900 font-medium truncate">{business.title}</span>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12 pb-24 lg:pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr] xl:grid-cols-[256px_1fr_320px] gap-6">
-
-          {/* LEFT COLUMN - Categories Sidebar (hidden on mobile) */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 bg-white rounded-2xl border border-slate-100 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-slate-900">Categories</h3>
-                <Link href="/categories" className="text-sm text-blue-600 hover:underline">View all</Link>
+      <main className="max-w-5xl mx-auto px-4 pb-24 lg:pb-12">
+        {/* TOP HEADER: 3-Column Photo Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-2 mb-6 h-[400px]">
+          {/* Main Large Image (Left) */}
+          <div
+            className="relative rounded-l-2xl overflow-hidden bg-slate-100 cursor-pointer group h-full"
+            onClick={() => galleryImages.length > 0 && openLightbox(0)}
+          >
+            {galleryImages.length > 0 ? (
+              <>
+                <img
+                  src={galleryImages[0]}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  alt={business.title}
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                <Images className="w-12 h-12 mb-2" />
+                <span className="text-xs font-medium">No photos</span>
               </div>
-              <input
-                type="text"
-                placeholder="Search categories..."
-                value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm mb-3"
-              />
-              <div className="space-y-1">
-                {filteredCategories.slice(0, 12).map((cat: any) => (
-                  <Link
-                    key={cat.id}
-                    href={`/search?category=${cat.slug}`}
-                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-lg">
-                      {cat.icon || '📂'}
+            )}
+          </div>
+
+          {/* Right Column (Map Top, Grid Bottom) */}
+          <div className="grid grid-rows-2 gap-2 h-full">
+            {/* Map (Top Right) */}
+            <div className="relative rounded-tr-2xl overflow-hidden bg-slate-100 cursor-pointer group">
+              {mapEmbedUrl ? (
+                showMapEmbed ? (
+                  <iframe
+                    title="Business location map"
+                    src={mapEmbedUrl}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="w-full h-full relative" onClick={() => setShowMapEmbed(true)}>
+                    <div className="absolute inset-0 bg-slate-200 animate-pulse" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 group-hover:text-blue-600 transition-colors bg-white/50 backdrop-blur-sm">
+                      <MapPin className="w-8 h-8 mb-2" />
+                      <span className="text-sm font-bold">See Map</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-slate-900 truncate">{cat.name}</div>
-                      <div className="text-xs text-slate-400">{cat.businessCount || 0} businesses</div>
+                  </div>
+                )
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                  <MapPin className="w-8 h-8 mb-2" />
+                  <span className="text-xs">No Location</span>
+                </div>
+              )}
+            </div>
+
+            {/* Smaller Photos Grid (Bottom Right) */}
+            <div className="grid grid-cols-2 gap-2 h-full relative">
+              <div
+                className="relative overflow-hidden bg-slate-100 cursor-pointer group"
+                onClick={() => openLightbox(1)}
+              >
+                {galleryImages.length > 1 ? (
+                  <img src={galleryImages[1]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Gallery 2" />
+                ) : (
+                  <div className="w-full h-full bg-slate-50" />
+                )}
+              </div>
+              <div
+                className="relative rounded-br-2xl overflow-hidden bg-slate-100 cursor-pointer group"
+                onClick={() => openLightbox(2)}
+              >
+                {galleryImages.length > 2 ? (
+                  <img src={galleryImages[2]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Gallery 3" />
+                ) : (
+                  <div className="w-full h-full bg-slate-50" />
+                )}
+                {galleryImages.length > 3 && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center hover:bg-black/50 transition-colors">
+                    <div className="flex items-center gap-2 text-white font-medium text-sm">
+                      <Images className="w-4 h-4" />
+                      See all {galleryImages.length} photos
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300" />
-                  </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* TITLE BLOCK */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+              {business.title}
+            </h1>
+            {business.isVerified && (
+              <ShieldCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
+            )}
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-slate-900">{business.averageRating || 'New'}</span>
+              <div className="flex text-amber-400">
+                {[1,2,3,4,5].map((i) => (
+                  <Star key={i} className={`w-4 h-4 ${i <= (business.averageRating || 0) ? 'fill-current' : 'text-slate-300'}`} />
                 ))}
               </div>
+              <a href="#reviews" className="text-blue-600 hover:underline">({business.totalReviews || 0} reviews)</a>
             </div>
-          </aside>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-700">{business.category?.name || 'Business'}</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-700">{business.address}, {business.city}</span>
+          </div>
 
-          {/* CENTER COLUMN - Main Content */}
-          <div className="min-w-0">
-            {/* Hero Section */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 mb-6">
-              {/* Large hero image */}
-              <div
-                className="relative rounded-2xl overflow-hidden bg-slate-100 cursor-pointer group"
-                style={{ aspectRatio: '16/10' }}
-                onClick={() => galleryImages.length > 0 && openLightbox(0)}
+          <div className="flex items-center gap-2 text-sm font-medium mb-6">
+            <BusinessOpenBadge business={business} />
+          </div>
+
+          {/* ACTION BUTTONS (Pills) */}
+          <div className="flex flex-wrap gap-3">
+            {business.website && (
+              <a 
+                href={business.website.startsWith('http') ? business.website : `https://${business.website}`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                onClick={() => {
+                  fetch(`/api/businesses/${business.id}/track/ad-click`, { method: 'POST' }).catch(console.error);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
               >
-                {galleryImages.length > 0 ? (
-                  <>
-                    <img
-                      src={galleryImages[0]}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      alt={business.title}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-lg text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                      View photo
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
-                    <Images className="w-12 h-12 mb-2" />
-                    <span className="text-xs font-medium">No photos</span>
+                <Globe className="w-4 h-4" /> Website
+              </a>
+            )}
+            <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`)} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 border border-blue-600 rounded-full hover:bg-blue-700 transition-colors text-sm font-bold text-white">
+              <Navigation className="w-4 h-4" /> Directions
+            </button>
+            {business.phone && (
+              <a 
+                href={`tel:${business.phone}`} 
+                onClick={() => {
+                  fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
+              >
+                <Phone className="w-4 h-4" /> Call
+              </a>
+            )}
+            <button onClick={handleLike} className={`flex items-center gap-2 px-5 py-2.5 bg-white border rounded-full transition-colors text-sm font-bold ${isFavorite ? 'border-blue-200 text-blue-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+              <Bookmark className={`w-4 h-4 ${isFavorite ? 'fill-blue-500 text-blue-500' : ''}`} /> Save
+            </button>
+            <button onClick={() => setShowShareModal(true)} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-slate-700">
+              <Share2 className="w-4 h-4" /> Share
+            </button>
+          </div>
+        </div>
+
+        {/* TABS */}
+        <div className="flex gap-8 border-b border-slate-200 mb-8 overflow-x-auto">
+          {['Overview', 'Services', 'Reviews', 'Photos', 'About'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab.toLowerCase())}
+              className={`pb-4 text-sm font-bold whitespace-nowrap border-b-4 transition-colors ${
+                activeTab === tab.toLowerCase()
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* TAB CONTENT */}
+        <div className="min-h-[400px]">
+          
+          {/* OVERVIEW TAB */}
+          {activeTab === 'overview' && (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+              <div className="space-y-8">
+                {/* About snippet */}
+                {business.description && (
+                  <div>
+                    <p className={`text-sm text-slate-700 leading-relaxed ${!aboutExpanded ? 'line-clamp-4' : ''}`}>
+                      {business.description}
+                    </p>
+                    {business.description.length > 200 && (
+                      <button onClick={() => setAboutExpanded(!aboutExpanded)} className="text-sm font-bold text-blue-600 hover:underline mt-2">
+                        {aboutExpanded ? 'Show less' : 'Read more'}
+                      </button>
+                    )}
                   </div>
                 )}
-              </div>
-
-              {/* Right side: Map + thumbnails */}
-              <div className="grid grid-rows-[1fr_auto] gap-4">
-                {/* Map embed */}
-                <div className="relative rounded-2xl overflow-hidden bg-slate-100 min-h-[140px]">
-                  {mapEmbedUrl && showMapEmbed ? (
-                    <iframe
-                      title="Business location map"
-                      src={mapEmbedUrl}
-                      className="w-full h-full border-0"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:bg-slate-200/50 transition-colors"
-                      onClick={() => mapEmbedUrl && setShowMapEmbed(true)}
-                    >
-                      <MapPin className="w-6 h-6 text-slate-300 mb-1" />
-                      <p className="text-xs font-medium text-slate-400">
-                        {mapEmbedUrl ? 'Load map' : 'Map unavailable'}
-                      </p>
+                
+                {/* Highlights */}
+                {business.businessAmenities && business.businessAmenities.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-4">Highlights</h3>
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-6">
+                      {business.businessAmenities.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+                          <span className="text-sm text-slate-700 font-medium">{item.amenity?.name}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                {/* Thumbnail photos */}
-                <div className="grid grid-cols-2 gap-4">
-                  {galleryImages.length > 1 ? (
-                    <div
-                      className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square cursor-pointer group"
-                      onClick={() => openLightbox(1)}
-                    >
-                      <img
-                        src={galleryImages[1]}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        alt="Gallery 2"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 aspect-square" />
-                  )}
-                  {galleryImages.length > 2 ? (
-                    <div
-                      className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square cursor-pointer group"
-                      onClick={() => openLightbox(2)}
-                    >
-                      <img
-                        src={galleryImages[2]}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        alt="Gallery 3"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 aspect-square" />
-                  )}
-                </div>
-
-                {galleryImages.length > 3 && (
-                  <button
-                    onClick={() => openLightbox(3)}
-                    className="text-xs font-medium text-blue-600 hover:underline"
-                  >
-                    See all {galleryImages.length} photos
-                  </button>
-                )}
-                {galleryImages.length === 3 && (
-                  <button
-                    onClick={() => openLightbox(0)}
-                    className="text-xs font-medium text-blue-600 hover:underline"
-                  >
-                    See all {galleryImages.length} photos
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Business Header */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  {business.isVerified && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-bold">
-                      <ShieldCheck className="w-3 h-3" /> Verified
-                    </div>
-                  )}
-                  <VendorOnlineBadge isOnline={business.vendor?.isOnline} />
-                  <BusinessOpenBadge business={business} />
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-                  {business.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="font-bold text-slate-900">{business.averageRating || 'New'}</span>
-                    <span className="text-slate-400">({business.totalReviews || 0} reviews)</span>
                   </div>
-                  <span className="text-slate-300">·</span>
-                  <span className="text-slate-500">{business.category?.name || 'Business'}</span>
-                  {business.address && (
-                    <>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-slate-500">{business.address}, {business.city}</span>
-                    </>
-                  )}
+                )}
+
+                {/* Popular Times */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Popular times</h3>
+                  <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                    <PopularTimesChart businessHours={business.businessHours} />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleLike}
-                  className={`p-3 rounded-full transition-all border ${isFavorite
-                    ? 'bg-blue-50 text-blue-600 border-blue-200'
-                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
-                    }`}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-blue-500' : ''}`} />
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="p-3 bg-white border border-slate-200 rounded-full text-slate-400 hover:border-slate-300 transition-all relative"
-                >
-                  <Share2 className="w-5 h-5" />
-                  {copySuccess && (
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap shadow-lg animate-in fade-in">
-                      Copied!
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Action Buttons */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {business.website && (
-                <a
-                  href={business.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
-                >
-                  <Globe className="w-4 h-4" /> Website
-                </a>
-              )}
-              <button
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
-              >
-                <Navigation className="w-4 h-4" /> Directions
-              </button>
-              {business.phone && (
-                <a
-                  href={`tel:${business.phone}`}
-                  className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
-                >
-                  <Phone className="w-4 h-4" /> Call
-                </a>
-              )}
-              <button
-                onClick={handleLike}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-colors text-sm font-medium ${isFavorite ? 'border-blue-200 bg-blue-50 text-blue-600' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}
-              >
-                <Bookmark className={`w-4 h-4 ${isFavorite ? 'fill-blue-500' : ''}`} /> Save
-              </button>
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
-              >
-                <Share2 className="w-4 h-4" /> Share
-              </button>
-            </div>
-
-            {/* Tab bar */}
-            <div className="flex gap-0 border-b border-slate-200 mt-6 overflow-x-auto">
-              {['Overview', 'Services', 'Reviews', 'Photos', 'About'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab.toLowerCase())}
-                  className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === tab.toLowerCase()
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="min-h-[400px] mt-6">
-              {/* Overview Tab */}
-              <div className={activeTab === 'overview' ? 'block' : 'hidden'}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Business Info Card */}
-                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-4">Business Information</h3>
-                    <div className="space-y-4">
-                      {business.address && (
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
-                          <div>
-                            <div className="text-sm font-medium text-slate-900">{business.address}</div>
-                            {business.city && <div className="text-xs text-slate-500">{business.city}</div>}
-                          </div>
+              {/* Sidebar Cards */}
+              <div className="space-y-6">
+                {/* Business Information Card */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                  <h3 className="font-bold text-slate-900 mb-4">Business info</h3>
+                  <div className="space-y-4">
+                    {business.address && (
+                      <div className="flex gap-4">
+                        <MapPin className="w-5 h-5 text-blue-600 shrink-0" />
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{business.address}</div>
+                          {business.city && <div className="text-sm text-slate-500">{business.city}</div>}
                         </div>
-                      )}
-                      {business.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                          <a href={`tel:${business.phone}`} className="text-sm font-medium text-blue-600 hover:underline">{business.phone}</a>
-                        </div>
-                      )}
-                      {business.email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                          <a href={`mailto:${business.email}`} className="text-sm font-medium text-blue-600 hover:underline">{business.email}</a>
-                        </div>
-                      )}
-                      {business.website && (
-                        <div className="flex items-center gap-3">
-                          <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                          <a
-                            href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
-                            target="_blank"
-                            className="text-sm font-medium text-blue-600 hover:underline"
-                          >
-                            {business.website}
-                          </a>
-                        </div>
-                      )}
-                      {business.category && (
-                        <div className="flex items-center gap-3">
-                          <Tag className="w-4 h-4 text-slate-400 shrink-0" />
-                          <span className="text-sm font-medium text-slate-900">{business.category.name}</span>
-                        </div>
-                      )}
-                      {business.priceRange && (
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-slate-900 ml-7">{business.priceRange}</span>
-                        </div>
-                      )}
-
-                      {/* Business Hours */}
-                      {business.businessHours && business.businessHours.length > 0 && (
-                        <div className="pt-4 border-t border-slate-100">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Clock className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-900">Hours</span>
-                          </div>
-                          <div className="space-y-2 ml-6">
+                      </div>
+                    )}
+                    {business.businessHours && business.businessHours.length > 0 && (
+                      <div className="flex gap-4">
+                        <Clock className="w-5 h-5 text-blue-600 shrink-0" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-900 mb-2">Hours</div>
+                          <div className="space-y-1.5">
                             {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                              const hour = business.businessHours?.find(
-                                (h: any) => h.dayOfWeek.toLowerCase() === day
-                              );
-                              const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                              const isToday = day === today;
+                              const hour = business.businessHours?.find((h: any) => h.dayOfWeek.toLowerCase() === day);
+                              const isToday = day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                               return (
-                                <div key={day} className={`flex items-center justify-between text-xs ${isToday ? 'font-bold text-blue-600' : 'text-slate-600'}`}>
-                                  <span className="capitalize">{day}</span>
-                                  <span>{hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'N/A'}</span>
+                                <div key={day} className={`flex items-center justify-between text-sm ${isToday ? 'font-bold text-slate-900' : 'text-slate-600'}`}>
+                                  <span className="capitalize">{day[:3]}</span>
+                                  <span>{hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'Closed'}</span>
                                 </div>
                               );
                             })}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Popular Times Chart */}
-                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-4">Popular Times</h3>
-                    <PopularTimesChart businessHours={business.businessHours} />
-                  </div>
-                </div>
-
-                {/* Description */}
-                {business.description && (
-                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-3">About</h3>
-                    <p className={`text-sm text-slate-600 leading-relaxed ${!aboutExpanded ? 'line-clamp-4' : ''}`}>
-                      {business.description}
-                    </p>
-                    {business.description.length > 200 && (
-                      <button
-                        onClick={() => setAboutExpanded(!aboutExpanded)}
-                        className="text-sm font-medium text-blue-600 hover:underline mt-2"
-                      >
-                        {aboutExpanded ? 'Show less' : 'Show more'}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Amenities / Highlights */}
-                {business.businessAmenities && business.businessAmenities.length > 0 && (
-                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-3">Highlights</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {business.businessAmenities.map((item: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-2 text-sm text-slate-700">
-                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                          <span>{item.amenity?.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Map */}
-                {mapEmbedUrl && (
-                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
-                      <Navigation className="w-4 h-4 text-blue-600" /> Location
-                    </h3>
-                    <div className="relative h-[300px] rounded-xl overflow-hidden bg-slate-100">
-                      {showMapEmbed ? (
-                        <iframe
-                          title="Business location map"
-                          src={mapEmbedUrl}
-                          className="w-full h-full border-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200/50 transition-colors"
-                          onClick={() => setShowMapEmbed(true)}
-                        >
-                          <MapPin className="w-8 h-8 text-slate-300 mb-2" />
-                          <p className="text-sm font-medium text-slate-400">Click to load map</p>
-                        </div>
-                      )}
-                    </div>
-                    {openInGoogleMapsUrl && (
-                      <button
-                        onClick={() => window.open(openInGoogleMapsUrl, '_blank')}
-                        className="mt-3 text-sm font-medium text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        <MapPin className="w-3.5 h-3.5" /> Get directions
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Services Tab */}
-              <div className={activeTab === 'services' ? 'block' : 'hidden'}>
-                <div className="animate-in fade-in duration-500">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4">Services</h3>
-                  {business.category && (
-                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                          <Store className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-900">{business.category.name}</h4>
-                          <p className="text-sm text-slate-500">Primary category</p>
-                        </div>
                       </div>
-                    </div>
-                  )}
-                  {business.subcategories && business.subcategories.length > 0 && (
-                    <div className="mt-4 space-y-3">
-                      {business.subcategories.map((sub: any, idx: number) => (
-                        <div key={idx} className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                          <span className="text-sm font-medium text-slate-900">{sub.name || sub}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {!business.subcategories?.length && (
-                    <p className="text-sm text-slate-500 mt-4">No additional services listed.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Reviews Tab */}
-              <div className={activeTab === 'reviews' ? 'block' : 'hidden'}>
-                <div className="space-y-6 animate-in fade-in duration-500">
-                  {/* Review Distribution */}
-                  <ReviewDistribution reviews={comments} />
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h3 className="text-lg font-bold text-slate-900">
-                      Customer Reviews
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      {comments.length > 1 && (
-                        <div className="relative">
-                          <ArrowUpDown className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                          <select
-                            value={reviewSort}
-                            onChange={(e) => {
-                              setReviewSort(e.target.value);
-                              loadReviews(e.target.value);
-                            }}
-                            className="appearance-none pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none cursor-pointer"
-                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
-                          >
-                            <option value="relevant">Most Relevant</option>
-                            <option value="newest">Newest First</option>
-                            <option value="oldest">Oldest First</option>
-                            <option value="highest">Highest Rated</option>
-                            <option value="lowest">Lowest Rated</option>
-                            <option value="most_helpful">Most Helpful</option>
-                            <option value="photos_first">Photos First</option>
-                          </select>
-                        </div>
-                      )}
-                      {isOwner ? (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-                          <ShieldCheck className="w-4 h-4 text-blue-500" />
-                          <span className="text-xs font-bold text-blue-600">Your Business</span>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            if (!user) {
-                              router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-                              return;
-                            }
-                            setShowReviewModal(true);
-                          }}
-                          className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-                        >
-                          Write a Review
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {comments.length > 0 ? (
-                    <div className="space-y-4">
-                      {comments.map((comment: any, idx: number) => (
-                        <div
-                          key={comment.id || `comment-${idx}`}
-                          className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold overflow-hidden">
-                                {comment.user?.avatarUrl ? (
-                                  <img
-                                    src={getImageUrl(comment.user.avatarUrl) as string}
-                                    alt={comment.user.fullName || 'User'}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-avatar.png'; }}
-                                  />
-                                ) : (
-                                  (comment.user?.fullName?.[0] || 'U').toUpperCase()
-                                )}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-bold text-slate-900 text-sm">{comment.user?.fullName || 'Anonymous'}</h4>
-                                  <TrustBadge badge={comment.user?.badge} score={comment.user?.trust_score} />
-                                </div>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star
-                                      key={i}
-                                      className={`w-3 h-3 ${i < (comment.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`}
-                                    />
-                                  ))}
-                                  <span className="text-[10px] text-slate-400 ml-1">
-                                    {new Date(comment.createdAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          {comment.comment && (
-                            <p className="text-sm text-slate-600 leading-relaxed">{comment.comment}</p>
-                          )}
-
-                          {/* Review Photos */}
-                          {comment.images && comment.images.length > 0 && (
-                            <div className="mt-3 flex gap-2 flex-wrap">
-                              {comment.images.map((img: string, imgIdx: number) => (
-                                <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer">
-                                  <img
-                                    src={img}
-                                    alt={`Review photo ${imgIdx + 1}`}
-                                    className="w-16 h-16 rounded-lg object-cover border border-slate-100 hover:border-blue-300 transition-colors cursor-pointer"
-                                  />
-                                </a>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Helpful & Report */}
-                          {user && !isOwner && user.id !== comment.userId && (
-                            <div className="mt-3 flex items-center gap-4">
-                              <button
-                                onClick={() => handleHelpful(comment.id)}
-                                disabled={helpfulLoading === comment.id}
-                                className={`inline-flex items-center gap-1.5 text-[10px] font-bold transition-colors uppercase tracking-wider ${
-                                  comment.userHelpful ? 'text-blue-500' : 'text-slate-400 hover:text-blue-500'
-                                }`}
-                              >
-                                {helpfulLoading === comment.id ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <ThumbsUp className={`w-3 h-3 ${comment.userHelpful ? 'fill-blue-500' : ''}`} />
-                                )}
-                                Helpful {comment.helpfulCount > 0 ? `(${comment.helpfulCount})` : ''}
-                              </button>
-                              <button
-                                onClick={() => setShowReportModal(comment.id)}
-                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
-                              >
-                                <Flag className="w-3 h-3" /> Report
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Business Response */}
-                          {comment.vendorResponse && (
-                            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                              <div className="flex items-center gap-2 mb-2">
-                                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Business Response</span>
-                              </div>
-                              <p className="text-sm text-slate-700 leading-relaxed">{comment.vendorResponse}</p>
-                            </div>
-                          )}
-
-                          {/* Replies */}
-                          {comment.replies && comment.replies.length > 0 && (
-                            <div className="mt-4 ml-4 space-y-3 border-l-2 border-slate-100 pl-4">
-                              {comment.replies.map((reply: any) => (
-                                <div key={reply.id}>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-slate-900">{reply.user?.fullName || 'Anonymous'}</span>
-                                    <span className="text-[10px] text-slate-400">{new Date(reply.createdAt).toLocaleDateString()}</span>
-                                  </div>
-                                  <p className="text-sm text-slate-600">{reply.content}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Owner Reply — Removed per spec */}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-12 bg-slate-50 rounded-2xl text-center border border-dashed border-slate-200">
-                      <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-                      <h4 className="font-bold text-slate-900 mb-1">No reviews yet</h4>
-                      <p className="text-sm text-slate-500">Be the first to review {business.title}.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Photos Tab */}
-              <div className={activeTab === 'photos' ? 'block' : 'hidden'}>
-                <div className="animate-in fade-in duration-500">
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <div className="flex flex-wrap gap-2">
-                      {['all', 'business', 'customer', 'exterior', 'interior'].map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => setSelectedPhotoCategory(cat)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            selectedPhotoCategory === cat
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                    {!isOwner && user && (
-                      <button
-                        onClick={() => setShowAddPhotoModal(true)}
-                        className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center gap-2"
-                      >
-                        <Images className="w-4 h-4" /> Add Photo
-                      </button>
+                    )}
+                    {business.phone && (
+                      <div className="flex items-center gap-4">
+                        <Phone className="w-5 h-5 text-blue-600 shrink-0" />
+                        <a href={`tel:${business.phone}`} className="text-sm font-medium text-slate-900 hover:text-blue-600 hover:underline">{business.phone}</a>
+                      </div>
+                    )}
+                    {business.website && (
+                      <div className="flex items-center gap-4">
+                        <Globe className="w-5 h-5 text-blue-600 shrink-0" />
+                        <a href={business.website.startsWith('http') ? business.website : `https://${business.website}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate">
+                          {business.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
+                    )}
+                    {business.priceRange && (
+                      <div className="flex items-center gap-4">
+                        <Tag className="w-5 h-5 text-blue-600 shrink-0" />
+                        <span className="text-sm font-medium text-slate-900">{business.priceRange}</span>
+                      </div>
                     )}
                   </div>
-
-                  {photoSubmitSuccess && (
-                    <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-medium">
-                      Your photo has been submitted and is pending approval.
-                    </div>
-                  )}
-
-                  {galleryImages.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {galleryImages.map((img, idx) => (
-                        <div
-                          key={idx}
-                          className="aspect-square rounded-xl overflow-hidden cursor-pointer group"
-                          onClick={() => openLightbox(idx)}
-                        >
-                          <img
-                            src={img}
-                            alt={`Photo ${idx + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-12 text-center text-slate-400">
-                      <Images className="w-10 h-10 mx-auto mb-3" />
-                      <p className="text-sm font-medium">No photos available</p>
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              {/* About Tab */}
-              <div className={activeTab === 'about' ? 'block' : 'hidden'}>
-                <div className="animate-in fade-in duration-500 space-y-6">
-                  {/* Description */}
-                  {business.description && (
-                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                      <h3 className="font-bold text-slate-900 mb-3">About {business.title}</h3>
-                      <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-wrap ${!aboutExpanded ? 'line-clamp-6' : ''}`}>
-                        {business.description}
-                      </p>
-                      {business.description.length > 300 && (
-                        <button
-                          onClick={() => setAboutExpanded(!aboutExpanded)}
-                          className="text-sm font-medium text-blue-600 hover:underline mt-3"
-                        >
-                          {aboutExpanded ? 'Show less' : 'Show more'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Highlights / Amenities */}
-                  {business.businessAmenities && business.businessAmenities.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                      <h3 className="font-bold text-slate-900 mb-4">Highlights</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        {business.businessAmenities.map((item: any, idx: number) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                            <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                            <span className="text-sm font-medium text-slate-700">{item.amenity?.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Additional Info */}
-                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-4">Business Info</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {business.category && (
-                        <div>
-                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Category</div>
-                          <div className="text-sm font-medium text-slate-900">{business.category.name}</div>
-                        </div>
-                      )}
-                      {business.priceRange && (
-                        <div>
-                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Price Range</div>
-                          <div className="text-sm font-medium text-slate-900">{business.priceRange}</div>
-                        </div>
-                      )}
-                      {business.vendor?.user?.createdAt && (
-                        <div>
-                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Member Since</div>
-                          <div className="text-sm font-medium text-slate-900">
-                            {new Date(business.vendor.user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                {vendorHasChat && !isOwner && (
+                  <ChatTrigger
+                    ref={chatRef}
+                    businessId={business.id}
+                    businessName={business.title}
+                    vendorHasChat={vendorHasChat}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20"
+                  />
+                )}
+                {!isOwner && (
+                  <button onClick={openEnquiryModal} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">
+                    <Send className="w-4 h-4" /> Send Enquiry
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-          {/* end center column */}
+          )}
 
-          {/* RIGHT COLUMN - Sidebar */}
-          <aside className="hidden xl:block">
-            <div className="sticky top-24 space-y-6">
-              {/* Contact Card */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                <h4 className="font-bold text-slate-900 mb-4">Contact</h4>
-                <div className="space-y-3">
-                  {business.phone && (
-                    <button
-                      onClick={() => handleContactIntent('call')}
-                      className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-95"
-                    >
-                      <Phone className="w-4 h-4" /> Call Business
-                    </button>
-                  )}
-                  {(business.whatsapp || business.phone) && (
-                    <button
-                      onClick={() => handleContactIntent('whatsapp')}
-                      className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95"
-                    >
-                      <WhatsAppIcon className="w-4 h-4" /> WhatsApp
-                    </button>
-                  )}
-                  {business.email && (
-                    <a
-                      href={`mailto:${business.email}`}
-                      onClick={() => trackContactClick("email")}
-                      className="w-full py-3 bg-orange-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-all active:scale-95"
-                    >
-                      <Mail className="w-4 h-4" /> Email
-                    </a>
-                  )}
-                </div>
-
-                {/* Hours summary */}
-                {business.businessHours && business.businessHours.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Clock className="w-4 h-4" />
-                        <span>Today</span>
-                      </div>
-                      {(() => {
-                        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                        const hour = business.businessHours.find((h: any) => h.dayOfWeek.toLowerCase() === today);
-                        return (
-                          <span className={`font-bold text-sm ${hour?.isOpen ? 'text-green-600' : 'text-slate-400'}`}>
-                            {hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'N/A'}
-                          </span>
-                        );
-                      })()}
-                    </div>
+          {/* SERVICES TAB */}
+          {activeTab === 'services' && (
+            <div className="animate-in fade-in duration-500">
+              <h3 className="text-xl font-bold text-slate-900 mb-6">Services offered</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {business.category && (
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-500 transition-colors cursor-pointer group">
+                    <Store className="w-6 h-6 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-bold text-slate-900">{business.category.name}</h4>
+                    <p className="text-xs text-slate-500 mt-1">Primary category</p>
                   </div>
                 )}
+                {business.subcategories && business.subcategories.map((sub: any, idx: number) => (
+                  <div key={idx} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3 hover:border-blue-500 transition-colors cursor-pointer">
+                    <CheckCircle2 className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                    <span className="font-medium text-slate-900">{sub.name || sub}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                {/* Social Links */}
-                {(() => {
-                  const validLinks = (Array.isArray(business.vendor?.socialLinks) ? business.vendor.socialLinks : []).filter(
-                    (link: any) => link && typeof link === 'object' && !Array.isArray(link) && link.url
-                  );
-                  if (validLinks.length === 0) return null;
-                  return (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Social Media</div>
-                      <div className="flex flex-wrap gap-2">
-                        {validLinks.map((link: any, idx: number) => {
-                          let platform = (link.platform || '').toLowerCase();
-                          if (!platform) {
-                            const url = link.url.toLowerCase();
-                            if (url.includes('facebook')) platform = 'facebook';
-                            else if (url.includes('twitter') || url.includes('x.com')) platform = 'twitter';
-                            else if (url.includes('instagram')) platform = 'instagram';
-                            else if (url.includes('linkedin')) platform = 'linkedin';
-                            else if (url.includes('youtube')) platform = 'youtube';
-                            else platform = 'website';
-                          }
-                          let Icon = LinkIcon;
-                          if (platform.includes('facebook')) Icon = Facebook;
-                          else if (platform.includes('twitter') || platform.includes('x')) Icon = Twitter;
-                          else if (platform.includes('instagram')) Icon = Instagram;
-                          else if (platform.includes('linkedin')) Icon = Linkedin;
-                          else if (platform.includes('youtube')) Icon = Youtube;
-                          return (
-                            <a
-                              key={idx}
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                            >
-                              <Icon className="w-4 h-4" />
-                            </a>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
+          {/* REVIEWS TAB */}
+          {activeTab === 'reviews' && (
+            <div className="animate-in fade-in duration-500 space-y-8">
+              {/* Review Distribution */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <ReviewDistribution reviews={comments} />
               </div>
 
-              {/* Vendor Profile Card */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4 text-slate-400" /> Business Profile
-                </h4>
-                <div className="flex flex-col items-center text-center">
-                  <Link href={businessProfileHref} className={`group ${businessProfileHref === '#' ? 'pointer-events-none' : ''}`}>
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-white ring-1 ring-slate-100 mb-3">
-                      {(business.logoUrl || business.vendor?.user?.avatarUrl) ? (
-                        <img
-                          src={getImageUrl(business.logoUrl || business.vendor?.user?.avatarUrl) as string}
-                          alt={business.title || 'Business'}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-avatar.png'; }}
-                        />
-                      ) : (
-                        <span className="text-2xl font-bold text-slate-200">
-                          {(business.title?.[0] || 'B').toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <h5 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {business.vendor?.user?.fullName || 'Business Owner'}
-                    </h5>
-                  </Link>
-
-                  <div className="w-full mt-3">
-                    <FollowButton
-                      businessId={business.id}
-                      initialFollowersCount={business.followersCount}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {vendorHasChat && !isOwner && (
-                    <div className="w-full mt-3">
-                      <ChatTrigger
-                        ref={chatRef}
-                        businessId={business.id}
-                        businessName={business.title}
-                        vendorHasChat={vendorHasChat}
-                        className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all active:scale-95"
-                      />
-                    </div>
-                  )}
-
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="text-xl font-bold text-slate-900">Reviews</h3>
+                <div className="flex items-center gap-3">
                   {!isOwner && (
                     <button
-                      onClick={openEnquiryModal}
-                      className="w-full mt-3 py-3 bg-violet-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-violet-700 transition-all active:scale-95"
+                      onClick={() => {
+                        if (!user) {
+                          router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                          return;
+                        }
+                        setShowReviewModal(true);
+                      }}
+                      className="px-6 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20"
                     >
-                      <Send className="w-4 h-4" /> Send Enquiry
+                      Write a review
                     </button>
-                  )}
-
-                  {isOwner && (
-                    <div className="w-full mt-3 py-3 bg-blue-50 border border-blue-100 text-blue-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-                      <ShieldCheck className="w-4 h-4" /> Your Business
-                    </div>
                   )}
                 </div>
               </div>
+
+              {comments.length > 0 ? (
+                <div className="space-y-6">
+                  {comments.map((comment: any, idx: number) => (
+                    <div key={comment.id || `comment-${idx}`} className="pb-6 border-b border-slate-100 last:border-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 font-bold overflow-hidden border border-slate-200">
+                            {comment.user?.avatarUrl ? (
+                              <img
+                                src={getImageUrl(comment.user.avatarUrl) as string}
+                                alt={comment.user.fullName || 'User'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-avatar.png'; }}
+                              />
+                            ) : (
+                              (comment.user?.fullName?.[0] || 'U').toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-slate-900">{comment.user?.fullName || 'Anonymous'}</h4>
+                              <TrustBadge badge={comment.user?.badge} score={comment.user?.trust_score} />
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3.5 h-3.5 ${i < (comment.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {comment.comment && (
+                        <p className="text-slate-700 leading-relaxed text-sm">{comment.comment}</p>
+                      )}
+
+                      {comment.images && comment.images.length > 0 && (
+                        <div className="mt-4 flex gap-2 flex-wrap">
+                          {comment.images.map((img: string, imgIdx: number) => (
+                            <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer">
+                              <img src={img} alt={`Review photo ${imgIdx + 1}`} className="w-24 h-24 rounded-xl object-cover border border-slate-200 hover:border-blue-400 transition-colors" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {user && !isOwner && user.id !== comment.userId && (
+                        <div className="mt-4 flex items-center gap-4">
+                          <button onClick={() => handleHelpful(comment.id)} disabled={helpfulLoading === comment.id} className={`inline-flex items-center gap-2 text-xs font-bold transition-colors ${comment.userHelpful ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'}`}>
+                            {helpfulLoading === comment.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className={`w-4 h-4 ${comment.userHelpful ? 'fill-blue-600 text-blue-600' : ''}`} />}
+                            Helpful {comment.helpfulCount > 0 && `(${comment.helpfulCount})`}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 bg-slate-50 rounded-2xl text-center border border-dashed border-slate-200">
+                  <h4 className="font-bold text-slate-900 mb-2">No reviews yet</h4>
+                  <p className="text-sm text-slate-500">Be the first to review {business.title}.</p>
+                </div>
+              )}
             </div>
-          </aside>
-          {/* end right sidebar */}
+          )}
+
+          {/* PHOTOS TAB */}
+          {activeTab === 'photos' && (
+            <div className="animate-in fade-in duration-500">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <h3 className="text-xl font-bold text-slate-900">Photos</h3>
+                {!isOwner && user && (
+                  <button onClick={() => setShowAddPhotoModal(true)} className="px-5 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2">
+                    <Images className="w-4 h-4" /> Add a photo
+                  </button>
+                )}
+              </div>
+
+              {galleryImages.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {galleryImages.map((img, idx) => (
+                    <div
+                      key={idx}
+                      className="aspect-square rounded-2xl overflow-hidden cursor-pointer group shadow-sm"
+                      onClick={() => openLightbox(idx)}
+                    >
+                      <img
+                        src={img}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Images className="w-12 h-12 mx-auto mb-3" />
+                  <p className="text-sm font-medium">No photos yet</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ABOUT TAB */}
+          {activeTab === 'about' && (
+            <div className="animate-in fade-in duration-500 space-y-8 max-w-3xl">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-4">From the business</h3>
+                <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {business.description || "No description provided."}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center gap-6">
+                 <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm">
+                   {(business.logoUrl || business.vendor?.user?.avatarUrl) ? (
+                     <img
+                       src={getImageUrl(business.logoUrl || business.vendor?.user?.avatarUrl) as string}
+                       alt={business.title}
+                       className="w-full h-full object-cover"
+                     />
+                   ) : (
+                     <span className="text-2xl font-bold text-slate-300">
+                       {(business.title?.[0] || 'B').toUpperCase()}
+                     </span>
+                   )}
+                 </div>
+                 <div>
+                   <h4 className="font-bold text-slate-900 text-lg mb-1">{business.vendor?.user?.fullName || 'Business Owner'}</h4>
+                   <p className="text-sm text-slate-500">Business owner</p>
+                   {business.vendor?.user?.createdAt && (
+                     <p className="text-xs text-slate-400 mt-1">Joined {new Date(business.vendor.user.createdAt).getFullYear()}</p>
+                   )}
+                 </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
-      {/* ── Special Offers & Events ─────────────────────────────────────────── */}
-      {offers.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pb-20">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-premium ring-4 ring-primary/10">
-              <Megaphone className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-                Special Offers & Events
-              </h2>
-              <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-1">
-                Exclusive updates from {business.title}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {offers.map((offer: any, idx: number) => (
-              <div
-                key={offer.id || `offer-${idx}`}
-                className="group relative bg-white rounded-[32px] border border-slate-100 shadow-premium hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col"
-                onClick={() => {
-                  if (business?.id) {
-                    api.listings.trackOfferClick(business.id).catch(() => {});
-                  }
-                }}
-              >
-                {/* Offer Banner Image */}
-                {offer.imageUrl && (
-                  <div className="h-48 overflow-hidden bg-slate-100 relative">
-                    <img
-                      src={offer.imageUrl}
-                      alt={offer.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
-
-                    {offer.offerBadge && (
-                      <div className="absolute top-4 left-4 px-4 py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/30 border border-white/20">
-                        {offer.offerBadge}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-
-                <div className="p-8 flex flex-col flex-1 gap-4">
-                  {/* Type chip */}
-                  <div
-                    className={`self-start inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${offer.type === "event"
-                      ? "bg-blue-500/10 text-blue-600 border border-blue-500/10"
-                      : "bg-primary/10 text-primary border border-primary/10"
-                      }`}
-                  >
-                    {offer.type === "event" ? (
-                      <Calendar className="w-3.5 h-3.5" />
-                    ) : (
-                      <Tag className="w-3.5 h-3.5" />
-                    )}
-                    {offer.type}
-                  </div>
-
-                  <h3 className="font-black text-slate-900 text-xl leading-tight group-hover:text-primary transition-colors">
-                    {offer.title}
-                  </h3>
-
-                  {offer.description && (
-                    <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 font-medium">
-                      {offer.description}
-                    </p>
-                  )}
-
-                  <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
-                    {offer.expiryDate ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-400 font-bold">
-                        <Clock className="w-4 h-4 text-slate-300" />
-                        Expires{" "}
-                        {new Date(offer.expiryDate).toLocaleDateString(
-                          "en-US",
-                          { day: "2-digit", month: "short" },
-                        )}
-                      </div>
-                    ) : (
-                      <span />
-                    )}
-
-                    <button
-                      onClick={openEnquiryModal}
-                      className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary transition-all duration-300 shadow-xl shadow-slate-900/10 active:scale-95"
-                    >
-                      Enquire Now
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Mobile Sticky Action Bar */}
-      {!isOwner && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] animate-in slide-in-from-bottom duration-500">
-          <div className="flex items-center gap-2">
-            {business.phone && (
-              <button
-                onClick={() => handleContactIntent("call")}
-                className="flex-1 h-12 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
-              >
-                <Phone className="w-4 h-4" /> Call
-              </button>
-            )}
-            {business.phone && (
-              <a
-                href={`sms:${business.phone}`}
-                onClick={() => trackContactClick("sms")}
-                className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
-              >
-                <MessageSquare className="w-4 h-4" /> SMS
-              </a>
-            )}
-            {(business.whatsapp || business.phone) && (
-              <button
-                onClick={() => handleContactIntent("whatsapp")}
-                className="flex-1 h-12 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
-              >
-                <WhatsAppIcon className="w-5 h-5" /> WhatsApp
-              </button>
-            )}
-            {business.email && (
-              <a
-                href={`mailto:${business.email}`}
-                onClick={() => trackContactClick("email")}
-                className="flex-1 h-12 bg-orange-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
-              >
-                <Mail className="w-4 h-4" /> Email
-              </a>
-            )}
-            {!isOwner && vendorHasChat && (
-              <button
-                onClick={() => {
-                  if (!user) {
-                    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-                    return;
-                  }
-                  chatRef.current?.open();
-                }}
-                className="flex-1 h-12 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
-              >
-                <MessageSquare className="w-4 h-4" /> Chat
-              </button>
-            )}
-            {!isOwner && !vendorHasChat && (
-              <button
-                disabled
-                className="flex-1 h-12 bg-gray-300 text-gray-500 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed text-xs"
-                title="Upgrade to Chat"
-              >
-                <MessageSquare className="w-4 h-4" /> Chat
-              </button>
-            )}
-            <button
-              onClick={() => openEnquiryModal()}
-              className="w-12 h-12 bg-violet-600 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-violet-500/20"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
+      {/* Lightbox / Modals / Footer */}
+      {/* Keeping original Modals and Footer below by just adding them directly as they were mostly independent */}
       <Footer />
-
       {showReviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-[20px] md:rounded-[16px] p-6 md:p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">

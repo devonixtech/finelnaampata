@@ -403,4 +403,22 @@ export class BusinessesController {
         return { success: true };
     }
 
+    @Post(':id/track/contact')
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Track a contact (call/whatsapp) on a listing' })
+    async trackContact(@Param('id', ParseUuidPipe) id: string) {
+        await this.businessesService.trackContact(id);
+        return { success: true };
+    }
+
+    @Post(':id/track/conversion')
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Track a conversion on a listing' })
+    async trackConversion(@Param('id', ParseUuidPipe) id: string) {
+        await this.businessesService.trackConversion(id);
+        return { success: true };
+    }
+
 }

@@ -1786,9 +1786,9 @@ export class SubscriptionsService implements OnModuleInit {
 
                 if (!vendorFromCharge && charge.invoice) {
                     try {
-                        const invoice = await this.stripe.invoices.retrieve(charge.invoice as string);
+                        const invoice = await this.stripe.invoices.retrieve(charge.invoice as string) as any;
                         if (invoice.subscription) {
-                            const stripeSub = await this.stripe.subscriptions.retrieve(invoice.subscription as string);
+                            const stripeSub = await this.stripe.subscriptions.retrieve(invoice.subscription as string) as any;
                             vendorFromCharge = await this.vendorRepository.findOne({ where: { stripeCustomerId: stripeSub.customer as string } });
                         }
                     } catch (err) {

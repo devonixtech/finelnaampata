@@ -1006,8 +1006,8 @@ export class AdminService {
         const business = await this.businessRepository.findOne({ where: { id } });
         if (!business) throw new NotFoundException('Business not found');
 
-        business.latitude = String(latitude);
-        business.longitude = String(longitude);
+        business.latitude = latitude;
+        business.longitude = longitude;
         business.status = BusinessStatus.APPROVED;
         business.approvedAt = business.approvedAt || new Date();
 
