@@ -167,6 +167,31 @@ export class ChatService implements OnModuleInit {
             lastMessageAt: new Date(),
         });
 
+        // Response time tracking: when vendor sends first message, calculate response time
+        if (isVendor) {
+            const messageCount = await this.messageRepository.count({
+                where: { conversationId },
+            });
+            if (messageCount === 1) {
+                const conversationCreatedAt = new Date(conversation.createdAt);
+                const now = new Date();
+                const responseMinutes = Math.round((now.getTime() - conversationCreatedAt.getTime()) / 60000);
+
+                const business = await this.listingRepository.findOne({
+                    where: { id: conversation.businessId },
+                });
+                if (business) {
+                    const oldCount = business.responseCount || 0;
+                    const oldAvg = business.avgResponseTimeMinutes || 0;
+                    const newAvg = Math.round(((oldAvg * oldCount) + responseMinutes) / (oldCount + 1));
+                    await this.listingRepository.update(conversation.businessId, {
+                        avgResponseTimeMinutes: newAvg,
+                        responseCount: oldCount + 1,
+                    });
+                }
+            }
+        }
+
         // Send real-time notification to the recipient
         const recipientId = isCustomer ? vendor?.userId : conversation.userId;
         if (recipientId) {

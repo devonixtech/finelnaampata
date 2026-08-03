@@ -102,6 +102,11 @@ export class LeadsService {
         // Increment lead counter on business
         await this.listingRepository.increment({ id: businessId }, 'totalLeads', 1);
 
+        // Increment click-to-call counter if lead type is 'call'
+        if (savedLead.type === 'call') {
+            await this.listingRepository.increment({ id: businessId }, 'clickToCallCount', 1);
+        }
+
         // Notify vendor in real-time
         const vendor = await this.vendorRepository.findOne({
             where: { id: listing.vendorId },
@@ -258,7 +263,7 @@ export class LeadsService {
         console.log(`[LeadsService] updateStatus: id=${id}, status=${updateLeadStatusDto.status}, userId=${userId}`);
 
         // Permission check
-        await this.findOne(id, userId);
+        const lead = await this.findOne(id, userId);
 
         try {
             const updateData: Partial<Lead> = {
@@ -269,6 +274,7 @@ export class LeadsService {
                 updateData.contactedAt = new Date();
             } else if (updateLeadStatusDto.status === LeadStatus.CONVERTED) {
                 updateData.convertedAt = new Date();
+                await this.listingRepository.increment({ id: lead.businessId }, 'convertedLeads', 1);
             }
 
             if (updateLeadStatusDto.notes !== undefined) {

@@ -420,6 +420,12 @@ export class CreateBusinessDto {
     @MaxLength(150)
     contactPersonName?: string;
 
+    @ApiPropertyOptional({ example: 'Mr.' })
+    @IsOptional()
+    @IsString()
+    @MaxLength(10)
+    contactPersonPrefix?: string;
+
     @ApiPropertyOptional({ example: 'Owner' })
     @IsOptional()
     @IsString()

@@ -27,6 +27,9 @@ import { useAddressConfig, fetchCountries } from '../../hooks/useAddressConfig';
 import { detectLocationForUi, sortAndDedupeCities, sortAndDedupeCountries } from '../../lib/location-detect';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const DraggablePinMap = dynamic(() => import('../DraggablePinMap'), { ssr: false });
 
 const SOCIAL_PLATFORMS = [
     { key: 'facebook', label: 'Facebook', emoji: '📘', color: '#1877F2', placeholder: 'https://facebook.com/yourbusiness' },
@@ -128,6 +131,14 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
     const [galleryUploading, setGalleryUploading] = useState(false);
     const [existingAddresses, setExistingAddresses] = useState<string[]>([]);
+    const [addressSuggestions, setAddressSuggestions] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+    const [addressSuggestionsLoading, setAddressSuggestionsLoading] = useState(false);
+    const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [locationSearchQuery, setLocationSearchQuery] = useState('');
+    const [locationSearchResults, setLocationSearchResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+    const [locationSearchLoading, setLocationSearchLoading] = useState(false);
+    const [reverseGeocodedAddress, setReverseGeocodedAddress] = useState('');
+    const locationSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [logoUploading, setLogoUploading] = useState(false);
     const [albumImageUploading, setAlbumImageUploading] = useState<number | null>(null);
 
@@ -236,15 +247,76 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
     };
 
+    const reverseGeocode = async (lat: number, lng: number) => {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                { headers: { 'User-Agent': 'BusinessDirectory/1.0' } }
+            );
+            const data = await res.json();
+            if (data?.display_name) {
+                setReverseGeocodedAddress(data.display_name);
+            }
+        } catch {
+            setReverseGeocodedAddress('');
+        }
+    };
+
+    const fetchLocationSearchResults = (query: string) => {
+        if (locationSearchDebounceRef.current) clearTimeout(locationSearchDebounceRef.current);
+        if (!query || query.length < 3) {
+            setLocationSearchResults([]);
+            setLocationSearchLoading(false);
+            return;
+        }
+        setLocationSearchLoading(true);
+        locationSearchDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`,
+                    { headers: { 'User-Agent': 'BusinessDirectory/1.0' } }
+                );
+                const data = await res.json();
+                setLocationSearchResults(data);
+            } catch {
+                setLocationSearchResults([]);
+            } finally {
+                setLocationSearchLoading(false);
+            }
+        }, 400);
+    };
+
+    const selectLocationSearchResult = (result: { display_name: string; lat: string; lon: string }) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        setFormData(prev => ({
+            ...prev,
+            address: result.display_name,
+            latitude: lat,
+            longitude: lng,
+        }));
+        setLocationSearchResults([]);
+        setLocationSearchQuery('');
+        reverseGeocode(lat, lng);
+    };
+
     const handleGetCurrentLocation = async () => {
         try {
             const coords = await detectLocationForUi();
             if (!coords) return;
             await updateLocationFromCoords(coords.latitude, coords.longitude);
+            reverseGeocode(coords.latitude, coords.longitude);
         } catch (error) {
             console.error("Error getting location:", error);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+            if (locationSearchDebounceRef.current) clearTimeout(locationSearchDebounceRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -462,6 +534,40 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchAddressSuggestions = (query: string) => {
+        if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+        if (!query || query.length < 3) {
+            setAddressSuggestions([]);
+            setAddressSuggestionsLoading(false);
+            return;
+        }
+        setAddressSuggestionsLoading(true);
+        addressDebounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`,
+                    { headers: { 'User-Agent': 'BusinessDirectory/1.0' } }
+                );
+                const data = await res.json();
+                setAddressSuggestions(data);
+            } catch {
+                setAddressSuggestions([]);
+            } finally {
+                setAddressSuggestionsLoading(false);
+            }
+        }, 400);
+    };
+
+    const selectAddressSuggestion = (suggestion: { display_name: string; lat: string; lon: string }) => {
+        setFormData(prev => ({
+            ...prev,
+            address: suggestion.display_name,
+            latitude: parseFloat(suggestion.lat),
+            longitude: parseFloat(suggestion.lon),
+        }));
+        setAddressSuggestions([]);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -1155,12 +1261,41 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                     </div>
                                                     <div className="relative group">
                                                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
-                                                        <input required name="address" list="address-autocomplete" value={formData.address} onChange={handleChange} placeholder="Street address..." className="w-full pl-11 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                        <datalist id="address-autocomplete">
-                                                            {existingAddresses.map((addr, i) => (
-                                                                <option key={i} value={addr} />
-                                                            ))}
-                                                        </datalist>
+                                                        <input
+                                                            required
+                                                            name="address"
+                                                            value={formData.address}
+                                                            onChange={(e) => {
+                                                                handleChange(e);
+                                                                fetchAddressSuggestions(e.target.value);
+                                                            }}
+                                                            onBlur={() => setTimeout(() => setAddressSuggestions([]), 200)}
+                                                            placeholder="Street address..."
+                                                            className="w-full pl-11 pr-10 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                        {(addressSuggestions.length > 0 || addressSuggestionsLoading) && (
+                                                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                                                                {addressSuggestionsLoading ? (
+                                                                    <div className="px-4 py-3 text-xs text-slate-400 flex items-center gap-2">
+                                                                        <Loader2 className="w-3 h-3 animate-spin" /> Searching...
+                                                                    </div>
+                                                                ) : (
+                                                                    addressSuggestions.map((s, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            type="button"
+                                                                            onMouseDown={(e) => {
+                                                                                e.preventDefault();
+                                                                                selectAddressSuggestion(s);
+                                                                            }}
+                                                                            className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-orange-50 transition-colors border-b border-slate-50 last:border-0"
+                                                                        >
+                                                                            {s.display_name}
+                                                                        </button>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-2.5">
@@ -1175,47 +1310,105 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                 </div>
 
                                                 {addressConfig.postalCode.used && (
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-2.5">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                                                {addressConfig.postalCode.label} {addressConfig.postalCode.required ? <span className="text-red-500">*</span> : '(Optional)'}
-                                                            </label>
-                                                            <input
-                                                                name="pincode"
-                                                                required={addressConfig.postalCode.required}
-                                                                value={formData.pincode}
-                                                                onChange={handleChange}
-                                                                placeholder={addressConfig.postalCode.label}
-                                                                className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
-                                                            />
-                                                            {formData.pincode && !validatePostalCode(formData.pincode) && (
-                                                                <p className="text-xs text-red-500 font-bold ml-1">Invalid {addressConfig.postalCode.label} format for this country.</p>
-                                                            )}
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="space-y-2.5">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lat</label>
-                                                                <input type="number" step="any" name="latitude" value={formData.latitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                            </div>
-                                                            <div className="space-y-2.5">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Long</label>
-                                                                <input type="number" step="any" name="longitude" value={formData.longitude} onChange={handleChange} className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm" />
-                                                            </div>
-                                                        </div>
+                                                    <div className="space-y-2.5">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                                            {addressConfig.postalCode.label} {addressConfig.postalCode.required ? <span className="text-red-500">*</span> : '(Optional)'}
+                                                        </label>
+                                                        <input
+                                                            name="pincode"
+                                                            required={addressConfig.postalCode.required}
+                                                            value={formData.pincode}
+                                                            onChange={handleChange}
+                                                            placeholder={addressConfig.postalCode.label}
+                                                            className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                        {formData.pincode && !validatePostalCode(formData.pincode) && (
+                                                            <p className="text-xs text-red-500 font-bold ml-1">Invalid {addressConfig.postalCode.label} format for this country.</p>
+                                                        )}
                                                     </div>
                                                 )}
 
-                                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-[11px] font-semibold text-slate-500">
-                                                    Address format and required fields update automatically based on the selected country.
+                                                <div className="space-y-2.5">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Search Location</label>
+                                                    <div className="relative group">
+                                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-500 transition-colors" />
+                                                        <input
+                                                            type="text"
+                                                            value={locationSearchQuery}
+                                                            onChange={(e) => {
+                                                                setLocationSearchQuery(e.target.value);
+                                                                fetchLocationSearchResults(e.target.value);
+                                                            }}
+                                                            onBlur={() => setTimeout(() => setLocationSearchResults([]), 200)}
+                                                            placeholder="Search for a place (e.g. Eiffel Tower, New York)..."
+                                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                        {(locationSearchResults.length > 0 || locationSearchLoading) && (
+                                                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                                                                {locationSearchLoading ? (
+                                                                    <div className="px-4 py-3 text-xs text-slate-400 flex items-center gap-2">
+                                                                        <Loader2 className="w-3 h-3 animate-spin" /> Searching...
+                                                                    </div>
+                                                                ) : (
+                                                                    locationSearchResults.map((s, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            type="button"
+                                                                            onMouseDown={(e) => {
+                                                                                e.preventDefault();
+                                                                                selectLocationSearchResult(s);
+                                                                            }}
+                                                                            className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-orange-50 transition-colors border-b border-slate-50 last:border-0"
+                                                                        >
+                                                                            {s.display_name}
+                                                                        </button>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="rounded-2xl border border-slate-200 overflow-hidden h-[200px] bg-slate-100 relative">
-                                                    <iframe
-                                                        title="Map preview"
-                                                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${formData.longitude - 0.01}%2C${formData.latitude - 0.01}%2C${formData.longitude + 0.01}%2C${formData.latitude + 0.01}&layer=mapnik&marker=${formData.latitude}%2C${formData.longitude}`}
-                                                        className="w-full h-full border-0"
-                                                        loading="lazy"
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2.5">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Latitude</label>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            name="latitude"
+                                                            value={formData.latitude}
+                                                            onChange={handleChange}
+                                                            className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2.5">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Longitude</label>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            name="longitude"
+                                                            value={formData.longitude}
+                                                            onChange={handleChange}
+                                                            className="w-full px-3 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all shadow-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-[11px] font-semibold text-slate-500">
+                                                    Drag the pin on the map or click anywhere to set coordinates. You can also search for a location above.
+                                                </div>
+
+                                                <div className="rounded-2xl border border-slate-200 overflow-hidden h-[280px] bg-slate-100 relative">
+                                                    <DraggablePinMap
+                                                        latitude={formData.latitude}
+                                                        longitude={formData.longitude}
+                                                        onChange={(lat, lng) => {
+                                                            setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                                                            reverseGeocode(lat, lng);
+                                                        }}
+                                                        className="h-full"
                                                     />
-                                                    <div className="absolute bottom-2 right-2 flex gap-1">
+                                                    <div className="absolute bottom-2 right-2 flex gap-1 z-[1000]">
                                                         <button
                                                             type="button"
                                                             onClick={handleGetCurrentLocation}
@@ -1225,6 +1418,13 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {reverseGeocodedAddress && (
+                                                    <div className="p-3 bg-green-50 border border-green-100 rounded-xl text-[11px] text-green-700 font-semibold flex items-start gap-2">
+                                                        <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-green-500" />
+                                                        <span>{reverseGeocodedAddress}</span>
+                                                    </div>
+                                                )}
                                             </motion.div>
                                         )}
 

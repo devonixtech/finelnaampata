@@ -61,8 +61,8 @@ export default function BusinessAnalyticsPage() {
                     if (l.offerTitle || l.hasOffer) {
                         offers.push({
                             offerTitle: l.offerTitle || 'Active Offer',
-                            views: l.totalViews || 0,
-                            clicks: l.totalLeads || 0,
+                            views: l.offerViews || 0,
+                            clicks: l.offerClicks || 0,
                             hasRealData: true,
                         });
                     }
@@ -84,17 +84,21 @@ export default function BusinessAnalyticsPage() {
                     const total = followerData.reduce((sum: number, f: any) => sum + (f.followersCount || 0), 0);
                     setFollowerCount(total);
 
-                    const history: { date: string; count: number }[] = [];
-                    const now = new Date();
-                    for (let i = 6; i >= 0; i--) {
-                        const d = new Date(now);
-                        d.setDate(d.getDate() - i);
-                        history.push({
-                            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                            count: Math.max(0, total - Math.floor(i * (total * 0.05))),
+                    // Merge follower history from all listings
+                    const mergedHistory: Record<string, number> = {};
+                    listingResults.forEach((l: any) => {
+                        (l.followerHistory || []).forEach((entry: any) => {
+                            mergedHistory[entry.date] = (mergedHistory[entry.date] || 0) + entry.count;
                         });
-                    }
-                    setFollowerHistory(history);
+                    });
+                    const history = Object.entries(mergedHistory)
+                        .map(([date, count]) => ({
+                            date: new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            count,
+                        }))
+                        .sort((a, b) => a.date.localeCompare(b.date))
+                        .slice(-30);
+                    setFollowerHistory(history.length > 0 ? history : []);
                 } catch {
                     setFollowerCount(0);
                 }
@@ -288,8 +292,8 @@ export default function BusinessAnalyticsPage() {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-0 divide-x divide-slate-100">
                     {[
-                        { label: 'Search Appearances', value: stats?.totalViews?.toLocaleString() || '0', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
-                        { label: 'Call Clicks', value: stats?.totalLeads?.toLocaleString() || '0', icon: Phone, color: 'text-orange-600', bg: 'bg-orange-50' },
+                        { label: 'Search Appearances', value: (stats as any)?.searchImpressions?.toLocaleString() || '0', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Call Clicks', value: (stats as any)?.clickToCallCount?.toLocaleString() || '0', icon: Phone, color: 'text-orange-600', bg: 'bg-orange-50' },
                         { label: 'Website Clicks', value: (stats as any)?.websiteClicks?.toLocaleString() || '0', icon: Globe, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                         { label: 'Direction Clicks', value: (stats as any)?.directionClicks?.toLocaleString() || '0', icon: Navigation, color: 'text-violet-600', bg: 'bg-violet-50' },
                         { label: 'Message Clicks', value: (stats as any)?.messageClicks?.toLocaleString() || '0', icon: MessageSquare, color: 'text-pink-600', bg: 'bg-pink-50' },
@@ -314,10 +318,10 @@ export default function BusinessAnalyticsPage() {
                 <h2 className="text-xl font-black text-slate-900 mb-6">Conversion Funnel</h2>
                 <div className="space-y-4">
                     {[
-                        { label: 'Search Impressions', value: (stats?.totalViews || 0) + Math.round((stats?.totalViews || 0) * 0.4), pct: 100, color: 'bg-indigo-500' },
-                        { label: 'Profile Views', value: stats?.totalViews || 0, pct: stats?.totalViews ? 100 : 0, color: 'bg-blue-500' },
-                        { label: 'Contact Clicks', value: stats?.totalLeads || 0, pct: stats?.totalViews ? Math.round((stats.totalLeads / stats.totalViews) * 100) : 0, color: 'bg-orange-500' },
-                        { label: 'Conversions', value: listings.reduce((sum, l) => sum + (l.convertedLeads || 0), 0), pct: stats?.totalViews ? Math.round((listings.reduce((sum, l) => sum + (l.convertedLeads || 0), 0) / Math.max(stats.totalViews, 1)) * 100) : 0, color: 'bg-emerald-500' },
+                        { label: 'Search Impressions', value: stats?.searchImpressions || 0, pct: stats?.searchImpressions ? 100 : 0, color: 'bg-indigo-500' },
+                        { label: 'Profile Views', value: stats?.totalViews || 0, pct: stats?.searchImpressions ? Math.round(((stats?.totalViews || 0) / Math.max(stats?.searchImpressions || 1, 1)) * 100) : 0, color: 'bg-blue-500' },
+                        { label: 'Contact Clicks', value: stats?.totalLeads || 0, pct: stats?.searchImpressions ? Math.round(((stats?.totalLeads || 0) / Math.max(stats?.searchImpressions || 1, 1)) * 100) : 0, color: 'bg-orange-500' },
+                        { label: 'Conversions', value: stats?.convertedLeads || 0, pct: stats?.searchImpressions ? Math.round(((stats?.convertedLeads || 0) / Math.max(stats?.searchImpressions || 1, 1)) * 100) : 0, color: 'bg-emerald-500' },
                     ].map((step) => (
                         <div key={step.label} className="flex items-center gap-4">
                             <div className="w-32 shrink-0">
@@ -379,6 +383,7 @@ export default function BusinessAnalyticsPage() {
 
             {/* Offer Engagement Tab */}
             {activeAnalyticsTab === 'offers' && (
+            <div className="space-y-6">
             <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -418,6 +423,50 @@ export default function BusinessAnalyticsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Ad Performance */}
+            <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm p-6 md:p-8">
+                <div className="mb-6">
+                    <h2 className="text-xl font-black text-slate-900">Ad Performance</h2>
+                    <p className="text-sm text-slate-500 font-medium">How your sponsored listings perform in search results</p>
+                </div>
+                {listings.some((l: any) => l.isSponsored) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center p-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+                            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <Eye className="w-7 h-7 text-indigo-600" />
+                            </div>
+                            <p className="text-3xl font-black text-slate-900 mb-1">{(stats as any)?.adImpressions?.toLocaleString() || '0'}</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Ad Impressions</p>
+                        </div>
+                        <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100">
+                            <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <MousePointerClick className="w-7 h-7 text-purple-600" />
+                            </div>
+                            <p className="text-3xl font-black text-slate-900 mb-1">{(stats as any)?.adClicks?.toLocaleString() || '0'}</p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Ad Clicks</p>
+                        </div>
+                        <div className="text-center p-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100">
+                            <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <TrendingUp className="w-7 h-7 text-emerald-600" />
+                            </div>
+                            <p className="text-3xl font-black text-slate-900 mb-1">
+                                {(stats as any)?.adImpressions > 0
+                                    ? (((stats as any)?.adClicks || 0) / (stats as any).adImpressions * 100).toFixed(1)
+                                    : '0'}%
+                            </p>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Click-Through Rate</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-slate-400">
+                        <Zap className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                        <p className="font-bold">No sponsored listings.</p>
+                        <p className="text-xs mt-1">Sponsor a listing to see ad performance analytics here.</p>
+                    </div>
+                )}
+            </div>
+            </div>
             )}
 
             {/* Follower Growth Tab */}
@@ -456,7 +505,7 @@ export default function BusinessAnalyticsPage() {
                 </div>
                 {followerHistory.length > 0 && (
                     <div className="border border-slate-100 rounded-2xl p-6">
-                        <h3 className="text-sm font-black text-slate-900 mb-4">Follower Trend (Last 7 Days)</h3>
+                        <h3 className="text-sm font-black text-slate-900 mb-4">Follower Trend</h3>
                         <div className="flex items-end gap-2 h-40">
                             {followerHistory.map((entry, i) => {
                                 const maxVal = Math.max(...followerHistory.map(f => f.count), 1);

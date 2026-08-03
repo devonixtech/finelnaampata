@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AffiliateService } from './affiliate.service';
 import { AffiliateController } from './affiliate.controller';
+import { AffiliateQueueService } from './affiliate-queue.service';
 import { Affiliate } from '../../entities/affiliate.entity';
 import { AffiliateReferral } from '../../entities/referral.entity';
 import { Payout } from '../../entities/payout.entity';
@@ -31,7 +32,7 @@ import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
         ]),
     ],
     controllers: [AffiliateController],
-    providers: [AffiliateService],
+    providers: [AffiliateService, AffiliateQueueService],
     exports: [AffiliateService],
 })
 export class AffiliateModule { }

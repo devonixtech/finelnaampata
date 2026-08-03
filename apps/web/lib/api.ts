@@ -306,6 +306,17 @@ export const api = {
             body: JSON.stringify(data),
         }),
         getKeywordAnalytics: () => fetcher<any[]>('/businesses/vendor/keyword-analytics'),
+        getUserPhotos: (businessId: string) => fetcher<any[]>(`/businesses/${businessId}/user-photos`),
+        submitUserPhoto: (businessId: string, data: { url: string; caption?: string }) => fetcher<Business>(`/businesses/${businessId}/user-photos`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        trackOfferClick: (businessId: string) => fetcher<any>(`/businesses/${businessId}/track/offer-click`, {
+            method: 'POST',
+        }),
+        trackAdClick: (businessId: string) => fetcher<any>(`/businesses/${businessId}/track/ad-click`, {
+            method: 'POST',
+        }),
     },
     cities: {
         getPopular: (options?: FetcherOptions) => fetcher<City[]>('/cities/popular', options),

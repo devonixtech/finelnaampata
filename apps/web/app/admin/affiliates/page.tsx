@@ -116,6 +116,18 @@ function KebabMenu({ affiliate, onApprove, onSuspend }: {
     );
 }
 
+interface AdminAffiliateStats {
+    totalAffiliates: number;
+    activeAffiliates: number;
+    pendingApprovals: number;
+    totalEarnings: number;
+    totalPaidOut: number;
+    totalCommissionOwed: number;
+    pendingPayouts: number;
+    totalClicks: number;
+    totalRevenueGenerated: number;
+}
+
 export default function AffiliatesAdminPage() {
     const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
     const [loading, setLoading] = useState(true);
@@ -124,12 +136,17 @@ export default function AffiliatesAdminPage() {
     const [kycFilter, setKycFilter] = useState('all');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [stats, setStats] = useState<AdminAffiliateStats | null>(null);
 
     const fetchAffiliates = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api.admin.affiliate.getAffiliates();
-            setAffiliates(data || []);
+            const [affiliatesData, statsData] = await Promise.all([
+                api.admin.affiliate.getAffiliates(),
+                api.admin.affiliate.getStats(),
+            ]);
+            setAffiliates(affiliatesData || []);
+            setStats(statsData);
         } catch (err) {
             console.error('Failed to fetch affiliates:', err);
         } finally {
@@ -213,9 +230,6 @@ export default function AffiliatesAdminPage() {
         return matchesSearch && matchesStatus && matchesKyc;
     });
 
-    const totalEarnings = affiliates.reduce((s, a) => s + (a.totalEarnings || 0), 0);
-    const totalHeld = affiliates.reduce((s, a) => s + (a.balanceHeld || 0), 0);
-    const activeCount = affiliates.filter(a => a.adminApproved && !a.isSuspended).length;
     const pendingKyc = affiliates.filter(a => a.kycStatus === 'pending').length;
 
     const getKycBadge = (status: string) => {
@@ -267,11 +281,13 @@ export default function AffiliatesAdminPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard label="Total Affiliates" value={affiliates.length} icon={Users} color="bg-slate-100" textColor="text-slate-500" />
-                <StatCard label="Active" value={activeCount} icon={CheckCircle} color="bg-emerald-100" textColor="text-emerald-600" />
-                <StatCard label="Total Earnings" value={`$${totalEarnings.toFixed(2)}`} icon={DollarSign} color="bg-blue-100" textColor="text-blue-600" />
-                <StatCard label="Pending KYC" value={pendingKyc} icon={ShieldCheck} color="bg-amber-100" textColor="text-amber-600" />
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <StatCard label="Total Affiliates" value={stats?.totalAffiliates ?? affiliates.length} icon={Users} color="bg-slate-100" textColor="text-slate-500" />
+                <StatCard label="Active Affiliates" value={stats?.activeAffiliates ?? 0} icon={CheckCircle} color="bg-emerald-100" textColor="text-emerald-600" />
+                <StatCard label="Revenue Generated" value={`$${(stats?.totalRevenueGenerated ?? 0).toFixed(2)}`} icon={TrendingUp} color="bg-blue-100" textColor="text-blue-600" />
+                <StatCard label="Commission Owed" value={`$${(stats?.totalCommissionOwed ?? 0).toFixed(2)}`} icon={DollarSign} color="bg-amber-100" textColor="text-amber-600" />
+                <StatCard label="Total Paid" value={`$${(stats?.totalPaidOut ?? 0).toFixed(2)}`} icon={DollarSign} color="bg-emerald-100" textColor="text-emerald-600" />
+                <StatCard label="Pending Approvals" value={stats?.pendingApprovals ?? 0} icon={AlertTriangle} color="bg-orange-100" textColor="text-orange-600" />
             </div>
 
             {/* Quick Links */}

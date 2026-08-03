@@ -73,6 +73,7 @@ export class TrustService {
         user.reviewCount = reviewCount;
         user.helpfulVotesCount = helpfulVotesCount;
         user.spamFlagsCount = spamFlagsCount;
+        (user as any).badge = this.getUserBadge(Math.round(finalScore));
 
         return this.userRepository.save(user);
     }

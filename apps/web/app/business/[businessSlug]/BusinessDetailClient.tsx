@@ -135,7 +135,7 @@ const BusinessOpenBadge = ({ business }: { business: Business }) => {
       ? business.businessHours
       : business.vendor?.businessHours;
 
-  const { status, label, todayHours } = getBusinessOpenStatus(hoursData);
+  const { status, label, todayHours } = getBusinessOpenStatus(hoursData, business.timezone);
   if (status === "UNKNOWN") return null;
 
   const isOpen = status === "OPEN";
@@ -228,6 +228,13 @@ export default function BusinessDetailClient({
   const [categorySearch, setCategorySearch] = useState('');
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [selectedPhotoCategory, setSelectedPhotoCategory] = useState('all');
+  const [userPhotos, setUserPhotos] = useState<any[]>([]);
+  const [showAddPhotoModal, setShowAddPhotoModal] = useState(false);
+  const [addPhotoUrl, setAddPhotoUrl] = useState('');
+  const [addPhotoCaption, setAddPhotoCaption] = useState('');
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+  const [photoSubmitSuccess, setPhotoSubmitSuccess] = useState(false);
+  const [reviewStep, setReviewStep] = useState(1);
 
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categories;
@@ -334,6 +341,10 @@ export default function BusinessDetailClient({
             data?.vendor?.user?.isOnline,
           );
           setBusiness(data);
+          // Track ad click for sponsored listings
+          if (data?.isSponsored && data?.id) {
+            api.listings.trackAdClick(data.id).catch(() => {});
+          }
         } else {
           console.log("[BusinessDetail] Using initialData for slug:", actualSlug);
         }
@@ -635,8 +646,8 @@ export default function BusinessDetailClient({
     setShowEnquiryModal(true);
   };
 
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReviewSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
@@ -663,6 +674,7 @@ export default function BusinessDetailClient({
       setReviewComment("");
       setReviewRating(5);
       setReviewImages([]);
+      setReviewStep(1);
     } catch (err: any) {
       alert(err.message || "Failed to submit review");
     } finally {
@@ -751,6 +763,46 @@ export default function BusinessDetailClient({
       console.error("Helpful toggle failed:", err);
     } finally {
       setHelpfulLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    const loadUserPhotos = async () => {
+      if (!business?.id) return;
+      try {
+        const data = await api.listings.getUserPhotos(business.id);
+        setUserPhotos(data || []);
+      } catch (err) {
+        console.error("[BusinessDetail] Failed to load user photos:", err);
+      }
+    };
+    if (activeTab === 'photos') loadUserPhotos();
+  }, [business?.id, activeTab]);
+
+  const handleSubmitUserPhoto = async () => {
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+    if (!business || !addPhotoUrl.trim()) return;
+    setSubmittingPhoto(true);
+    try {
+      const updated = await api.listings.submitUserPhoto(business.id, {
+        url: addPhotoUrl.trim(),
+        caption: addPhotoCaption.trim() || undefined,
+      });
+      if (updated?.userSubmittedPhotos) {
+        setUserPhotos(updated.userSubmittedPhotos.filter((p: any) => p.isApproved));
+      }
+      setAddPhotoUrl('');
+      setAddPhotoCaption('');
+      setShowAddPhotoModal(false);
+      setPhotoSubmitSuccess(true);
+      setTimeout(() => setPhotoSubmitSuccess(false), 3000);
+    } catch (err: any) {
+      alert(err.message || "Failed to submit photo");
+    } finally {
+      setSubmittingPhoto(false);
     }
   };
 
@@ -1575,40 +1627,7 @@ export default function BusinessDetailClient({
                             </div>
                           )}
 
-                          {/* Owner Reply */}
-                          {isOwner && (
-                            <div className="mt-4 pt-3 border-t border-slate-50">
-                              {replyingTo === comment.id ? (
-                                <div>
-                                  <textarea
-                                    autoFocus
-                                    value={replyContent}
-                                    onChange={(e) => setReplyContent(e.target.value)}
-                                    placeholder="Write your reply..."
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none resize-none"
-                                    rows={3}
-                                  />
-                                  <div className="flex justify-end gap-2 mt-2">
-                                    <button onClick={() => setReplyingTo(null)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
-                                    <button
-                                      onClick={() => handleReplySubmit(comment.id)}
-                                      disabled={submittingReply || !replyContent.trim()}
-                                      className="px-4 py-2 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 disabled:opacity-50"
-                                    >
-                                      {submittingReply ? 'Posting...' : 'Post Reply'}
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setReplyingTo(comment.id)}
-                                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-violet-600 transition-colors"
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" /> Reply
-                                </button>
-                              )}
-                            </div>
-                          )}
+                          {/* Owner Reply — Removed per spec */}
                         </div>
                       ))}
                     </div>
@@ -1625,21 +1644,38 @@ export default function BusinessDetailClient({
               {/* Photos Tab */}
               <div className={activeTab === 'photos' ? 'block' : 'hidden'}>
                 <div className="animate-in fade-in duration-500">
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {['all', 'business', 'customer', 'exterior', 'interior'].map((cat) => (
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      {['all', 'business', 'customer', 'exterior', 'interior'].map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => setSelectedPhotoCategory(cat)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            selectedPhotoCategory === cat
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                    {!isOwner && user && (
                       <button
-                        key={cat}
-                        onClick={() => setSelectedPhotoCategory(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          selectedPhotoCategory === cat
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        onClick={() => setShowAddPhotoModal(true)}
+                        className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all flex items-center gap-2"
                       >
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        <Images className="w-4 h-4" /> Add Photo
                       </button>
-                    ))}
+                    )}
                   </div>
+
+                  {photoSubmitSuccess && (
+                    <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 font-medium">
+                      Your photo has been submitted and is pending approval.
+                    </div>
+                  )}
+
                   {galleryImages.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {galleryImages.map((img, idx) => (
@@ -1759,6 +1795,7 @@ export default function BusinessDetailClient({
                   {business.email && (
                     <a
                       href={`mailto:${business.email}`}
+                      onClick={() => trackContactClick("email")}
                       className="w-full py-3 bg-orange-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-all active:scale-95"
                     >
                       <Mail className="w-4 h-4" /> Email
@@ -1922,6 +1959,11 @@ export default function BusinessDetailClient({
               <div
                 key={offer.id || `offer-${idx}`}
                 className="group relative bg-white rounded-[32px] border border-slate-100 shadow-premium hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col"
+                onClick={() => {
+                  if (business?.id) {
+                    api.listings.trackOfferClick(business.id).catch(() => {});
+                  }
+                }}
               >
                 {/* Offer Banner Image */}
                 {offer.imageUrl && (
@@ -2073,7 +2115,7 @@ export default function BusinessDetailClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-[20px] md:rounded-[16px] p-6 md:p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setShowReviewModal(false)}
+              onClick={() => { setShowReviewModal(false); setReviewStep(1); }}
               className="absolute top-4 right-4 md:top-8 md:right-8 text-slate-400 hover:text-slate-900 transition-colors p-2"
             >
               <span className="sr-only">Close</span>
@@ -2081,6 +2123,20 @@ export default function BusinessDetailClient({
             </button>
 
             <div className="text-center mb-6 md:mb-8">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                {[1, 2, 3].map((step) => (
+                  <div
+                    key={step}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      step <= reviewStep
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {step}
+                  </div>
+                ))}
+              </div>
               <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">
                 Write a Review
               </h3>
@@ -2089,104 +2145,146 @@ export default function BusinessDetailClient({
               </p>
             </div>
 
-            <form onSubmit={handleReviewSubmit} className="space-y-4 md:space-y-6">
-              <div className="flex flex-col items-center">
-                <label className="block text-sm font-bold text-slate-700 mb-4">
-                  How was your experience?
-                </label>
-                <div className="flex gap-1 md:gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      className="p-1 transition-transform hover:scale-110 active:scale-90"
-                    >
-                      <Star
-                        className={`w-8 h-8 md:w-10 md:h-10 ${star <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Your review
-                </label>
-                <textarea
-                  required
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  rows={4}
-                  placeholder="Tell others what you liked or disliked..."
-                  className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 text-sm md:text-base text-slate-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Photos (optional, max 5)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  max={5}
-                  onChange={async (e) => {
-                    const rawFiles = Array.from(e.target.files || []).slice(0, 5);
-                    for (const file of rawFiles) {
-                      try {
-                        const imageCompression = (await import('browser-image-compression')).default;
-                        const compressed = await imageCompression(file, {
-                          maxSizeMB: 0.5,
-                          maxWidthOrHeight: 1600,
-                          useWebWorker: true,
-                          fileType: 'image/jpeg',
-                          initialQuality: 0.8,
-                        });
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
-                        };
-                        reader.readAsDataURL(compressed);
-                      } catch {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }
-                  }}
-                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all"
-                />
-                {reviewImages.length > 0 && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    {reviewImages.map((img, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={img} alt={`Preview ${idx + 1}`} className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
-                        <button
-                          type="button"
-                          onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
-                        >
-                          ×
-                        </button>
-                      </div>
+            <div className="space-y-4 md:space-y-6">
+              {reviewStep === 1 && (
+                <div className="flex flex-col items-center">
+                  <label className="block text-sm font-bold text-slate-700 mb-4">
+                    How was your experience?
+                  </label>
+                  <div className="flex gap-1 md:gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="p-1 transition-transform hover:scale-110 active:scale-90"
+                      >
+                        <Star
+                          className={`w-8 h-8 md:w-10 md:h-10 ${star <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
+                        />
+                      </button>
                     ))}
                   </div>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setReviewStep(2)}
+                    className="mt-8 w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={submittingReview}
-                className="w-full py-3.5 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-              >
-                {submittingReview ? "Submitting..." : "Submit Review"}
-              </button>
-            </form>
+              {reviewStep === 2 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Your review
+                    </label>
+                    <textarea
+                      required
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      rows={4}
+                      placeholder="Tell others what you liked or disliked..."
+                      className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 text-sm md:text-base text-slate-600"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(1)}
+                      className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(3)}
+                      className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {reviewStep === 3 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Photos (optional, max 5)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      max={5}
+                      onChange={async (e) => {
+                        const rawFiles = Array.from(e.target.files || []).slice(0, 5);
+                        for (const file of rawFiles) {
+                          try {
+                            const imageCompression = (await import('browser-image-compression')).default;
+                            const compressed = await imageCompression(file, {
+                              maxSizeMB: 0.5,
+                              maxWidthOrHeight: 1600,
+                              useWebWorker: true,
+                              fileType: 'image/jpeg',
+                              initialQuality: 0.8,
+                            });
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                            };
+                            reader.readAsDataURL(compressed);
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }
+                      }}
+                      className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all"
+                    />
+                    {reviewImages.length > 0 && (
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        {reviewImages.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`Preview ${idx + 1}`} className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                            <button
+                              type="button"
+                              onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(2)}
+                      className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReviewSubmit}
+                      disabled={submittingReview}
+                      className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -2631,6 +2729,93 @@ export default function BusinessDetailClient({
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add User Photo Modal */}
+      <AnimatePresence>
+        {showAddPhotoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white w-full max-w-md rounded-[16px] shadow-2xl relative overflow-hidden"
+            >
+              <div className="p-6 md:p-8">
+                <button
+                  onClick={() => { setShowAddPhotoModal(false); setAddPhotoUrl(''); setAddPhotoCaption(''); }}
+                  className="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-slate-900 transition-colors p-1.5 rounded-full hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center">
+                      <Images className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">Add a Photo</h3>
+                      <p className="text-sm text-slate-400">Submit a photo for {business?.title}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                      Image URL *
+                    </label>
+                    <input
+                      type="url"
+                      value={addPhotoUrl}
+                      onChange={(e) => setAddPhotoUrl(e.target.value)}
+                      placeholder="https://example.com/photo.jpg"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all placeholder:text-slate-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                      Caption (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={addPhotoCaption}
+                      onChange={(e) => setAddPhotoCaption(e.target.value)}
+                      placeholder="Describe this photo..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all placeholder:text-slate-300"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSubmitUserPhoto}
+                    disabled={submittingPhoto || !addPhotoUrl.trim()}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {submittingPhoto ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" /> Submit Photo
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-slate-400 text-center">
+                    Your photo will be reviewed before appearing publicly.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

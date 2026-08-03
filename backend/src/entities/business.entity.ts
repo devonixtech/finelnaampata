@@ -209,8 +209,29 @@ export class Listing {
     @Column({ name: 'avg_response_time_minutes', type: 'int', nullable: true })
     avgResponseTimeMinutes: number;
 
+    @Column({ name: 'response_count', type: 'int', default: 0 })
+    responseCount: number;
+
+    @Column({ name: 'search_impressions', type: 'int', default: 0 })
+    searchImpressions: number;
+
+    @Column({ name: 'converted_leads', type: 'int', default: 0 })
+    convertedLeads: number;
+
+    @Column({ name: 'ad_impressions', type: 'int', default: 0 })
+    adImpressions: number;
+
+    @Column({ name: 'ad_clicks', type: 'int', default: 0 })
+    adClicks: number;
+
+    @Column({ name: 'click_to_call_count', type: 'int', default: 0 })
+    clickToCallCount: number;
+
     @Column({ name: 'followers_count', default: 0 })
     followersCount: number;
+
+    @Column({ name: 'follower_history', type: 'jsonb', default: '[]' })
+    followerHistory: { date: string; count: number }[];
 
     // SEO
     @Column({ name: 'meta_title', nullable: true })
@@ -238,6 +259,9 @@ export class Listing {
     // V2 Registration Flow Fields
     @Column({ name: 'contact_person_name', nullable: true, length: 150 })
     contactPersonName: string;
+
+    @Column({ name: 'contact_person_prefix', nullable: true, length: 10 })
+    contactPersonPrefix: string;
 
     @Column({ name: 'contact_person_title', nullable: true, length: 100 })
     contactPersonTitle: string;
@@ -309,6 +333,9 @@ export class Listing {
     @Column({ name: 'chain_or_multiple_branches', default: false })
     chainOrMultipleBranches: boolean;
 
+    @Column({ name: 'user_submitted_photos', type: 'jsonb', default: '[]' })
+    userSubmittedPhotos: { id: string; url: string; userId: string; userName: string; caption: string; isApproved: boolean; submittedAt: string }[];
+
     @Column({ name: 'social_links', type: 'jsonb', default: '[]' })
     socialLinks: { platform: string, url: string, label?: string }[];
 
@@ -330,6 +357,12 @@ export class Listing {
 
     @Column({ name: 'offer_banner_url', nullable: true, type: 'text' })
     offerBannerUrl: string;
+
+    @Column({ name: 'offer_views', type: 'int', default: 0 })
+    offerViews: number;
+
+    @Column({ name: 'offer_clicks', type: 'int', default: 0 })
+    offerClicks: number;
 
     @Expose()
     @Type(() => Object)

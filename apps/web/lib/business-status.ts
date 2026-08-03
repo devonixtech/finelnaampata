@@ -70,7 +70,8 @@ function parseTimeToMinutes(time: string): number | null {
  * Determines if the business is currently Open or Closed based on its businessHours (Array or Record).
  */
 export function getBusinessOpenStatus(
-    businessHours?: any
+    businessHours?: any,
+    timezone?: string
 ): { status: BusinessOpenStatusType; label: string; todayHours: string | null } {
     const log = (msg: string, data?: any) => {
         if (typeof window !== 'undefined') {
@@ -83,8 +84,9 @@ export function getBusinessOpenStatus(
     }
 
     const now = new Date();
-    const todayLong = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    const todayShort = todayLong.substring(0, 3); // "mon", "tue", etc.
+    const tz = timezone || 'UTC';
+    const todayLong = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: tz }).format(now).toLowerCase();
+    const todayShort = todayLong.substring(0, 3);
 
     let todayEntry: { isOpen: boolean; openTime: string; closeTime: string } | null = null;
 
@@ -143,7 +145,15 @@ export function getBusinessOpenStatus(
         };
     }
 
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const parts = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+        timeZone: tz,
+    }).formatToParts(now);
+    const hourVal = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+    const minVal = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+    const currentMins = hourVal * 60 + minVal;
 
     // Handle overnight hours (e.g., 22:00 – 02:00)
     const isOpen = closeMins < openMins

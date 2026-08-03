@@ -234,6 +234,9 @@ export class SearchService implements OnModuleInit {
                             subscriptionTier: { type: 'integer' },
                             savedCount: { type: 'integer' },
                             avgResponseTimeMinutes: { type: 'integer' },
+                            responseCount: { type: 'integer' },
+                            searchImpressions: { type: 'integer' },
+                            convertedLeads: { type: 'integer' },
                             openNow: { type: 'boolean' },
                             isOnline: { type: 'boolean' },
                         },
@@ -308,6 +311,9 @@ export class SearchService implements OnModuleInit {
                 subscriptionTier: business.subscriptionTier || 0,
                 savedCount: business.savedCount || 0,
                 avgResponseTimeMinutes: business.avgResponseTimeMinutes ?? null,
+                responseCount: business.responseCount || 0,
+                searchImpressions: business.searchImpressions || 0,
+                convertedLeads: business.convertedLeads || 0,
                 openNow: false,
                 isOnline: false,
             },
@@ -453,6 +459,32 @@ export class SearchService implements OnModuleInit {
         qb.skip(skip).take(take);
 
         const results = await qb.getMany();
+
+        // Increment search impressions for all businesses in the result set
+        if (results.length > 0) {
+            const resultIds = results.map((b: any) => b.id).filter(Boolean);
+            if (resultIds.length > 0) {
+                await this.businessRepository
+                    .createQueryBuilder()
+                    .update(Listing)
+                    .set({ searchImpressions: () => 'search_impressions + 1' })
+                    .where('id IN (:...ids)', { ids: resultIds })
+                    .execute();
+            }
+            // Increment ad impressions for sponsored businesses
+            const sponsoredIds = results
+                .filter((b: any) => b.isSponsored)
+                .map((b: any) => b.id)
+                .filter(Boolean);
+            if (sponsoredIds.length > 0) {
+                await this.businessRepository
+                    .createQueryBuilder()
+                    .update(Listing)
+                    .set({ adImpressions: () => 'ad_impressions + 1' })
+                    .where('id IN (:...ids)', { ids: sponsoredIds })
+                    .execute();
+            }
+        }
 
         return results.map((b) => ({
             id: b.id,
@@ -768,6 +800,32 @@ export class SearchService implements OnModuleInit {
             limit,
             nextSearchAfter,
         };
+
+        // Increment search impressions for all businesses in the result set
+        if (results.length > 0) {
+            const resultIds = results.map((r: any) => r.id).filter(Boolean);
+            if (resultIds.length > 0) {
+                await this.businessRepository
+                    .createQueryBuilder()
+                    .update(Listing)
+                    .set({ searchImpressions: () => 'search_impressions + 1' })
+                    .where('id IN (:...ids)', { ids: resultIds })
+                    .execute();
+            }
+            // Increment ad impressions for sponsored businesses
+            const sponsoredIds = results
+                .filter((r: any) => r.isSponsored)
+                .map((r: any) => r.id)
+                .filter(Boolean);
+            if (sponsoredIds.length > 0) {
+                await this.businessRepository
+                    .createQueryBuilder()
+                    .update(Listing)
+                    .set({ adImpressions: () => 'ad_impressions + 1' })
+                    .where('id IN (:...ids)', { ids: sponsoredIds })
+                    .execute();
+            }
+        }
         } // end of else block
 
         // Log search for demand insights

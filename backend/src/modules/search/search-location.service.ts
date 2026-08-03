@@ -419,7 +419,18 @@ export class SearchLocationService {
             isSponsored: b.isSponsored || false,
         }));
 
-        // 4. Cache the results for 15 minutes
+        // 4. Increment search impressions for all businesses in the result set
+        if (formattedResults.length > 0) {
+            const resultIds = formattedResults.map((r: any) => r.id);
+            await this.businessRepository
+                .createQueryBuilder()
+                .update(Listing)
+                .set({ searchImpressions: () => 'search_impressions + 1' })
+                .where('id IN (:...ids)', { ids: resultIds })
+                .execute();
+        }
+
+        // 5. Cache the results for 15 minutes
         await this.cacheManager.set(cacheKey, formattedResults, this.SEARCH_TTL_MS);
         await this.trackCacheKey(dto, cacheKey);
 

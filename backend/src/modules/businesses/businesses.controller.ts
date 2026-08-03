@@ -341,4 +341,66 @@ export class BusinessesController {
         return (this.businessesService as any).findDuplicateBusinesses();
     }
 
+    @Post(':id/user-photos')
+    @UseGuards(OptionalJwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Submit a user photo for a business (pending moderation)' })
+    async submitUserPhoto(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body() body: { url: string; caption?: string },
+        @CurrentUser() user: User,
+    ) {
+        return this.businessesService.submitUserPhoto(id, user, body);
+    }
+
+    @Public()
+    @Get(':id/user-photos')
+    @ApiOperation({ summary: 'Get approved user photos for a business' })
+    async getUserPhotos(
+        @Param('id', ParseUuidPipe) id: string,
+        @Query('approved') approved?: string,
+    ) {
+        return this.businessesService.getUserPhotos(id, approved !== 'false');
+    }
+
+    @Patch(':id/user-photos/:photoId/approve')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Admin: Approve a user-submitted photo' })
+    async approveUserPhoto(
+        @Param('id', ParseUuidPipe) id: string,
+        @Param('photoId') photoId: string,
+    ) {
+        return this.businessesService.approveUserPhoto(id, photoId);
+    }
+
+    @Patch(':id/user-photos/:photoId/reject')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Admin: Reject/remove a user-submitted photo' })
+    async rejectUserPhoto(
+        @Param('id', ParseUuidPipe) id: string,
+        @Param('photoId') photoId: string,
+    ) {
+        return this.businessesService.rejectUserPhoto(id, photoId);
+    }
+
+    @Post(':id/track/offer-click')
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Track an offer click on a listing' })
+    async trackOfferClick(@Param('id', ParseUuidPipe) id: string) {
+        await this.businessesService.trackOfferClick(id);
+        return { success: true };
+    }
+
+    @Post(':id/track/ad-click')
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Track an ad click on a sponsored listing' })
+    async trackAdClick(@Param('id', ParseUuidPipe) id: string) {
+        await this.businessesService.trackAdClick(id);
+        return { success: true };
+    }
+
 }

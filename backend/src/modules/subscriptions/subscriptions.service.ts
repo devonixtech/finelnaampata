@@ -1814,6 +1814,25 @@ export class SubscriptionsService implements OnModuleInit {
                 }
                 break;
             }
+            case 'invoice.payment_failed': {
+                const invoice = event.data.object as any;
+                this.logger.log(`❌ Invoice payment failed: ${invoice.id} for customer: ${invoice.customer}`);
+
+                if (invoice.subscription) {
+                    const vendor = await this.vendorRepository.findOne({ where: { stripeCustomerId: invoice.customer as string } });
+                    if (vendor) {
+                        await this.affiliateService.reverseCommission(vendor.id, 'invoice_payment_failed');
+                        await this.subscriptionRepository.update(
+                            { vendorId: vendor.id, status: SubscriptionStatus.ACTIVE },
+                            { cancellationReason: 'Payment failed' }
+                        );
+                        this.logger.log(`✅ Commission reversed and subscription flagged for vendor: ${vendor.id}`);
+                    } else {
+                        this.logger.warn(`⚠️ Vendor not found for failed invoice customer: ${invoice.customer}`);
+                    }
+                }
+                break;
+            }
             case 'charge.dispute.created': {
                 const dispute = event.data.object as any;
                 this.logger.log(`⚠️ Charge dispute created: ${dispute.id}`);

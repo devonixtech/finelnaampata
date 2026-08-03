@@ -297,6 +297,14 @@ export class VendorsService {
             .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
             .getRawOne();
 
+        const messageClicksRaw = await this.entityManager
+            .createQueryBuilder(Lead, 'lead')
+            .innerJoin('lead.business', 'business')
+            .select('COUNT(*)', 'total')
+            .where('business.vendorId = :vendorId', { vendorId: vendor.id })
+            .andWhere('lead.type = :type', { type: 'chat' })
+            .getRawOne();
+
         const pendingCount = await this.listingRepository.count({
             where: {
                 vendorId: vendor.id,
@@ -328,6 +336,7 @@ export class VendorsService {
 
         const totalLeads = businessCount > 0 ? (Number(totalLeadsRaw?.total) || 0) : 0;
         const totalViews = businessCount > 0 ? (Number(totalViewsRaw?.total) || 0) : 0;
+        const messageClicks = Number(messageClicksRaw?.total) || 0;
 
         // Distribute views dynamically if they exist but no daily logs are available
         // This ensures the chart is "Dynamic" and matches the "Total Views" counter
@@ -395,7 +404,58 @@ export class VendorsService {
 
         const totalReviews = Number(totalReviewsRaw?.total) || 0;
         const totalClicks = Number(totalClicksRaw?.total) || 0;
+        const messageClicks = Number(messageClicksRaw?.total) || 0;
         const profileCompletion = Math.min(completionScore, 100);
+
+        const searchImpressionsRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.searchImpressions)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+
+        const convertedLeadsRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.convertedLeads)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+
+        const searchImpressions = Number(searchImpressionsRaw?.total) || 0;
+        const convertedLeads = Number(convertedLeadsRaw?.total) || 0;
+
+        const clickToCallCountRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.clickToCallCount)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+        const clickToCallCount = Number(clickToCallCountRaw?.total) || 0;
+
+        const offerViewsRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.offerViews)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+        const offerViews = Number(offerViewsRaw?.total) || 0;
+
+        const offerClicksRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.offerClicks)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+        const offerClicks = Number(offerClicksRaw?.total) || 0;
+
+        const adImpressionsRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.adImpressions)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+        const adImpressions = Number(adImpressionsRaw?.total) || 0;
+
+        const adClicksRaw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.adClicks)', 'total')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+        const adClicks = Number(adClicksRaw?.total) || 0;
         const activeSubscription = this.resolveActiveMembership(
             vendor.subscriptions || [],
             vendor.activePlans || [],
@@ -415,6 +475,14 @@ export class VendorsService {
             totalViews,
             totalReviews,
             totalClicks,
+            messageClicks,
+            searchImpressions,
+            convertedLeads,
+            clickToCallCount,
+            offerViews,
+            offerClicks,
+            adImpressions,
+            adClicks,
             isVerified: vendor.isVerified,
             profileCompletion,
             analytics: hasActivity ? analytics : [],

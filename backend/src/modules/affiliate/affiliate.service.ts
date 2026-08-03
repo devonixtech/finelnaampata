@@ -22,6 +22,7 @@ import { Vendor } from '../../entities/vendor.entity';
 import { Listing, BusinessStatus } from '../../entities/business.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { generateReferralCode } from '../../common/utils/referral-code';
+import { AffiliateQueueService } from './affiliate-queue.service';
 
 
 
@@ -51,10 +52,12 @@ export class AffiliateService implements OnModuleInit {
         private listingRepo: Repository<Listing>,
         @InjectRepository(SubscriptionPlan)
         private subscriptionPlanRepo: Repository<SubscriptionPlan>,
+        private readonly affiliateQueueService: AffiliateQueueService,
     ) { }
 
     async onModuleInit() {
         await this.ensureAffiliateReferralEnums();
+        this.affiliateQueueService.setAffiliateService(this);
     }
 
     private async ensureAffiliateReferralEnums() {
@@ -277,7 +280,7 @@ export class AffiliateService implements OnModuleInit {
         return true;
     }
 
-    async applyReferralCode(userId: string, code: string) {
+    async applyReferralCode(userId: string, code: string, ipAddress?: string, userAgent?: string) {
         const normalizedCode = this.normalizeReferralCode(code);
         const user = await this.userRepository.findOne({ where: { id: userId } });
         if (!user) {
@@ -322,12 +325,18 @@ export class AffiliateService implements OnModuleInit {
             referredUserId: userId,
             type: ReferralType.SIGNUP,
             status: ReferralStatus.PENDING,
+            ipAddress: ipAddress || null,
+            userAgent: userAgent || null,
         });
 
         await this.referralRepository.save(referral);
 
-        // Immediately process the referral to grant the 10 days free extension reward and convert it
-        await this.processSuccessfulReferral(userId, 0, true);
+        // Enqueue referral processing (worker handles extension reward + conversion)
+        await this.affiliateQueueService.enqueueProcessReferral({
+            referredUserId: userId,
+            paidAmount: 0,
+            force: true,
+        });
 
         return { success: true, message: 'Referral code applied successfully' };
     }
@@ -370,14 +379,14 @@ export class AffiliateService implements OnModuleInit {
         }
 
         if (user.role === 'vendor') {
-            return this.applyReferralCode(userId, normalizedCode);
+            return this.applyReferralCode(userId, normalizedCode, ipAddress, userAgent);
         }
 
         await this.userRepository.update(userId, { pendingReferralCode: normalizedCode });
         return { success: true, message: 'Referral click tracked successfully' };
     }
 
-    private async releaseHeldFunds(affiliate: Affiliate): Promise<void> {
+    async releaseHeldFunds(affiliate: Affiliate): Promise<void> {
         if (!affiliate.holdUntil) return;
         const now = new Date();
         if (now >= new Date(affiliate.holdUntil)) {
@@ -823,7 +832,13 @@ export class AffiliateService implements OnModuleInit {
             throw new NotFoundException('Referral not found');
         }
 
-        return this.processSuccessfulReferral(referral.referredUserId, 0, true);
+        await this.affiliateQueueService.enqueueProcessReferral({
+            referredUserId: referral.referredUserId,
+            paidAmount: 0,
+            force: true,
+        });
+
+        return { success: true, message: 'Referral activation queued' };
     }
 
     /**
@@ -831,6 +846,13 @@ export class AffiliateService implements OnModuleInit {
      * Rewards are only granted when the referred vendor makes a PAID purchase.
      */
     async processSuccessfulReferral(referredUserId: string, paidAmount: number = 0, force: boolean = false) {
+        await this.affiliateQueueService.enqueueProcessReferral({ referredUserId, paidAmount, force });
+    }
+
+    /**
+     * Internal: actual referral processing logic (called by the BullMQ worker).
+     */
+    async processSuccessfulReferralDirect(referredUserId: string, paidAmount: number = 0, force: boolean = false) {
         // Gate: Reward only for paid subscriptions
         if (!force && Number(paidAmount) <= 0) {
             this.logger.debug(`[Referral] Skipping reward for user ${referredUserId} - Transaction amount is 0 (Free Plan). Referral remains PENDING.`);
@@ -1290,6 +1312,10 @@ export class AffiliateService implements OnModuleInit {
     }
 
     async reverseCommission(vendorId: string, reason: string): Promise<void> {
+        await this.affiliateQueueService.enqueueReverseCommission({ vendorId, reason });
+    }
+
+    async reverseCommissionDirect(vendorId: string, reason: string): Promise<void> {
         try {
             const vendor = await this.vendorRepo.findOne({ where: { id: vendorId } });
             if (!vendor) return;
@@ -1403,11 +1429,13 @@ export class AffiliateService implements OnModuleInit {
             const now = new Date();
             for (const affiliate of affiliates) {
                 if (affiliate.holdUntil && now >= new Date(affiliate.holdUntil)) {
-                    await this.releaseHeldFunds(affiliate);
+                    await this.affiliateQueueService.enqueueReleaseHeldFunds({
+                        affiliateId: affiliate.id,
+                    });
                 }
             }
         } catch (err) {
-            this.logger.error(`[Cron] Failed to release held funds: ${err.message}`);
+            this.logger.error(`[Cron] Failed to enqueue held funds release: ${err.message}`);
         }
     }
 

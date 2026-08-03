@@ -513,11 +513,13 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS albums JSONB DEFAULT '[]';
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS named_phone_numbers JSONB DEFAULT '[]';
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS image_captions JSONB DEFAULT '{}'::jsonb;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS contact_person_prefix VARCHAR(10) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS contact_person_title VARCHAR(100) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS business_tagline VARCHAR(200) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS open_247 BOOLEAN DEFAULT false;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS user_submitted_photos JSONB DEFAULT '[]';
             `);
             await this.listingRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
@@ -1330,6 +1332,11 @@ export class BusinessesService implements OnModuleInit {
         if (!isOwnerView) {
             await this.listingRepository.increment({ id }, 'totalViews', 1);
             listing.totalViews = (listing.totalViews || 0) + 1;
+            // Increment offer views if listing has an active offer
+            if (listing.hasOffer && listing.offerTitle && (!listing.offerExpiresAt || new Date(listing.offerExpiresAt) > new Date())) {
+                await this.listingRepository.increment({ id }, 'offerViews', 1);
+                listing.offerViews = (listing.offerViews || 0) + 1;
+            }
         }
 
         if (listing.vendor && listing.vendor.user) {
@@ -1391,6 +1398,11 @@ export class BusinessesService implements OnModuleInit {
             if (!isOwner) {
                 await this.listingRepository.increment({ id: listing.id }, 'totalViews', 1);
                 listing.totalViews = (listing.totalViews || 0) + 1;
+                // Increment offer views if listing has an active offer
+                if (listing.hasOffer && listing.offerTitle && (!listing.offerExpiresAt || new Date(listing.offerExpiresAt) > new Date())) {
+                    await this.listingRepository.increment({ id: listing.id }, 'offerViews', 1);
+                    listing.offerViews = (listing.offerViews || 0) + 1;
+                }
             }
 
             if (listing.vendor && listing.vendor.user) {
@@ -1486,7 +1498,7 @@ export class BusinessesService implements OnModuleInit {
             'website', 'address', 'addressLine2', 'landmark', 'city', 'state', 'pincode', 'latitude', 'longitude',
             'logoUrl', 'coverImageUrl', 'images', 'imageCaptions', 'namedPhoneNumbers', 'metaTitle', 'metaDescription',
             'metaKeywords', 'hasOffer', 'offerTitle', 'offerDescription', 'offerBadge',
-            'offerExpiresAt', 'offerBannerUrl', 'faqs', 'businessTagline', 'contactPersonTitle', 'open247', 'searchKeywords'
+            'offerExpiresAt', 'offerBannerUrl', 'faqs', 'businessTagline', 'contactPersonPrefix', 'contactPersonTitle', 'open247', 'searchKeywords'
         ];
 
         textFields.forEach(field => {
@@ -1892,5 +1904,56 @@ export class BusinessesService implements OnModuleInit {
         }
 
         return Array.from(keywordMap.values()).sort((a, b) => b.impressions - a.impressions);
+    }
+
+    async submitUserPhoto(businessId: string, user: User, dto: { url: string; caption?: string }): Promise<Listing> {
+        const listing = await this.listingRepository.findOne({ where: { id: businessId } });
+        if (!listing) throw new NotFoundException('Business not found');
+
+        const photo = {
+            id: randomUUID(),
+            url: dto.url,
+            userId: user.id,
+            userName: user.fullName || 'Anonymous',
+            caption: dto.caption || '',
+            isApproved: false,
+            submittedAt: new Date().toISOString(),
+        };
+
+        listing.userSubmittedPhotos = [...(listing.userSubmittedPhotos || []), photo];
+        return this.listingRepository.save(listing);
+    }
+
+    async getUserPhotos(businessId: string, approvedOnly = true): Promise<any[]> {
+        const listing = await this.listingRepository.findOne({ where: { id: businessId } });
+        if (!listing) throw new NotFoundException('Business not found');
+        const photos = listing.userSubmittedPhotos || [];
+        return approvedOnly ? photos.filter((p) => p.isApproved) : photos;
+    }
+
+    async approveUserPhoto(businessId: string, photoId: string): Promise<Listing> {
+        const listing = await this.listingRepository.findOne({ where: { id: businessId } });
+        if (!listing) throw new NotFoundException('Business not found');
+        const photos = listing.userSubmittedPhotos || [];
+        const idx = photos.findIndex((p) => p.id === photoId);
+        if (idx === -1) throw new NotFoundException('Photo not found');
+        photos[idx].isApproved = true;
+        listing.userSubmittedPhotos = photos;
+        return this.listingRepository.save(listing);
+    }
+
+    async rejectUserPhoto(businessId: string, photoId: string): Promise<Listing> {
+        const listing = await this.listingRepository.findOne({ where: { id: businessId } });
+        if (!listing) throw new NotFoundException('Business not found');
+        listing.userSubmittedPhotos = (listing.userSubmittedPhotos || []).filter((p) => p.id !== photoId);
+        return this.listingRepository.save(listing);
+    }
+
+    async trackOfferClick(businessId: string): Promise<void> {
+        await this.listingRepository.increment({ id: businessId }, 'offerClicks', 1);
+    }
+
+    async trackAdClick(businessId: string): Promise<void> {
+        await this.listingRepository.increment({ id: businessId }, 'adClicks', 1);
     }
 }

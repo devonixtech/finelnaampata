@@ -61,43 +61,6 @@ export class ReviewsService {
     ) { }
 
     /**
-     * Create a reply to a review
-     */
-    async createReply(reviewId: string, createReviewReplyDto: CreateReviewReplyDto, user: User): Promise<ReviewReply> {
-        const review = await this.reviewRepository.findOne({
-            where: { id: reviewId },
-        });
-
-        if (!review) {
-            throw new NotFoundException('Review not found');
-        }
-
-        const reply = this.reviewReplyRepository.create({
-            ...createReviewReplyDto,
-            reviewId,
-            userId: user.id,
-            isApproved: true, // Default to approved unless there's moderation
-        });
-
-        
-        const savedReply = await this.reviewReplyRepository.save(reply);
-        
-        // Notify the user who wrote the review
-        if (review.userId) {
-            await this.notificationsService.create({
-                userId: review.userId,
-                title: 'Business Replied to Your Review',
-                message: `The business has replied to your review.`,
-                type: NotificationType.REVIEW_REPLIED,
-                link: `/reviews`,
-            }).catch(e => console.error('Failed to send notification', e));
-        }
-        
-        return savedReply;
-    
-    }
-
-    /**
      * Find replies for a review
      */
     async findReplies(reviewId: string): Promise<ReviewReply[]> {
@@ -161,6 +124,10 @@ export class ReviewsService {
         review.isSuspicious = analysis.isSuspicious;
         review.suspicionScore = analysis.score;
         review.suspicionReason = analysis.reason;
+
+        if (analysis.score >= 0.8) {
+            review.isApproved = false;
+        }
 
         
         const savedReview = await this.reviewRepository.save(review);
@@ -384,47 +351,6 @@ export class ReviewsService {
 
         // Update user trust score
         await this.trustService.updateTrustScore(review.userId);
-    }
-
-    /**
-     * Add vendor response to review
-     */
-    async addVendorResponse(
-        id: string,
-        vendorResponseDto: VendorResponseDto,
-        user: User,
-    ): Promise<Review> {
-        const review = await this.reviewRepository.findOne({
-            where: { id },
-            relations: ['business', 'business.vendor'],
-        });
-
-        if (!review) {
-            throw new NotFoundException('Review not found');
-        }
-
-        // Check if user is the vendor of this business
-        if (
-            review.business.vendor.userId !== user.id &&
-            user.role !== UserRole.ADMIN
-        ) {
-            throw new ForbiddenException('Only the business owner can respond to reviews');
-        }
-
-        if (user.role !== UserRole.ADMIN) {
-            const canReply = await this.subscriptionsService.canPerformAction(user.id, 'canReplyReviews');
-            if (!canReply) {
-                throw new ForbiddenException('Replying to reviews requires a paid plan. Upgrade to respond.');
-            }
-        }
-
-        // Update review with vendor response
-        review.vendorResponse = vendorResponseDto.response;
-        review.vendorResponseAt = new Date();
-
-        await this.reviewRepository.save(review);
-
-        return this.findOne(id);
     }
 
     /**

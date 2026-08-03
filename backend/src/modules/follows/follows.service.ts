@@ -36,11 +36,24 @@ export class FollowsService {
 
         // Increment counter
         await this.listingRepository.increment({ id: businessId }, 'followersCount', 1);
-        
+
+        // Update follower history snapshot
+        const today = new Date().toISOString().split('T')[0];
+        const history = business.followerHistory || [];
+        const existingEntry = history.find((e: any) => e.date === today);
+        const newCount = (business.followersCount || 0) + 1;
+        if (existingEntry) {
+            existingEntry.count = newCount;
+        } else {
+            history.push({ date: today, count: newCount });
+        }
+        const trimmedHistory = history.slice(-30);
+        await this.listingRepository.update(businessId, { followerHistory: trimmedHistory });
+
         // Sync with Elasticsearch
-        const updated = await this.listingRepository.findOne({ 
+        const updated = await this.listingRepository.findOne({
             where: { id: businessId },
-            relations: ['category', 'vendor', 'vendor.user'] 
+            relations: ['category', 'vendor', 'vendor.user']
         });
         if (updated) {
             await this.searchService.indexBusiness(updated);
@@ -57,15 +70,30 @@ export class FollowsService {
         await this.followRepository.remove(follow);
 
         // Decrement counter (min 0)
-        const business = await this.listingRepository.findOne({ where: { id: businessId }, select: ['followersCount'] });
+        const business = await this.listingRepository.findOne({ where: { id: businessId }, select: ['followersCount', 'followerHistory'] });
         if (business && business.followersCount > 0) {
             await this.listingRepository.decrement({ id: businessId }, 'followersCount', 1);
         }
 
+        // Update follower history snapshot
+        if (business) {
+            const today = new Date().toISOString().split('T')[0];
+            const history = business.followerHistory || [];
+            const existingEntry = history.find((e: any) => e.date === today);
+            const newCount = Math.max(0, (business.followersCount || 1) - 1);
+            if (existingEntry) {
+                existingEntry.count = newCount;
+            } else {
+                history.push({ date: today, count: newCount });
+            }
+            const trimmedHistory = history.slice(-30);
+            await this.listingRepository.update(businessId, { followerHistory: trimmedHistory });
+        }
+
         // Sync with Elasticsearch
-        const updated = await this.listingRepository.findOne({ 
+        const updated = await this.listingRepository.findOne({
             where: { id: businessId },
-            relations: ['category', 'vendor', 'vendor.user'] 
+            relations: ['category', 'vendor', 'vendor.user']
         });
         if (updated) {
             await this.searchService.indexBusiness(updated);
