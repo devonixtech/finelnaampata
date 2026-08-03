@@ -630,9 +630,9 @@ export class SubscriptionsService implements OnModuleInit {
 
                 if (session.metadata?.planId) {
                     const vendorId = session.client_reference_id;
-                    const { planId, targetId } = session.metadata;
+                    const { planId, targetId, referralCode } = session.metadata;
                     if (vendorId && planId) {
-                        const activePlan = await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId);
+                        const activePlan = await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode);
                         // Find the newly created transaction
                         const transaction = await this.transactionRepository.findOne({
                             where: { gatewayTransactionId: session.id }
@@ -780,14 +780,7 @@ export class SubscriptionsService implements OnModuleInit {
             throw err;
         }
 
-        // 5. Affiliate Integration - AUTOMATED
-        try {
-            await this.affiliateService.processSuccessfulReferral(vendor.userId, amount ?? plan.price);
-        } catch (err) {
-            this.logger.error(`Failed to process referral for user ${vendor.userId}: ${err.message}`);
-        }
-
-        // 5b. Apply buyer's referral code (if provided) — gives +10 days to both parties
+        // 5. Affiliate Integration & Application
         const effectiveReferralCode = referralCode?.trim() || null;
         let appliedReferralCode = effectiveReferralCode;
 
@@ -823,6 +816,13 @@ export class SubscriptionsService implements OnModuleInit {
             } catch (err: any) {
                 this.logger.warn(`Referral code "${appliedReferralCode}" could not be applied: ${err.message}`);
             }
+        }
+
+        // Process successful referral AFTER application (if any)
+        try {
+            await this.affiliateService.processSuccessfulReferral(vendor.userId, amount ?? plan.price);
+        } catch (err) {
+            this.logger.error(`Failed to process referral for user ${vendor.userId}: ${err.message}`);
         }
 
 
@@ -1136,7 +1136,7 @@ export class SubscriptionsService implements OnModuleInit {
     /**
      * Create a Stripe Checkout session for a new PricingPlan (Subscription or Boost)
      */
-    async createPricingCheckoutSession(userId: string, planId: string, targetId?: string, origin?: string) {
+    async createPricingCheckoutSession(userId: string, planId: string, targetId?: string, origin?: string, referralCode?: string) {
         const vendor = await this.vendorRepository.findOne({
             where: { userId },
             relations: ['user']
@@ -1218,7 +1218,8 @@ export class SubscriptionsService implements OnModuleInit {
             metadata: {
                 planId: plan.id,
                 targetId: targetId || '',
-                type: plan.type
+                type: plan.type,
+                referralCode: referralCode || ''
             },
             line_items: [{ price: plan.stripePriceId, quantity: 1 }],
             mode: plan.type === PricingPlanType.SUBSCRIPTION ? 'subscription' : 'payment',
@@ -1242,7 +1243,8 @@ export class SubscriptionsService implements OnModuleInit {
         planId: string,
         gatewayTransactionId: string,
         gateway: string,
-        targetId?: string
+        targetId?: string,
+        referralCode?: string
     ): Promise<ActivePlan> {
         // Idempotency check: Don't process the same transaction twice
         const existingPlan = await this.activePlanRepository.findOne({
@@ -1372,18 +1374,49 @@ export class SubscriptionsService implements OnModuleInit {
         if (plan.type === PricingPlanType.SUBSCRIPTION) {
             try {
                 const vendorUser = await this.userRepository.findOne({ where: { id: vendorId } });
-                const paidAmount = plan.price;
-                if (vendorUser) {
-                    await this.affiliateService.processSuccessfulReferral(vendorUser.id, paidAmount);
-                } else {
-                    // Try to get from vendor relation
+                let actualUserId = vendorUser?.id;
+
+                if (!actualUserId) {
                     const vendorWithUser = await this.vendorRepository.findOne({
                         where: { id: vendorId },
                         relations: ['user']
                     });
                     if (vendorWithUser?.user) {
-                        await this.affiliateService.processSuccessfulReferral(vendorWithUser.user.id, paidAmount);
+                        actualUserId = vendorWithUser.user.id;
                     }
+                }
+
+                if (actualUserId) {
+                    const paidAmount = plan.price;
+                    let appliedReferralCode = referralCode?.trim() || null;
+
+                    // Fallback to pending referral code (cookie saved on user)
+                    if (!appliedReferralCode) {
+                        const userRec = await this.userRepository.findOne({ where: { id: actualUserId } });
+                        if (userRec?.pendingReferralCode) {
+                            appliedReferralCode = userRec.pendingReferralCode;
+                            this.logger.log(`[Referral] Using pending referral code from user record: ${appliedReferralCode}`);
+                        }
+                    }
+
+                    if (appliedReferralCode) {
+                        const affiliate = await this.affiliateRepository.findOne({
+                            where: { referralCode: ILike(appliedReferralCode) },
+                        });
+
+                        if (affiliate) {
+                            const fraudResult = await this.affiliateService.detectFraud(affiliate.id, actualUserId);
+                            if (fraudResult.isFraud) {
+                                this.logger.warn(`[Fraud] Referral code "${appliedReferralCode}" BLOCKED for user ${actualUserId}: ${fraudResult.reason}`);
+                            } else {
+                                await this.affiliateService.applyReferralCode(actualUserId, appliedReferralCode);
+                                this.logger.log(`🎁 Referral code "${appliedReferralCode}" applied for user ${actualUserId} after active plan success`);
+                            }
+                        }
+                    }
+
+                    // Process successful payment for existing/new referral
+                    await this.affiliateService.processSuccessfulReferral(actualUserId, paidAmount);
                 }
             } catch (err) {
                 this.logger.error(`Failed to process referral for vendor ${vendorId} in active plan: ${err.message}`);
@@ -1626,9 +1659,9 @@ export class SubscriptionsService implements OnModuleInit {
                 // --- NEW SYSTEM (ActivePlan / PricingPlan) ---
                 if (session.metadata?.planId) {
                     const vendorId = session.client_reference_id;
-                    const { planId, targetId } = session.metadata;
+                    const { planId, targetId, referralCode } = session.metadata;
                     this.logger.log(`🚀 Activating new-style plan: ${planId} for vendor: ${vendorId}`);
-                    await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId);
+                    await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode);
                     return { received: true };
                 }
 

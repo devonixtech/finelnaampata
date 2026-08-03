@@ -1872,6 +1872,7 @@ export default function BusinessDetailClient({
                         ref={chatRef}
                         businessId={business.id}
                         businessName={business.title}
+                        vendorHasChat={vendorHasChat}
                         className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all active:scale-95"
                       />
                     </div>

@@ -246,14 +246,16 @@ export class SearchLocationService {
             if (verifiedOnly) {
                 qb.andWhere('b.isVerified = :verifiedOnly', { verifiedOnly: true });
             }
+            if (dto.featuredOnly) {
+                qb.andWhere('b.isFeatured = :featuredOnly', { featuredOnly: true });
+            }
 
             if (openNow) {
-                qb.innerJoin('b.businessHours', 'bh', 'bh.dayOfWeek = :currentDay AND bh.isOpen = true', {
-                    currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
-                });
-                qb.andWhere(':currentTime BETWEEN bh.openTime AND bh.closeTime', {
-                    currentTime: new Date().toTimeString().split(' ')[0],
-                });
+                const tzExpr = "COALESCE(b.timezone, 'UTC')";
+                const dayExpr = `UPPER(TRIM(TO_CHAR(NOW() AT TIME ZONE ${tzExpr}, 'Day')))`;
+                const timeExpr = `TO_CHAR(NOW() AT TIME ZONE ${tzExpr}, 'HH24:MI:SS')`;
+                qb.innerJoin('b.businessHours', 'bh', `bh.dayOfWeek = ${dayExpr} AND bh.isOpen = true`);
+                qb.andWhere(`${timeExpr} BETWEEN bh.openTime AND bh.closeTime`);
             }
 
             if (fastResponse) {
@@ -267,9 +269,7 @@ export class SearchLocationService {
 
             if (experience) {
                 const currentYear = new Date().getFullYear();
-                if (experience === 'experienced') {
-                    qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
-                }
+                qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
             }
 
             if (mostContacted) {
@@ -330,12 +330,11 @@ export class SearchLocationService {
                 .andWhere('b.hiddenByDeletion = false');
 
             if (openNow) {
-                qb.innerJoin('b.businessHours', 'bh', 'bh.dayOfWeek = :currentDay AND bh.isOpen = true', {
-                    currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
-                });
-                qb.andWhere(':currentTime BETWEEN bh.openTime AND bh.closeTime', {
-                    currentTime: new Date().toTimeString().split(' ')[0],
-                });
+                const tzExpr = "COALESCE(b.timezone, 'UTC')";
+                const dayExpr = `UPPER(TRIM(TO_CHAR(NOW() AT TIME ZONE ${tzExpr}, 'Day')))`;
+                const timeExpr = `TO_CHAR(NOW() AT TIME ZONE ${tzExpr}, 'HH24:MI:SS')`;
+                qb.innerJoin('b.businessHours', 'bh', `bh.dayOfWeek = ${dayExpr} AND bh.isOpen = true`);
+                qb.andWhere(`${timeExpr} BETWEEN bh.openTime AND bh.closeTime`);
             }
 
             if (fastResponse) {
@@ -349,9 +348,7 @@ export class SearchLocationService {
 
             if (experience) {
                 const currentYear = new Date().getFullYear();
-                if (experience === 'experienced') {
-                    qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
-                }
+                qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
             }
 
             if (mostContacted) {

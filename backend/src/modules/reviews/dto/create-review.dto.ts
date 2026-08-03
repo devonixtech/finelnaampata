@@ -4,7 +4,6 @@ import {
     IsOptional,
     IsArray,
     IsUUID,
-    IsUrl,
     Min,
     Max,
     MinLength,
@@ -39,6 +38,6 @@ export class CreateReviewDto {
     @ApiPropertyOptional({ type: [String], example: ['https://example.com/img1.jpg'] })
     @IsOptional()
     @IsArray()
-    @IsUrl({}, { each: true })
+    @IsString({ each: true })
     images?: string[];
 }

@@ -133,6 +133,16 @@ export class ChatService implements OnModuleInit {
             }
         }
 
+        // Paid gate: Customer messages blocked if vendor no longer has paid plan
+        if (isCustomer && vendor) {
+            const vendorCanChat = await this.subscriptionsService.canPerformAction(vendor.userId, 'showChat');
+            if (!vendorCanChat) {
+                throw new ForbiddenException(
+                    'This business no longer has an active paid plan. Chat is no longer available.'
+                );
+            }
+        }
+
         const message = this.messageRepository.create({
             conversationId,
             senderId: userId,

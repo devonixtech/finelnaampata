@@ -210,9 +210,9 @@ export class ReviewsService {
     /**
      * Get reviews with filters
      */
-    async findAll(getReviewsDto: GetReviewsDto) {
+    async findAll(getReviewsDto: GetReviewsDto, userId?: string) {
         try {
-            const { businessId, userId, vendorId } = getReviewsDto;
+            const { businessId, userId: filterUserId, vendorId } = getReviewsDto;
             
             // Explicitly convert types to avoid TypeORM/Postgres issues with strings
             const page = Number(getReviewsDto.page) || 1;
@@ -228,6 +228,7 @@ export class ReviewsService {
                 .leftJoinAndSelect('review.business', 'business')
                 .leftJoinAndSelect('review.replies', 'replies', 'replies.isApproved = :replyApproved', { replyApproved: true })
                 .leftJoinAndSelect('replies.user', 'replyUser')
+                .leftJoinAndSelect('review.helpfulVotes', 'helpfulVotes')
                 .where('review.isApproved = :isApproved', { isApproved: true });
 
             // Filter by business
@@ -236,8 +237,8 @@ export class ReviewsService {
             }
 
             // Filter by user
-            if (userId) {
-                queryBuilder.andWhere('review.userId = :userId', { userId });
+            if (filterUserId) {
+                queryBuilder.andWhere('review.userId = :filterUserId', { filterUserId });
             }
 
             // Filter by rating
@@ -292,7 +293,14 @@ export class ReviewsService {
                 queryBuilder.getCount()
             ]);
 
-            return createPaginatedResponse(reviews, page, limit, total);
+            const reviewsWithHelpful = reviews.map(review => ({
+                ...review,
+                userHelpful: userId
+                    ? review.helpfulVotes?.some(vote => vote.userId === userId) ?? false
+                    : false,
+            }));
+
+            return createPaginatedResponse(reviewsWithHelpful, page, limit, total);
         } catch (error) {
             console.error('Error in ReviewsService.findAll:', error);
             throw new BadRequestException('Could not retrieve reviews. Please check your filter parameters.');
@@ -584,7 +592,7 @@ export class ReviewsService {
     /**
      * Get reviews by business ID or slug
      */
-    async findByBusiness(idOrSlug: string, query: GetReviewsDto) {
+    async findByBusiness(idOrSlug: string, query: GetReviewsDto, userId?: string) {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
 
         let businessId = idOrSlug;
@@ -602,7 +610,7 @@ export class ReviewsService {
             businessId = listing.id;
         }
 
-        return this.findAll({ ...query, businessId });
+        return this.findAll({ ...query, businessId }, userId);
     }
 
     /**
@@ -718,6 +726,7 @@ export class ReviewsService {
                 .leftJoinAndSelect('review.business', 'business')
                 .leftJoinAndSelect('review.replies', 'replies')
                 .leftJoinAndSelect('replies.user', 'replyUser')
+                .leftJoinAndSelect('review.helpfulVotes', 'helpfulVotes')
                 .where('business.vendorId = :vendorId', { vendorId: vendor.id })
                 .orderBy('review.createdAt', 'DESC');
 
@@ -726,7 +735,12 @@ export class ReviewsService {
                 queryBuilder.getCount()
             ]);
 
-            return createPaginatedResponse(reviews, page, limit, total);
+            const reviewsWithHelpful = reviews.map(review => ({
+                ...review,
+                userHelpful: review.helpfulVotes?.some(vote => vote.userId === userId) ?? false,
+            }));
+
+            return createPaginatedResponse(reviewsWithHelpful, page, limit, total);
         } catch (error) {
             console.error('Error in ReviewsService.findVendorReviews:', error);
             throw new BadRequestException('Could not retrieve vendor reviews.');

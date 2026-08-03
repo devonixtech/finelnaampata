@@ -61,7 +61,7 @@ function getSocket(token: string): Socket {
     return sharedSocket;
 }
 
-export function useChat(conversationId?: string) {
+export function useChat(conversationId?: string, businessId?: string) {
     const { user } = useAuth();
     const [messages, setMessages] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -215,12 +215,26 @@ export function useChat(conversationId?: string) {
 
     const sendMessage = useCallback(async (content: string) => {
         const trimmedContent = content.trim();
-        if (!socketRef.current || !conversationId || !trimmedContent || !user) return;
+        if (!socketRef.current || !trimmedContent || !user) return;
+
+        let activeConversationId = conversationId;
+
+        if (!activeConversationId && businessId) {
+            try {
+                const conv = await chatApi.getOrCreateConversation(businessId) as any;
+                activeConversationId = conv.id;
+            } catch (err: any) {
+                console.error('[useChat] Failed to create conversation:', err);
+                throw new Error(err.message || 'Failed to start conversation');
+            }
+        }
+
+        if (!activeConversationId) return;
 
         const tempId = `temp-${Date.now()}`;
         const optimisticMessage = {
             id: tempId,
-            conversationId,
+            conversationId: activeConversationId,
             senderId: user.id,
             content: trimmedContent,
             createdAt: new Date().toISOString(),
@@ -233,7 +247,7 @@ export function useChat(conversationId?: string) {
         socketRef.current.emit(
             'sendMessage',
             {
-                conversationId,
+                conversationId: activeConversationId,
                 content: trimmedContent,
             },
             (response?: { status?: string; message?: any }) => {
@@ -244,7 +258,7 @@ export function useChat(conversationId?: string) {
                 ));
             }
         );
-    }, [conversationId, user]);
+    }, [conversationId, businessId, user]);
 
     const sendTyping = useCallback(() => {
         if (!socketRef.current || !conversationId) return;

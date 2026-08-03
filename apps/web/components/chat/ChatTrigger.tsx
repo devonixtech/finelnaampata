@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { MessageCircle } from 'lucide-react';
 import ChatWindow from './ChatWindow';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { api } from '../../lib/api';
 
 export interface ChatTriggerHandle {
     open: () => void;
@@ -16,25 +15,13 @@ interface ChatTriggerProps {
     businessName: string;
     variant?: 'button' | 'icon';
     className?: string;
+    vendorHasChat?: boolean;
 }
 
-const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessId, businessName, variant = 'button', className = '' }, ref) => {
+const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessId, businessName, variant = 'button', className = '', vendorHasChat = false }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [vendorHasChat, setVendorHasChat] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
-
-    useEffect(() => {
-        let cancelled = false;
-        api.listings.getById(businessId)
-            .then((b: any) => {
-                if (!cancelled) {
-                    setVendorHasChat(!!b?.planFeatures?.showChat);
-                }
-            })
-            .catch(() => {});
-        return () => { cancelled = true; };
-    }, [businessId]);
 
     useImperativeHandle(ref, () => ({
         open: () => {
@@ -43,7 +30,7 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
                 return;
             }
             if (!vendorHasChat) {
-                console.warn('In-App Chat requires a paid plan. Upgrade to access this feature.');
+                alert('In-App Chat requires the business to have a paid plan.');
                 return;
             }
             setIsOpen(true);
@@ -60,7 +47,7 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
         }
         
         if (!vendorHasChat) {
-            console.warn('In-App Chat requires a paid plan. Upgrade to access this feature.');
+            alert('In-App Chat requires the business to have a paid plan.');
             return;
         }
         

@@ -18,23 +18,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, businessId, bu
     const { user } = useAuth();
     const [conversation, setConversation] = useState<any | null>(null);
     const conversationId = conversation?.id;
-    const { messages, isLoading, isTyping, sendMessage, sendTyping } = useChat(conversationId || undefined);
+    const { messages, isLoading, isTyping, sendMessage, sendTyping } = useChat(conversationId || undefined, businessId);
     const { socket: notificationSocket } = useNotifications();
     const [vendorOnline, setVendorOnline] = useState(false);
+    const [chatError, setChatError] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Initialize/Get conversation
     useEffect(() => {
-        if (isOpen && businessId && !conversation) {
+        if (!isOpen) {
+            setConversation(null);
+            setChatError(null);
+            return;
+        }
+        if (businessId && !conversation && !chatError) {
             import('../../services/chat.service').then(({ chatApi }) => {
                 chatApi.getOrCreateConversation(businessId).then((conv: any) => {
                     setConversation(conv);
                     setVendorOnline(conv.vendor?.user?.isOnline || false);
+                }).catch((err) => {
+                    console.error('Chat unavailable:', err);
+                    setChatError(err.message || 'Chat not available');
                 });
             });
         }
-    }, [isOpen, businessId, conversation]);
+    }, [isOpen, businessId, conversation, chatError]);
 
     // Real-time online status
     useEffect(() => {
@@ -131,7 +140,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, businessId, bu
                     ref={scrollRef}
                     className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50 dark:bg-slate-900/30 scroll-smooth custom-scrollbar"
                 >
-                    {isLoading && messages.length === 0 ? (
+                    {chatError ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 rounded-2xl flex items-center justify-center">
+                                <MessageSquare className="w-8 h-8 text-rose-400" />
+                            </div>
+                            <div className="space-y-1">
+                                <h4 className="text-base font-bold text-slate-800 dark:text-white">Chat Unavailable</h4>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-[220px]">
+                                    {chatError}
+                                </p>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    ) : isLoading && messages.length === 0 ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="relative">
                                 <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />

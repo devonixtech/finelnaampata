@@ -85,8 +85,8 @@ export class ReviewsController {
     @Get()
     @ApiOperation({ summary: 'Get reviews with filters' })
     @ApiResponse({ status: 200, description: 'Reviews retrieved successfully' })
-    findAll(@Query() getReviewsDto: GetReviewsDto) {
-        return this.reviewsService.findAll(getReviewsDto);
+    findAll(@Query() getReviewsDto: GetReviewsDto, @CurrentUser() user?: User) {
+        return this.reviewsService.findAll(getReviewsDto, user?.id);
     }
 
     @Get(['vendor/all', 'business/all'])
@@ -116,8 +116,9 @@ export class ReviewsController {
     findByBusiness(
         @Param('idOrSlug') idOrSlug: string,
         @Query() getReviewsDto: GetReviewsDto,
+        @CurrentUser() user?: User,
     ) {
-        return this.reviewsService.findByBusiness(idOrSlug, getReviewsDto);
+        return this.reviewsService.findByBusiness(idOrSlug, getReviewsDto, user?.id);
     }
 
     @Public()

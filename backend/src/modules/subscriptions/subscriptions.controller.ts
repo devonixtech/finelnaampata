@@ -174,9 +174,17 @@ export class SubscriptionsController {
         @CurrentUser() user: User, 
         @Body() checkoutDto: CheckoutDto,
         @Headers('origin') origin: string,
-        @Headers('referer') referer: string
+        @Headers('referer') referer: string,
+        @Req() req: any
     ) {
-        return this.subService.createPricingCheckoutSession(user.id, checkoutDto.planId, checkoutDto.targetId, origin || referer);
+        const referralCode = checkoutDto.referralCode || req.cookies?.referral;
+        return this.subService.createPricingCheckoutSession(
+            user.id, 
+            checkoutDto.planId, 
+            checkoutDto.targetId, 
+            origin || referer, 
+            referralCode
+        );
     }
 
     @Get('active')
