@@ -44,8 +44,8 @@ import {
   Activity,
   Flag,
   ArrowUpDown,
-  ChevronDown,
   ThumbsUp,
+  Bookmark,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../../../components/Navbar";
@@ -62,6 +62,8 @@ import ChatTrigger, {
 import { useChat } from "../../../hooks/useChat";
 import { chatApi } from "../../../services/chat.service";
 import DynamicIcon from "../../../components/DynamicIcon";
+import PopularTimesChart from "@/components/business/PopularTimesChart";
+import ReviewDistribution from "@/components/business/ReviewDistribution";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg
@@ -222,6 +224,21 @@ export default function BusinessDetailClient({
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [showMapEmbed, setShowMapEmbed] = useState(false);
   const [vendorHasChat, setVendorHasChat] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [selectedPhotoCategory, setSelectedPhotoCategory] = useState('all');
+
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter((cat: any) =>
+      cat.name?.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
+
+  useEffect(() => {
+    api.categories.getAll().then((data: any) => setCategories(data || [])).catch(() => {});
+  }, []);
 
 
   const mapEmbedUrl = useMemo(
@@ -945,1433 +962,903 @@ export default function BusinessDetailClient({
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12 pb-24 lg:pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-              <div>
-                <div className="flex flex-wrap items-center gap-3 mb-6">
-                  {business.isVerified && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Recommended
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <div className="px-4 py-1.5 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-wider border border-primary/20">
-                      {business.category?.name || "Business"}
-                    </div>
-                    {business.status === "pending" && (
-                      <div className="px-4 py-1.5 bg-amber-500/10 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-amber-500/20">
-                        <Clock className="w-3.5 h-3.5" /> Pending
-                      </div>
-                    )}
-                  </div>
-                  <VendorOnlineBadge
-                    isOnline={business.vendor?.isOnline}
-                  />
-                  <BusinessOpenBadge business={business} />
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr] xl:grid-cols-[256px_1fr_320px] gap-6">
 
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight tracking-tight">
-                  {business.title}
-                </h1>
-
-                <div className="flex flex-wrap items-center gap-6 text-slate-500">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-slate-100">
-                    <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                    <span className="font-black text-slate-900 text-lg">
-                      {business.averageRating || "New"}
-                    </span>
-                    <span className="text-sm font-bold text-slate-400">
-                      ({business.totalReviews || 0} reviews)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 group cursor-pointer">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-                      {business.address}, {business.city}
-                    </span>
-                  </div>
-                </div>
+          {/* LEFT COLUMN - Categories Sidebar (hidden on mobile) */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 bg-white rounded-2xl border border-slate-100 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-900">Categories</h3>
+                <Link href="/categories" className="text-sm text-blue-600 hover:underline">View all</Link>
               </div>
-
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleLike}
-                  className={`p-4 rounded-2xl transition-all duration-300 shadow-sm border ${isFavorite
-                    ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20"
-                    : "bg-white border-slate-200 text-slate-400 hover:border-rose-400 hover:text-rose-500"
-                    }`}
-                >
-                  <Heart
-                    className={`w-6 h-6 ${isFavorite ? "fill-white" : ""}`}
-                  />
-                </button>
-                <button
-                  onClick={handleShare}
-                  className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:border-primary hover:text-primary transition-all duration-300 shadow-sm relative group"
-                >
-                  <Share2 className="w-6 h-6" />
-                  {copySuccess && (
-                    <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl whitespace-nowrap shadow-xl animate-in fade-in slide-in-from-bottom-2">
-                      Link Copied!
+              <input
+                type="text"
+                placeholder="Search categories..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm mb-3"
+              />
+              <div className="space-y-1">
+                {filteredCategories.slice(0, 12).map((cat: any) => (
+                  <Link
+                    key={cat.id}
+                    href={`/search?category=${cat.slug}`}
+                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-lg">
+                      {cat.icon || '📂'}
                     </div>
-                  )}
-                </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-slate-900 truncate">{cat.name}</div>
+                      <div className="text-xs text-slate-400">{cat.businessCount || 0} businesses</div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                  </Link>
+                ))}
               </div>
             </div>
+          </aside>
 
-            {/* Gallery */}
-            <div className="grid grid-cols-2 md:grid-cols-4 md:grid-rows-2 h-[350px] md:h-[600px] gap-3 md:gap-5 mb-12 md:mb-20 relative z-10">
-              {galleryImages.length > 0 ? (
-                <>
-                  <div
-                    onClick={() => openLightbox(0)}
-                    className={`${galleryImages.length === 1 ? 'col-span-2 md:col-span-4' : 'col-span-2 md:col-span-2'} row-span-1 md:row-span-2 rounded-[32px] overflow-hidden border border-slate-100 bg-slate-50 cursor-pointer group relative shadow-premium`}
-                  >
+          {/* CENTER COLUMN - Main Content */}
+          <div className="min-w-0">
+            {/* Hero Section */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 mb-6">
+              {/* Large hero image */}
+              <div
+                className="relative rounded-2xl overflow-hidden bg-slate-100 cursor-pointer group"
+                style={{ aspectRatio: '16/10' }}
+                onClick={() => galleryImages.length > 0 && openLightbox(0)}
+              >
+                {galleryImages.length > 0 ? (
+                  <>
                     <img
                       src={galleryImages[0]}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       alt={business.title}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl text-white text-[10px] font-black uppercase tracking-widest border border-white/20 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
-                      View HD Photo
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-lg text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      View photo
                     </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                    <Images className="w-12 h-12 mb-2" />
+                    <span className="text-xs font-medium">No photos</span>
                   </div>
+                )}
+              </div>
 
-                  {galleryImages.length > 1 && (
+              {/* Right side: Map + thumbnails */}
+              <div className="grid grid-rows-[1fr_auto] gap-4">
+                {/* Map embed */}
+                <div className="relative rounded-2xl overflow-hidden bg-slate-100 min-h-[140px]">
+                  {mapEmbedUrl && showMapEmbed ? (
+                    <iframe
+                      title="Business location map"
+                      src={mapEmbedUrl}
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  ) : (
                     <div
+                      className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:bg-slate-200/50 transition-colors"
+                      onClick={() => mapEmbedUrl && setShowMapEmbed(true)}
+                    >
+                      <MapPin className="w-6 h-6 text-slate-300 mb-1" />
+                      <p className="text-xs font-medium text-slate-400">
+                        {mapEmbedUrl ? 'Load map' : 'Map unavailable'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Thumbnail photos */}
+                <div className="grid grid-cols-2 gap-4">
+                  {galleryImages.length > 1 ? (
+                    <div
+                      className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square cursor-pointer group"
                       onClick={() => openLightbox(1)}
-                      className={`${galleryImages.length === 2 ? 'col-span-2' : 'col-span-1 md:col-span-2'} row-span-1 rounded-[28px] overflow-hidden border border-slate-100 bg-slate-50 cursor-pointer group relative shadow-premium`}
                     >
                       <img
                         src={galleryImages[1]}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         alt="Gallery 2"
                       />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
+                  ) : (
+                    <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 aspect-square" />
                   )}
-
-                  {galleryImages.length > 2 && (
+                  {galleryImages.length > 2 ? (
                     <div
+                      className="relative rounded-xl overflow-hidden bg-slate-100 aspect-square cursor-pointer group"
                       onClick={() => openLightbox(2)}
-                      className="col-span-1 row-span-1 rounded-[24px] overflow-hidden border border-slate-100 bg-slate-50 cursor-pointer group relative shadow-premium"
                     >
                       <img
                         src={galleryImages[2]}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         alt="Gallery 3"
                       />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
+                  ) : (
+                    <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 aspect-square" />
                   )}
-
-                  {galleryImages.length > 0 && (
-                    <div
-                      onClick={() => openLightbox(galleryImages.length > 3 ? 3 : 0)}
-                      className={`${galleryImages.length === 2 ? 'col-span-2' : 'col-span-1'} row-span-1 rounded-[24px] bg-slate-900 flex flex-col items-center justify-center cursor-pointer hover:bg-primary transition-all duration-500 group shadow-xl relative overflow-hidden`}
-                    >
-                      {galleryImages.length >= 4 && (
-                        <>
-                          <img
-                            src={galleryImages[3]}
-                            className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-125 transition-transform duration-1000 blur-[2px]"
-                            alt="More photos"
-                          />
-                          <div className="absolute inset-0 bg-slate-900/60 group-hover:bg-primary/40 transition-colors duration-500" />
-                        </>
-                      )}
-                      <div className="relative z-10 flex flex-col items-center p-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                          <Images className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-white font-black uppercase tracking-[0.2em] text-[10px] text-center">
-                          {galleryImages.length} Photos
-                        </span>
-                        <span className="text-white/50 font-bold uppercase tracking-widest text-[8px] mt-2 group-hover:text-white transition-colors">
-                          Show All
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="col-span-2 md:col-span-4 row-span-1 md:row-span-2 rounded-[40px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 gap-6 group hover:border-primary/30 transition-all duration-500 p-12">
-                  <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center shadow-premium group-hover:scale-110 transition-transform duration-700">
-                    <Images className="w-12 h-12 text-slate-200 group-hover:text-primary/20" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400 mb-2">No Gallery Photos</p>
-                    <p className="text-xs font-bold text-slate-300 max-w-[240px] mx-auto leading-relaxed">This business hasn't added any interior or service photos yet.</p>
-                  </div>
                 </div>
-              )}
+
+                {galleryImages.length > 3 && (
+                  <button
+                    onClick={() => openLightbox(3)}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    See all {galleryImages.length} photos
+                  </button>
+                )}
+                {galleryImages.length === 3 && (
+                  <button
+                    onClick={() => openLightbox(0)}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    See all {galleryImages.length} photos
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Tabs / Content */}
-            {(() => {
-              const validFaqs =
-                (Array.isArray(business.faqs) ? business.faqs : []).filter((faq) => faq.question && faq.answer);
-              return (
-                <>
-                  <div className="border-b border-slate-100 flex items-center gap-10 md:gap-16 mb-12 overflow-x-auto scrollbar-hide">
-                    {[
-                      "Overview",
-                      "Reviews",
-                      "Amenities",
-                      "Q&A",
-                      "FAQs",
-                      "Offers",
-                    ].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`relative py-5 text-sm font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap ${activeTab === tab
-                          ? "text-primary"
-                          : "text-slate-400 hover:text-slate-600"
-                          }`}
-                      >
-                        {tab}
-                        {activeTab === tab && (
-                          <motion.div
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(255,122,48,0.5)]"
-                          />
-                        )}
-                      </button>
-                    ))}
+            {/* Business Header */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {business.isVerified && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-bold">
+                      <ShieldCheck className="w-3 h-3" /> Verified
+                    </div>
+                  )}
+                  <VendorOnlineBadge isOnline={business.vendor?.isOnline} />
+                  <BusinessOpenBadge business={business} />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
+                  {business.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="font-bold text-slate-900">{business.averageRating || 'New'}</span>
+                    <span className="text-slate-400">({business.totalReviews || 0} reviews)</span>
                   </div>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-slate-500">{business.category?.name || 'Business'}</span>
+                  {business.address && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span className="text-slate-500">{business.address}, {business.city}</span>
+                    </>
+                  )}
+                </div>
+              </div>
 
-                  <div className="min-h-[400px]">
-                    <div
-                      className={activeTab === "Overview" ? "block" : "hidden"}
-                    >
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="bg-slate-50/50 rounded-[40px] p-8 md:p-12 border border-slate-100 mb-12">
-                          <h3 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-4">
-                            <span className="w-12 h-1.5 bg-primary rounded-full" />
-                            About the Business
-                          </h3>
-                          <p className="text-xl text-slate-600 leading-relaxed font-medium">
-                            {business.description}
-                          </p>
-                        </div>
-
-
-
-                        {/* Detailed Map Section */}
-                        <div className="space-y-8">
-                          <h3 className="text-3xl font-black text-slate-900 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                              <Navigation className="w-6 h-6 text-blue-600" />
-                            </div>
-                            Location & Directions
-                          </h3>
-                          <div className="flex flex-wrap gap-3">
-                          </div>
-                          <div className="relative h-[400px] rounded-[20px] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50 bg-slate-50">
-                            {mapEmbedUrl && showMapEmbed ? (
-                              <iframe
-                                title="Business location map"
-                                src={mapEmbedUrl}
-                                className="w-full h-full border-0"
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                                allowFullScreen
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                                <MapPin className="w-10 h-10 text-slate-300 mb-3" />
-                                <p className="font-bold text-slate-900">
-                                  {mapEmbedUrl ? "Map preview ready" : "Map preview"}
-                                </p>
-                                <p className="text-sm text-slate-500 mt-1 max-w-xs">
-                                  {business.address}, {business.city}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-3">
-                            {mapEmbedUrl && !showMapEmbed && (
-                              <button
-                                type="button"
-                                onClick={() => setShowMapEmbed(true)}
-                                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-900 text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-colors"
-                              >
-                                <Navigation className="w-4 h-4" />
-                                Load Map
-                              </button>
-                            )}
-                            {openInGoogleMapsUrl && (
-                              <button
-                                type="button"
-                                onClick={() => window.open(openInGoogleMapsUrl, '_blank')}
-                                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-primary transition-colors"
-                              >
-                                <MapPin className="w-4 h-4" />
-                                Get Directions
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleLike}
+                  className={`p-3 rounded-full transition-all border ${isFavorite
+                    ? 'bg-blue-50 text-blue-600 border-blue-200'
+                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                    }`}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-blue-500' : ''}`} />
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="p-3 bg-white border border-slate-200 rounded-full text-slate-400 hover:border-slate-300 transition-all relative"
+                >
+                  <Share2 className="w-5 h-5" />
+                  {copySuccess && (
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg whitespace-nowrap shadow-lg animate-in fade-in">
+                      Copied!
                     </div>
+                  )}
+                </button>
+              </div>
+            </div>
 
-                    <div
-                      className={activeTab === "Reviews" ? "block" : "hidden"}
-                    >
-                      <div className="space-y-8 animate-in fade-in duration-500">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <h3 className="text-2xl font-bold text-slate-900">
-                            Customer Reviews
-                          </h3>
-                          <div className="flex items-center gap-3">
-                            {/* Sort Dropdown */}
-                            {comments.length > 1 && (
-                              <div className="relative">
-                                <ArrowUpDown className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                <select
-                                  value={reviewSort}
-                                  onChange={(e) => {
-                                    setReviewSort(e.target.value);
-                                    loadReviews(e.target.value);
-                                  }}
-                                  className="appearance-none pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none cursor-pointer"
-                                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
-                                >
-                                  <option value="relevant">Most Relevant</option>
-                                  <option value="newest">Newest First</option>
-                                  <option value="oldest">Oldest First</option>
-                                  <option value="highest">Highest Rated</option>
-                                  <option value="lowest">Lowest Rated</option>
-                                  <option value="most_helpful">Most Helpful</option>
-                                  <option value="photos_first">Photos First</option>
-                                </select>
-                              </div>
-                            )}
-                            {isOwner ? (
-                              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
-                                <ShieldCheck className="w-4 h-4 text-blue-500" />
-                                <span className="text-xs font-bold text-blue-600">
-                                  Your Business
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  if (!user) {
-                                    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-                                    return;
-                                  }
-                                  setShowReviewModal(true);
-                                }}
-                                className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-                              >
-                                Write a Review
-                              </button>
-                            )}
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {business.website && (
+                <a
+                  href={business.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+                >
+                  <Globe className="w-4 h-4" /> Website
+                </a>
+              )}
+              <button
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`)}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+              >
+                <Navigation className="w-4 h-4" /> Directions
+              </button>
+              {business.phone && (
+                <a
+                  href={`tel:${business.phone}`}
+                  className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+                >
+                  <Phone className="w-4 h-4" /> Call
+                </a>
+              )}
+              <button
+                onClick={handleLike}
+                className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-colors text-sm font-medium ${isFavorite ? 'border-blue-200 bg-blue-50 text-blue-600' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}
+              >
+                <Bookmark className={`w-4 h-4 ${isFavorite ? 'fill-blue-500' : ''}`} /> Save
+              </button>
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700"
+              >
+                <Share2 className="w-4 h-4" /> Share
+              </button>
+            </div>
+
+            {/* Tab bar */}
+            <div className="flex gap-0 border-b border-slate-200 mt-6 overflow-x-auto">
+              {['Overview', 'Services', 'Reviews', 'Photos', 'About'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab.toLowerCase())}
+                  className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    activeTab === tab.toLowerCase()
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <div className="min-h-[400px] mt-6">
+              {/* Overview Tab */}
+              <div className={activeTab === 'overview' ? 'block' : 'hidden'}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Business Info Card */}
+                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-4">Business Information</h3>
+                    <div className="space-y-4">
+                      {business.address && (
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">{business.address}</div>
+                            {business.city && <div className="text-xs text-slate-500">{business.city}</div>}
                           </div>
                         </div>
-
-                        {comments.length > 0 ? (
-                          <div className="space-y-6">
-                            {comments.map((comment: any, idx: number) => (
-                              <div
-                                key={comment.id || `comment-${idx}`}
-                                className="p-4 bg-white rounded-[16px] border border-slate-100 shadow-sm transition-all hover:shadow-md"
-                              >
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-bold overflow-hidden shadow-inner">
-                                      {comment.user?.avatarUrl ? (
-                                        <img
-                                          src={
-                                            getImageUrl(
-                                              comment.user.avatarUrl,
-                                            ) as string
-                                          }
-                                          alt={comment.user.fullName || "User"}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                                          }}
-                                        />
-                                      ) : (
-                                        (
-                                          comment.user?.fullName?.[0] || "U"
-                                        ).toUpperCase()
-                                      )}
-                                    </div>
-                                    <div>
-                                      <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                                        <h4 className="font-bold text-slate-900">
-                                          {comment.user?.fullName || "Anonymous"}
-                                        </h4>
-                                        <TrustBadge
-                                          badge={comment.user?.badge}
-                                          score={comment.user?.trust_score}
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-1 mt-0.5">
-                                        {[...Array(5)].map((_, i) => (
-                                          <Star
-                                            key={i}
-                                            className={`w-3.5 h-3.5 ${i < (comment.rating || 0) ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
-                                          />
-                                        ))}
-                                        <span className="text-[10px] text-slate-400 ml-2">
-                                          {new Date(
-                                            comment.createdAt,
-                                          ).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                {comment.comment && (
-                                  <p className="text-slate-600 leading-relaxed italic">
-                                    "{comment.comment}"
-                                  </p>
-                                )}
-
-                                {/* Report Button */}
-                                {user && !isOwner && user.id !== comment.userId && (
-                                  <div className="mt-3 flex items-center gap-4">
-                                    <button
-                                      onClick={() => handleHelpful(comment.id)}
-                                      disabled={helpfulLoading === comment.id}
-                                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold transition-colors uppercase tracking-wider ${
-                                        comment.userHelpful ? 'text-blue-500' : 'text-slate-400 hover:text-blue-500'
-                                      }`}
-                                    >
-                                      {helpfulLoading === comment.id ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <ThumbsUp className={`w-3 h-3 ${comment.userHelpful ? 'fill-blue-500' : ''}`} />
-                                      )}
-                                      Helpful {comment.helpfulCount > 0 ? `(${comment.helpfulCount})` : ''}
-                                    </button>
-                                    <button
-                                      onClick={() => setShowReportModal(comment.id)}
-                                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
-                                    >
-                                      <Flag className="w-3 h-3" />
-                                      Report
-                                    </button>
-                                  </div>
-                                )}
-
-                                {/* Review Photos */}
-                                {comment.images && comment.images.length > 0 && (
-                                  <div className="mt-3 flex gap-2 flex-wrap">
-                                    {comment.images.map((img: string, imgIdx: number) => (
-                                      <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer">
-                                        <img
-                                          src={img}
-                                          alt={`Review photo ${imgIdx + 1}`}
-                                          className="w-16 h-16 rounded-lg object-cover border border-slate-100 hover:border-blue-300 transition-colors cursor-pointer"
-                                        />
-                                      </a>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Business Response (if any) */}
-                                {comment.vendorResponse && (
-                                  <div className="mt-6 p-5 bg-blue-50 rounded-3xl border border-blue-100 relative">
-                                    <div className="absolute -top-3 left-6 px-3 py-1 bg-white border border-blue-100 rounded-lg shadow-sm">
-                                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                                        Business Response
-                                      </span>
-                                    </div>
-                                    <p className="text-sm text-slate-700 font-medium leading-relaxed italic">
-                                      "{comment.vendorResponse}"
-                                    </p>
-                                    {comment.vendorResponseAt && (
-                                      <div className="mt-3 flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                        <Clock className="w-3 h-3" />
-                                        {new Date(
-                                          comment.vendorResponseAt,
-                                        ).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* User Replies */}
-                                {comment.replies &&
-                                  comment.replies.length > 0 && (
-                                    <div className="mt-6 ml-4 sm:ml-8 space-y-4 border-l-2 border-slate-100 pl-4 sm:pl-6">
-                                      {comment.replies.map((reply: any) => (
-                                        <div
-                                          key={reply.id}
-                                          className="relative group"
-                                        >
-                                          <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center text-violet-600 font-bold text-[10px] shadow-sm">
-                                              {reply.user?.avatarUrl ? (
-                                                <img
-                                                  src={
-                                                    getImageUrl(
-                                                      reply.user.avatarUrl,
-                                                    ) as string
-                                                  }
-                                                  alt={
-                                                    reply.user.fullName ||
-                                                    "User"
-                                                  }
-                                                  className="w-full h-full object-cover rounded-lg"
-                                                  onError={(e) => {
-                                                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                                                  }}
-                                                />
-                                              ) : (
-                                                (
-                                                  reply.user?.fullName?.[0] ||
-                                                  "U"
-                                                ).toUpperCase()
-                                              )}
-                                            </div>
-                                            <div>
-                                              <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">
-                                                {reply.user?.fullName ||
-                                                  "Anonymous"}
-                                              </h5>
-                                              <p className="text-[9px] text-slate-400 font-bold">
-                                                {new Date(
-                                                  reply.createdAt,
-                                                ).toLocaleDateString()}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                                            {reply.content}
-                                          </p>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                {/* Reply Action & Form */}
-                                {isOwner && (
-                                  <div className="mt-6 pt-4 border-t border-slate-50">
-                                    {replyingTo === comment.id ? (
-                                      <div className="animate-in slide-in-from-top-2 duration-300">
-                                        <div className="flex items-center justify-between mb-3">
-                                          <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest flex items-center gap-2">
-                                            <MessageSquare className="w-3 h-3" />{" "}
-                                            Replying to Review
-                                          </span>
-                                          <button
-                                            onClick={() => setReplyingTo(null)}
-                                            className="text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest"
-                                          >
-                                            Cancel
-                                          </button>
-                                        </div>
-                                        <textarea
-                                          autoFocus
-                                          value={replyContent}
-                                          onChange={(e) =>
-                                            setReplyContent(e.target.value)
-                                          }
-                                          placeholder="Write your reply..."
-                                          className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] text-sm font-medium focus:ring-4 focus:ring-violet-500/10 focus:border-violet-400 outline-none transition-all placeholder:text-slate-300 resize-none"
-                                          rows={3}
-                                        />
-                                        <div className="flex justify-end mt-3">
-                                          <button
-                                            onClick={() =>
-                                              handleReplySubmit(comment.id)
-                                            }
-                                            disabled={
-                                              submittingReply ||
-                                              !replyContent.trim()
-                                            }
-                                            className="px-6 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 active:scale-95 disabled:opacity-50"
-                                          >
-                                            {submittingReply
-                                              ? "Posting..."
-                                              : "Post Reply"}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => setReplyingTo(comment.id)}
-                                        className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-violet-600 uppercase tracking-widest transition-colors group"
-                                      >
-                                        <MessageSquare className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                                        Reply to{" "}
-                                        {comment.user?.fullName?.split(" ")[0] ||
-                                          "User"}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-12 bg-slate-50 rounded-[20px] text-center border border-dashed border-slate-200">
-                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                              <MessageSquare className="w-8 h-8 text-slate-300" />
-                            </div>
-                            <h4 className="font-bold text-slate-900 mb-2">
-                              No reviews yet
-                            </h4>
-                            <p className="text-sm text-slate-500">
-                              Be the first to share your experience with{" "}
-                              {business.title}.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      className={activeTab === "Amenities" ? "block" : "hidden"}
-                    >
-                      <div className="animate-in fade-in duration-500">
-                        <h3 className="text-2xl font-bold text-slate-900 mb-8">
-                          Business Amenities
-                        </h3>
-                        {business.businessAmenities && business.businessAmenities.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                            {business.businessAmenities.map((item, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="group flex items-center gap-3 md:gap-4 p-4 md:p-5 bg-white rounded-xl md:rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all hover:-translate-y-1"
-                              >
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors shrink-0">
-                                  <DynamicIcon name={item.amenity?.icon || "CheckCircle2"} className="w-5 h-5 md:w-6 md:h-6 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                                </div>
-                                <div className="min-w-0">
-                                  <h4 className="font-bold text-slate-900 leading-tight text-sm md:text-base truncate">{item.amenity?.name}</h4>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="py-20 text-center">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                              <CheckCircle2 className="w-10 h-10 text-slate-200" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">No Amenities Listed</h3>
-                            <p className="text-slate-400 font-medium max-w-sm mx-auto">
-                              The business hasn't specified any amenities yet.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      className={activeTab === "Q&A" ? "block" : "hidden"}
-                    >
-                      <div className="animate-in fade-in duration-500">
-                        <div className="flex items-center justify-between mb-8">
-                          <h3 className="text-2xl font-bold text-slate-900">
-                            Questions & Answers
-                          </h3>
-                          {!isOwner && (
-                            <button
-                              onClick={() => {
-                                const el = document.getElementById(
-                                  "ask-question-form",
-                                );
-                                el?.scrollIntoView({ behavior: "smooth" });
-                              }}
-                              className="text-sm font-bold text-blue-600 hover:text-blue-700"
-                            >
-                              Ask a Question
-                            </button>
-                          )}
+                      )}
+                      {business.phone && (
+                        <div className="flex items-center gap-3">
+                          <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                          <a href={`tel:${business.phone}`} className="text-sm font-medium text-blue-600 hover:underline">{business.phone}</a>
                         </div>
-
-                        {qaLoading ? (
-                          <div className="flex flex-col items-center justify-center py-12">
-                            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
-                            <p className="text-slate-500 font-medium">
-                              Loading questions...
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-8">
-                            {questions.length > 0 ? (
-                              questions.map((q) => (
-                                <div
-                                  key={q.id}
-                                  className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
-                                >
-                                  <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-                                    <div className="flex items-start gap-4">
-                                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 font-bold">
-                                        Q
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className="text-lg font-bold text-slate-900 mb-1">
-                                          {q.content}
-                                        </p>
-                                        <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
-                                          <span>
-                                            Asked by{" "}
-                                            {q.user?.fullName || "Anonymous"}
-                                          </span>
-                                          <span>•</span>
-                                          <span>
-                                            {new Date(
-                                              q.createdAt,
-                                            ).toLocaleDateString()}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="p-6 space-y-6">
-                                    {/* Answers List */}
-                                    <div className="space-y-4">
-                                      {(q.answers || [])
-                                        .sort(
-                                          (a: any, b: any) =>
-                                            (b.isOfficial ? 1 : 0) -
-                                            (a.isOfficial ? 1 : 0),
-                                        )
-                                        .map((a: any) => (
-                                          <div
-                                            key={a.id}
-                                            className={`p-4 rounded-xl ${a.isOfficial ? "bg-blue-50/50 border border-blue-100" : "bg-slate-50/50"}`}
-                                          >
-                                            <div className="flex items-start gap-3">
-                                              <div
-                                                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-xs ${a.isOfficial ? "bg-blue-600" : "bg-slate-400"}`}
-                                              >
-                                                {a.isOfficial ? "V" : "A"}
-                                              </div>
-                                              <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                  <span
-                                                    className={`text-sm font-bold ${a.isOfficial ? "text-blue-700" : "text-slate-700"}`}
-                                                  >
-                                                    {a.isOfficial
-                                                      ? "Official Answer"
-                                                      : a.user?.fullName ||
-                                                      "User Answer"}
-                                                  </span>
-                                                  {a.isOfficial && (
-                                                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                                                  )}
-                                                </div>
-                                                <p className="text-sm text-slate-600 leading-relaxed">
-                                                  {a.content}
-                                                </p>
-                                                <p className="text-[10px] text-slate-400 mt-2">
-                                                  {new Date(
-                                                    a.createdAt,
-                                                  ).toLocaleDateString()}
-                                                </p>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ))}
-
-                                      {(!q.answers ||
-                                        q.answers.length === 0) && (
-                                          <p className="text-sm text-slate-400 italic">
-                                            No answers yet.
-                                          </p>
-                                        )}
-                                    </div>
-
-                                    {/* Reply Form Trigger */}
-                                    {!answeringQuestionId && (
-                                      <button
-                                        onClick={() =>
-                                          setAnsweringQuestionId(q.id)
-                                        }
-                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
-                                      >
-                                        <MessageSquare className="w-3.5 h-3.5" />{" "}
-                                        Reply to this question
-                                      </button>
-                                    )}
-
-                                    {/* Reply Form */}
-                                    {answeringQuestionId === q.id && (
-                                      <form
-                                        onSubmit={(e) =>
-                                          handleAnswerSubmit(e, q.id)
-                                        }
-                                        className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300"
-                                      >
-                                        <textarea
-                                          required
-                                          value={answerContent}
-                                          onChange={(e) =>
-                                            setAnswerContent(e.target.value)
-                                          }
-                                          placeholder="Write your answer..."
-                                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none min-h-[100px] resize-none"
-                                        />
-                                        <div className="flex justify-end gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setAnsweringQuestionId(null);
-                                              setAnswerContent("");
-                                            }}
-                                            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700"
-                                          >
-                                            Cancel
-                                          </button>
-                                          <button
-                                            type="submit"
-                                            disabled={
-                                              submittingAnswer ||
-                                              !answerContent.trim()
-                                            }
-                                            className="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:bg-blue-300 transition-all flex items-center gap-2"
-                                          >
-                                            {submittingAnswer ? (
-                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            ) : (
-                                              <Send className="w-3.5 h-3.5" />
-                                            )}
-                                            Post Answer
-                                          </button>
-                                        </div>
-                                        <p className="text-[10px] text-slate-400 italic">
-                                          Your answer will be visible after
-                                          admin approval.
-                                        </p>
-                                      </form>
-                                    )}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="text-center py-20 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200">
-                                <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                                <h4 className="text-lg font-bold text-slate-900 mb-2">
-                                  No questions yet
-                                </h4>
-                                <p className="text-slate-500 max-w-xs mx-auto text-sm">
-                                  Be the first to ask a question to this
-                                  business!
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Ask Question Form */}
-                            {!isOwner && (
-                              <div
-                                id="ask-question-form"
-                                className="mt-8 md:mt-12 p-6 md:p-8 bg-blue-50/50 rounded-[24px] md:rounded-[32px] border border-blue-100"
-                              >
-                                <h4 className="text-lg md:text-xl font-bold text-slate-900 mb-4 md:mb-6">
-                                  Ask a Question
-                                </h4>
-                                <form
-                                  onSubmit={handleQuestionSubmit}
-                                  className="space-y-4"
-                                >
-                                  <textarea
-                                    required
-                                    value={questionContent}
-                                    onChange={(e) =>
-                                      setQuestionContent(e.target.value)
-                                    }
-                                    placeholder="What would you like to know? (e.g. Do you have parking available?)"
-                                    className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-900 font-medium focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none min-h-[120px] resize-none"
-                                  />
-                                  <button
-                                    type="submit"
-                                    disabled={
-                                      submittingQuestion ||
-                                      !questionContent.trim()
-                                    }
-                                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 disabled:bg-blue-300 transition-all flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20"
-                                  >
-                                    {submittingQuestion ? (
-                                      <Loader2 className="w-5 h-5 animate-spin" />
-                                    ) : (
-                                      <Send className="w-5 h-5" />
-                                    )}
-                                    Submit Question
-                                  </button>
-                                  <p className="text-xs text-slate-500 text-center font-medium italic">
-                                    Questions are moderated and will appear
-                                    after admin approval.
-                                  </p>
-                                </form>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      className={
-                        activeTab === "Offers" ? "block" : "hidden"
-                      }
-                    >
-                      <div className="animate-in fade-in duration-500">
-                        <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                          <Tag className="w-6 h-6 text-orange-500" /> Offer /
-                          Banner Ad
-                        </h3>
-
-                        {/* Banner image */}
-                        {business.offerBannerUrl && (
-                          <div className="rounded-[20px] overflow-hidden mb-6 h-52 sm:h-72">
-                            <img
-                              src={business.offerBannerUrl}
-                              alt={business.offerTitle || "Offer Banner"}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-
-                        {/* Offer card */}
-                        <div className="relative p-6 md:p-8 bg-gradient-to-br from-orange-50 to-amber-50 rounded-[20px] border border-orange-100 overflow-hidden">
-                          {/* Decorative blob */}
-                          <div className="absolute -top-8 -right-8 w-40 h-40 bg-orange-100 rounded-full opacity-60" />
-                          <div className="relative z-10">
-                            {business.offerBadge && (
-                              <span className="inline-flex items-center gap-1.5 px-3 md:px-4 py-1 md:py-1.5 bg-orange-500 text-white rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-widest mb-4 md:mb-5 shadow-md shadow-orange-500/30">
-                                <Zap className="w-2.5 h-2.5 md:w-3 md:h-3" />{" "}
-                                {business.offerBadge}
-                              </span>
-                            )}
-                            <h4 className="text-2xl md:text-3xl font-black text-slate-900 mb-2 md:mb-3 leading-tight">
-                              {business.offerTitle || "Special Offer"}
-                            </h4>
-                            {business.offerDescription && (
-                              <p className="text-slate-600 text-base leading-relaxed mb-6 max-w-2xl">
-                                {business.offerDescription}
-                              </p>
-                            )}
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
-                              {!isOwner && (
-                                <button
-                                  onClick={openEnquiryModal}
-                                  className="inline-flex items-center justify-center gap-2 px-6 md:px-8 py-3 md:py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:from-orange-600 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/25 active:scale-95"
-                                >
-                                  <Zap className="w-4 h-4" /> Enquire Now
-                                </button>
-                              )}
-                              {business.phone && (
-                                <button
-                                  onClick={() => handleContactIntent("call")}
-                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:border-orange-400 hover:text-orange-600 transition-all"
-                                >
-                                  <Phone className="w-4 h-4" /> Call to Claim
-                                </button>
-                              )}
-                              {business.phone && (
-                                <a
-                                  href={`sms:${business.phone}`}
-                                  onClick={() => trackContactClick("sms")}
-                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
-                                >
-                                  <MessageSquare className="w-4 h-4" /> SMS
-                                </a>
-                              )}
-                              {(business.whatsapp || business.phone) && (
-                                <button
-                                  onClick={() => handleContactIntent("whatsapp")}
-                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-[#25D366] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-[#128C7E] transition-all shadow-lg shadow-green-500/20"
-                                >
-                                  <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" /> WhatsApp
-                                </button>
-                              )}
-                              {business.email && (
-                                <a
-                                  href={`mailto:${business.email}`}
-                                  onClick={() => trackContactClick("email")}
-                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-orange-500 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
-                                >
-                                  <Mail className="w-4 h-4" /> Email
-                                </a>
-                              )}
-                            </div>
-                            {business.offerExpiresAt && (
-                              <div className="flex items-center gap-2 mt-6 text-sm text-slate-500 font-medium">
-                                <Calendar className="w-4 h-4 text-orange-400" />
-                                <span>
-                                  Offer valid until{" "}
-                                  <strong className="text-orange-600">
-                                    {new Date(
-                                      business.offerExpiresAt,
-                                    ).toLocaleDateString("en-US", {
-                                      weekday: "long",
-                                      day: "numeric",
-                                      month: "long",
-                                      year: "numeric",
-                                    })}
-                                  </strong>
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                      )}
+                      {business.email && (
+                        <div className="flex items-center gap-3">
+                          <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                          <a href={`mailto:${business.email}`} className="text-sm font-medium text-blue-600 hover:underline">{business.email}</a>
                         </div>
-                      </div>
-                    </div>
+                      )}
+                      {business.website && (
+                        <div className="flex items-center gap-3">
+                          <Globe className="w-4 h-4 text-slate-400 shrink-0" />
+                          <a
+                            href={business.website.startsWith('http') ? business.website : `https://${business.website}`}
+                            target="_blank"
+                            className="text-sm font-medium text-blue-600 hover:underline"
+                          >
+                            {business.website}
+                          </a>
+                        </div>
+                      )}
+                      {business.category && (
+                        <div className="flex items-center gap-3">
+                          <Tag className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="text-sm font-medium text-slate-900">{business.category.name}</span>
+                        </div>
+                      )}
+                      {business.priceRange && (
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-slate-900 ml-7">{business.priceRange}</span>
+                        </div>
+                      )}
 
-                    <div className={activeTab === "FAQs" ? "block" : "hidden"}>
-                      <div className="animate-in fade-in duration-500">
-                        <h3 className="text-2xl font-bold text-slate-900 mb-8">
-                          Frequently Asked Questions
-                        </h3>
-
-                        {validFaqs.length > 0 ? (
-                          <div className="space-y-4">
-                            {validFaqs.map((faq, idx) => {
-                              const isOpen = openFaqIndex === idx;
-
+                      {/* Business Hours */}
+                      {business.businessHours && business.businessHours.length > 0 && (
+                        <div className="pt-4 border-t border-slate-100">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-900">Hours</span>
+                          </div>
+                          <div className="space-y-2 ml-6">
+                            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                              const hour = business.businessHours?.find(
+                                (h: any) => h.dayOfWeek.toLowerCase() === day
+                              );
+                              const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                              const isToday = day === today;
                               return (
-                                <div
-                                  key={idx}
-                                  className={`rounded-3xl border border-black transition-all duration-500 overflow-hidden ${isOpen
-                                      ? "bg-white shadow-2xl"
-                                      : "bg-slate-50/50 hover:bg-white"
-                                    }`}
-                                >
-                                  {/* Question */}
-                                  <button
-                                    onClick={() =>
-                                      setOpenFaqIndex(isOpen ? null : idx)
-                                    }
-                                    className="w-full flex items-center justify-between p-6 md:p-8 text-left group"
-                                  >
-                                    <h4
-                                      className={`font-black text-lg md:text-xl transition-colors leading-tight pr-8 ${isOpen
-                                          ? "text-primary"
-                                          : "text-slate-900 group-hover:text-primary/70"
-                                        }`}
-                                    >
-                                      {faq.question}
-                                    </h4>
-
-                                    {/* Icon */}
-                                    <div
-                                      className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 ${isOpen
-                                          ? "bg-primary text-white rotate-180 shadow-lg"
-                                          : "bg-white text-slate-400 group-hover:text-primary"
-                                        }`}
-                                    >
-                                      <ChevronDown className="w-5 h-5" />
-                                    </div>
-                                  </button>
-
-                                  {/* Answer */}
-                                  <AnimatePresence initial={false}>
-                                    {isOpen && (
-                                      <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{
-                                          duration: 0.4,
-                                          ease: [0.04, 0.62, 0.23, 0.98],
-                                        }}
-                                      >
-                                        <div className="px-6 pb-6">
-                                          <div className="p-6 bg-slate-50 rounded-[10px]">
-                                            <p className="text-slate-600 leading-relaxed whitespace-pre-wrap font-medium text-base md:text-lg">
-                                              {faq.answer}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                <div key={day} className={`flex items-center justify-between text-xs ${isToday ? 'font-bold text-blue-600' : 'text-slate-600'}`}>
+                                  <span className="capitalize">{day}</span>
+                                  <span>{hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'N/A'}</span>
                                 </div>
                               );
                             })}
                           </div>
-                        ) : (
-                          <p className="text-slate-500">
-                            No FAQs available for this business.
-                          </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {/* end min-h-[400px] */}
-                </>
-              );
-            })()}
+
+                  {/* Popular Times Chart */}
+                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-4">Popular Times</h3>
+                    <PopularTimesChart businessHours={business.businessHours} />
+                  </div>
+                </div>
+
+                {/* Description */}
+                {business.description && (
+                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-3">About</h3>
+                    <p className={`text-sm text-slate-600 leading-relaxed ${!aboutExpanded ? 'line-clamp-4' : ''}`}>
+                      {business.description}
+                    </p>
+                    {business.description.length > 200 && (
+                      <button
+                        onClick={() => setAboutExpanded(!aboutExpanded)}
+                        className="text-sm font-medium text-blue-600 hover:underline mt-2"
+                      >
+                        {aboutExpanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Amenities / Highlights */}
+                {business.businessAmenities && business.businessAmenities.length > 0 && (
+                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-3">Highlights</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {business.businessAmenities.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm text-slate-700">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                          <span>{item.amenity?.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Map */}
+                {mapEmbedUrl && (
+                  <div className="mt-6 bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-blue-600" /> Location
+                    </h3>
+                    <div className="relative h-[300px] rounded-xl overflow-hidden bg-slate-100">
+                      {showMapEmbed ? (
+                        <iframe
+                          title="Business location map"
+                          src={mapEmbedUrl}
+                          className="w-full h-full border-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200/50 transition-colors"
+                          onClick={() => setShowMapEmbed(true)}
+                        >
+                          <MapPin className="w-8 h-8 text-slate-300 mb-2" />
+                          <p className="text-sm font-medium text-slate-400">Click to load map</p>
+                        </div>
+                      )}
+                    </div>
+                    {openInGoogleMapsUrl && (
+                      <button
+                        onClick={() => window.open(openInGoogleMapsUrl, '_blank')}
+                        className="mt-3 text-sm font-medium text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <MapPin className="w-3.5 h-3.5" /> Get directions
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Services Tab */}
+              <div className={activeTab === 'services' ? 'block' : 'hidden'}>
+                <div className="animate-in fade-in duration-500">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Services</h3>
+                  {business.category && (
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                          <Store className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-900">{business.category.name}</h4>
+                          <p className="text-sm text-slate-500">Primary category</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {business.subcategories && business.subcategories.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                      {business.subcategories.map((sub: any, idx: number) => (
+                        <div key={idx} className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                          <span className="text-sm font-medium text-slate-900">{sub.name || sub}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!business.subcategories?.length && (
+                    <p className="text-sm text-slate-500 mt-4">No additional services listed.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews Tab */}
+              <div className={activeTab === 'reviews' ? 'block' : 'hidden'}>
+                <div className="space-y-6 animate-in fade-in duration-500">
+                  {/* Review Distribution */}
+                  <ReviewDistribution reviews={comments} />
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Customer Reviews
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      {comments.length > 1 && (
+                        <div className="relative">
+                          <ArrowUpDown className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                          <select
+                            value={reviewSort}
+                            onChange={(e) => {
+                              setReviewSort(e.target.value);
+                              loadReviews(e.target.value);
+                            }}
+                            className="appearance-none pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none cursor-pointer"
+                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
+                          >
+                            <option value="relevant">Most Relevant</option>
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="highest">Highest Rated</option>
+                            <option value="lowest">Lowest Rated</option>
+                            <option value="most_helpful">Most Helpful</option>
+                            <option value="photos_first">Photos First</option>
+                          </select>
+                        </div>
+                      )}
+                      {isOwner ? (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                          <ShieldCheck className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-bold text-blue-600">Your Business</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (!user) {
+                              router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                              return;
+                            }
+                            setShowReviewModal(true);
+                          }}
+                          className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
+                        >
+                          Write a Review
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {comments.length > 0 ? (
+                    <div className="space-y-4">
+                      {comments.map((comment: any, idx: number) => (
+                        <div
+                          key={comment.id || `comment-${idx}`}
+                          className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 font-bold overflow-hidden">
+                                {comment.user?.avatarUrl ? (
+                                  <img
+                                    src={getImageUrl(comment.user.avatarUrl) as string}
+                                    alt={comment.user.fullName || 'User'}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-avatar.png'; }}
+                                  />
+                                ) : (
+                                  (comment.user?.fullName?.[0] || 'U').toUpperCase()
+                                )}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-bold text-slate-900 text-sm">{comment.user?.fullName || 'Anonymous'}</h4>
+                                  <TrustBadge badge={comment.user?.badge} score={comment.user?.trust_score} />
+                                </div>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`w-3 h-3 ${i < (comment.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`}
+                                    />
+                                  ))}
+                                  <span className="text-[10px] text-slate-400 ml-1">
+                                    {new Date(comment.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          {comment.comment && (
+                            <p className="text-sm text-slate-600 leading-relaxed">{comment.comment}</p>
+                          )}
+
+                          {/* Review Photos */}
+                          {comment.images && comment.images.length > 0 && (
+                            <div className="mt-3 flex gap-2 flex-wrap">
+                              {comment.images.map((img: string, imgIdx: number) => (
+                                <a key={imgIdx} href={img} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={img}
+                                    alt={`Review photo ${imgIdx + 1}`}
+                                    className="w-16 h-16 rounded-lg object-cover border border-slate-100 hover:border-blue-300 transition-colors cursor-pointer"
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Helpful & Report */}
+                          {user && !isOwner && user.id !== comment.userId && (
+                            <div className="mt-3 flex items-center gap-4">
+                              <button
+                                onClick={() => handleHelpful(comment.id)}
+                                disabled={helpfulLoading === comment.id}
+                                className={`inline-flex items-center gap-1.5 text-[10px] font-bold transition-colors uppercase tracking-wider ${
+                                  comment.userHelpful ? 'text-blue-500' : 'text-slate-400 hover:text-blue-500'
+                                }`}
+                              >
+                                {helpfulLoading === comment.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <ThumbsUp className={`w-3 h-3 ${comment.userHelpful ? 'fill-blue-500' : ''}`} />
+                                )}
+                                Helpful {comment.helpfulCount > 0 ? `(${comment.helpfulCount})` : ''}
+                              </button>
+                              <button
+                                onClick={() => setShowReportModal(comment.id)}
+                                className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider"
+                              >
+                                <Flag className="w-3 h-3" /> Report
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Business Response */}
+                          {comment.vendorResponse && (
+                            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Business Response</span>
+                              </div>
+                              <p className="text-sm text-slate-700 leading-relaxed">{comment.vendorResponse}</p>
+                            </div>
+                          )}
+
+                          {/* Replies */}
+                          {comment.replies && comment.replies.length > 0 && (
+                            <div className="mt-4 ml-4 space-y-3 border-l-2 border-slate-100 pl-4">
+                              {comment.replies.map((reply: any) => (
+                                <div key={reply.id}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-slate-900">{reply.user?.fullName || 'Anonymous'}</span>
+                                    <span className="text-[10px] text-slate-400">{new Date(reply.createdAt).toLocaleDateString()}</span>
+                                  </div>
+                                  <p className="text-sm text-slate-600">{reply.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Owner Reply */}
+                          {isOwner && (
+                            <div className="mt-4 pt-3 border-t border-slate-50">
+                              {replyingTo === comment.id ? (
+                                <div>
+                                  <textarea
+                                    autoFocus
+                                    value={replyContent}
+                                    onChange={(e) => setReplyContent(e.target.value)}
+                                    placeholder="Write your reply..."
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 outline-none resize-none"
+                                    rows={3}
+                                  />
+                                  <div className="flex justify-end gap-2 mt-2">
+                                    <button onClick={() => setReplyingTo(null)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                                    <button
+                                      onClick={() => handleReplySubmit(comment.id)}
+                                      disabled={submittingReply || !replyContent.trim()}
+                                      className="px-4 py-2 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 disabled:opacity-50"
+                                    >
+                                      {submittingReply ? 'Posting...' : 'Post Reply'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setReplyingTo(comment.id)}
+                                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-violet-600 transition-colors"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" /> Reply
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-12 bg-slate-50 rounded-2xl text-center border border-dashed border-slate-200">
+                      <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                      <h4 className="font-bold text-slate-900 mb-1">No reviews yet</h4>
+                      <p className="text-sm text-slate-500">Be the first to review {business.title}.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Photos Tab */}
+              <div className={activeTab === 'photos' ? 'block' : 'hidden'}>
+                <div className="animate-in fade-in duration-500">
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {['all', 'business', 'customer', 'exterior', 'interior'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedPhotoCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          selectedPhotoCategory === cat
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  {galleryImages.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {galleryImages.map((img, idx) => (
+                        <div
+                          key={idx}
+                          className="aspect-square rounded-xl overflow-hidden cursor-pointer group"
+                          onClick={() => openLightbox(idx)}
+                        >
+                          <img
+                            src={img}
+                            alt={`Photo ${idx + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-12 text-center text-slate-400">
+                      <Images className="w-10 h-10 mx-auto mb-3" />
+                      <p className="text-sm font-medium">No photos available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* About Tab */}
+              <div className={activeTab === 'about' ? 'block' : 'hidden'}>
+                <div className="animate-in fade-in duration-500 space-y-6">
+                  {/* Description */}
+                  {business.description && (
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                      <h3 className="font-bold text-slate-900 mb-3">About {business.title}</h3>
+                      <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-wrap ${!aboutExpanded ? 'line-clamp-6' : ''}`}>
+                        {business.description}
+                      </p>
+                      {business.description.length > 300 && (
+                        <button
+                          onClick={() => setAboutExpanded(!aboutExpanded)}
+                          className="text-sm font-medium text-blue-600 hover:underline mt-3"
+                        >
+                          {aboutExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Highlights / Amenities */}
+                  {business.businessAmenities && business.businessAmenities.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                      <h3 className="font-bold text-slate-900 mb-4">Highlights</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {business.businessAmenities.map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                            <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                            <span className="text-sm font-medium text-slate-700">{item.amenity?.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Info */}
+                  <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-900 mb-4">Business Info</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {business.category && (
+                        <div>
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Category</div>
+                          <div className="text-sm font-medium text-slate-900">{business.category.name}</div>
+                        </div>
+                      )}
+                      {business.priceRange && (
+                        <div>
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Price Range</div>
+                          <div className="text-sm font-medium text-slate-900">{business.priceRange}</div>
+                        </div>
+                      )}
+                      {business.vendor?.user?.createdAt && (
+                        <div>
+                          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Member Since</div>
+                          <div className="text-sm font-medium text-slate-900">
+                            {new Date(business.vendor.user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          {/* end lg:col-span-2 */}
+          {/* end center column */}
 
-          {/* Sidebar Area */}
-          <aside className="relative">
-            <div className="lg:sticky lg:top-28 space-y-8">
-              {/* Actions/Contact Card */}
-              <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-premium relative overflow-hidden group">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                <h4 className="text-2xl font-black mb-8 relative z-10 flex items-center gap-3 text-white">
-                  Contact with Business
-                </h4>
-
-                <div className="space-y-4 mb-6 relative z-10">
+          {/* RIGHT COLUMN - Sidebar */}
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 space-y-6">
+              {/* Contact Card */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                <h4 className="font-bold text-slate-900 mb-4">Contact</h4>
+                <div className="space-y-3">
                   {business.phone && (
                     <button
-                      onClick={() => handleContactIntent("call")}
-                      className="w-full py-5 bg-slate-800 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-slate-700 transition-all duration-300 shadow-xl shadow-slate-900/20 active:scale-95"
+                      onClick={() => handleContactIntent('call')}
+                      className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-95"
                     >
-                      <Phone className="w-5 h-5" /> Call Business
+                      <Phone className="w-4 h-4" /> Call Business
                     </button>
-                  )}
-                  {business.phone && (
-                    <a
-                      href={`sms:${business.phone}`}
-                      onClick={() => trackContactClick("sms")}
-                      className="w-full py-5 bg-blue-600 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-500/20 active:scale-95"
-                    >
-                      <MessageSquare className="w-5 h-5" /> Send SMS
-                    </a>
                   )}
                   {(business.whatsapp || business.phone) && (
                     <button
-                      onClick={() => handleContactIntent("whatsapp")}
-                      className="w-full py-5 bg-[#25D366] text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-[#128C7E] transition-all duration-300 shadow-xl shadow-green-500/20 active:scale-95"
+                      onClick={() => handleContactIntent('whatsapp')}
+                      className="w-full py-3 bg-[#25D366] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95"
                     >
-                      <WhatsAppIcon className="w-6 h-6" /> WhatsApp
+                      <WhatsAppIcon className="w-4 h-4" /> WhatsApp
                     </button>
                   )}
                   {business.email && (
                     <a
                       href={`mailto:${business.email}`}
-                      onClick={() => trackContactClick("email")}
-                      className="w-full py-5 bg-orange-500 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-orange-600 transition-all duration-300 shadow-xl shadow-orange-500/20 active:scale-95"
+                      className="w-full py-3 bg-orange-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-orange-600 transition-all active:scale-95"
                     >
-                      <Mail className="w-5 h-5" /> Email Business
+                      <Mail className="w-4 h-4" /> Email
                     </a>
                   )}
                 </div>
 
-                {additionalPhoneNumbers.length > 0 && (
-                  <div className="mb-6 relative z-10 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                      Additional contact numbers
-                    </p>
-                    {additionalPhoneNumbers.map((item, index) => (
-                      <a
-                        key={`${item.label}-${item.number}-${index}`}
-                        href={`tel:${item.number}`}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 hover:bg-white/10 transition-colors"
-                      >
-                        <span className="text-sm font-bold text-white">
-                          {item.label}
-                        </span>
-                        <span className="text-sm text-slate-300">
-                          {item.number}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                )}
-
-                {!isOwner && (
-                  <div className="space-y-4 relative z-10">
-                    <ChatTrigger
-                      ref={chatRef}
-                      businessId={business.id}
-                      businessName={business.title}
-                      className="w-full py-5 bg-emerald-600 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all duration-300 shadow-xl shadow-emerald-500/20 active:scale-95 mb-4"
-                    />
-
-                    <button
-                      id="send-enquiry-btn"
-                      onClick={() => openEnquiryModal()}
-                      className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:from-violet-700 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-violet-500/30 active:scale-95"
-                    >
-                      <Send className="w-5 h-5" /> Send Enquiry
-                    </button>
-                  </div>
-                )}
-
-                {isOwner && (
-                  <div className="w-full mt-6 py-4 bg-primary/10 border border-primary/20 text-primary rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> Your Business
-                  </div>
-                )}
-
-                <div className="pt-8 border-t border-white/10 space-y-4">
-                  <div className="space-y-3">
-                    {(() => {
-                      if (
-                        !business.businessHours ||
-                        business.businessHours.length === 0
-                      )
-                        return null;
-                      const today = new Date()
-                        .toLocaleDateString("en-US", { weekday: "long" })
-                        .toLowerCase();
-                      const hour = business.businessHours.find(
-                        (h) => h.dayOfWeek.toLowerCase() === today,
-                      );
-
-                      return (
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-3 text-slate-400">
-                            <Clock className="w-4 h-4" />
-                            Open Today
-                          </div>
-                          <span
-                            className={`font-bold ${hour?.isOpen ? "text-white" : "text-rose-400"}`}
-                          >
-                            {hour
-                              ? hour.isOpen
-                                ? `${hour.openTime} - ${hour.closeTime}`
-                                : "Closed"
-                              : "N/A"}
+                {/* Hours summary */}
+                {business.businessHours && business.businessHours.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Clock className="w-4 h-4" />
+                        <span>Today</span>
+                      </div>
+                      {(() => {
+                        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                        const hour = business.businessHours.find((h: any) => h.dayOfWeek.toLowerCase() === today);
+                        return (
+                          <span className={`font-bold text-sm ${hour?.isOpen ? 'text-green-600' : 'text-slate-400'}`}>
+                            {hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'N/A'}
                           </span>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
 
-                    {/* Full Weekly Hours */}
-                    {business.businessHours && business.businessHours.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400 mb-3">
-                          Business Hours
-                        </p>
-                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                          const hour = business.businessHours.find(
-                            (h) => h.dayOfWeek.toLowerCase() === day
-                          );
-                          const today = new Date()
-                            .toLocaleDateString("en-US", { weekday: "long" })
-                            .toLowerCase();
-                          const isToday = day === today;
-
+                {/* Social Links */}
+                {(() => {
+                  const validLinks = (Array.isArray(business.vendor?.socialLinks) ? business.vendor.socialLinks : []).filter(
+                    (link: any) => link && typeof link === 'object' && !Array.isArray(link) && link.url
+                  );
+                  if (validLinks.length === 0) return null;
+                  return (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Social Media</div>
+                      <div className="flex flex-wrap gap-2">
+                        {validLinks.map((link: any, idx: number) => {
+                          let platform = (link.platform || '').toLowerCase();
+                          if (!platform) {
+                            const url = link.url.toLowerCase();
+                            if (url.includes('facebook')) platform = 'facebook';
+                            else if (url.includes('twitter') || url.includes('x.com')) platform = 'twitter';
+                            else if (url.includes('instagram')) platform = 'instagram';
+                            else if (url.includes('linkedin')) platform = 'linkedin';
+                            else if (url.includes('youtube')) platform = 'youtube';
+                            else platform = 'website';
+                          }
+                          let Icon = LinkIcon;
+                          if (platform.includes('facebook')) Icon = Facebook;
+                          else if (platform.includes('twitter') || platform.includes('x')) Icon = Twitter;
+                          else if (platform.includes('instagram')) Icon = Instagram;
+                          else if (platform.includes('linkedin')) Icon = Linkedin;
+                          else if (platform.includes('youtube')) Icon = Youtube;
                           return (
-                            <div
-                              key={day}
-                              className={`flex items-center justify-between text-xs py-1.5 ${
-                                isToday ? 'text-white font-bold' : 'text-slate-400'
-                              }`}
+                            <a
+                              key={idx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                             >
-                              <span className="capitalize">{day}</span>
-                              <span className={
-                                hour?.isOpen ? (isToday ? 'text-white' : 'text-slate-300') : 'text-rose-400'
-                              }>
-                                {hour
-                                  ? hour.isOpen
-                                    ? `${hour.openTime} - ${hour.closeTime}`
-                                    : 'Closed'
-                                  : 'N/A'}
-                              </span>
-                            </div>
+                              <Icon className="w-4 h-4" />
+                            </a>
                           );
                         })}
                       </div>
-                    )}
-                  </div>
-
-                  {business.website && (
-                    <div className="flex items-center justify-between text-sm pt-4 border-t border-white/5">
-                      <div className="flex items-center gap-3 text-slate-400">
-                        <Globe className="w-4 h-4" /> Website
-                      </div>
-                      <a
-                        href={
-                          business.website.startsWith("http")
-                            ? business.website
-                            : `https://${business.website}`
-                        }
-                        target="_blank"
-                        className="font-bold border-b border-blue-400 text-blue-400"
-                      >
-                        Visit Site
-                      </a>
                     </div>
-                  )}
-                  {/* Dynamic Social Links */}
-                  {(() => {
-                    const validLinks = (
-                      Array.isArray(business.vendor?.socialLinks) ? business.vendor.socialLinks : []
-                    ).filter(
-                      (link) =>
-                        link &&
-                        typeof link === "object" &&
-                        !Array.isArray(link) &&
-                        link.url,
-                    );
-
-                    if (validLinks.length === 0) return null;
-
-                    return (
-                      <div className="pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-3 text-slate-400 text-sm mb-3">
-                          Social Media
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          {validLinks.map((link, idx) => {
-                            let platform = (link.platform || "").toLowerCase();
-
-                            // Infer platform from URL if missing
-                            if (!platform) {
-                              const url = link.url.toLowerCase();
-                              if (url.includes("facebook"))
-                                platform = "facebook";
-                              else if (
-                                url.includes("twitter") ||
-                                url.includes("x.com")
-                              )
-                                platform = "twitter";
-                              else if (url.includes("instagram"))
-                                platform = "instagram";
-                              else if (url.includes("linkedin"))
-                                platform = "linkedin";
-                              else if (url.includes("youtube"))
-                                platform = "youtube";
-                              else if (
-                                url.includes("wa.me") ||
-                                url.includes("whatsapp")
-                              )
-                                platform = "whatsapp";
-                              else platform = "website";
-                            }
-
-                            let Icon = LinkIcon;
-                            let colorClass =
-                              "bg-slate-800 hover:bg-slate-700 text-white";
-
-                            if (platform.includes("facebook")) {
-                              Icon = Facebook;
-                              colorClass =
-                                "bg-[#1877F2]/20 text-[#1877F2] hover:bg-[#1877F2]/30";
-                            } else if (
-                              platform.includes("twitter") ||
-                              platform.includes("x")
-                            ) {
-                              Icon = Twitter;
-                              colorClass =
-                                "bg-slate-800 text-white hover:bg-slate-700";
-                            } else if (platform.includes("instagram")) {
-                              Icon = Instagram;
-                              colorClass =
-                                "bg-[#E4405F]/20 text-[#E4405F] hover:bg-[#E4405F]/30";
-                            } else if (platform.includes("linkedin")) {
-                              Icon = Linkedin;
-                              colorClass =
-                                "bg-[#0A66C2]/20 text-[#0A66C2] hover:bg-[#0A66C2]/30";
-                            } else if (platform.includes("youtube")) {
-                              Icon = Youtube;
-                              colorClass =
-                                "bg-[#FF0000]/20 text-[#FF0000] hover:bg-[#FF0000]/30";
-                            } else if (platform.includes("whatsapp")) {
-                              Icon = MessageSquare;
-                              colorClass =
-                                "bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366]/30";
-                            }
-
-                            return (
-                              <a
-                                key={idx}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`p-2.5 rounded-xl transition-all ${colorClass}`}
-                                title={
-                                  link.platform ||
-                                  platform.charAt(0).toUpperCase() +
-                                  platform.slice(1)
-                                }
-                              >
-                                <Icon className="w-4 h-4" />
-                              </a>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
+                  );
+                })()}
               </div>
 
-              {/* Business Profile / Vendor Profile Card */}
-              <div className="bg-light rounded-[30px] p-10 border border-slate-100 transition-all   duration-500">
-                <h4 className="text-xl font-black text-slate-900 mb-10 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
-                  Business Profile
+              {/* Vendor Profile Card */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6">
+                <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-400" /> Business Profile
                 </h4>
-
                 <div className="flex flex-col items-center text-center">
-                  <Link
-                    href={businessProfileHref}
-                    className={`flex flex-col items-center text-center group/vendor ${businessProfileHref === "#" ? "pointer-events-none" : "cursor-pointer"}`}
-                  >
-                    <div className="w-32 h-32 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-400 font-bold overflow-hidden shadow-inner mb-6 relative group border-4 border-white ring-1 ring-slate-100">
+                  <Link href={businessProfileHref} className={`group ${businessProfileHref === '#' ? 'pointer-events-none' : ''}`}>
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center overflow-hidden border-2 border-white ring-1 ring-slate-100 mb-3">
                       {(business.logoUrl || business.vendor?.user?.avatarUrl) ? (
                         <img
-                          src={
-                            getImageUrl(
-                              business.logoUrl || business.vendor?.user?.avatarUrl,
-                            ) as string
-                          }
-                          alt={business.title || business.vendor?.user?.fullName || "Business"}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/default-avatar.png";
-                          }}
+                          src={getImageUrl(business.logoUrl || business.vendor?.user?.avatarUrl) as string}
+                          alt={business.title || 'Business'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/default-avatar.png'; }}
                         />
                       ) : (
-                        <span className="text-4xl font-black text-slate-200">
-                          {(
-                            business.title?.[0] || business.vendor?.user?.fullName?.[0] || "B"
-                          ).toUpperCase()}
+                        <span className="text-2xl font-bold text-slate-200">
+                          {(business.title?.[0] || 'B').toUpperCase()}
                         </span>
                       )}
-                      {business.vendor?.user?.isOnline && (
-                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full shadow-lg shadow-emerald-500/20" />
-                      )}
                     </div>
-
-                    <h5 className="text-2xl font-black text-slate-900 leading-tight mb-2 group-hover/vendor:text-primary transition-colors">
-                      {business.vendor?.user?.fullName ||
-                        "Business Owner"}
+                    <h5 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {business.vendor?.user?.fullName || 'Business Owner'}
                     </h5>
-                   
                   </Link>
 
-
-
-                  {/* Status & Followers Section */}
-                  <div className="w-full grid grid-cols-2 gap-3 mb-6 mt-3">
-                    <div className="">
-                      <div className="text-[9px] font-black mb-2 text-slate-400 uppercase tracking-widest">
-                        Availability
-                      </div>
-                      <VendorOnlineBadge
-                        isOnline={business.vendor?.user?.isOnline}
-                      />
-                    </div>
-                    <div className="">
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        Status
-                      </div>
-                      <BusinessOpenBadge business={business} />
-                    </div>
-                  </div>
-
-                  <div className="w-full mb-6">
+                  <div className="w-full mt-3">
                     <FollowButton
                       businessId={business.id}
                       initialFollowersCount={business.followersCount}
@@ -2379,74 +1866,36 @@ export default function BusinessDetailClient({
                     />
                   </div>
 
-                  <div className="w-full pt-6 border-t border-slate-100 space-y-4 text-left">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">
-                        Member since
-                      </span>
-                      <span className="font-black text-slate-900">
-                        {business.vendor?.user?.createdAt
-                          ? new Date(
-                            business.vendor.user.createdAt,
-                          ).toLocaleDateString("en-US", {
-                            month: "short",
-                            year: "numeric",
-                          })
-                          : "Oct 2024"}
-                      </span>
+                  {vendorHasChat && !isOwner && (
+                    <div className="w-full mt-3">
+                      <ChatTrigger
+                        ref={chatRef}
+                        businessId={business.id}
+                        businessName={business.title}
+                        className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all active:scale-95"
+                      />
                     </div>
+                  )}
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-400 uppercase tracking-widest text-[9px]">
-                        Working Hours
-                      </span>
-                      <span className="font-black text-slate-900">
-                        {(() => {
-                          // Check if vendor logged in today
-                          const lastLogin = business.vendor?.user?.lastLoginAt;
-                          if (lastLogin) {
-                            const loginDate = new Date(lastLogin);
-                            const today = new Date();
-                            if (
-                              loginDate.toDateString() === today.toDateString()
-                            ) {
-                              return `Today at ${loginDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
-                            }
-                          }
+                  {!isOwner && (
+                    <button
+                      onClick={openEnquiryModal}
+                      className="w-full mt-3 py-3 bg-violet-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-violet-700 transition-all active:scale-95"
+                    >
+                      <Send className="w-4 h-4" /> Send Enquiry
+                    </button>
+                  )}
 
-                          // Fallback to business hours
-                          const hoursData =
-                            business.businessHours &&
-                              business.businessHours.length > 0
-                              ? business.businessHours
-                              : business.vendor?.businessHours;
-                          const { todayHours } =
-                            getBusinessOpenStatus(hoursData);
-                          return todayHours || "Closed";
-                        })()}
-                      </span>
+                  {isOwner && (
+                    <div className="w-full mt-3 py-3 bg-blue-50 border border-blue-100 text-blue-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+                      <ShieldCheck className="w-4 h-4" /> Your Business
                     </div>
-
-
-
-                    {(business.vendorId || business.vendor?.id) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          window.location.href = businessProfileHref;
-                        }}
-                        className="group/btn relative w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 overflow-hidden hover:bg-blue-600 transition-all duration-300 shadow-lg shadow-slate-900/10 active:scale-[0.98] mt-6 cursor-pointer z-20"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-                        <User className="relative z-10 w-4.5 h-4.5 group-hover/btn:scale-110 transition-transform" />
-                        <span className="relative z-10 text-center uppercase tracking-wide">View Profile</span>
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           </aside>
+          {/* end right sidebar */}
         </div>
       </main>
 
