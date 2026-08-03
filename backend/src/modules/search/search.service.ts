@@ -386,6 +386,10 @@ export class SearchService implements OnModuleInit {
             qb.andWhere('b.isFeatured = :featuredOnly', { featuredOnly: true });
         }
 
+        if (searchDto.priceRange) {
+            qb.andWhere('b.priceRange = :priceRange', { priceRange: searchDto.priceRange });
+        }
+
         // Distance Filter & Selection
         if (latitude && longitude) {
             const formula = `earth_distance(ll_to_earth(b.latitude, b.longitude), ll_to_earth(:lat, :lng))`;

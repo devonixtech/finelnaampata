@@ -60,41 +60,51 @@ export class ChatService implements OnModuleInit {
             relations: ['business', 'user', 'vendor'],
         });
 
-        if (!conversation) {
-            const business = await this.listingRepository.findOne({
-                where: { id: businessId },
-                relations: ['vendor'],
-            });
-
-            if (!business) {
-                throw new NotFoundException('Business not found');
-            }
-
-            // Paid gate: Vendors need a paid plan to chat
-            const vendorUser = await this.vendorRepository.findOne({ where: { id: business.vendor.id } });
-            if (vendorUser) {
-                const canChat = await this.subscriptionsService.canPerformAction(vendorUser.userId, 'showChat');
+        if (conversation) {
+            const convVendor = await this.vendorRepository.findOne({ where: { id: conversation.vendorId } });
+            if (convVendor) {
+                const canChat = await this.subscriptionsService.canPerformAction(convVendor.userId, 'showChat');
                 if (!canChat) {
                     throw new ForbiddenException(
-                        'This business does not have in-chat messaging enabled. Please contact them via phone or email.'
+                        'This business no longer has an active paid plan. Chat is no longer available.'
                     );
                 }
             }
-
-            conversation = this.conversationRepository.create({
-                userId,
-                businessId,
-                vendorId: business.vendor.id,
-            });
-            await this.conversationRepository.save(conversation);
-
-            // Reload with relations for the response
-            conversation = await this.conversationRepository.findOne({
-                where: { id: conversation.id },
-                relations: ['business', 'user', 'vendor'],
-            });
-
+            return conversation;
         }
+
+        const business = await this.listingRepository.findOne({
+            where: { id: businessId },
+            relations: ['vendor'],
+        });
+
+        if (!business) {
+            throw new NotFoundException('Business not found');
+        }
+
+        // Paid gate: Vendors need a paid plan to chat
+        const vendorUser = await this.vendorRepository.findOne({ where: { id: business.vendor.id } });
+        if (vendorUser) {
+            const canChat = await this.subscriptionsService.canPerformAction(vendorUser.userId, 'showChat');
+            if (!canChat) {
+                throw new ForbiddenException(
+                    'This business does not have in-chat messaging enabled. Please contact them via phone or email.'
+                );
+            }
+        }
+
+        conversation = this.conversationRepository.create({
+            userId,
+            businessId,
+            vendorId: business.vendor.id,
+        });
+        await this.conversationRepository.save(conversation);
+
+        // Reload with relations for the response
+        conversation = await this.conversationRepository.findOne({
+            where: { id: conversation.id },
+            relations: ['business', 'user', 'vendor'],
+        });
 
         return conversation;
     }

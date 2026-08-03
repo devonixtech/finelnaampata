@@ -1778,11 +1778,33 @@ export class SubscriptionsService implements OnModuleInit {
                 const charge = event.data.object as any;
                 this.logger.log(`💰 Charge refunded: ${charge.id}`);
 
-                const vendorFromCharge = charge.metadata?.vendorId
+                let vendorFromCharge = charge.metadata?.vendorId
                     ? await this.vendorRepository.findOne({ where: { id: charge.metadata.vendorId } })
                     : charge.customer
                         ? await this.vendorRepository.findOne({ where: { stripeCustomerId: charge.customer as string } })
                         : null;
+
+                if (!vendorFromCharge && charge.invoice) {
+                    try {
+                        const invoice = await this.stripe.invoices.retrieve(charge.invoice as string);
+                        if (invoice.subscription) {
+                            const stripeSub = await this.stripe.subscriptions.retrieve(invoice.subscription as string);
+                            vendorFromCharge = await this.vendorRepository.findOne({ where: { stripeCustomerId: stripeSub.customer as string } });
+                        }
+                    } catch (err) {
+                        this.logger.warn(`Failed to resolve vendor from invoice: ${err.message}`);
+                    }
+                }
+
+                if (!vendorFromCharge) {
+                    const transaction = await this.transactionRepository.findOne({
+                        where: { gatewayTransactionId: charge.payment_intent as string },
+                        relations: ['vendor']
+                    });
+                    if (transaction?.vendor) {
+                        vendorFromCharge = transaction.vendor;
+                    }
+                }
 
                 if (vendorFromCharge) {
                     await this.affiliateService.reverseCommission(vendorFromCharge.id, 'charge_refunded');

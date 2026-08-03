@@ -1310,7 +1310,12 @@ export class AffiliateService implements OnModuleInit {
 
             affiliate.balanceHeld = Math.max(0, Number(affiliate.balanceHeld) - commission);
             affiliate.balance = Math.max(0, Number(affiliate.balance) - commission);
-            affiliate.totalEarnings = Math.max(0, Number(affiliate.totalEarnings) - commission);
+
+            const alreadyPaidOut = Number(affiliate.totalWithdrawals) >= Number(affiliate.totalEarnings);
+            if (!alreadyPaidOut) {
+                affiliate.totalEarnings = Math.max(0, Number(affiliate.totalEarnings) - commission);
+            }
+
             await this.affiliateRepository.save(affiliate);
 
             referral.status = ReferralStatus.REVERSED;

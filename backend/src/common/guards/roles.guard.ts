@@ -20,6 +20,13 @@ export class RolesGuard implements CanActivate {
         const { user } = context.switchToHttp().getRequest();
 
         if (!user) {
+            const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
+                context.getHandler(),
+                context.getClass(),
+            ]);
+            if (isPublic) {
+                return true;
+            }
             throw new ForbiddenException('User not authenticated');
         }
 

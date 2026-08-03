@@ -250,6 +250,10 @@ export class SearchLocationService {
                 qb.andWhere('b.isFeatured = :featuredOnly', { featuredOnly: true });
             }
 
+            if (dto.priceRange) {
+                qb.andWhere('b.priceRange = :priceRange', { priceRange: dto.priceRange });
+            }
+
             if (openNow) {
                 const tzExpr = "COALESCE(b.timezone, 'UTC')";
                 const dayExpr = `UPPER(TRIM(TO_CHAR(NOW() AT TIME ZONE ${tzExpr}, 'Day')))`;
@@ -328,6 +332,10 @@ export class SearchLocationService {
                 .leftJoinAndSelect('b.category', 'category')
                 .where('b.id IN (:...ids)', { ids: esIds })
                 .andWhere('b.hiddenByDeletion = false');
+
+            if (dto.priceRange) {
+                qb.andWhere('b.priceRange = :priceRange', { priceRange: dto.priceRange });
+            }
 
             if (openNow) {
                 const tzExpr = "COALESCE(b.timezone, 'UTC')";
