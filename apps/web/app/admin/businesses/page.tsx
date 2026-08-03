@@ -7,7 +7,7 @@ import {
     AlertCircle, Clock, MoreVertical, Trash2, MapPin, Tag,
     ExternalLink, ChevronLeft, ChevronRight, Store, Filter, Star,
     Phone, Globe, MessageCircle, Calendar, Users, Eye, Heart, Image,
-    DollarSign, Building2, Hash, Info
+    DollarSign, Building2, Hash, Info, TrendingUp
 } from 'lucide-react';
 import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,6 +79,18 @@ export default function AdminBusinessesPage() {
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
+        }
+    };
+
+    const handleRankingBoost = async (id: string, boost: number) => {
+        setActionLoading(id + '-boost');
+        try {
+            await api.admin.affiliate.setRankingBoost(id, boost);
+            setBusinesses(prev => prev.map(b => b.id === id ? { ...b, manualRankingBoost: boost } : b));
+        } catch (err: any) {
+            alert(err.message || 'Failed to update ranking boost');
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -182,6 +194,7 @@ export default function AdminBusinessesPage() {
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Owner / Business</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Category / Details</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">Status</th>
+                                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Boost</th>
                                     <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -242,6 +255,24 @@ export default function AdminBusinessesPage() {
                                             </td>
                                             <td className="px-6 py-5">
                                                 <StatusBadge status={b.status} />
+                                            </td>
+                                            <td className="px-6 py-5 text-center">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <TrendingUp className="w-3 h-3 text-slate-400" />
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={10}
+                                                        defaultValue={b.manualRankingBoost || 0}
+                                                        onBlur={(e) => {
+                                                            const val = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
+                                                            if (val !== (b.manualRankingBoost || 0)) {
+                                                                handleRankingBoost(b.id, val);
+                                                            }
+                                                        }}
+                                                        className="w-14 h-8 text-center text-xs font-black text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                                                    />
+                                                </div>
                                             </td>
                                             <td className="px-6 py-5 text-right">                                                <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                                                     <button
@@ -697,6 +728,21 @@ export default function AdminBusinessesPage() {
                                     <Star className={`w-4 h-4 ${b.isFeatured ? 'fill-amber-400 text-amber-400' : 'text-slate-300 group-hover:text-amber-400'} transition-all`} />
                                     {b.isFeatured ? 'Remove Featured' : 'Mark Featured'}
                                 </button>
+
+                                <div className="px-6 py-3">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-300 mb-2">Ranking Boost (0-10)</p>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={10}
+                                            defaultValue={b.manualRankingBoost || 0}
+                                            onChange={(e) => handleRankingBoost(b.id, parseInt(e.target.value))}
+                                            className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                        />
+                                        <span className="text-xs font-black text-slate-700 w-6 text-center">{b.manualRankingBoost || 0}</span>
+                                    </div>
+                                </div>
 
                                 <div className="h-[1px] bg-slate-50 mx-4 my-2" />
 

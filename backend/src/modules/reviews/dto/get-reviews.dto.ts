@@ -29,8 +29,8 @@ export class GetReviewsDto extends PaginationDto {
 
     @ApiPropertyOptional({ 
         description: 'Sort reviews by',
-        enum: ['newest', 'oldest', 'highest', 'lowest', 'most_helpful', 'most_relevant'],
-        default: 'newest'
+        enum: ['newest', 'oldest', 'highest', 'lowest', 'most_helpful', 'most_relevant', 'relevant', 'photos_first'],
+        default: 'relevant'
     })
     @IsOptional()
     @IsString()

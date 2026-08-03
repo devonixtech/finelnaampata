@@ -8,6 +8,7 @@ import {
     Param,
     Query,
     Req,
+    Res,
 } from '@nestjs/common';
 import { AffiliateService } from './affiliate.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -45,8 +46,21 @@ export class AffiliateController {
 
     @Post('track-click')
     @ApiOperation({ summary: 'Track a referral click for the current user or save it for later business activation' })
-    async trackClick(@CurrentUser() user: User, @Query('code') code?: string) {
-        return this.affiliateService.trackClick(user.id, code || '');
+    async trackClick(
+        @CurrentUser() user: User,
+        @Query('code') code: string,
+        @Req() req: any,
+        @Res({ passthrough: true }) res: any,
+    ) {
+        const ipAddress = req.ip || req.connection?.remoteAddress;
+        const userAgent = req.headers['user-agent'];
+        if (code) {
+            res.cookie('referral', code, {
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+            });
+        }
+        return this.affiliateService.trackClick(user.id, code || '', ipAddress, userAgent);
     }
 
     @Post('apply-referral')
@@ -231,6 +245,26 @@ export class AffiliateController {
     @ApiOperation({ summary: 'Admin: Export affiliates data' })
     async adminExportAffiliates(@Query('format') format: 'csv' | 'json') {
         return this.affiliateService.exportAffiliates(format || 'csv');
+    }
+
+    @Get('admin/export/payouts')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Export payout reports' })
+    async adminExportPayouts(@Query('format') format: 'csv' | 'json') {
+        return this.affiliateService.exportPayoutReports(format || 'csv');
+    }
+
+    @Post('admin/referrals/:id/cancel')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Cancel commission on a referral' })
+    async adminCancelCommission(
+        @Param('id') id: string,
+        @CurrentUser() user: User,
+        @Body() body: { reason: string },
+    ) {
+        return this.affiliateService.adminCancelCommission(id, user.id, body.reason);
     }
 
     @Get('settings')

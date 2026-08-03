@@ -34,6 +34,8 @@ export enum ReviewSort {
     LOWEST = 'lowest',
     MOST_HELPFUL = 'most_helpful',
     MOST_RELEVANT = 'most_relevant',
+    RELEVANT = 'relevant',
+    PHOTOS_FIRST = 'photos_first',
 }
 
 
@@ -50,6 +52,8 @@ export class ReviewsService {
         private reviewReplyRepository: Repository<ReviewReply>,
         @InjectRepository(Vendor)
         private vendorRepository: Repository<Vendor>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         private reviewDetectionService: ReviewDetectionService,
         private trustService: TrustService,
         private subscriptionsService: SubscriptionsService,
@@ -110,6 +114,11 @@ export class ReviewsService {
     async create(createReviewDto: CreateReviewDto, user: User, ipAddress?: string): Promise<Review> {
         const { businessId } = createReviewDto;
 
+        const fullUser = await this.userRepository.findOne({ where: { id: user.id } });
+        if (!fullUser.isPhoneVerified) {
+            throw new BadRequestException('Phone verification required to write reviews');
+        }
+
         // Verify listing exists and load vendor relation
         const listing = await this.listingRepository.findOne({
             where: { id: businessId },
@@ -156,6 +165,27 @@ export class ReviewsService {
         
         const savedReview = await this.reviewRepository.save(review);
 
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentCount = await this.reviewRepository
+            .createQueryBuilder('review')
+            .where('review.businessId = :businessId', { businessId })
+            .andWhere('review.rating = 5')
+            .andWhere('review.createdAt > :since', { since: oneHourAgo })
+            .getCount();
+
+        if (recentCount > 5) {
+            const admin = await this.userRepository.findOne({ where: { role: 'admin' as any } });
+            if (admin) {
+                await this.notificationsService.create({
+                    userId: admin.id,
+                    title: 'Rating Spike Detected',
+                    message: `Business "${listing.title}" received ${recentCount} five-star reviews in the last hour.`,
+                    type: NotificationType.REVIEW_RECEIVED,
+                    link: `/admin/reviews`,
+                }).catch(e => console.error('Failed to send spike notification', e));
+            }
+        }
+
         // Notify the vendor
         if (listing.vendor && listing.vendor.userId) {
             await this.notificationsService.create({
@@ -188,7 +218,7 @@ export class ReviewsService {
             const page = Number(getReviewsDto.page) || 1;
             const limit = Number(getReviewsDto.limit) || 20;
             const rating = getReviewsDto.rating ? Number(getReviewsDto.rating) : undefined;
-            const sortBy = (getReviewsDto.sortBy as ReviewSort) || ReviewSort.NEWEST;
+            const sortBy = (getReviewsDto.sortBy as ReviewSort) || ReviewSort.RELEVANT;
             
             const skip = calculateSkip(page, limit);
 
@@ -235,9 +265,19 @@ export class ReviewsService {
                     queryBuilder.orderBy('review.helpfulCount', 'DESC').addOrderBy('review.createdAt', 'DESC');
                     break;
                 case ReviewSort.MOST_RELEVANT:
-                    // Most relevant = recent + high rating + helpful
                     queryBuilder.orderBy('review.rating', 'DESC')
                         .addOrderBy('review.helpfulCount', 'DESC')
+                        .addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.RELEVANT:
+                    queryBuilder.orderBy('review.helpfulCount * 3', 'DESC')
+                        .addOrderBy("CASE WHEN review.images IS NOT NULL AND review.images != '[]' THEN 1 ELSE 0 END", 'DESC')
+                        .addOrderBy('user.trustScore', 'DESC')
+                        .addOrderBy('review.rating', 'DESC')
+                        .addOrderBy('review.createdAt', 'DESC');
+                    break;
+                case ReviewSort.PHOTOS_FIRST:
+                    queryBuilder.orderBy("CASE WHEN review.images IS NOT NULL AND review.images != '[]' THEN 0 ELSE 1 END", 'ASC')
                         .addOrderBy('review.createdAt', 'DESC');
                     break;
                 case ReviewSort.NEWEST:
@@ -471,14 +511,16 @@ export class ReviewsService {
 
         await this.reviewRepository.save(review);
 
-        // Notify admin about the report
-        this.notificationsService.create({
-            userId: user.id,
-            title: 'Review Reported',
-            message: `A review has been reported for: ${reason}`,
-            type: NotificationType.REVIEW_RECEIVED,
-            link: `/admin/reviews`,
-        }).catch(e => console.error('Failed to send notification', e));
+        const admin = await this.userRepository.findOne({ where: { role: 'admin' as any } });
+        if (admin) {
+            this.notificationsService.create({
+                userId: admin.id,
+                title: 'Review Reported',
+                message: `A review has been reported for: ${reason}`,
+                type: NotificationType.REVIEW_RECEIVED,
+                link: `/admin/reviews`,
+            }).catch(e => console.error('Failed to send notification', e));
+        }
 
         return {
             success: true,

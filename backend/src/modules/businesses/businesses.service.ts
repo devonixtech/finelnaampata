@@ -228,11 +228,13 @@ export class BusinessesService implements OnModuleInit {
     private async sanitizeListingForPublicViewer(listing: Listing, user?: User): Promise<Listing> {
         const isOwner = !!user && listing.vendor?.userId === user.id;
         const isAdmin = !!user && [UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole);
+
+        const features = await this.resolvePlanFeatures(listing.vendorId);
+        (listing as any).planFeatures = features;
+
         if (isOwner || isAdmin) {
             return listing;
         }
-
-        const features = await this.resolvePlanFeatures(listing.vendorId);
 
         if (Number(features.maxKeywords ?? 0) <= 0) {
             listing.metaKeywords = '';
@@ -1110,10 +1112,10 @@ export class BusinessesService implements OnModuleInit {
         }
 
         if (searchDto.experience) {
-            // "Experienced" listings are those that have been on the platform for at least 1 week
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-            queryBuilder.andWhere('listing.createdAt <= :oneWeekAgo', { oneWeekAgo });
+            const currentYear = new Date().getFullYear();
+            if (searchDto.experience === 'experienced') {
+                queryBuilder.andWhere('listing.yearEstablished IS NOT NULL AND :currentYear - listing.yearEstablished >= 5', { currentYear });
+            }
         }
 
         if (searchDto.mostContacted) {
@@ -1795,5 +1797,100 @@ export class BusinessesService implements OnModuleInit {
         await this.listingRepository.save(listing);
 
         return { success: true, boost: clampedBoost };
+    }
+
+    async findDuplicateBusinesses() {
+        const allListings = await this.listingRepository.find({
+            where: { hiddenByDeletion: false },
+            select: ['id', 'title', 'phone', 'address', 'city', 'categoryId', 'vendorId', 'createdAt', 'totalViews', 'status'],
+            order: { createdAt: 'DESC' },
+        });
+
+        const clusters: { reason: string; businesses: typeof allListings }[] = [];
+
+        const phoneGroups = new Map<string, typeof allListings>();
+        for (const listing of allListings) {
+            if (!listing.phone) continue;
+            const normalizedPhone = listing.phone.replace(/[\s\-\(\)]/g, '');
+            if (!phoneGroups.has(normalizedPhone)) {
+                phoneGroups.set(normalizedPhone, []);
+            }
+            phoneGroups.get(normalizedPhone)!.push(listing);
+        }
+        for (const [phone, group] of phoneGroups) {
+            if (group.length > 1) {
+                clusters.push({ reason: `Same phone: ${phone}`, businesses: group });
+            }
+        }
+
+        const addrCatGroups = new Map<string, typeof allListings>();
+        for (const listing of allListings) {
+            if (!listing.address || !listing.categoryId) continue;
+            const key = `${listing.address.toLowerCase().trim()}|${listing.categoryId}`;
+            if (!addrCatGroups.has(key)) {
+                addrCatGroups.set(key, []);
+            }
+            addrCatGroups.get(key)!.push(listing);
+        }
+        for (const [, group] of addrCatGroups) {
+            if (group.length > 1) {
+                clusters.push({ reason: `Same address + category`, businesses: group });
+            }
+        }
+
+        const titleGroups: typeof allListings[] = [];
+        const used = new Set<string>();
+        for (let i = 0; i < allListings.length; i++) {
+            if (used.has(allListings[i].id)) continue;
+            const group = [allListings[i]];
+            const t1 = allListings[i].title.toLowerCase().trim();
+            for (let j = i + 1; j < allListings.length; j++) {
+                if (used.has(allListings[j].id)) continue;
+                const t2 = allListings[j].title.toLowerCase().trim();
+                if (t1 === t2 || (t1.length > 3 && t2.includes(t1)) || (t2.length > 3 && t1.includes(t2))) {
+                    group.push(allListings[j]);
+                    used.add(allListings[j].id);
+                }
+            }
+            if (group.length > 1) {
+                used.add(allListings[i].id);
+                titleGroups.push(group);
+            }
+        }
+        for (const group of titleGroups) {
+            clusters.push({ reason: `Similar business name`, businesses: group });
+        }
+
+        return clusters;
+    }
+
+    async getKeywordAnalytics(vendorId: string) {
+        const listings = await this.listingRepository.find({
+            where: { vendorId, hiddenByDeletion: false },
+            select: ['id', 'searchKeywords', 'totalViews', 'metaKeywords'],
+        });
+
+        const keywordMap = new Map<string, { keyword: string; impressions: number; listings: string[] }>();
+
+        for (const listing of listings) {
+            const kws = listing.searchKeywords?.length
+                ? listing.searchKeywords
+                : listing.metaKeywords
+                    ? listing.metaKeywords.split(',').map(k => k.trim()).filter(Boolean)
+                    : [];
+
+            for (const kw of kws) {
+                const normalized = kw.toLowerCase().trim();
+                if (!normalized) continue;
+                if (!keywordMap.has(normalized)) {
+                    keywordMap.set(normalized, { keyword: normalized, impressions: 0, listings: [] });
+                }
+                const entry = keywordMap.get(normalized)!;
+                entry.impressions += Math.round((listing.totalViews || 0) / Math.max(kws.length, 1));
+                entry.listings.push(listing.id);
+            }
+        }
+
+        return Array.from(keywordMap.values()).sort((a, b) => b.impressions - a.impressions);
     }
 }

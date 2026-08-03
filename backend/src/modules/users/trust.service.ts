@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
 import { Review } from '../../entities/review.entity';
+import { SavedListing } from '../../entities/favorite.entity';
+import { Lead } from '../../entities/lead.entity';
 
 @Injectable()
 export class TrustService {
@@ -11,6 +13,10 @@ export class TrustService {
         private userRepository: Repository<User>,
         @InjectRepository(Review)
         private reviewRepository: Repository<Review>,
+        @InjectRepository(SavedListing)
+        private savedListingRepository: Repository<SavedListing>,
+        @InjectRepository(Lead)
+        private leadRepository: Repository<Lead>,
     ) {}
 
     /**
@@ -45,14 +51,24 @@ export class TrustService {
         // 5. Calculate Penalty Factor (Spam/Suspicious flags)
         const penaltyScore = spamFlagsCount * 25; // Significant penalty for each flag
 
-        // 6. Final Score Calculation
+        // 6. Phone verification bonus
+        const phoneVerifiedBonus = user.isPhoneVerified ? 15 : 0;
+
+        // 7. Real activity bonus
+        const savedListingCount = await this.savedListingRepository.count({ where: { userId } });
+        const savedListingScore = Math.min(savedListingCount * 5, 15);
+
+        const leadCount = await this.leadRepository.count({ where: { userId } });
+        const leadScore = Math.min(leadCount * 3, 10);
+
+        // 8. Final Score Calculation
         // Base score starts at 30 for new users
-        let finalScore = 30 + ageScore + activityScore + communityScore - penaltyScore;
+        let finalScore = 30 + ageScore + activityScore + communityScore + phoneVerifiedBonus + savedListingScore + leadScore - penaltyScore;
         
         // Clamp between 0 and 100
         finalScore = Math.max(0, Math.min(100, finalScore));
 
-        // 7. Update User Record
+        // 9. Update User Record
         user.trustScore = Math.round(finalScore);
         user.reviewCount = reviewCount;
         user.helpfulVotesCount = helpfulVotesCount;

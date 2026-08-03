@@ -788,25 +788,40 @@ export class SubscriptionsService implements OnModuleInit {
         }
 
         // 5b. Apply buyer's referral code (if provided) — gives +10 days to both parties
-        if (referralCode && referralCode.trim()) {
+        const effectiveReferralCode = referralCode?.trim() || null;
+        let appliedReferralCode = effectiveReferralCode;
+
+        if (!appliedReferralCode) {
+            try {
+                const vendorUser = await this.userRepository.findOne({ where: { id: vendor.userId } });
+                if (vendorUser?.pendingReferralCode) {
+                    appliedReferralCode = vendorUser.pendingReferralCode;
+                    this.logger.log(`[Referral] Using pending referral code from user record: ${appliedReferralCode}`);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        if (appliedReferralCode) {
             try {
                 const affiliate = await this.affiliateRepository.findOne({
-                    where: { referralCode: ILike(referralCode.trim()) },
+                    where: { referralCode: ILike(appliedReferralCode) },
                 });
 
                 if (affiliate) {
                     const fraudResult = await this.affiliateService.detectFraud(affiliate.id, vendor.userId);
                     if (fraudResult.isFraud) {
-                        this.logger.warn(`[Fraud] Referral code "${referralCode}" BLOCKED for user ${vendor.userId}: ${fraudResult.reason}. No bonus granted.`);
+                        this.logger.warn(`[Fraud] Referral code "${appliedReferralCode}" BLOCKED for user ${vendor.userId}: ${fraudResult.reason}. No bonus granted.`);
                     } else {
-                        await this.affiliateService.applyReferralCode(vendor.userId, referralCode.trim());
-                        this.logger.log(`🎁 Referral code "${referralCode}" applied for user ${vendor.userId} after successful payment`);
+                        await this.affiliateService.applyReferralCode(vendor.userId, appliedReferralCode);
+                        this.logger.log(`🎁 Referral code "${appliedReferralCode}" applied for user ${vendor.userId} after successful payment`);
                     }
                 } else {
-                    this.logger.warn(`Referral code "${referralCode}" not found, skipping fraud check and referral application`);
+                    this.logger.warn(`Referral code "${appliedReferralCode}" not found, skipping fraud check and referral application`);
                 }
             } catch (err: any) {
-                this.logger.warn(`Referral code "${referralCode}" could not be applied: ${err.message}`);
+                this.logger.warn(`Referral code "${appliedReferralCode}" could not be applied: ${err.message}`);
             }
         }
 
@@ -1408,8 +1423,6 @@ export class SubscriptionsService implements OnModuleInit {
         // For now, we are removing the maxListings capacity limit as per the requirement
 
         return false;
-
-        return false;
     }
 
     /**
@@ -1721,9 +1734,46 @@ export class SubscriptionsService implements OnModuleInit {
                         { vendorId: vendor.id, status: SubscriptionStatus.ACTIVE },
                         { status: SubscriptionStatus.CANCELLED, cancelledAt: new Date() }
                     );
+                    await this.affiliateService.reverseCommission(vendor.id, 'subscription_cancelled');
                     this.logger.log(`✅ Subscription cancelled for vendor: ${vendor.id}`);
                 } else {
                     this.logger.warn(`⚠️ Vendor not found for Stripe Customer ID: ${subscription.customer}`);
+                }
+                break;
+            }
+            case 'charge.refunded': {
+                const charge = event.data.object as any;
+                this.logger.log(`💰 Charge refunded: ${charge.id}`);
+
+                const vendorFromCharge = charge.metadata?.vendorId
+                    ? await this.vendorRepository.findOne({ where: { id: charge.metadata.vendorId } })
+                    : charge.customer
+                        ? await this.vendorRepository.findOne({ where: { stripeCustomerId: charge.customer as string } })
+                        : null;
+
+                if (vendorFromCharge) {
+                    await this.affiliateService.reverseCommission(vendorFromCharge.id, 'charge_refunded');
+                    this.logger.log(`✅ Commission reversed for charge refund: ${charge.id}`);
+                } else {
+                    this.logger.warn(`⚠️ Vendor not found for charge refund: ${charge.id}`);
+                }
+                break;
+            }
+            case 'charge.dispute.created': {
+                const dispute = event.data.object as any;
+                this.logger.log(`⚠️ Charge dispute created: ${dispute.id}`);
+
+                const vendorFromDispute = dispute.metadata?.vendorId
+                    ? await this.vendorRepository.findOne({ where: { id: dispute.metadata.vendorId } })
+                    : dispute.customer
+                        ? await this.vendorRepository.findOne({ where: { stripeCustomerId: dispute.customer as string } })
+                        : null;
+
+                if (vendorFromDispute) {
+                    await this.affiliateService.reverseCommission(vendorFromDispute.id, 'chargeback');
+                    this.logger.log(`✅ Commission reversed for chargeback: ${dispute.id}`);
+                } else {
+                    this.logger.warn(`⚠️ Vendor not found for charge dispute: ${dispute.id}`);
                 }
                 break;
             }

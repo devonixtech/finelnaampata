@@ -325,4 +325,20 @@ export class BusinessesController {
         return this.businessesService.setRankingBoost(id, boost);
     }
 
+    @Get('vendor/keyword-analytics')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get per-keyword analytics for current vendor' })
+    getKeywordAnalytics(@CurrentUser() user: User) {
+        return (this.businessesService as any).getKeywordAnalytics(user.id);
+    }
+
+    @Get('admin/duplicates')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Find potential duplicate businesses' })
+    findDuplicateBusinesses() {
+        return (this.businessesService as any).findDuplicateBusinesses();
+    }
+
 }

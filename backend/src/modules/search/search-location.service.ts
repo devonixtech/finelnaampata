@@ -160,7 +160,7 @@ export class SearchLocationService {
 
         this.logger.debug(`Cache MISS for key: ${cacheKey}. Executing Hybrid Search.`);
 
-        const { query, city, categorySlug, minRating, verifiedOnly, latitude, longitude, radius } = dto;
+        const { query, city, categorySlug, minRating, verifiedOnly, latitude, longitude, radius, openNow, fastResponse, onlineNow, experience, mostContacted } = dto;
         const normalizedQuery = (query || '').trim().toLowerCase();
 
         // 2. Query Elasticsearch (Semantic, Text, Filters)
@@ -247,6 +247,35 @@ export class SearchLocationService {
                 qb.andWhere('b.isVerified = :verifiedOnly', { verifiedOnly: true });
             }
 
+            if (openNow) {
+                qb.innerJoin('b.businessHours', 'bh', 'bh.dayOfWeek = :currentDay AND bh.isOpen = true', {
+                    currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
+                });
+                qb.andWhere(':currentTime BETWEEN bh.openTime AND bh.closeTime', {
+                    currentTime: new Date().toTimeString().split(' ')[0],
+                });
+            }
+
+            if (fastResponse) {
+                qb.andWhere('b.avgResponseTimeMinutes IS NOT NULL AND b.avgResponseTimeMinutes < 30');
+            }
+
+            if (onlineNow) {
+                qb.innerJoin('b.vendor', 'vendor');
+                qb.innerJoin('vendor.user', 'vendorUser', 'vendorUser.is_online = :isOnline', { isOnline: true });
+            }
+
+            if (experience) {
+                const currentYear = new Date().getFullYear();
+                if (experience === 'experienced') {
+                    qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
+                }
+            }
+
+            if (mostContacted) {
+                qb.orderBy('b.totalLeads', 'DESC');
+            }
+
             if (query) {
                 const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 0);
                 for (const term of searchTerms) {
@@ -300,7 +329,34 @@ export class SearchLocationService {
                 .where('b.id IN (:...ids)', { ids: esIds })
                 .andWhere('b.hiddenByDeletion = false');
 
-            if (latitude && longitude) {
+            if (openNow) {
+                qb.innerJoin('b.businessHours', 'bh', 'bh.dayOfWeek = :currentDay AND bh.isOpen = true', {
+                    currentDay: new Date().toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
+                });
+                qb.andWhere(':currentTime BETWEEN bh.openTime AND bh.closeTime', {
+                    currentTime: new Date().toTimeString().split(' ')[0],
+                });
+            }
+
+            if (fastResponse) {
+                qb.andWhere('b.avgResponseTimeMinutes IS NOT NULL AND b.avgResponseTimeMinutes < 30');
+            }
+
+            if (onlineNow) {
+                qb.innerJoin('b.vendor', 'vendor');
+                qb.innerJoin('vendor.user', 'vendorUser', 'vendorUser.is_online = :isOnline', { isOnline: true });
+            }
+
+            if (experience) {
+                const currentYear = new Date().getFullYear();
+                if (experience === 'experienced') {
+                    qb.andWhere('b.yearEstablished IS NOT NULL AND :currentYear - b.yearEstablished >= 5', { currentYear });
+                }
+            }
+
+            if (mostContacted) {
+                qb.orderBy('b.totalLeads', 'DESC');
+            } else if (latitude && longitude) {
                 const formula = `earth_distance(ll_to_earth(b.latitude, b.longitude), ll_to_earth(:lat, :lng))`;
                 qb.addSelect(`${formula} / 1000`, 'distance');
                 qb.setParameters({ lat: latitude, lng: longitude });
@@ -349,6 +405,13 @@ export class SearchLocationService {
             followersCount: b.followersCount,
             createdAt: b.createdAt,
             distance: (b as any).distance ?? null,
+            reviewCount: b.totalReviews || 0,
+            profileViews: b.totalViews || 0,
+            contacts: b.totalLeads || 0,
+            clickCount: b.clickCount || 0,
+            manualRankingBoost: b.manualRankingBoost || 0,
+            subscriptionTier: b.subscriptionTier || 0,
+            isSponsored: b.isSponsored || false,
         }));
 
         // 4. Cache the results for 15 minutes

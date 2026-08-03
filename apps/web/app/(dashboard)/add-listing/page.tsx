@@ -553,9 +553,9 @@ function AddListingContent() {
         try {
             const duplicateResult = await Promise.resolve({ showPrompt: false }).catch(() => null);
 
-            if (duplicateResult?.showPrompt) {
+            if ((duplicateResult as any)?.showPrompt) {
                 const proceed = window.confirm(
-                    `Potential duplicate detected (${duplicateResult.signals.join(', ')}). Do you want to submit this listing anyway?`,
+                    `Potential duplicate detected (${(duplicateResult as any)?.signals?.join(', ') || 'similar listing'}). Do you want to submit this listing anyway?`,
                 );
                 if (!proceed) {
                     setLoading(false);

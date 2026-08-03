@@ -84,6 +84,18 @@ export class Affiliate {
     @Column({ name: 'kyc_reviewed_by', nullable: true })
     kycReviewedBy: string;
 
+    @Column({ nullable: true })
+    address: string;
+
+    @Column({ name: 'nic_number', nullable: true })
+    nicNumber: string;
+
+    @Column({ name: 'ip_address', nullable: true })
+    ipAddress: string;
+
+    @Column({ name: 'user_agent', type: 'text', nullable: true })
+    userAgent: string;
+
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 

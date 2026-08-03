@@ -75,6 +75,7 @@ const menuSections: MenuSection[] = [
         items: [
             { name: 'Demand Insights', icon: Activity, href: '/admin/demand', badge: null },
             { name: 'Search Analytics', icon: Activity, href: '/admin/analytics', badge: null },
+            { name: 'Vendor Analytics', icon: Users, href: '/admin/analytics/vendors', badge: null },
             { name: 'Revenue Tracking', icon: DollarSign, href: '/admin/analytics/revenue', badge: null },
             { name: 'Live Activity', icon: Activity, href: '/admin/analytics/activity', badge: 'Live' },
         ]
@@ -82,6 +83,7 @@ const menuSections: MenuSection[] = [
     {
         title: "SYSTEM",
         items: [
+            { name: 'Geo Correction', icon: MapPin, href: '/admin/geo', badge: null },
             { name: 'Settings', icon: Settings, href: '/admin/settings', badge: null },
         ]
     }

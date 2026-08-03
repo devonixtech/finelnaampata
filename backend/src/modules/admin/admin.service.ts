@@ -826,6 +826,232 @@ export class AdminService {
         return updated;
     }
 
+    async findDuplicateBusinesses() {
+        const allListings = await this.businessRepository.find({
+            where: { hiddenByDeletion: false },
+            select: ['id', 'title', 'phone', 'address', 'city', 'categoryId', 'vendorId', 'createdAt', 'totalViews', 'status'],
+            order: { createdAt: 'DESC' },
+        });
+
+        const clusters: { reason: string; businesses: typeof allListings }[] = [];
+
+        const phoneGroups = new Map<string, typeof allListings>();
+        for (const listing of allListings) {
+            if (!listing.phone) continue;
+            const normalizedPhone = listing.phone.replace(/[\s\-\(\)]/g, '');
+            if (!phoneGroups.has(normalizedPhone)) {
+                phoneGroups.set(normalizedPhone, []);
+            }
+            phoneGroups.get(normalizedPhone)!.push(listing);
+        }
+        for (const [phone, group] of phoneGroups) {
+            if (group.length > 1) {
+                clusters.push({ reason: `Same phone: ${phone}`, businesses: group });
+            }
+        }
+
+        const addrCatGroups = new Map<string, typeof allListings>();
+        for (const listing of allListings) {
+            if (!listing.address || !listing.categoryId) continue;
+            const key = `${listing.address.toLowerCase().trim()}|${listing.categoryId}`;
+            if (!addrCatGroups.has(key)) {
+                addrCatGroups.set(key, []);
+            }
+            addrCatGroups.get(key)!.push(listing);
+        }
+        for (const [, group] of addrCatGroups) {
+            if (group.length > 1) {
+                clusters.push({ reason: `Same address + category`, businesses: group });
+            }
+        }
+
+        const titleGroups: typeof allListings[] = [];
+        const used = new Set<string>();
+        for (let i = 0; i < allListings.length; i++) {
+            if (used.has(allListings[i].id)) continue;
+            const group = [allListings[i]];
+            const t1 = allListings[i].title.toLowerCase().trim();
+            for (let j = i + 1; j < allListings.length; j++) {
+                if (used.has(allListings[j].id)) continue;
+                const t2 = allListings[j].title.toLowerCase().trim();
+                if (t1 === t2 || (t1.length > 3 && t2.includes(t1)) || (t2.length > 3 && t1.includes(t2))) {
+                    group.push(allListings[j]);
+                    used.add(allListings[j].id);
+                }
+            }
+            if (group.length > 1) {
+                used.add(allListings[i].id);
+                titleGroups.push(group);
+            }
+        }
+        for (const group of titleGroups) {
+            clusters.push({ reason: `Similar business name`, businesses: group });
+        }
+
+        return clusters;
+    }
+
+    async getVendorAnalytics() {
+        const vendors = await this.vendorRepository.find({
+            relations: ['user', 'businesses', 'businesses.category'],
+            order: { createdAt: 'DESC' },
+        });
+
+        const results = [];
+        for (const vendor of vendors) {
+            const listings = vendor.businesses || [];
+            const totalViews = listings.reduce((sum, l) => sum + (l.totalViews || 0), 0);
+            const totalLeads = listings.reduce((sum, l) => sum + (l.totalLeads || 0), 0);
+            const avgResponseTime = listings.reduce((sum, l) => sum + (l as any).avgResponseTimeMinutes || 0, 0) / Math.max(listings.length, 1);
+
+            const activeSubscription = await this.subscriptionRepository.findOne({
+                where: { vendorId: vendor.id, status: SubscriptionStatus.ACTIVE },
+                relations: ['plan'],
+            });
+
+            results.push({
+                vendorId: vendor.id,
+                vendorName: vendor.businessName || vendor.user?.fullName || 'Unknown',
+                businessName: vendor.businessName,
+                businessCount: listings.length,
+                totalViews,
+                totalLeads,
+                conversionRate: totalViews > 0 ? ((totalLeads / totalViews) * 100).toFixed(1) : '0',
+                avgResponseTime: Math.round(avgResponseTime),
+                subscriptionStatus: activeSubscription?.status || 'none',
+                subscriptionPlan: activeSubscription?.plan?.name || 'Free',
+            });
+        }
+
+        return results;
+    }
+
+    async getRevenueMetrics() {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const activeLegacySubscriptions = await this.subscriptionRepository.find({
+            where: { status: SubscriptionStatus.ACTIVE },
+            relations: ['plan'],
+        });
+
+        const activeModernSubscriptions = await this.activePlanRepository
+            .createQueryBuilder('activePlan')
+            .innerJoinAndSelect('activePlan.plan', 'plan')
+            .where('activePlan.status = :status', { status: ActivePlanStatus.ACTIVE })
+            .getMany();
+
+        const allActiveSubs = [...activeLegacySubscriptions, ...activeModernSubscriptions];
+
+        const mrr = allActiveSubs.reduce((sum, sub) => {
+            const amount = Number((sub as any).amount || 0) || Number((sub as any).amountPaid || 0) || 0;
+            return sum + amount;
+        }, 0);
+
+        const mrrFromPayments = await this.transactionRepository
+            .createQueryBuilder('transaction')
+            .select('SUM(transaction.amount)', 'total')
+            .where('transaction.status = :status', { status: 'completed' })
+            .andWhere('transaction.created_at >= :startOfMonth', { startOfMonth })
+            .getRawOne();
+
+        const effectiveMrr = Math.max(mrr, parseFloat(mrrFromPayments?.total || '0'));
+        const arr = effectiveMrr * 12;
+
+        const totalSubs = await this.subscriptionRepository.count();
+        const cancelledSubs = await this.subscriptionRepository.count({
+            where: { status: SubscriptionStatus.CANCELLED as any },
+        });
+        const churnRate = totalSubs > 0 ? ((cancelledSubs / totalSubs) * 100).toFixed(1) : '0';
+
+        const vendorRevenueMap = new Map<string, { vendorId: string; amount: number }>();
+        for (const sub of allActiveSubs) {
+            const vid = sub.vendorId;
+            const amount = Number((sub as any).amount || 0) || Number((sub as any).amountPaid || 0) || 0;
+            const existing = vendorRevenueMap.get(vid) || { vendorId: vid, amount: 0 };
+            existing.amount += amount;
+            vendorRevenueMap.set(vid, existing);
+        }
+
+        const vendorRevenue = Array.from(vendorRevenueMap.values())
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 20);
+
+        const avgLtv = allActiveSubs.length > 0
+            ? (effectiveMrr / Math.max(allActiveSubs.length, 1) * 12).toFixed(2)
+            : '0';
+
+        return {
+            mrr: effectiveMrr,
+            arr,
+            churnRate,
+            avgLtv: Number(avgLtv),
+            vendorRevenue,
+            activeSubscriptions: allActiveSubs.length,
+            totalSubscriptions: totalSubs,
+        };
+    }
+
+    async getPendingGeocodeBusinesses() {
+        return this.businessRepository.find({
+            where: { status: BusinessStatus.PENDING_GEOCODE as any, hiddenByDeletion: false },
+            relations: ['category', 'vendor', 'vendor.user'],
+            order: { createdAt: 'DESC' },
+            take: 100,
+        });
+    }
+
+    async updateBusinessCoordinates(id: string, latitude: number, longitude: number) {
+        const business = await this.businessRepository.findOne({ where: { id } });
+        if (!business) throw new NotFoundException('Business not found');
+
+        business.latitude = String(latitude);
+        business.longitude = String(longitude);
+        business.status = BusinessStatus.APPROVED;
+        business.approvedAt = business.approvedAt || new Date();
+
+        const updated = await this.businessRepository.save(business);
+        this.searchService.indexBusiness(updated).catch(() => {});
+        await this.invalidateBusinessSearchCache(updated);
+        return updated;
+    }
+
+    async getSuspiciousUsers() {
+        const usersWithMultipleAccounts = await this.userRepository
+            .createQueryBuilder('user')
+            .select('user.id', 'userId')
+            .addSelect('user.fullName', 'fullName')
+            .addSelect('user.email', 'email')
+            .addSelect('user.createdAt', 'createdAt')
+            .addSelect('COUNT(user.id)', 'accountCount')
+            .groupBy('user.id')
+            .addGroupBy('user.fullName')
+            .addGroupBy('user.email')
+            .addGroupBy('user.createdAt')
+            .having('COUNT(user.id) > :threshold', { threshold: 5 })
+            .limit(50)
+            .getRawMany();
+
+        const rapidSignups = await this.userRepository
+            .createQueryBuilder('user')
+            .select('user.id', 'userId')
+            .addSelect('user.fullName', 'fullName')
+            .addSelect('user.email', 'email')
+            .addSelect('user.createdAt', 'createdAt')
+            .where('user.created_at >= :recentDate', {
+                recentDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            })
+            .orderBy('user.created_at', 'ASC')
+            .limit(50)
+            .getRawMany();
+
+        return {
+            multipleAccounts: usersWithMultipleAccounts,
+            rapidSignups: rapidSignups.slice(0, 20),
+        };
+    }
+
     /**
      * Schedule a user for deletion in 30 days
      */

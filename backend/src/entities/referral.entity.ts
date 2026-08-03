@@ -19,6 +19,9 @@ export enum ReferralStatus {
     PENDING = 'pending',
     CONVERTED = 'converted',
     EXPIRED = 'expired',
+    REVERSED = 'reversed',
+    CANCELLED = 'cancelled',
+    PENDING_DEFERRED = 'pending_deferred',
 }
 
 @Entity('affiliate_referrals')
@@ -50,6 +53,12 @@ export class AffiliateReferral {
 
     @Column({ name: 'commission_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
     commissionAmount: number;
+
+    @Column({ name: 'ip_address', nullable: true })
+    ipAddress: string;
+
+    @Column({ name: 'user_agent', type: 'text', nullable: true })
+    userAgent: string;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

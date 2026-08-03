@@ -38,6 +38,8 @@ interface Affiliate {
     isSuspended: boolean;
     kycStatus: 'none' | 'pending' | 'approved' | 'rejected';
     adminApproved: boolean;
+    address?: string;
+    nicNumber?: string;
     createdAt: string;
     user: {
         id: string;
@@ -178,6 +180,23 @@ export default function AffiliatesAdminPage() {
         }
     };
 
+    const handleExportPayouts = async () => {
+        try {
+            const data = await api.admin.affiliate.exportPayoutReports('csv');
+            const blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)], {
+                type: 'text/csv'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payout-reports.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Export payouts failed:', err);
+        }
+    };
+
     const filtered = affiliates.filter(a => {
         const matchesSearch = !search ||
             a.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -230,6 +249,12 @@ export default function AffiliatesAdminPage() {
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
                     >
                         <Download className="w-4 h-4" /> Export CSV
+                    </button>
+                    <button
+                        onClick={handleExportPayouts}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
+                    >
+                        <Download className="w-4 h-4" /> Export Payouts
                     </button>
                     <button
                         onClick={fetchAffiliates}
@@ -316,6 +341,8 @@ export default function AffiliatesAdminPage() {
                             <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
                                 <th className="px-6 py-4">Affiliate</th>
                                 <th className="px-6 py-4">Referral Code</th>
+                                <th className="px-6 py-4">Address</th>
+                                <th className="px-6 py-4">NIC</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">KYC</th>
                                 <th className="px-6 py-4 text-right">Earnings</th>
@@ -328,12 +355,12 @@ export default function AffiliatesAdminPage() {
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={8} className="px-6 py-6 h-16 bg-slate-50/20" />
+                                        <td colSpan={10} className="px-6 py-6 h-16 bg-slate-50/20" />
                                     </tr>
                                 ))
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                    <td colSpan={10} className="px-6 py-16 text-center">
                                         <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                                             <Users className="w-7 h-7 text-slate-200" />
                                         </div>
@@ -363,6 +390,12 @@ export default function AffiliatesAdminPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <code className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-slate-700">{affiliate.referralCode}</code>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs text-slate-600">{affiliate.address || '—'}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs text-slate-600">{affiliate.nicNumber || '—'}</span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border ${status.color}`}>

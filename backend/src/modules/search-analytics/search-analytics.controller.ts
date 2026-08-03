@@ -57,4 +57,9 @@ export class SearchAnalyticsController {
     ) {
         return this.searchAnalyticsService.getTrends(startDate, endDate, city);
     }
+
+    @Get('underserved-categories')
+    getUnderservedCategories() {
+        return this.searchAnalyticsService.getUnderservedCategories();
+    }
 }

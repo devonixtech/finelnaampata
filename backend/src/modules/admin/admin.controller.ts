@@ -132,6 +132,13 @@ export class AdminController {
         return this.adminService.cancelUserDeletion(id);
     }
 
+    @Get('businesses/duplicates')
+    @ApiOperation({ summary: 'Find potential duplicate businesses' })
+    @ApiResponse({ status: 200, description: 'Duplicate clusters returned' })
+    findDuplicateBusinesses() {
+        return this.adminService.findDuplicateBusinesses();
+    }
+
     @Get('businesses')
     @ApiOperation({ summary: 'Get all businesses with filters' })
     @ApiResponse({ status: 200, description: 'Business list retrieved' })
@@ -234,6 +241,50 @@ export class AdminController {
     @ApiResponse({ status: 200, description: 'Settings updated' })
     updateSettings(@Body() settings: Record<string, string>) {
         return this.adminService.updateSettings(settings);
+    }
+
+    @Get('vendor-analytics')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get per-vendor analytics overview' })
+    @ApiResponse({ status: 200, description: 'Vendor analytics retrieved' })
+    getVendorAnalytics() {
+        return this.adminService.getVendorAnalytics();
+    }
+
+    @Get('revenue-metrics')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get revenue metrics: MRR, ARR, churn, LTV' })
+    @ApiResponse({ status: 200, description: 'Revenue metrics retrieved' })
+    getRevenueMetrics() {
+        return this.adminService.getRevenueMetrics();
+    }
+
+    @Get('businesses/geocode-queue')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get businesses pending geocode correction' })
+    @ApiResponse({ status: 200, description: 'Pending geocode businesses retrieved' })
+    getPendingGeocodeBusinesses() {
+        return this.adminService.getPendingGeocodeBusinesses();
+    }
+
+    @Patch('business/:id/coordinates')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Update business coordinates' })
+    @ApiResponse({ status: 200, description: 'Coordinates updated' })
+    updateBusinessCoordinates(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('latitude') latitude: number,
+        @Body('longitude') longitude: number,
+    ) {
+        return this.adminService.updateBusinessCoordinates(id, latitude, longitude);
+    }
+
+    @Get('suspicious-users')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get users with suspicious activity patterns' })
+    @ApiResponse({ status: 200, description: 'Suspicious users retrieved' })
+    getSuspiciousUsers() {
+        return this.adminService.getSuspiciousUsers();
     }
 
 }

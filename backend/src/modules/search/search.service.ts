@@ -232,6 +232,10 @@ export class SearchService implements OnModuleInit {
                             isSponsored: { type: 'boolean' },
                             manualRankingBoost: { type: 'integer' },
                             subscriptionTier: { type: 'integer' },
+                            savedCount: { type: 'integer' },
+                            avgResponseTimeMinutes: { type: 'integer' },
+                            openNow: { type: 'boolean' },
+                            isOnline: { type: 'boolean' },
                         },
                     },
                 },
@@ -302,6 +306,10 @@ export class SearchService implements OnModuleInit {
                 isSponsored: business.isSponsored || false,
                 manualRankingBoost: business.manualRankingBoost || 0,
                 subscriptionTier: business.subscriptionTier || 0,
+                savedCount: business.savedCount || 0,
+                avgResponseTimeMinutes: business.avgResponseTimeMinutes ?? null,
+                openNow: false,
+                isOnline: false,
             },
         });
     }
@@ -551,6 +559,21 @@ export class SearchService implements OnModuleInit {
                 filter: { term: { is_verified: true } },
                 weight: 1.5
             },
+            // Boost Featured
+            {
+                filter: { term: { isFeatured: true } },
+                weight: 1.8
+            },
+            // Boost Open Now
+            {
+                filter: { term: { openNow: true } },
+                weight: 1.3
+            },
+            // Boost Online Now
+            {
+                filter: { term: { isOnline: true } },
+                weight: 1.2
+            },
             // Rating Score
             {
                 field_value_factor: {
@@ -603,6 +626,25 @@ export class SearchService implements OnModuleInit {
                     modifier: 'log1p',
                     missing: 0
                 }
+            },
+            // Saved Count
+            {
+                field_value_factor: {
+                    field: 'savedCount',
+                    factor: 0.08,
+                    modifier: 'log1p',
+                    missing: 0
+                }
+            },
+            // Response Speed (inverted — lower is better)
+            {
+                script_score: {
+                    script: {
+                        source: "_score * (1 / (1 + doc['avgResponseTimeMinutes'].value))",
+                        lang: 'painless'
+                    }
+                },
+                filter: { exists: { field: 'avgResponseTimeMinutes' } }
             },
             // Sponsored Boost
             {

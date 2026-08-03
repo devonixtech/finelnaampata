@@ -251,6 +251,7 @@ export const api = {
         },
         getSuggestions: (q: string) => fetcher<string[]>(`/businesses/search/suggestions?q=${encodeURIComponent(q)}`),
         getDetailedMetrics: (businessId: string) => fetcher<any>(`/businesses/${businessId}/detailed-metrics`, { silent: true }),
+        getById: (id: string) => fetcher<any>(`/businesses/${id}`, { silent: true }),
         getBySlug: (slug: string, options?: FetcherOptions) => fetcher<Business>(`/businesses/slug/${slug}`, options),
         getFeatured: (page = 1, limit = 12, options?: FetcherOptions) => fetcher<SearchResponse>(`/businesses/search?featuredOnly=true&page=${page}&limit=${limit}`, options),
         uploadImage: async (file: File) => {
@@ -304,6 +305,7 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+        getKeywordAnalytics: () => fetcher<any[]>('/businesses/vendor/keyword-analytics'),
     },
     cities: {
         getPopular: (options?: FetcherOptions) => fetcher<City[]>('/cities/popular', options),
@@ -740,6 +742,7 @@ export const api = {
                 body: JSON.stringify({ status }),
             }),
             exportAffiliates: (format: 'csv' | 'json') => fetcher<any>(`/affiliate/admin/export?format=${format}`),
+            exportPayoutReports: (format: 'csv' | 'json') => fetcher<any>(`/affiliate/admin/export/payouts?format=${format}`),
             setRankingBoost: (businessId: string, boost: number) => fetcher<any>(`/businesses/${businessId}/admin/ranking-boost`, {
                 method: 'PATCH',
                 body: JSON.stringify({ boost }),
@@ -772,6 +775,15 @@ export const api = {
                 return fetcher<any[]>(`/admin/search-analytics/trends?${query}`);
             },
         },
+        getVendorAnalytics: () => fetcher<any[]>('/admin/vendor-analytics'),
+        getRevenueMetrics: () => fetcher<any>('/admin/revenue-metrics'),
+        getPendingGeocodeBusinesses: () => fetcher<any[]>('/admin/businesses/geocode-queue'),
+        updateBusinessCoordinates: (id: string, latitude: number, longitude: number) => fetcher<any>(`/admin/business/${id}/coordinates`, {
+            method: 'PATCH',
+            body: JSON.stringify({ latitude, longitude }),
+        }),
+        getSuspiciousUsers: () => fetcher<any>('/admin/suspicious-users'),
+        findDuplicateBusinesses: () => fetcher<any[]>('/admin/businesses/duplicates'),
     },
 
     notifications: {

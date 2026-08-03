@@ -56,13 +56,16 @@ export class Review {
     isSuspicious: boolean;
 
     @Column({ name: 'suspicion_score', type: 'float', default: 0 })
+    @Exclude()
     suspicionScore: number;
 
     @Column({ name: 'suspicion_reason', nullable: true, type: 'text' })
+    @Exclude()
     suspicionReason: string;
 
     @Column({ name: 'ip_address', nullable: true })
     @Index()
+    @Exclude()
     ipAddress: string;
 
     @Column({ name: 'vendor_response', nullable: true, type: 'text' })

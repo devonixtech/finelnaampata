@@ -20,6 +20,7 @@ import { PricingPlan, PricingPlanType, PricingPlanUnit } from '../../entities/pr
 import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
 import { Vendor } from '../../entities/vendor.entity';
 import { Listing, BusinessStatus } from '../../entities/business.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { generateReferralCode } from '../../common/utils/referral-code';
 
 
@@ -84,6 +85,30 @@ export class AffiliateService implements OnModuleInit {
                         WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'expired'
                     ) THEN
                         ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'expired';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'reversed'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'reversed';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'cancelled'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'cancelled';
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'pending_deferred'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'pending_deferred';
                     END IF;
                 END IF;
 
@@ -307,7 +332,7 @@ export class AffiliateService implements OnModuleInit {
         return { success: true, message: 'Referral code applied successfully' };
     }
 
-    async trackClick(userId: string, code: string) {
+    async trackClick(userId: string, code: string, ipAddress?: string, userAgent?: string) {
         const normalizedCode = this.normalizeReferralCode(code);
         const user = await this.userRepository.findOne({ where: { id: userId } });
         if (!user) {
@@ -325,6 +350,16 @@ export class AffiliateService implements OnModuleInit {
 
         if (affiliate.user.id === userId) {
             throw new BadRequestException('You cannot refer yourself');
+        }
+
+        if (ipAddress && !affiliate.ipAddress) {
+            affiliate.ipAddress = ipAddress;
+        }
+        if (userAgent && !affiliate.userAgent) {
+            affiliate.userAgent = userAgent;
+        }
+        if (ipAddress || userAgent) {
+            await this.affiliateRepository.save(affiliate);
         }
 
         const existing = await this.referralRepository.findOne({
@@ -728,30 +763,6 @@ export class AffiliateService implements OnModuleInit {
         };
     }
 
-    // --- Enhanced Admin Stats ---
-
-    async adminGetAllStats() {
-        const totalAffiliates = await this.affiliateRepository.count();
-        const activeAffiliates = await this.affiliateRepository.count({ where: { status: 'active' } });
-        const pendingApprovals = await this.affiliateRepository.count({ where: { adminApproved: false } });
-        const totalEarnings = await this.affiliateRepository.sum('totalEarnings') || 0;
-        const totalPaidOut = await this.payoutRepository.sum('amount', { status: PayoutStatus.PAID }) || 0;
-        const totalCommissionOwed = await this.payoutRepository.sum('amount', { status: PayoutStatus.PENDING }) || 0;
-        const pendingPayouts = await this.payoutRepository.count({ where: { status: PayoutStatus.PENDING } });
-        const totalClicks = await this.referralRepository.count();
-
-        return {
-            totalAffiliates,
-            activeAffiliates,
-            pendingApprovals,
-            totalEarnings,
-            totalPaidOut,
-            totalCommissionOwed,
-            pendingPayouts,
-            totalClicks,
-        };
-    }
-
     // --- Export ---
 
     async exportAffiliates(format: 'csv' | 'json' = 'csv') {
@@ -831,7 +842,9 @@ export class AffiliateService implements OnModuleInit {
                 { referredUserId, status: ReferralStatus.PENDING, type: ReferralType.SIGNUP },
                 { referredUserId, status: ReferralStatus.PENDING, type: ReferralType.SUBSCRIPTION },
                 { referredUserId, status: ReferralStatus.CONVERTED, type: ReferralType.SIGNUP },
-                { referredUserId, status: ReferralStatus.CONVERTED, type: ReferralType.SUBSCRIPTION }
+                { referredUserId, status: ReferralStatus.CONVERTED, type: ReferralType.SUBSCRIPTION },
+                { referredUserId, status: ReferralStatus.PENDING_DEFERRED, type: ReferralType.SIGNUP },
+                { referredUserId, status: ReferralStatus.PENDING_DEFERRED, type: ReferralType.SUBSCRIPTION },
             ],
             relations: ['affiliate', 'affiliate.user']
         });
@@ -1202,11 +1215,38 @@ export class AffiliateService implements OnModuleInit {
         }
 
         // --- 3. Finalize Referral Status & Calculate Commission ---
-        referral.status = ReferralStatus.CONVERTED;
-        await this.referralRepository.save(referral);
-
         if (Number(paidAmount) > 0) {
             try {
+                // Issue 12: 30-day account age check
+                const referredUser = await this.userRepository.findOne({ where: { id: referredUserId } });
+                if (referredUser) {
+                    const accountAge = Date.now() - new Date(referredUser.createdAt).getTime();
+                    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+                    if (accountAge < thirtyDaysMs) {
+                        referral.status = ReferralStatus.PENDING_DEFERRED;
+                        await this.referralRepository.save(referral);
+                        this.logger.log(`[Referral] Commission deferred for user ${referredUserId} - account is less than 30 days old`);
+                        return { success: true, message: 'Referral activated, commission deferred (account < 30 days)' };
+                    }
+                }
+
+                referral.status = ReferralStatus.CONVERTED;
+                await this.referralRepository.save(referral);
+
+                // Issue 8: First-only commission check
+                const existingConverted = await this.referralRepository
+                    .createQueryBuilder('ref')
+                    .where('ref.referred_user_id = :referredUserId', { referredUserId })
+                    .andWhere('ref.status = :status', { status: ReferralStatus.CONVERTED })
+                    .andWhere('ref.id != :currentId', { currentId: referral.id })
+                    .andWhere('ref.commission_amount > 0')
+                    .orderBy('ref.created_at', 'ASC')
+                    .getOne();
+                if (existingConverted) {
+                    this.logger.log(`[Referral] Commission skipped for user ${referredUserId} - already granted on a previous conversion`);
+                    return { success: true, message: 'Commission already granted on previous conversion' };
+                }
+
                 const settings = await this.getSettings();
                 const rate = parseFloat(settings.commissionRate) || 10;
                 const commType = settings.commissionType || 'percent';
@@ -1226,11 +1266,16 @@ export class AffiliateService implements OnModuleInit {
                     holdEnd.setDate(holdEnd.getDate() + holdDays);
                     affiliateObj.holdUntil = holdEnd;
                     await this.affiliateRepository.save(affiliateObj);
+                    referral.commissionAmount = commission;
+                    await this.referralRepository.save(referral);
                     this.logger.log(`[Referral] Commission of PKR ${commission} placed on ${holdDays}-day hold for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
                 }
             } catch (commErr) {
                 this.logger.error(`[Referral] Failed to calculate commission for referral ${referral.id}: ${commErr.message}`);
             }
+        } else {
+            referral.status = ReferralStatus.CONVERTED;
+            await this.referralRepository.save(referral);
         }
 
         this.logger.log(`✅ Referral ${referral.id} for user ${referredUserId} successfully converted. Extension granted: ${extensionGranted}`);
@@ -1241,6 +1286,174 @@ export class AffiliateService implements OnModuleInit {
                 ? 'Referral activated and both accounts upgraded/extended' 
                 : 'Referral activated for referred user only',
             extensionGranted
+        };
+    }
+
+    async reverseCommission(vendorId: string, reason: string): Promise<void> {
+        try {
+            const vendor = await this.vendorRepo.findOne({ where: { id: vendorId } });
+            if (!vendor) return;
+
+            const referral = await this.referralRepository.findOne({
+                where: { referredUserId: vendor.userId, status: ReferralStatus.CONVERTED },
+                relations: ['affiliate'],
+                order: { createdAt: 'DESC' },
+            });
+
+            if (!referral) return;
+
+            const affiliate = referral.affiliate;
+            if (!affiliate) return;
+
+            const commission = Number(referral.commissionAmount);
+            if (commission <= 0) return;
+
+            affiliate.balanceHeld = Math.max(0, Number(affiliate.balanceHeld) - commission);
+            affiliate.balance = Math.max(0, Number(affiliate.balance) - commission);
+            affiliate.totalEarnings = Math.max(0, Number(affiliate.totalEarnings) - commission);
+            await this.affiliateRepository.save(affiliate);
+
+            referral.status = ReferralStatus.REVERSED;
+            referral.commissionAmount = 0;
+            await this.referralRepository.save(referral);
+
+            this.logger.log(`[Referral] Commission of ${commission} reversed for affiliate ${affiliate.id} (reason: ${reason})`);
+        } catch (err) {
+            this.logger.error(`[Referral] Failed to reverse commission for vendor ${vendorId}: ${err.message}`);
+        }
+    }
+
+    async adminCancelCommission(referralId: string, adminId: string, reason: string) {
+        const referral = await this.referralRepository.findOne({
+            where: { id: referralId },
+            relations: ['affiliate'],
+        });
+
+        if (!referral) throw new NotFoundException('Referral not found');
+
+        if (referral.status === ReferralStatus.CANCELLED || referral.status === ReferralStatus.REVERSED) {
+            throw new BadRequestException('Commission already cancelled or reversed');
+        }
+
+        const affiliate = referral.affiliate;
+        if (affiliate && Number(referral.commissionAmount) > 0) {
+            affiliate.balanceHeld = Math.max(0, Number(affiliate.balanceHeld) - Number(referral.commissionAmount));
+            affiliate.balance = Math.max(0, Number(affiliate.balance) - Number(referral.commissionAmount));
+            affiliate.totalEarnings = Math.max(0, Number(affiliate.totalEarnings) - Number(referral.commissionAmount));
+            await this.affiliateRepository.save(affiliate);
+        }
+
+        referral.status = ReferralStatus.CANCELLED;
+        referral.commissionAmount = 0;
+        await this.referralRepository.save(referral);
+
+        this.logger.log(`[Referral] Commission cancelled by admin ${adminId} for referral ${referralId} (reason: ${reason})`);
+
+        return { success: true, message: 'Commission cancelled' };
+    }
+
+    async exportPayoutReports(format: 'csv' | 'json' = 'csv') {
+        const payouts = await this.payoutRepository.find({
+            relations: ['affiliate', 'affiliate.user'],
+            order: { createdAt: 'DESC' },
+        });
+
+        if (format === 'json') {
+            return payouts.map(p => ({
+                affiliateName: p.affiliate?.user?.fullName || 'Unknown',
+                affiliateEmail: p.affiliate?.user?.email || '',
+                amount: p.amount,
+                status: p.status,
+                paymentMethod: p.paymentMethod,
+                paymentReference: p.paymentReference,
+                processedAt: p.processedAt,
+                createdAt: p.createdAt,
+            }));
+        }
+
+        const headers = ['Affiliate Name', 'Email', 'Amount', 'Status', 'Payment Method', 'Payment Reference', 'Processed At', 'Created At'];
+        const rows = payouts.map(p => [
+            p.affiliate?.user?.fullName || 'Unknown',
+            p.affiliate?.user?.email || '',
+            p.amount,
+            p.status,
+            p.paymentMethod || '',
+            p.paymentReference || '',
+            p.processedAt?.toISOString() || '',
+            p.createdAt?.toISOString() || '',
+        ]);
+
+        return [headers, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    @Cron(CronExpression.EVERY_HOUR)
+    async handleReleaseHeldFunds() {
+        try {
+            const affiliates = await this.affiliateRepository.find({
+                where: {
+                    balanceHeld: MoreThan(0),
+                },
+            });
+
+            const now = new Date();
+            for (const affiliate of affiliates) {
+                if (affiliate.holdUntil && now >= new Date(affiliate.holdUntil)) {
+                    await this.releaseHeldFunds(affiliate);
+                }
+            }
+        } catch (err) {
+            this.logger.error(`[Cron] Failed to release held funds: ${err.message}`);
+        }
+    }
+
+    async adminGetAllStats() {
+        const totalAffiliates = await this.affiliateRepository.count();
+        const activeAffiliates = await this.affiliateRepository.count({ where: { status: 'active' } });
+        const pendingApprovals = await this.affiliateRepository.count({ where: { adminApproved: false } });
+        const totalEarnings = await this.affiliateRepository.sum('totalEarnings') || 0;
+        const totalPaidOut = await this.payoutRepository.sum('amount', { status: PayoutStatus.PAID }) || 0;
+        const totalCommissionOwed = await this.payoutRepository.sum('amount', { status: PayoutStatus.PENDING }) || 0;
+        const pendingPayouts = await this.payoutRepository.count({ where: { status: PayoutStatus.PENDING } });
+        const totalClicks = await this.referralRepository.count();
+
+        let totalRevenueGenerated = 0;
+        try {
+            const convertedReferrals = await this.referralRepository.find({
+                where: { status: ReferralStatus.CONVERTED },
+                relations: ['referredUser'],
+            });
+
+            const vendorIds: string[] = [];
+            for (const ref of convertedReferrals) {
+                if (ref.referredUser) {
+                    const vendor = await this.vendorRepo.findOne({ where: { userId: ref.referredUser.id } });
+                    if (vendor) vendorIds.push(vendor.id);
+                }
+            }
+
+            if (vendorIds.length > 0) {
+                const sumResult = await this.subscriptionRepository
+                    .createQueryBuilder('sub')
+                    .select('SUM(sub.amount)', 'total')
+                    .where('sub.vendor_id IN (:...vendorIds)', { vendorIds })
+                    .andWhere('sub.status = :status', { status: SubscriptionStatus.ACTIVE })
+                    .getRawOne();
+                totalRevenueGenerated = Number(sumResult?.total) || 0;
+            }
+        } catch (err) {
+            this.logger.error(`[Stats] Failed to calculate total revenue generated: ${err.message}`);
+        }
+
+        return {
+            totalAffiliates,
+            activeAffiliates,
+            pendingApprovals,
+            totalEarnings,
+            totalPaidOut,
+            totalCommissionOwed,
+            pendingPayouts,
+            totalClicks,
+            totalRevenueGenerated,
         };
     }
 

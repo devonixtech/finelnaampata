@@ -22,18 +22,20 @@ import { formatDistanceToNow } from 'date-fns';
 export default function AdminRevenuePage() {
     const [stats, setStats] = useState<any>(null);
     const [payments, setPayments] = useState<any[]>([]);
+    const [revenueMetrics, setRevenueMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState<'all' | 'month' | 'week'>('all');
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [statsData, paymentsData] = await Promise.all([
+            const [statsData, paymentsData, metricsData] = await Promise.all([
                 api.admin.getStats(),
                 api.admin.affiliate.getPayouts().catch(() => []),
+                api.admin.getRevenueMetrics().catch(() => null),
             ]);
             setStats(statsData);
             setPayments(paymentsData || []);
+            setRevenueMetrics(metricsData);
         } catch (err) {
             console.error('Failed to fetch revenue data:', err);
         } finally {
@@ -77,10 +79,10 @@ export default function AdminRevenuePage() {
             {/* Revenue Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Revenue', value: `$${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-emerald-100', textColor: 'text-emerald-600' },
-                    { label: 'Monthly Revenue', value: `$${monthlyRevenue.toLocaleString()}`, icon: TrendingUp, color: 'bg-blue-100', textColor: 'text-blue-600' },
-                    { label: 'Active Subscriptions', value: activeSubscriptions.toString(), icon: Receipt, color: 'bg-violet-100', textColor: 'text-violet-600' },
-                    { label: 'Affiliate Payouts', value: `$${totalPaid.toLocaleString()}`, icon: CreditCard, color: 'bg-orange-100', textColor: 'text-orange-600' },
+                    { label: 'MRR (Monthly Recurring)', value: `$${(revenueMetrics?.mrr || monthlyRevenue || 0).toLocaleString()}`, icon: TrendingUp, color: 'bg-emerald-100', textColor: 'text-emerald-600' },
+                    { label: 'ARR (Annual Recurring)', value: `$${(revenueMetrics?.arr || monthlyRevenue * 12 || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-blue-100', textColor: 'text-blue-600' },
+                    { label: 'Active Subscriptions', value: (revenueMetrics?.activeSubscriptions || activeSubscriptions || 0).toString(), icon: Receipt, color: 'bg-violet-100', textColor: 'text-violet-600' },
+                    { label: 'Churn Rate', value: `${revenueMetrics?.churnRate || '0'}%`, icon: ArrowDownRight, color: 'bg-rose-100', textColor: 'text-rose-600' },
                 ].map(stat => (
                     <div key={stat.label} className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4 shadow-sm">
                         <div className={`w-11 h-11 ${stat.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
@@ -92,6 +94,25 @@ export default function AdminRevenuePage() {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* LTV & Additional Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Average LTV</p>
+                    <p className="text-3xl font-black text-slate-900">${revenueMetrics?.avgLtv?.toLocaleString() || '0'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Lifetime value per subscriber</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Subscriptions</p>
+                    <p className="text-3xl font-black text-slate-900">{revenueMetrics?.totalSubscriptions || 0}</p>
+                    <p className="text-xs text-slate-400 mt-1">{revenueMetrics?.activeSubscriptions || 0} currently active</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Affiliate Payouts</p>
+                    <p className="text-3xl font-black text-slate-900">${totalPaid.toLocaleString()}</p>
+                    <p className="text-xs text-slate-400 mt-1">${totalPending.toLocaleString()} pending</p>
+                </div>
             </div>
 
             {/* Monthly Revenue Chart */}
@@ -168,6 +189,50 @@ export default function AdminRevenuePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Revenue Per Vendor */}
+            {revenueMetrics?.vendorRevenue?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-slate-100">
+                        <h3 className="text-lg font-black text-slate-900">Revenue Per Vendor</h3>
+                        <p className="text-xs text-slate-400 font-medium mt-1">Top vendors by subscription revenue</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+                                    <th className="px-6 py-4">#</th>
+                                    <th className="px-6 py-4">Vendor ID</th>
+                                    <th className="px-6 py-4 text-right">Revenue</th>
+                                    <th className="px-6 py-4 text-right">% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {revenueMetrics.vendorRevenue.map((v: any, i: number) => {
+                                    const totalRev = revenueMetrics.vendorRevenue.reduce((s: number, item: any) => s + item.amount, 0);
+                                    const pct = totalRev > 0 ? ((v.amount / totalRev) * 100).toFixed(1) : '0';
+                                    return (
+                                        <tr key={v.vendorId} className="hover:bg-slate-50/30 transition-all">
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-black text-slate-300">#{i + 1}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-bold text-slate-700 font-mono">{v.vendorId.slice(0, 8)}...</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-sm font-black text-slate-900">${v.amount.toLocaleString()}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-xs font-bold text-slate-500">{pct}%</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Recent Payments Table */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

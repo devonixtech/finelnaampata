@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { MessageCircle } from 'lucide-react';
 import ChatWindow from './ChatWindow';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { usePlanFeature } from '../../hooks/usePlanFeature';
+import { api } from '../../lib/api';
 
 export interface ChatTriggerHandle {
     open: () => void;
@@ -20,18 +20,30 @@ interface ChatTriggerProps {
 
 const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessId, businessName, variant = 'button', className = '' }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [vendorHasChat, setVendorHasChat] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
-    const { hasFeature } = usePlanFeature();
+
+    useEffect(() => {
+        let cancelled = false;
+        api.listings.getById(businessId)
+            .then((b: any) => {
+                if (!cancelled) {
+                    setVendorHasChat(!!b?.planFeatures?.showChat);
+                }
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [businessId]);
 
     useImperativeHandle(ref, () => ({
         open: () => {
             if (!user) {
-                router.push(`/login?redirect=/business/${businessId}`);
+                router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
                 return;
             }
-            if (!hasFeature('showChat')) {
-                alert('In-App Chat requires a paid plan. Upgrade to access this feature.');
+            if (!vendorHasChat) {
+                console.warn('In-App Chat requires a paid plan. Upgrade to access this feature.');
                 return;
             }
             setIsOpen(true);
@@ -43,12 +55,12 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
         e.stopPropagation();
         
         if (!user) {
-            router.push(`/login?redirect=/business/${businessId}`);
+            router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         
-        if (!hasFeature('showChat')) {
-            alert('In-App Chat requires a paid plan. Upgrade to access this feature.');
+        if (!vendorHasChat) {
+            console.warn('In-App Chat requires a paid plan. Upgrade to access this feature.');
             return;
         }
         

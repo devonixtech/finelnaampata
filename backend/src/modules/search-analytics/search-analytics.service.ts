@@ -2,12 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SearchLog } from '../../entities/search-log.entity';
+import { Listing, BusinessStatus } from '../../entities/business.entity';
+import { Category } from '../../entities/category.entity';
 
 @Injectable()
 export class SearchAnalyticsService {
     constructor(
         @InjectRepository(SearchLog)
         private searchLogRepository: Repository<SearchLog>,
+        @InjectRepository(Listing)
+        private listingRepository: Repository<Listing>,
+        @InjectRepository(Category)
+        private categoryRepository: Repository<Category>,
     ) {}
 
     async getOverview(startDate?: string, endDate?: string, city?: string) {
@@ -110,5 +116,38 @@ export class SearchAnalyticsService {
         if (city) query.andWhere('log.city = :city', { city });
 
         return await query.getRawMany();
+    }
+
+    async getUnderservedCategories() {
+        const categories = await this.categoryRepository.find({ where: { status: 'active' as any } });
+
+        const results: { category: string; searchCount: number; listingCount: number; ratio: number }[] = [];
+
+        for (const cat of categories) {
+            const searchCount = await this.searchLogRepository
+                .createQueryBuilder('log')
+                .where('log.categorySlug = :slug', { slug: cat.slug })
+                .getCount();
+
+            if (searchCount <= 50) continue;
+
+            const listingCount = await this.listingRepository
+                .createQueryBuilder('b')
+                .where('b.categoryId = :categoryId', { categoryId: cat.id })
+                .andWhere('b.status = :status', { status: BusinessStatus.APPROVED })
+                .andWhere('b.hiddenByDeletion = false')
+                .getCount();
+
+            if (listingCount >= 10) continue;
+
+            results.push({
+                category: cat.name,
+                searchCount,
+                listingCount,
+                ratio: listingCount > 0 ? searchCount / listingCount : searchCount,
+            });
+        }
+
+        return results.sort((a, b) => b.ratio - a.ratio);
     }
 }

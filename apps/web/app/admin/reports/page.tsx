@@ -25,6 +25,7 @@ export default function AdminReportsPage() {
     const [loading, setLoading] = useState(true);
     const [reviews, setReviews] = useState<any[]>([]);
     const [businesses, setBusinesses] = useState<any[]>([]);
+    const [suspiciousUsers, setSuspiciousUsers] = useState<any>({ multipleAccounts: [], rapidSignups: [] });
     const [stats, setStats] = useState({
         flaggedReviews: 0,
         processingListings: 0,
@@ -34,16 +35,19 @@ export default function AdminReportsPage() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const reviewRes = await api.reviews.adminGetAll({ isSuspicious: 'true', limit: 10 });
+            const [reviewRes, businessRes, suspiciousData] = await Promise.all([
+                api.reviews.adminGetAll({ isSuspicious: 'true', limit: 10 }),
+                api.admin.getBusinesses(1, 10, 'pending_geocode'),
+                api.admin.getSuspiciousUsers().catch(() => ({ multipleAccounts: [], rapidSignups: [] })),
+            ]);
             setReviews(reviewRes.data || []);
-
-            const businessRes = await api.admin.getBusinesses(1, 10, 'pending_geocode');
             setBusinesses(businessRes.data || []);
+            setSuspiciousUsers(suspiciousData);
 
             setStats({
                 flaggedReviews: reviewRes.meta?.total || 0,
                 processingListings: businessRes.meta?.total || 0,
-                suspiciousUsers: 0,
+                suspiciousUsers: (suspiciousData.multipleAccounts?.length || 0) + (suspiciousData.rapidSignups?.length || 0),
             });
         } catch (error) {
             console.error('Failed to fetch report data', error);
@@ -278,15 +282,65 @@ export default function AdminReportsPage() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
-                                    className="pt-10 flex flex-col items-center text-center max-w-sm mx-auto"
+                                    className="space-y-6"
                                 >
-                                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6">
-                                        <ShieldCheck className="w-10 h-10 text-slate-200" />
-                                    </div>
-                                    <h4 className="text-xl font-black text-slate-900">User Security Module</h4>
-                                    <p className="text-slate-400 font-medium text-sm mt-2">
-                                        Automated flagging for users with suspicious activity will be integrated here in the next update.
-                                    </p>
+                                    {suspiciousUsers.multipleAccounts?.length === 0 && suspiciousUsers.rapidSignups?.length === 0 ? (
+                                        <div className="pt-10 flex flex-col items-center text-center max-w-sm mx-auto">
+                                            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6">
+                                                <ShieldCheck className="w-10 h-10 text-slate-200" />
+                                            </div>
+                                            <h4 className="text-xl font-black text-slate-900">No Suspicious Activity</h4>
+                                            <p className="text-slate-400 font-medium text-sm mt-2">
+                                                No users with suspicious patterns detected at this time.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {suspiciousUsers.multipleAccounts?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
+                                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                        Multiple Accounts Detected ({suspiciousUsers.multipleAccounts.length})
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {suspiciousUsers.multipleAccounts.map((u: any, i: number) => (
+                                                            <div key={i} className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-between">
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-900">{u.fullName || u.email || 'Unknown'}</p>
+                                                                    <p className="text-xs text-amber-600 font-medium">{u.email} — Created {new Date(u.createdAt).toLocaleDateString()}</p>
+                                                                </div>
+                                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase">
+                                                                    {u.accountCount} accounts
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {suspiciousUsers.rapidSignups?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
+                                                        <Clock className="w-4 h-4 text-blue-500" />
+                                                        Rapid Signups (Last 24h) ({suspiciousUsers.rapidSignups.length})
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        {suspiciousUsers.rapidSignups.map((u: any, i: number) => (
+                                                            <div key={i} className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-between">
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-slate-900">{u.fullName || u.email || 'Unknown'}</p>
+                                                                    <p className="text-xs text-blue-600 font-medium">{u.email} — {new Date(u.createdAt).toLocaleString()}</p>
+                                                                </div>
+                                                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase">
+                                                                    Recent
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>

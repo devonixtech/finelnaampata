@@ -139,6 +139,7 @@ export interface Business {
     status: 'pending' | 'pending_geocode' | 'approved' | 'rejected' | 'suspended' | 'disabled';
     faqs?: { question: string; answer: string }[];
     recentUntil?: string;
+    planFeatures?: Record<string, any>;
     createdAt: string;
     updatedAt?: string;
 }

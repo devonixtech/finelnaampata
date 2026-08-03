@@ -212,6 +212,7 @@ export class UsersService {
 
         const savedListing = this.savedListingRepository.create({ userId, businessId });
         await this.savedListingRepository.save(savedListing);
+        await this.businessRepository.increment({ id: businessId }, 'savedCount', 1);
     }
 
     /**
@@ -222,6 +223,7 @@ export class UsersService {
         if (!savedListing) throw new NotFoundException('Saved listing not found');
 
         await this.savedListingRepository.remove(savedListing);
+        await this.businessRepository.decrement({ id: businessId }, 'savedCount', 1);
     }
 
     /**

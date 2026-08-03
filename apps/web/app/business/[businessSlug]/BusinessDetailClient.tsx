@@ -121,7 +121,6 @@ const TrustBadge = ({ badge, score }: { badge?: string; score?: number }) => {
     >
       <Award className="w-2.5 h-2.5" />
       {normalizedBadge}
-      {score !== undefined && <span className="ml-1 opacity-60">Score: {score}</span>}
     </div>
   );
 };
@@ -182,7 +181,7 @@ export default function BusinessDetailClient({
   const [submittingReply, setSubmittingReply] = useState(false);
 
   // Review sort & report state
-  const [reviewSort, setReviewSort] = useState<string>("newest");
+  const [reviewSort, setReviewSort] = useState<string>("relevant");
   const [reportingReview, setReportingReview] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -222,12 +221,21 @@ export default function BusinessDetailClient({
   const [qaLoading, setQaLoading] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [showMapEmbed, setShowMapEmbed] = useState(false);
+  const [vendorHasChat, setVendorHasChat] = useState(false);
 
 
   const mapEmbedUrl = useMemo(
     () => (business ? getGoogleMapEmbedUrl(business) : null),
     [business],
   );
+
+  useEffect(() => {
+    if (business?.planFeatures?.showChat) {
+      setVendorHasChat(true);
+    } else if (business) {
+      setVendorHasChat(false);
+    }
+  }, [business]);
   const openInGoogleMapsUrl = useMemo(() => {
     if (!business?.latitude || !business?.longitude) return null;
     return `https://www.google.com/maps?q=${business.latitude},${business.longitude}`;
@@ -509,6 +517,19 @@ export default function BusinessDetailClient({
         );
       }
     }
+  };
+
+  const trackContactClick = (type: string) => {
+    if (!business) return;
+    api.leads.createLead({
+      businessId: business.id,
+      name: user?.fullName || "Guest",
+      email: user?.email || "",
+      phone: user?.phone || undefined,
+      message: `User clicked ${type}`,
+      type: type as any,
+      source: `listing-${type}`,
+    }).catch(() => {});
   };
 
   const handleEnquirySubmit = async (e: React.FormEvent) => {
@@ -1222,12 +1243,13 @@ export default function BusinessDetailClient({
                                   className="appearance-none pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-400 outline-none cursor-pointer"
                                   style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
                                 >
+                                  <option value="relevant">Most Relevant</option>
                                   <option value="newest">Newest First</option>
                                   <option value="oldest">Oldest First</option>
                                   <option value="highest">Highest Rated</option>
                                   <option value="lowest">Lowest Rated</option>
                                   <option value="most_helpful">Most Helpful</option>
-                                  <option value="most_relevant">Most Relevant</option>
+                                  <option value="photos_first">Photos First</option>
                                 </select>
                               </div>
                             )}
@@ -1858,6 +1880,7 @@ export default function BusinessDetailClient({
                               {business.phone && (
                                 <a
                                   href={`sms:${business.phone}`}
+                                  onClick={() => trackContactClick("sms")}
                                   className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-blue-600 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
                                 >
                                   <MessageSquare className="w-4 h-4" /> SMS
@@ -1874,6 +1897,7 @@ export default function BusinessDetailClient({
                               {business.email && (
                                 <a
                                   href={`mailto:${business.email}`}
+                                  onClick={() => trackContactClick("email")}
                                   className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-orange-500 text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
                                 >
                                   <Mail className="w-4 h-4" /> Email
@@ -2013,6 +2037,7 @@ export default function BusinessDetailClient({
                   {business.phone && (
                     <a
                       href={`sms:${business.phone}`}
+                      onClick={() => trackContactClick("sms")}
                       className="w-full py-5 bg-blue-600 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-500/20 active:scale-95"
                     >
                       <MessageSquare className="w-5 h-5" /> Send SMS
@@ -2029,6 +2054,7 @@ export default function BusinessDetailClient({
                   {business.email && (
                     <a
                       href={`mailto:${business.email}`}
+                      onClick={() => trackContactClick("email")}
                       className="w-full py-5 bg-orange-500 text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-orange-600 transition-all duration-300 shadow-xl shadow-orange-500/20 active:scale-95"
                     >
                       <Mail className="w-5 h-5" /> Email Business
@@ -2535,6 +2561,7 @@ export default function BusinessDetailClient({
             {business.phone && (
               <a
                 href={`sms:${business.phone}`}
+                onClick={() => trackContactClick("sms")}
                 className="flex-1 h-12 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
               >
                 <MessageSquare className="w-4 h-4" /> SMS
@@ -2551,12 +2578,13 @@ export default function BusinessDetailClient({
             {business.email && (
               <a
                 href={`mailto:${business.email}`}
+                onClick={() => trackContactClick("email")}
                 className="flex-1 h-12 bg-orange-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
               >
                 <Mail className="w-4 h-4" /> Email
               </a>
             )}
-            {!isOwner && (
+            {!isOwner && vendorHasChat && (
               <button
                 onClick={() => {
                   if (!user) {
@@ -2566,6 +2594,15 @@ export default function BusinessDetailClient({
                   chatRef.current?.open();
                 }}
                 className="flex-1 h-12 bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-xs"
+              >
+                <MessageSquare className="w-4 h-4" /> Chat
+              </button>
+            )}
+            {!isOwner && !vendorHasChat && (
+              <button
+                disabled
+                className="flex-1 h-12 bg-gray-300 text-gray-500 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed text-xs"
+                title="Upgrade to Chat"
               >
                 <MessageSquare className="w-4 h-4" /> Chat
               </button>
@@ -2639,22 +2676,38 @@ export default function BusinessDetailClient({
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Photos (optional, max 3)
+                  Photos (optional, max 5)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
-                  max={3}
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []).slice(0, 3);
-                    files.forEach(file => {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setReviewImages(prev => [...prev.slice(0, 2), reader.result as string]);
-                      };
-                      reader.readAsDataURL(file);
-                    });
+                  max={5}
+                  onChange={async (e) => {
+                    const rawFiles = Array.from(e.target.files || []).slice(0, 5);
+                    for (const file of rawFiles) {
+                      try {
+                        const imageCompression = (await import('browser-image-compression')).default;
+                        const compressed = await imageCompression(file, {
+                          maxSizeMB: 0.5,
+                          maxWidthOrHeight: 1600,
+                          useWebWorker: true,
+                          fileType: 'image/jpeg',
+                          initialQuality: 0.8,
+                        });
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                        };
+                        reader.readAsDataURL(compressed);
+                      } catch {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }
                   }}
                   className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all"
                 />

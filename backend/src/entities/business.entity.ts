@@ -203,6 +203,12 @@ export class Listing {
     @Column({ name: 'click_count', default: 0 })
     clickCount: number;
 
+    @Column({ name: 'saved_count', type: 'int', default: 0 })
+    savedCount: number;
+
+    @Column({ name: 'avg_response_time_minutes', type: 'int', nullable: true })
+    avgResponseTimeMinutes: number;
+
     @Column({ name: 'followers_count', default: 0 })
     followersCount: number;
 
