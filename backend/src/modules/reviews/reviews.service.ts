@@ -181,109 +181,93 @@ export class ReviewsService {
         try {
             const { businessId, userId: filterUserId, vendorId } = getReviewsDto;
             
-            // Explicitly convert types to avoid TypeORM/Postgres issues with strings
             const page = Number(getReviewsDto.page) || 1;
             const limit = Number(getReviewsDto.limit) || 20;
             const rating = getReviewsDto.rating ? Number(getReviewsDto.rating) : undefined;
             const sortBy = (getReviewsDto.sortBy as ReviewSort) || ReviewSort.RELEVANT;
-            
-            const skip = calculateSkip(page, limit);
+            const skip = (page - 1) * limit;
 
-            const queryBuilder = this.reviewRepository
-                .createQueryBuilder('review')
-                .leftJoinAndSelect('review.user', 'user')
-                .leftJoinAndSelect('review.business', 'business')
-                .leftJoinAndSelect('review.replies', 'replies', 'replies.isApproved = :replyApproved', { replyApproved: true })
-                .leftJoinAndSelect('replies.user', 'replyUser')
-                .where('review.isApproved = :isApproved', { isApproved: true });
+            const params: any[] = [];
+            let paramIdx = 1;
+            const conditions: string[] = [`r.is_approved = $${paramIdx++}`];
+            params.push(true);
 
-            // Filter by business
             if (businessId) {
-                queryBuilder.andWhere('review.businessId = :businessId', { businessId });
+                conditions.push(`r.business_id = $${paramIdx++}`);
+                params.push(businessId);
             }
-
-            // Filter by user
             if (filterUserId) {
-                queryBuilder.andWhere('review.userId = :filterUserId', { filterUserId });
+                conditions.push(`r.user_id = $${paramIdx++}`);
+                params.push(filterUserId);
             }
-
-            // Filter by rating
             if (rating !== undefined && !isNaN(rating)) {
-                queryBuilder.andWhere('review.rating = :rating', { rating });
+                conditions.push(`r.rating = $${paramIdx++}`);
+                params.push(rating);
             }
-
-            // Filter by vendor
             if (vendorId) {
-                queryBuilder.andWhere('business.vendorId = :vendorId', { vendorId });
+                conditions.push(`b.vendor_id = $${paramIdx++}`);
+                params.push(vendorId);
             }
 
-            // Sort options
+            const whereClause = conditions.join(' AND ');
+
+            let orderClause: string;
             switch (sortBy) {
                 case ReviewSort.OLDEST:
-                    queryBuilder.orderBy('review.createdAt', 'ASC');
+                    orderClause = 'r.created_at ASC';
                     break;
                 case ReviewSort.HIGHEST:
-                    queryBuilder.orderBy('review.rating', 'DESC').addOrderBy('review.createdAt', 'DESC');
+                    orderClause = 'r.rating DESC, r.created_at DESC';
                     break;
                 case ReviewSort.LOWEST:
-                    queryBuilder.orderBy('review.rating', 'ASC').addOrderBy('review.createdAt', 'DESC');
+                    orderClause = 'r.rating ASC, r.created_at DESC';
                     break;
                 case ReviewSort.MOST_HELPFUL:
-                    queryBuilder.orderBy('review.helpfulCount', 'DESC').addOrderBy('review.createdAt', 'DESC');
+                    orderClause = 'r.helpful_count DESC, r.created_at DESC';
                     break;
                 case ReviewSort.MOST_RELEVANT:
-                    queryBuilder.orderBy('review.rating', 'DESC')
-                        .addOrderBy('review.helpfulCount', 'DESC')
-                        .addOrderBy('review.createdAt', 'DESC');
-                    break;
-                case ReviewSort.RELEVANT:
-                    queryBuilder.orderBy('review.helpfulCount * 3', 'DESC')
-                        .addOrderBy("CASE WHEN review.images IS NOT NULL AND review.images != '[]' THEN 1 ELSE 0 END", 'DESC')
-                        .addOrderBy('user.trustScore', 'DESC')
-                        .addOrderBy('review.rating', 'DESC')
-                        .addOrderBy('review.createdAt', 'DESC');
+                    orderClause = 'r.rating DESC, r.helpful_count DESC, r.created_at DESC';
                     break;
                 case ReviewSort.PHOTOS_FIRST:
-                    queryBuilder.orderBy("CASE WHEN review.images IS NOT NULL AND review.images != '[]' THEN 0 ELSE 1 END", 'ASC')
-                        .addOrderBy('review.createdAt', 'DESC');
+                    orderClause = `CASE WHEN r.images IS NOT NULL AND r.images != '[]'::jsonb THEN 0 ELSE 1 END ASC, r.created_at DESC`;
                     break;
                 case ReviewSort.NEWEST:
+                case ReviewSort.RELEVANT:
                 default:
-                    queryBuilder.orderBy('review.createdAt', 'DESC');
+                    orderClause = 'r.created_at DESC';
                     break;
             }
 
-            // Get total count and paginated results (use separate QB for count to avoid skip/take pollution)
-            const countQb = this.reviewRepository
-                .createQueryBuilder('review')
-                .leftJoin('review.business', 'business')
-                .where('review.isApproved = :isApproved', { isApproved: true });
-            if (businessId) countQb.andWhere('review.businessId = :businessId', { businessId });
-            if (filterUserId) countQb.andWhere('review.userId = :filterUserId', { filterUserId });
-            if (rating !== undefined && !isNaN(rating)) countQb.andWhere('review.rating = :rating', { rating });
-            if (vendorId) countQb.andWhere('business.vendorId = :vendorId', { vendorId });
+            const countSql = `SELECT COUNT(*) as cnt FROM reviews r LEFT JOIN businesses b ON b.id = r.business_id WHERE ${whereClause}`;
+            const countResult = await this.reviewRepository.query(countSql, params);
+            const total = parseInt(countResult[0]?.cnt || '0', 10);
 
-            const [reviews, total] = await Promise.all([
-                queryBuilder.skip(skip).take(limit).getMany(),
-                countQb.getCount(),
-            ]);
+            const dataSql = `
+                SELECT r.*,
+                    json_build_object('id', u.id, 'firstName', u."firstName", 'lastName', u."lastName", 'email', u.email, 'avatar', u.avatar) as "user"
+                FROM reviews r
+                LEFT JOIN users u ON u.id = r.user_id AND (u.delete_at IS NULL)
+                LEFT JOIN businesses b ON b.id = r.business_id
+                WHERE ${whereClause}
+                ORDER BY ${orderClause}
+                LIMIT $${paramIdx++} OFFSET $${paramIdx++}
+            `;
+            params.push(limit, skip);
 
-            // Check if current user has voted helpful on any of these reviews
+            const reviews = await this.reviewRepository.query(dataSql, params);
+
             let helpfulReviewIds = new Set<string>();
             if (userId && reviews.length > 0) {
-                const reviewIds = reviews.map(r => r.id);
-                const votes = await this.reviewRepository
-                    .createQueryBuilder('review')
-                    .innerJoin('review.helpfulVotes', 'vote', 'vote.userId = :userId', { userId })
-                    .where('review.id IN (:...reviewIds)', { reviewIds })
-                    .select('review.id')
-                    .getRawMany();
-                helpfulReviewIds = new Set(votes.map(v => v.review_id));
+                const reviewIds = reviews.map((r: any) => r.id);
+                const votes = await this.reviewRepository.query(
+                    `SELECT review_id FROM review_helpful_votes WHERE user_id = $1 AND review_id = ANY($2)`,
+                    [userId, reviewIds]
+                );
+                helpfulReviewIds = new Set(votes.map((v: any) => v.review_id));
             }
 
-            const reviewsWithHelpful = reviews.map(review => ({
+            const reviewsWithHelpful = reviews.map((review: any) => ({
                 ...review,
-                helpfulVotes: undefined,
                 userHelpful: helpfulReviewIds.has(review.id),
             }));
 
