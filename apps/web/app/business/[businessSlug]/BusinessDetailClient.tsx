@@ -386,7 +386,7 @@ export default function BusinessDetailClient({
             } catch (e) { }
           } else {
             // Store in a 10-day cookie for later if not logged in
-            setCookie("referralCode", refCode, 10);
+            setCookie("referralCode", refCode, 30);
           }
         }
       } catch (err: any) {

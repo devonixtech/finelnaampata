@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -45,8 +45,15 @@ export class ChatController {
 
     @Get('conversations/:id/messages')
     @ApiOperation({ summary: 'Get message history for a conversation' })
-    async getMessages(@Request() req: any, @Param('id') id: string) {
-        return this.chatService.getConversationHistory(id, req.user.id);
+    async getMessages(
+        @Request() req: any,
+        @Param('id') id: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        const pageNum = Math.max(1, parseInt(page || '1', 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit || '50', 10) || 50));
+        return this.chatService.getConversationHistory(id, req.user.id, pageNum, limitNum);
     }
 
     @Get('unread-count')

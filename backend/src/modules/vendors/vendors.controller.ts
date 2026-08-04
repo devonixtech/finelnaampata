@@ -107,6 +107,52 @@ export class VendorsController {
         return this.vendorsService.submitVerification(user.id, documents);
     }
 
+    @Get('analytics/funnel')
+    @Roles(UserRole.VENDOR)
+    @ApiOperation({ summary: 'Get structured funnel analytics (impressions → views → contacts → conversions)' })
+    @ApiResponse({ status: 200, description: 'Funnel data returned' })
+    getFunnelAnalytics(@CurrentUser() user: User) {
+        return this.vendorsService.getFunnelAnalytics(user.id);
+    }
+
+    @Get('analytics/keywords')
+    @Roles(UserRole.VENDOR)
+    @ApiOperation({ summary: 'Get keyword performance for vendor listings' })
+    @ApiResponse({ status: 200, description: 'Keyword data returned' })
+    getKeywordPerformance(@CurrentUser() user: User) {
+        return this.vendorsService.getKeywordPerformance(user.id);
+    }
+
+    @Get('analytics/follower-growth')
+    @Roles(UserRole.VENDOR)
+    @ApiOperation({ summary: 'Get follower growth over time' })
+    @ApiResponse({ status: 200, description: 'Follower growth data returned' })
+    getFollowerGrowth(
+        @CurrentUser() user: User,
+        @Query('days') days?: string,
+    ) {
+        return this.vendorsService.getFollowerGrowth(user.id, days ? parseInt(days, 10) : 30);
+    }
+
+    @Get('analytics/response-trend')
+    @Roles(UserRole.VENDOR)
+    @ApiOperation({ summary: 'Get daily average response time trend' })
+    @ApiResponse({ status: 200, description: 'Response time trend returned' })
+    getResponseTrend(
+        @CurrentUser() user: User,
+        @Query('days') days?: string,
+    ) {
+        return this.vendorsService.getResponseTrend(user.id, days ? parseInt(days, 10) : 30);
+    }
+
+    @Get('analytics/offers')
+    @Roles(UserRole.VENDOR)
+    @ApiOperation({ summary: 'Get per-offer breakdown with views and clicks' })
+    @ApiResponse({ status: 200, description: 'Offer breakdown returned' })
+    getOfferBreakdown(@CurrentUser() user: User) {
+        return this.vendorsService.getOfferBreakdown(user.id);
+    }
+
     @Public()
     @Get('slugs/all')
     @ApiOperation({ summary: 'Get all vendor slugs for static generation' })

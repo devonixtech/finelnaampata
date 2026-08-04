@@ -216,6 +216,17 @@ export class AdminController {
         return this.adminService.toggleVerifiedListing(id, isVerified);
     }
 
+    @Patch('businesses/:id/ranking-boost')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Set manual ranking boost for a business' })
+    @ApiResponse({ status: 200, description: 'Ranking boost updated' })
+    setRankingBoost(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('manualRankingBoost') manualRankingBoost: number,
+    ) {
+        return this.adminService.setManualRankingBoost(id, manualRankingBoost);
+    }
+
     @Patch('business/:id/search-keywords')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Update business search keywords' })

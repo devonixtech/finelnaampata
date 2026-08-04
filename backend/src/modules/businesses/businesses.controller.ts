@@ -132,6 +132,15 @@ export class BusinessesController {
     }
 
     @Public()
+    @Get(':id/hours')
+    @ApiOperation({ summary: 'Get business hours with real-time open/closed status' })
+    @ApiResponse({ status: 200, description: 'Business hours returned' })
+    @ApiResponse({ status: 404, description: 'Business not found' })
+    getBusinessHours(@Param('id', ParseUuidPipe) id: string) {
+        return this.businessesService.getBusinessHours(id);
+    }
+
+    @Public()
     @UseGuards(OptionalJwtAuthGuard)
     @UseInterceptors(CacheInterceptor)
     @Get(':id')

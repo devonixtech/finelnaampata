@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, LessThan } from 'typeorm';
 import { Review } from '../../entities/review.entity';
 
 @Injectable()
@@ -10,9 +10,6 @@ export class ReviewDetectionService {
         private reviewRepository: Repository<Review>,
     ) {}
 
-    /**
-     * Analyze a review for suspicious activity
-     */
     async analyzeReview(review: Review): Promise<{
         isSuspicious: boolean;
         score: number;
@@ -21,7 +18,6 @@ export class ReviewDetectionService {
         let totalScore = 0;
         let reasons: string[] = [];
 
-        // 1. Check for IP repetition
         if (review.ipAddress) {
             const ipCount = await this.reviewRepository.count({
                 where: { ipAddress: review.ipAddress },
@@ -32,7 +28,6 @@ export class ReviewDetectionService {
             }
         }
 
-        // 2. Check for frequency (last 24h)
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const userCount = await this.reviewRepository.count({
             where: { 
@@ -45,7 +40,6 @@ export class ReviewDetectionService {
             reasons.push('High frequency of reviews in 24h');
         }
 
-        // 3. Check for repetitive text similarity (exact match)
         if (review.comment && review.comment.length > 20) {
             const similarReview = await this.reviewRepository.findOne({
                 where: { 
@@ -59,7 +53,6 @@ export class ReviewDetectionService {
             }
         }
 
-        // 3b. Fuzzy duplicate text detection via Levenshtein distance
         if (review.comment && review.comment.length > 20) {
             const recentReviews = await this.reviewRepository.find({
                 where: {
@@ -83,10 +76,42 @@ export class ReviewDetectionService {
             }
         }
 
-        // 4. Short review check
         if (review.comment && review.comment.length < 10) {
             totalScore += 0.1;
             reasons.push('Extremely short comment');
+        }
+
+        if (review.rating === 5) {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const newFiveStarCount = await this.reviewRepository
+                .createQueryBuilder('r')
+                .innerJoin('r.user', 'u', 'u.created_at > :sevenDaysAgo', { sevenDaysAgo })
+                .where('r.rating = 5')
+                .andWhere('r.business_id = :businessId', { businessId: review.businessId })
+                .andWhere('r.created_at > :dayAgo', { dayAgo })
+                .getCount();
+            if (newFiveStarCount >= 3) {
+                totalScore += 0.6;
+                reasons.push('Multiple 5-star reviews from new accounts on same business');
+            }
+        }
+
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const lowRatingsOnBusiness = await this.reviewRepository.find({
+            where: {
+                businessId: review.businessId,
+                rating: LessThan(3),
+                createdAt: MoreThan(weekAgo),
+            },
+            order: { createdAt: 'DESC' },
+            take: 10,
+        });
+        if (lowRatingsOnBusiness.length >= 3) {
+            const uniqueUsers = new Set(lowRatingsOnBusiness.map(r => r.userId));
+            if (uniqueUsers.size >= 3) {
+                totalScore += 0.5;
+                reasons.push('Possible competitor attack: multiple low ratings from different users in short period');
+            }
         }
 
         return {

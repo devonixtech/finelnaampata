@@ -328,7 +328,10 @@ export class VendorDashboardStatsDto {
     searchImpressions: number;
 
     @ApiProperty({ example: 0 })
-    convertedLeads: number;
+    adClicks: number;
+
+    @ApiProperty({ example: 12.5 })
+    conversionRate: number;
 
     @ApiProperty({ example: 85 })
     profileCompletion: number;

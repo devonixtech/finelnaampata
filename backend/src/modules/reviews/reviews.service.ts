@@ -244,7 +244,7 @@ export class ReviewsService {
 
             const dataSql = `
                 SELECT r.*,
-                    json_build_object('id', u.id, 'firstName', u."firstName", 'lastName', u."lastName", 'email', u.email, 'avatar', u.avatar) as "user"
+                    json_build_object('id', u.id, 'fullName', u.full_name, 'email', u.email, 'avatar', u.avatar_url) as "user"
                 FROM reviews r
                 LEFT JOIN users u ON u.id = r.user_id AND (u.delete_at IS NULL)
                 LEFT JOIN businesses b ON b.id = r.business_id

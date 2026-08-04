@@ -867,6 +867,59 @@ export class BusinessesService implements OnModuleInit {
     }
 
     /**
+     * Get business hours with real-time open/closed status
+     */
+    async getBusinessHours(id: string) {
+        const listing = await this.listingRepository.findOne({
+            where: { id },
+            select: ['id', 'open247', 'timezone'],
+        });
+
+        if (!listing) {
+            throw new NotFoundException('Business not found');
+        }
+
+        const hours = await this.businessHoursRepository.find({
+            where: { businessId: id },
+            order: { dayOfWeek: 'ASC' },
+        });
+
+        let isOpen = false;
+
+        if (listing.open247) {
+            isOpen = true;
+        } else if (hours.length > 0) {
+            const tz = listing.timezone || 'Asia/Karachi';
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz,
+                weekday: 'long',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            });
+
+            const parts = formatter.formatToParts(now);
+            const currentDay = parts.find((p) => p.type === 'weekday')?.value?.toLowerCase() || '';
+            const currentHour = parts.find((p) => p.type === 'hour')?.value || '00';
+            const currentMinute = parts.find((p) => p.type === 'minute')?.value || '00';
+            const currentTime = `${currentHour}:${currentMinute}`;
+
+            const todayHours = hours.find((h) => h.dayOfWeek === currentDay);
+            if (todayHours && todayHours.isOpen && todayHours.openTime && todayHours.closeTime) {
+                isOpen = currentTime >= todayHours.openTime && currentTime < todayHours.closeTime;
+            }
+        }
+
+        return {
+            hours,
+            open24_7: listing.open247 || false,
+            timezone: listing.timezone || 'Asia/Karachi',
+            isOpen,
+        };
+    }
+
+    /**
      * Search suggestions - text-only, no PostGIS, 2-char minimum, returns 8 max
      */
     async getSuggestions(query: string): Promise<string[]> {

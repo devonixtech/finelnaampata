@@ -52,6 +52,13 @@ export class ChatService implements OnModuleInit {
             CREATE INDEX IF NOT EXISTS idx_customer_notes_conversation ON customer_notes(conversation_id);
             CREATE INDEX IF NOT EXISTS idx_customer_notes_vendor ON customer_notes(vendor_id);
         `).catch(err => console.error('[ChatService] customer_notes schema sync failed:', err.message));
+
+        await this.entityManager.query(`
+            DO $$ BEGIN
+                ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS read_at timestamp;
+            EXCEPTION WHEN duplicate_column THEN null;
+            END $$;
+        `).catch(err => console.error('[ChatService] read_at column sync failed:', err.message));
     }
 
     async getOrCreateConversation(userId: string, businessId: string) {
@@ -208,7 +215,12 @@ export class ChatService implements OnModuleInit {
         return savedMessage;
     }
 
-    async getConversationHistory(conversationId: string, userId: string) {
+    async getConversationHistory(
+        conversationId: string,
+        userId: string,
+        page: number = 1,
+        limit: number = 50,
+    ) {
         const conversation = await this.conversationRepository.findOne({
             where: { id: conversationId },
         });
@@ -224,11 +236,25 @@ export class ChatService implements OnModuleInit {
             throw new ForbiddenException('Not authorized to view this conversation');
         }
 
-        return this.messageRepository.find({
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await this.messageRepository.findAndCount({
             where: { conversationId },
-            order: { createdAt: 'ASC' },
+            order: { createdAt: 'DESC' },
             relations: ['sender'],
+            skip,
+            take: limit,
         });
+
+        return {
+            data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async getUserConversations(userId: string) {
@@ -270,7 +296,7 @@ export class ChatService implements OnModuleInit {
     async markAsRead(conversationId: string, userId: string): Promise<void> {
         await this.messageRepository.update(
             { conversationId, senderId: Not(userId), isRead: false },
-            { isRead: true }
+            { isRead: true, readAt: new Date() },
         );
     }
 

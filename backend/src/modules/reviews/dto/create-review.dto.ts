@@ -8,6 +8,7 @@ import {
     Max,
     MinLength,
     MaxLength,
+    ArrayMaxSize,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -35,9 +36,10 @@ export class CreateReviewDto {
     @MinLength(10)
     comment?: string;
 
-    @ApiPropertyOptional({ type: [String], example: ['https://example.com/img1.jpg'] })
+    @ApiPropertyOptional({ type: [String], example: ['https://example.com/img1.jpg'], description: 'Max 5 photos' })
     @IsOptional()
     @IsArray()
+    @ArrayMaxSize(5, { message: 'Maximum 5 photos allowed per review' })
     @IsString({ each: true })
     images?: string[];
 }

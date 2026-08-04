@@ -438,6 +438,26 @@ export class AdminService {
     }
 
     /**
+     * Set manual ranking boost for a business
+     */
+    async setManualRankingBoost(id: string, manualRankingBoost: number) {
+        if (typeof manualRankingBoost !== 'number' || manualRankingBoost < 0 || manualRankingBoost > 100) {
+            throw new BadRequestException('manualRankingBoost must be a number between 0 and 100');
+        }
+
+        const business = await this.businessRepository.findOne({ where: { id } });
+        if (!business) throw new NotFoundException('Business not found');
+
+        business.manualRankingBoost = Math.round(manualRankingBoost);
+        const updated = await this.businessRepository.save(business);
+
+        this.searchService.indexBusiness(updated).catch(err => console.error('ES RankingBoost Index Error:', err));
+        await this.invalidateBusinessSearchCache(updated);
+
+        return updated;
+    }
+
+    /**
      * Get all users for admin management
      */
     async getAllUsers(page = 1, limit = 20) {

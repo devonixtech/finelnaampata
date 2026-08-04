@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const params = new URLSearchParams(window.location.search);
             const ref = params.get('ref');
             if (ref) {
-                setCookie('referralCode', ref, 10);
+                setCookie('referralCode', ref, 30);
                 console.log('[AuthContext] Stored referral code in 10-day cookie:', ref);
             }
         }

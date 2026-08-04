@@ -141,6 +141,7 @@ export class User {
     lastActiveAt: Date;
 
     @Column({ name: 'trust_score', type: 'int', default: 50 })
+    @Exclude()
     trustScore: number;
 
     @Column({ name: 'review_count', type: 'int', default: 0 })

@@ -460,6 +460,10 @@ export class VendorsService {
             vendor.activePlans || [],
         );
 
+        const conversionRate = totalViews > 0
+            ? parseFloat(((totalLeads / totalViews) * 100).toFixed(2))
+            : 0;
+
         // Check if there is any REAL activity to report
         // Gating: If the vendor has no total views and no logged activity, show empty state
         const hasActivity = totalViews > 0 || totalLeads > 0 || rawActivity.length > 0;
@@ -482,10 +486,202 @@ export class VendorsService {
             offerClicks,
             adImpressions,
             adClicks,
+            conversionRate,
             isVerified: vendor.isVerified,
             profileCompletion,
             analytics: hasActivity ? analytics : [],
             updatedAt: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Structured Funnel Analytics
+     */
+    async getFunnelAnalytics(userId: string) {
+        const vendor = await this.getProfile(userId);
+
+        const raw = await this.listingRepository
+            .createQueryBuilder('listing')
+            .select('SUM(listing.searchImpressions)', 'impressions')
+            .addSelect('SUM(listing.totalViews)', 'views')
+            .addSelect('SUM(listing.totalLeads)', 'contacts')
+            .addSelect('SUM(listing.convertedLeads)', 'conversions')
+            .where('listing.vendorId = :vendorId', { vendorId: vendor.id })
+            .getRawOne();
+
+        return {
+            impressions: Number(raw?.impressions) || 0,
+            views: Number(raw?.views) || 0,
+            contacts: Number(raw?.contacts) || 0,
+            conversions: Number(raw?.conversions) || 0,
+        };
+    }
+
+    /**
+     * Keyword Performance — which search keywords led to views of this vendor's businesses
+     */
+    async getKeywordPerformance(userId: string) {
+        const vendor = await this.getProfile(userId);
+
+        const searchLogKeywords = await this.entityManager.query(`
+            SELECT
+                sl.keyword,
+                COUNT(sl.id) AS search_count,
+                COALESCE(SUM(sl.results_count), 0) AS results_shown
+            FROM search_logs sl
+            WHERE LOWER(sl.keyword) IN (
+                SELECT LOWER(jsonb_array_elements_text(l.search_keywords))
+                FROM businesses l
+                WHERE l.vendor_id = $1
+            )
+            GROUP BY sl.keyword
+            ORDER BY search_count DESC
+            LIMIT 50
+        `, [vendor.id]);
+
+        const listingKeywords = await this.entityManager.query(`
+            SELECT keyword, count AS view_count
+            FROM (
+                SELECT
+                    jsonb_array_elements_text(l.search_keywords) AS keyword,
+                    l.total_views AS count
+                FROM businesses l
+                WHERE l.vendor_id = $1
+                  AND jsonb_array_length(l.search_keywords) > 0
+            ) sub
+            ORDER BY view_count DESC
+            LIMIT 50
+        `, [vendor.id]);
+
+        return {
+            searchLogKeywords,
+            listingKeywords,
+        };
+    }
+
+    /**
+     * Follower Growth Tracking — daily follower count over time
+     */
+    async getFollowerGrowth(userId: string, days: number = 30) {
+        const vendor = await this.getProfile(userId);
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        since.setHours(0, 0, 0, 0);
+
+        const dailyGrowth = await this.entityManager.query(`
+            SELECT
+                DATE(f.created_at) AS date,
+                COUNT(*) AS new_followers
+            FROM follows f
+            INNER JOIN businesses b ON b.id = f.business_id
+            WHERE b.vendor_id = $1
+              AND f.created_at >= $2
+            GROUP BY DATE(f.created_at)
+            ORDER BY date ASC
+        `, [vendor.id, since.toISOString()]);
+
+        let cumulative = 0;
+        const daily = dailyGrowth.map((row: any) => {
+            cumulative += Number(row.new_followers);
+            return {
+                date: row.date,
+                newFollowers: Number(row.new_followers),
+                totalFollowers: cumulative,
+            };
+        });
+
+        const totalRaw = await this.entityManager.query(`
+            SELECT COALESCE(SUM(b.followers_count), 0) AS total
+            FROM businesses b
+            WHERE b.vendor_id = $1
+        `, [vendor.id]);
+
+        return {
+            totalFollowers: Number(totalRaw?.[0]?.total) || 0,
+            daily,
+        };
+    }
+
+    /**
+     * Response Time Trend — daily average response time from leads
+     */
+    async getResponseTrend(userId: string, days: number = 30) {
+        const vendor = await this.getProfile(userId);
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        since.setHours(0, 0, 0, 0);
+
+        const trend = await this.entityManager.query(`
+            SELECT
+                DATE(l.created_at) AS date,
+                ROUND(AVG(EXTRACT(EPOCH FROM (l.vendor_replied_at - l.created_at)) / 60)::numeric, 2) AS avg_response_minutes,
+                COUNT(*) FILTER (WHERE l.vendor_replied_at IS NOT NULL) AS responded_count,
+                COUNT(*) AS total_leads
+            FROM leads l
+            INNER JOIN businesses b ON b.id = l.business_id
+            WHERE b.vendor_id = $1
+              AND l.created_at >= $2
+            GROUP BY DATE(l.created_at)
+            ORDER BY date ASC
+        `, [vendor.id, since.toISOString()]);
+
+        return trend.map((row: any) => ({
+            date: row.date,
+            avgResponseMinutes: Number(row.avg_response_minutes) || null,
+            respondedCount: Number(row.responded_count),
+            totalLeads: Number(row.total_leads),
+        }));
+    }
+
+    /**
+     * Per-Offer Breakdown — individual offer/deal stats
+     */
+    async getOfferBreakdown(userId: string) {
+        const vendor = await this.getProfile(userId);
+
+        const deals = await this.entityManager.query(`
+            SELECT
+                d.id AS "offerId",
+                d.title,
+                d.status,
+                d.is_active AS "isActive",
+                d.created_at AS "createdAt"
+            FROM deals d
+            WHERE d.vendor_id = $1
+            ORDER BY d.created_at DESC
+        `, [vendor.id]);
+
+        const offerEvents = await this.entityManager.query(`
+            SELECT
+                oe.id AS "offerId",
+                oe.title,
+                oe.status,
+                oe.is_active AS "isActive",
+                oe.created_at AS "createdAt"
+            FROM offer_events oe
+            WHERE oe.vendor_id = $1
+            ORDER BY oe.created_at DESC
+        `, [vendor.id]);
+
+        const listingOfferStats = await this.entityManager.query(`
+            SELECT
+                l.id AS "listingId",
+                l.title AS "listingTitle",
+                l.offer_views AS "offerViews",
+                l.offer_clicks AS "offerClicks"
+            FROM businesses l
+            WHERE l.vendor_id = $1
+              AND (l.offer_views > 0 OR l.offer_clicks > 0)
+        `, [vendor.id]);
+
+        const allOffers = [
+            ...deals.map((d: any) => ({ ...d, source: 'deal' })),
+            ...offerEvents.map((o: any) => ({ ...o, source: 'offer_event' })),
+        ];
+
+        return {
+            offers: allOffers,
+            listingOfferStats,
         };
     }
 
