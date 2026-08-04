@@ -13,7 +13,7 @@
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:backend\"",
     "build:web": "npm run build --workspace=@apps/web",
     "build:backend": "npm run build --prefix backend",
-    "build": "npm run build:web && npm run build:backend",
+    "build": "npm run build:backend",
     "lint": "npm run lint --workspaces --if-present",
     "start": "npm run start:prod --prefix backend",
     "start:prod": "npm run start:prod --prefix backend",
