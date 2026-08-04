@@ -528,6 +528,16 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS user_submitted_photos JSONB DEFAULT '[]';
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS search_impressions INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS converted_leads INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_to_call_count INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS response_count INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS follower_history JSONB DEFAULT '[]';
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_views INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_clicks INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_impressions INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_clicks INTEGER DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS avg_response_time_minutes REAL DEFAULT 0;
             `);
             await this.listingRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
