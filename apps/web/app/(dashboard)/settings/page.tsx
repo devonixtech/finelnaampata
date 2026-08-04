@@ -135,8 +135,8 @@ export default function AccountSettings() {
                             saturday: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
                             sunday: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
                         },
-                        shopPhotos: profile.vendor?.shopPhotos || [],
-                        socialLinks: profile.vendor?.socialLinks || [],
+                        shopPhotos: Array.isArray(profile.vendor?.shopPhotos) ? profile.vendor?.shopPhotos : [],
+                        socialLinks: (typeof profile.vendor?.socialLinks === 'string' ? JSON.parse(profile.vendor?.socialLinks) : Array.isArray(profile.vendor?.socialLinks) ? profile.vendor?.socialLinks : []),
                         notificationSettings: profile.notificationSettings || prev.notificationSettings
                     }));
                     if (profile.avatarUrl) {
@@ -354,8 +354,8 @@ export default function AccountSettings() {
                 businessAddress: finalFullProfile.vendor?.businessAddress || '',
                 timezone: finalFullProfile.vendor?.timezone || formData.timezone,
                 businessHours: finalFullProfile.vendor?.businessHours || prev.businessHours,
-                shopPhotos: finalFullProfile.vendor?.shopPhotos || prev.shopPhotos,
-                socialLinks: finalFullProfile.vendor?.socialLinks || prev.socialLinks,
+                shopPhotos: Array.isArray(finalFullProfile.vendor?.shopPhotos) ? finalFullProfile.vendor?.shopPhotos : (Array.isArray(prev.shopPhotos) ? prev.shopPhotos : []),
+                socialLinks: (typeof finalFullProfile.vendor?.socialLinks === 'string' ? JSON.parse(finalFullProfile.vendor?.socialLinks) : Array.isArray(finalFullProfile.vendor?.socialLinks) ? finalFullProfile.vendor?.socialLinks : prev.socialLinks),
                 notificationSettings: finalFullProfile.notificationSettings || formData.notificationSettings
             }));
 
@@ -970,7 +970,7 @@ export default function AccountSettings() {
                         </div>
 
                         <div className="p-8 lg:p-12 space-y-6">
-                            {formData.socialLinks.length === 0 ? (
+                            {(!formData.socialLinks || formData.socialLinks.length === 0) ? (
                                 <div className="text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                                     <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
                                         <Globe className="w-8 h-8 text-slate-300" />
@@ -987,7 +987,7 @@ export default function AccountSettings() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {formData.socialLinks.map((link, index) => (
+                                    {(Array.isArray(formData.socialLinks) ? formData.socialLinks : []).map((link, index) => (
                                         <div key={index} className="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-2">
                                             <div className="w-full sm:w-48">
                                                 <div className="relative">

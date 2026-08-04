@@ -103,17 +103,8 @@ export class ReviewsService {
         if (!review) throw new BadRequestException('Review not found');
         if (review.userId === votingUserId) throw new BadRequestException('Cannot vote for own review');
 
-        await this.reviewsRepository.createQueryBuilder()
-            .update(Review)
-            .set({ helpfulCount: () => "helpful_count + 1" })
-            .where("id = :id", { id: reviewId })
-            .execute();
-
-        await this.userRepository.createQueryBuilder()
-            .update(User)
-            .set({ helpfulVotes: () => "helpful_votes + 1" })
-            .where("id = :id", { id: review.userId })
-            .execute();
+        await this.reviewsRepository.increment({ id: reviewId }, 'helpfulCount', 1);
+        await this.userRepository.increment({ id: review.userId }, 'helpfulVotes', 1);
 
         await this.trustService.calculateUserTrustScore(review.userId);
         return { success: true };
@@ -123,11 +114,7 @@ export class ReviewsService {
         const review = await this.reviewsRepository.findOne({ where: { id: reviewId } });
         if (!review) throw new BadRequestException('Review not found');
 
-        await this.userRepository.createQueryBuilder()
-            .update(User)
-            .set({ spamFlags: () => "spam_flags + 1" })
-            .where("id = :id", { id: review.userId })
-            .execute();
+        await this.userRepository.increment({ id: review.userId }, 'spamFlags', 1);
 
         await this.trustService.calculateUserTrustScore(review.userId);
         return { success: true, message: 'Review flagged for moderation' };

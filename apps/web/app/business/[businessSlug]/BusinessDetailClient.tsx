@@ -14,6 +14,7 @@ import {
   Share2,
   Heart,
   MessageSquare,
+  MessageCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -242,6 +243,32 @@ export default function BusinessDetailClient({
       cat.name?.toLowerCase().includes(categorySearch.toLowerCase())
     );
   }, [categories, categorySearch]);
+
+  const galleryImages = useMemo(() => {
+    const images: string[] = [];
+    if (business?.coverImageUrl) images.push(getImageUrl(business.coverImageUrl));
+    if (Array.isArray(business?.vendor?.shopPhotos)) {
+      images.push(...business.vendor.shopPhotos.map(getImageUrl));
+    }
+    return images.filter(Boolean);
+  }, [business]);
+
+  const isOwner = user?.id === business?.vendor?.userId || user?.vendor?.id === business?.vendorId;
+
+  const openLightbox = (index: number) => {
+    setCurrentImageIndex(index);
+    setShowLightbox(true);
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : galleryImages.length - 1));
+  };
+
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentImageIndex((prev) => (prev < galleryImages.length - 1 ? prev + 1 : 0));
+  };
 
   useEffect(() => {
     api.categories.getAll().then((data: any) => setCategories(data || [])).catch(() => {});
@@ -860,10 +887,30 @@ export default function BusinessDetailClient({
     }
   };
 
-  if (loading)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Loading business...</p>
+      </div>
+    );
+  }
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
+        <Store className="w-16 h-16 text-slate-300 mb-4" />
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Business Not Found</h2>
+        <p className="text-slate-500 mb-6">This business may have been removed or doesn't exist.</p>
+        <Link href="/" className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors">
+          Browse Categories
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
 
       {business.status === "pending" && (
         <div className="bg-amber-50 border-y border-amber-100 py-3">
@@ -1029,15 +1076,49 @@ export default function BusinessDetailClient({
               <Navigation className="w-4 h-4" /> Directions
             </button>
             {business.phone && (
+              <>
+                <a 
+                  href={`tel:${business.phone}`} 
+                  onClick={() => {
+                    fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
+                >
+                  <Phone className="w-4 h-4" /> Call
+                </a>
+                <a 
+                  href={`sms:${business.phone}`} 
+                  onClick={() => {
+                    fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
+                >
+                  <MessageSquare className="w-4 h-4" /> SMS
+                </a>
+              </>
+            )}
+            {/* WhatsApp (Paid Feature) */}
+            {(business.planFeatures?.hasWhatsApp || business.whatsappNumber) && (
               <a 
-                href={`tel:${business.phone}`} 
+                href={`https://wa.me/${business.whatsappNumber || business.phone?.replace(/[^0-9]/g, '')}`} 
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => {
                   fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
                 }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366] text-white border border-[#25D366] rounded-full hover:bg-[#1ebd5a] transition-colors text-sm font-bold"
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </a>
+            )}
+            {/* In-App Chat (Paid Feature) */}
+            {vendorHasChat && (
+              <button 
+                onClick={() => router.push(`/messages?vendorId=${business.vendorId || business.vendor?.id}`)} 
                 className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
               >
-                <Phone className="w-4 h-4" /> Call
-              </a>
+                <MessageSquare className="w-4 h-4" /> Chat
+              </button>
             )}
             <button onClick={handleLike} className={`flex items-center gap-2 px-5 py-2.5 bg-white border rounded-full transition-colors text-sm font-bold ${isFavorite ? 'border-blue-200 text-blue-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
               <Bookmark className={`w-4 h-4 ${isFavorite ? 'fill-blue-500 text-blue-500' : ''}`} /> Save
