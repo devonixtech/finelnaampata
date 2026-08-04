@@ -1,4 +1,4 @@
-# cache bust v2
+# cache bust v3
 providers = ["node"]
 
 [phases.build]
