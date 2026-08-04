@@ -15,7 +15,7 @@ import {
     BarChart3,
     ArrowUpRight,
 } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { api } from '../../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminVendorAnalyticsPage() {

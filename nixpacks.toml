@@ -1,4 +1,9 @@
 providers = ["node"]
 
+[phases.build]
+cmds = [
+    "npm run build:backend"
+]
+
 [start]
 cmd = "npm run start:prod --prefix backend"

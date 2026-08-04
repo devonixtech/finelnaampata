@@ -1136,7 +1136,7 @@ export default function BusinessDetailClient({
                               const isToday = day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                               return (
                                 <div key={day} className={`flex items-center justify-between text-sm ${isToday ? 'font-bold text-slate-900' : 'text-slate-600'}`}>
-                                  <span className="capitalize">{day[:3]}</span>
+                                  <span className="capitalize">{day.substring(0, 3)}</span>
                                   <span>{hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'Closed'}</span>
                                 </div>
                               );
