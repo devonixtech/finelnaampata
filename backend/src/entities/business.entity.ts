@@ -206,7 +206,7 @@ export class Listing {
     @Column({ name: 'saved_count', type: 'int', default: 0 })
     savedCount: number;
 
-    @Column({ name: 'avg_response_time_minutes', type: 'int', nullable: true })
+    @Column({ name: 'avg_response_time_minutes', type: 'real', nullable: true, default: 0 })
     avgResponseTimeMinutes: number;
 
     @Column({ name: 'response_count', type: 'int', default: 0 })

@@ -178,10 +178,14 @@ export async function fixProductionSchema(dataSource: DataSource) {
 
             for (const col of missingColumns) {
                 if (!bizTable.findColumnByName(col.name)) {
-                    logger.log(`➕ Adding missing column ${col.name} to businesses`);
-                    const type = col.precision ? `${col.type}(${col.precision},${col.scale})` : col.type;
-                    const def = col.default !== undefined ? `DEFAULT ${col.default}` : '';
-                    await queryRunner.query(`ALTER TABLE businesses ADD COLUMN "${col.name}" ${type} ${def}`);
+                    try {
+                        logger.log(`➕ Adding missing column ${col.name} to businesses`);
+                        const type = col.precision ? `${col.type}(${col.precision},${col.scale})` : col.type;
+                        const def = col.default !== undefined ? `DEFAULT ${col.default}` : '';
+                        await queryRunner.query(`ALTER TABLE businesses ADD COLUMN "${col.name}" ${type} ${def}`);
+                    } catch (colErr) {
+                        logger.error(`❌ Failed to add column ${col.name}: ${colErr.message}`);
+                    }
                 }
             }
 

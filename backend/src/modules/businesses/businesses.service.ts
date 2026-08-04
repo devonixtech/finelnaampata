@@ -450,23 +450,8 @@ export class BusinessesService implements OnModuleInit {
             this.isPostgisAvailable = false;
         }
 
-        // Keep TypeORM's runtime column mapping aligned with the actual database capability.
-        // On databases without PostGIS, persisting a geography column causes TypeORM to emit
-        // ST_SetSRID(... ) expressions that fail at runtime. We store the same POINT string in
-        // a plain text column instead and rely on lat/lng + earthdistance fallbacks for queries.
-        if (!this.isPostgisAvailable) {
-            /*
-            const locationColumn = this.listingRepository.metadata.findColumnWithPropertyName('location');
-            if (locationColumn) {
-                locationColumn.type = 'text' as any;
-            }
-            */
-        }
-
         // Backfill logic for recent_until and performance indexes
         try {
-            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-            // Native query is faster for schema updates
             await this.listingRepository.query(`
                 CREATE EXTENSION IF NOT EXISTS cube;
                 CREATE EXTENSION IF NOT EXISTS earthdistance;
@@ -494,7 +479,6 @@ export class BusinessesService implements OnModuleInit {
                 SET recent_until = created_at + INTERVAL '7 days' 
                 WHERE recent_until IS NULL;
                 
-                -- Performance Indexes
                 CREATE INDEX IF NOT EXISTS idx_recent_until ON businesses(recent_until);
                 CREATE INDEX IF NOT EXISTS idx_businesses_city ON businesses(city);
                 CREATE INDEX IF NOT EXISTS idx_businesses_status ON businesses(status);
@@ -503,7 +487,6 @@ export class BusinessesService implements OnModuleInit {
                 CREATE INDEX IF NOT EXISTS idx_businesses_price_range ON businesses(price_range);
                 CREATE INDEX IF NOT EXISTS idx_businesses_category_id ON businesses(category_id);
                 
-                -- Ensure vendors table has missing columns and indexes
                 ALTER TABLE vendors ADD COLUMN IF NOT EXISTS city VARCHAR(100) NULL;
                 ALTER TABLE vendors ADD COLUMN IF NOT EXISTS state VARCHAR(100) NULL;
                 ALTER TABLE vendors ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'Pakistan';
@@ -511,7 +494,6 @@ export class BusinessesService implements OnModuleInit {
                 CREATE INDEX IF NOT EXISTS idx_vendors_city ON vendors(city);
                 CREATE INDEX IF NOT EXISTS idx_vendors_slug ON vendors(slug);
                 
-                -- Support multiple sub-categories
                 CREATE TABLE IF NOT EXISTS business_subcategories (
                     business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
                     category_id uuid NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
@@ -527,18 +509,36 @@ export class BusinessesService implements OnModuleInit {
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS open_247 BOOLEAN DEFAULT false;
                 ALTER TABLE users ADD COLUMN IF NOT EXISTS pending_referral_code VARCHAR(32) NULL;
                 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS user_submitted_photos JSONB DEFAULT '[]';
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS search_impressions INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS converted_leads INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_to_call_count INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS response_count INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS follower_history JSONB DEFAULT '[]';
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_views INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_clicks INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_impressions INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_clicks INTEGER DEFAULT 0;
-                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS avg_response_time_minutes REAL DEFAULT 0;
+                ALTER TABLE businesses ADD COLUMN IF NOT EXISTS hidden_by_deletion BOOLEAN DEFAULT false;
             `);
+        } catch (error) {
+            console.error('[BusinessesService] Core schema migration failed:', error);
+        }
+
+        // Each new column gets its own try-catch so one failure doesn't block the rest
+        const newColumns = [
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS search_impressions INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS converted_leads INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS click_to_call_count INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS response_count INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS follower_history JSONB DEFAULT \'[]\'',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_views INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS offer_clicks INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_impressions INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_clicks INTEGER DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS avg_response_time_minutes REAL DEFAULT 0',
+            'ALTER TABLE businesses ADD COLUMN IF NOT EXISTS user_submitted_photos JSONB DEFAULT \'[]\'',
+        ];
+
+        for (const sql of newColumns) {
+            try {
+                await this.listingRepository.query(sql);
+            } catch (err) {
+                console.error(`[BusinessesService] Column migration failed: ${sql}`, err);
+            }
+        }
+
+        try {
             await this.listingRepository.query(`
                 CREATE TABLE IF NOT EXISTS business_consent_logs (
                     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -566,10 +566,11 @@ export class BusinessesService implements OnModuleInit {
                 CREATE INDEX IF NOT EXISTS idx_business_consent_logs_user_id ON business_consent_logs(user_id);
                 CREATE INDEX IF NOT EXISTS idx_business_consent_logs_listing_id ON business_consent_logs(listing_id);
             `);
-            console.log('[BusinessesService] Database performance indexes auto-sync completed.');
         } catch (error) {
-            console.error('[BusinessesService] Database optimization failed:', error);
+            console.error('[BusinessesService] Consent logs table creation failed:', error);
         }
+
+        console.log('[BusinessesService] Database performance indexes auto-sync completed.');
     }
 
     /**
