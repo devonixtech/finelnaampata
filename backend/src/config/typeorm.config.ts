@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export const typeOrmConfig = (configService: ConfigService): TypeOrmModuleOptions => {
     const dbUrl = process.env.DATABASE_URL || configService.get<string>('DATABASE_URL');
-    const shouldSynchronize = configService.get<string>('DB_SYNCHRONIZE') === 'true';
+    const shouldSynchronize = configService.get<string>('DB_SYNCHRONIZE', 'true') !== 'false';
     
     console.log('--- DEBUG: TYPEORM CONFIG START ---');
     
