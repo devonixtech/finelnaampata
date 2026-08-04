@@ -195,7 +195,6 @@ export class ReviewsService {
                 .leftJoinAndSelect('review.business', 'business')
                 .leftJoinAndSelect('review.replies', 'replies', 'replies.isApproved = :replyApproved', { replyApproved: true })
                 .leftJoinAndSelect('replies.user', 'replyUser')
-                .leftJoinAndSelect('review.helpfulVotes', 'helpfulVotes')
                 .where('review.isApproved = :isApproved', { isApproved: true });
 
             // Filter by business
@@ -254,17 +253,38 @@ export class ReviewsService {
                     break;
             }
 
-            // Get total count and paginated results
+            // Get total count and paginated results (use separate QB for count to avoid skip/take pollution)
+            const countQb = this.reviewRepository
+                .createQueryBuilder('review')
+                .leftJoin('review.business', 'business')
+                .where('review.isApproved = :isApproved', { isApproved: true });
+            if (businessId) countQb.andWhere('review.businessId = :businessId', { businessId });
+            if (filterUserId) countQb.andWhere('review.userId = :filterUserId', { filterUserId });
+            if (rating !== undefined && !isNaN(rating)) countQb.andWhere('review.rating = :rating', { rating });
+            if (vendorId) countQb.andWhere('business.vendorId = :vendorId', { vendorId });
+
             const [reviews, total] = await Promise.all([
                 queryBuilder.skip(skip).take(limit).getMany(),
-                queryBuilder.getCount()
+                countQb.getCount(),
             ]);
+
+            // Check if current user has voted helpful on any of these reviews
+            let helpfulReviewIds = new Set<string>();
+            if (userId && reviews.length > 0) {
+                const reviewIds = reviews.map(r => r.id);
+                const votes = await this.reviewRepository
+                    .createQueryBuilder('review')
+                    .innerJoin('review.helpfulVotes', 'vote', 'vote.userId = :userId', { userId })
+                    .where('review.id IN (:...reviewIds)', { reviewIds })
+                    .select('review.id')
+                    .getRawMany();
+                helpfulReviewIds = new Set(votes.map(v => v.review_id));
+            }
 
             const reviewsWithHelpful = reviews.map(review => ({
                 ...review,
-                userHelpful: userId
-                    ? review.helpfulVotes?.some(vote => vote.userId === userId) ?? false
-                    : false,
+                helpfulVotes: undefined,
+                userHelpful: helpfulReviewIds.has(review.id),
             }));
 
             return createPaginatedResponse(reviewsWithHelpful, page, limit, total);
@@ -595,9 +615,10 @@ export class ReviewsService {
 
             queryBuilder.orderBy('review.createdAt', 'DESC');
 
+            const countQb = queryBuilder.clone();
             const [reviews, total] = await Promise.all([
                 queryBuilder.skip(skip).take(limit).getMany(),
-                queryBuilder.getCount()
+                countQb.getCount(),
             ]);
 
             return createPaginatedResponse(reviews, page, limit, total);
