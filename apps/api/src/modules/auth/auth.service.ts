@@ -44,6 +44,7 @@ export class AuthService {
             password: userData.password,
             fullName: userData.fullName,
             role: userData.role || 'user',
+            referredBy: userData.referralCode || null,
             firebaseUid: `local_${Date.now()}` // Mock UID for compatibility
         });
 

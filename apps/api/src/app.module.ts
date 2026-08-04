@@ -4,6 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { BusinessesModule } from './modules/businesses/businesses.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -12,6 +18,8 @@ import { DemandModule } from './modules/demand/demand.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { TrustModule } from './modules/trust/trust.module';
 import { LocationModule } from './modules/location/location.module';
+import { AffiliateModule } from './modules/affiliate/affiliate.module';
+import { BullModule } from '@nestjs/bullmq';
 import { NotificationsGateway } from './gateways/notifications.gateway';
 
 @Module({
@@ -56,6 +64,17 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
       },
       inject: [ConfigService],
     }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string>('REDIS_PASSWORD'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     UsersModule,
     CategoriesModule,
     BusinessesModule,
@@ -65,6 +84,7 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
     ReviewsModule,
     TrustModule,
     LocationModule,
+    AffiliateModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsGateway],

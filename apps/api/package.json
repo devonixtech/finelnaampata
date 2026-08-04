@@ -22,6 +22,8 @@
     "swagger:generate": "ts-node -r tsconfig-paths/register src/scripts/generate-swagger.ts"
   },
   "dependencies": {
+    "@nestjs/bull": "^11.0.4",
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.14",
@@ -35,7 +37,9 @@
     "@types/passport-jwt": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "8.56.1",
     "@typescript-eslint/parser": "8.56.1",
+    "bullmq": "^5.77.6",
     "dotenv": "^16.6.1",
+    "ioredis": "^5.10.1",
     "openai": "^6.49.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

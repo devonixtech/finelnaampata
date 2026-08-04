@@ -60,6 +60,9 @@ export class User {
     @Column({ name: 'trust_score', type: 'integer', default: 10 })
     trustScore: number;
 
+    @Column({ name: 'referred_by', nullable: true, length: 50 })
+    referredBy: string;
+
     @Column({ name: 'review_count', type: 'integer', default: 0 })
     reviewCount: number;
 
