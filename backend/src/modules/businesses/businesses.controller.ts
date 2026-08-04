@@ -251,6 +251,23 @@ export class BusinessesController {
         return this.businessesService.getAllAmenities();
     }
 
+    @Public()
+    @Get(':id/nearby-amenities')
+    @ApiOperation({ summary: 'Get nearby amenities (hospitals, schools, parks, etc.) using OpenStreetMap' })
+    @ApiResponse({ status: 200, description: 'Nearby amenities returned' })
+    @ApiResponse({ status: 404, description: 'Business not found' })
+    async getNearbyAmenities(
+        @Param('id', ParseUuidPipe) id: string,
+        @Query('radius') radius?: number,
+        @Query('categories') categories?: string,
+    ) {
+        const parsedRadius = radius ? Number(radius) : 1000;
+        const parsedCategories = categories
+            ? categories.split(',').map((c) => c.trim()).filter(Boolean)
+            : ['hospital', 'school', 'park', 'pharmacy', 'restaurant', 'gas_station'];
+        return this.businessesService.getNearbyAmenities(id, parsedRadius, parsedCategories);
+    }
+
     @Post('amenities')
     @Roles(UserRole.VENDOR, UserRole.ADMIN)
     @ApiBearerAuth()
@@ -430,4 +447,22 @@ export class BusinessesController {
         return { success: true };
     }
 
+    @Post(':id/image-view')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Track a view for a specific image on a listing' })
+    @ApiBody({ schema: { type: 'object', properties: { imageUrl: { type: 'string' } }, required: ['imageUrl'] } })
+    async trackImageView(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body('imageUrl') imageUrl: string,
+    ) {
+        return this.businessesService.trackImageView(id, imageUrl);
+    }
+
+    @Public()
+    @Get(':id/image-views')
+    @ApiOperation({ summary: 'Get per-image view counts for a listing' })
+    async getImageViews(@Param('id', ParseUuidPipe) id: string) {
+        return this.businessesService.getImageViews(id);
+    }
 }

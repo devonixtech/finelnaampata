@@ -102,3 +102,6 @@ export * from './business-consent-log.entity';
 // Q&A
 export * from './qa-question.entity';
 export * from './qa-answer.entity';
+
+// Image Views
+export * from './image-views.entity';

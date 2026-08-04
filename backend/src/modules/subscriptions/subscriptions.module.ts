@@ -24,8 +24,7 @@ import { OffersModule } from '../offers/offers.module';
 import { DealsModule } from '../deals/deals.module';
 import { EventsModule } from '../events/events.module';
 import { PromotionsModule } from '../promotions/promotions.module';
-
-
+import { AdminActivityModule } from '../admin/admin-activity.module';
 
 @Module({
     imports: [
@@ -49,6 +48,7 @@ import { PromotionsModule } from '../promotions/promotions.module';
         DealsModule,
         EventsModule,
         forwardRef(() => PromotionsModule),
+        AdminActivityModule,
     ],
     controllers: [SubscriptionsController],
     providers: [

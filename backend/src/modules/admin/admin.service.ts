@@ -386,6 +386,7 @@ export class AdminService {
         if (!review) throw new NotFoundException('Review not found');
 
         review.isApproved = dto.isApproved;
+        review.flaggedForReview = false;
         return this.reviewRepository.save(review);
     }
 

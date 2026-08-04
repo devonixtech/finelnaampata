@@ -25,6 +25,8 @@ import { DuplicateDetectionService } from './duplicate-detection.service';
 import { SearchCacheWarmService } from './search-cache-warm.service';
 import { GeocodingQueueService } from './geocoding-queue.service';
 import { BusinessConsentLog } from '../../entities/business-consent-log.entity';
+import { ImageViews } from '../../entities/image-views.entity';
+import { AdminActivityModule } from '../admin/admin-activity.module';
 
 @Module({
     imports: [
@@ -40,6 +42,7 @@ import { BusinessConsentLog } from '../../entities/business-consent-log.entity';
             Subscription,
             SubscriptionPlan,
             BusinessConsentLog,
+            ImageViews,
         ]),
         NotificationsModule,
         SearchModule,
@@ -49,6 +52,7 @@ import { BusinessConsentLog } from '../../entities/business-consent-log.entity';
         AffiliateModule,
         SubscriptionsModule,
         AuthModule,
+        AdminActivityModule,
     ],
     controllers: [BusinessesController],
     providers: [BusinessesService, DuplicateDetectionService, SearchCacheWarmService, GeocodingQueueService],

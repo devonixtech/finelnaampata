@@ -55,6 +55,10 @@ export class Review {
     @Index()
     isSuspicious: boolean;
 
+    @Column({ name: 'flagged_for_review', default: false })
+    @Index()
+    flaggedForReview: boolean;
+
     @Column({ name: 'suspicion_score', type: 'float', default: 0 })
     @Exclude()
     suspicionScore: number;

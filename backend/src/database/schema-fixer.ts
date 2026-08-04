@@ -174,6 +174,7 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 { name: 'avg_response_time_minutes', type: 'real', default: '0' },
                 { name: 'contact_person_prefix', type: 'varchar(10)', nullable: true },
                 { name: 'user_submitted_photos', type: 'jsonb', default: '\'[]\'' },
+                { name: 'image_alt_texts', type: 'text', nullable: true },
             ];
 
             for (const col of missingColumns) {

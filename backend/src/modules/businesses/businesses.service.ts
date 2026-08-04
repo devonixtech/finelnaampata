@@ -34,7 +34,9 @@ import { DemandService } from '../demand/demand.service';
 import { GeocodingQueueService } from './geocoding-queue.service';
 import { AffiliateService } from '../affiliate/affiliate.service';
 import { BusinessConsentLog } from '../../entities/business-consent-log.entity';
+import { ImageViews } from '../../entities/image-views.entity';
 import { randomUUID } from 'crypto';
+import { AdminActivityGateway } from '../admin/admin-activity.gateway';
 
 @Injectable()
 export class BusinessesService implements OnModuleInit {
@@ -61,12 +63,15 @@ export class BusinessesService implements OnModuleInit {
         private subscriptionPlanRepository: Repository<SubscriptionPlan>,
         @InjectRepository(BusinessConsentLog)
         private consentLogRepository: Repository<BusinessConsentLog>,
+        @InjectRepository(ImageViews)
+        private imageViewsRepository: Repository<ImageViews>,
         private notificationsService: NotificationsService,
         private searchService: SearchService,
         private demandService: DemandService,
         private geocodingQueueService: GeocodingQueueService,
         private addressConfigService: AddressConfigService,
         private affiliateService: AffiliateService,
+        private adminActivityGateway: AdminActivityGateway,
     ) { }
 
     private async validatePostalForCountry(country?: string, pincode?: string | null): Promise<void> {
@@ -570,6 +575,22 @@ export class BusinessesService implements OnModuleInit {
             console.error('[BusinessesService] Consent logs table creation failed:', error);
         }
 
+        try {
+            await this.listingRepository.query(`
+                CREATE TABLE IF NOT EXISTS image_views (
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    listing_id uuid NOT NULL,
+                    image_url text NOT NULL,
+                    view_count integer DEFAULT 0,
+                    created_at timestamp DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS idx_image_views_listing_id ON image_views(listing_id);
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_image_views_listing_image ON image_views(listing_id, image_url);
+            `);
+        } catch (error) {
+            console.error('[BusinessesService] Image views table creation failed:', error);
+        }
+
         console.log('[BusinessesService] Database performance indexes auto-sync completed.');
     }
 
@@ -862,6 +883,14 @@ export class BusinessesService implements OnModuleInit {
         this.searchService
             .indexBusiness(this.sanitizeSearchIndexKeywords(result, planFeatures))
             .catch(err => console.error('ES Index Error:', err));
+
+        // Broadcast to admin activity monitor
+        this.adminActivityGateway.broadcastActivity(
+            'new-business-listing',
+            `New business listed: "${result.title}" by ${vendor.businessName}`,
+            user.id,
+            { businessId: result.id, title: result.title, city: result.city, category: result.category?.name },
+        );
 
         return result;
     }
@@ -2091,5 +2120,166 @@ export class BusinessesService implements OnModuleInit {
 
     async trackConversion(businessId: string): Promise<void> {
         await this.listingRepository.increment({ id: businessId }, 'convertedLeads', 1);
+    }
+
+    async trackImageView(businessId: string, imageUrl: string): Promise<{ viewCount: number }> {
+        const result = await this.imageViewsRepository.query(
+            `INSERT INTO image_views (listing_id, image_url, view_count)
+             VALUES ($1, $2, 1)
+             ON CONFLICT (listing_id, image_url)
+             DO UPDATE SET view_count = image_views.view_count + 1
+             RETURNING view_count`,
+            [businessId, imageUrl],
+        );
+        return { viewCount: result[0]?.view_count ?? 1 };
+    }
+
+    async getImageViews(businessId: string): Promise<{ imageUrl: string; viewCount: number }[]> {
+        const rows = await this.imageViewsRepository.find({
+            where: { listingId: businessId },
+            order: { viewCount: 'DESC' },
+        });
+        return rows.map((r) => ({ imageUrl: r.imageUrl, viewCount: r.viewCount }));
+    }
+
+    async trackImageViews(businessId: string, imageUrls: string[]): Promise<void> {
+        if (!imageUrls?.length) return;
+        for (const url of imageUrls) {
+            await this.trackImageView(businessId, url);
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Nearby Amenities (OpenStreetMap Overpass API)
+    // ---------------------------------------------------------------------------
+
+    private readonly overpassCache = new Map<string, { data: any; expiresAt: number }>();
+    private readonly OVERPASS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+    private readonly CATEGORY_TAG_MAP: Record<string, { key: string; values: string[] }> = {
+        hospital: { key: 'amenity', values: ['hospital'] },
+        school: { key: 'amenity', values: ['school'] },
+        park: { key: 'leisure', values: ['park'] },
+        pharmacy: { key: 'amenity', values: ['pharmacy'] },
+        restaurant: { key: 'amenity', values: ['restaurant'] },
+        gas_station: { key: 'amenity', values: ['fuel'] },
+        atm: { key: 'amenity', values: ['atm'] },
+        supermarket: { key: 'shop', values: ['supermarket'] },
+    };
+
+    async getNearbyAmenities(
+        id: string,
+        radius: number,
+        categories: string[],
+    ): Promise<{ category: string; name: string; distance: number; lat: number; lng: number }[]> {
+        const listing = await this.listingRepository.findOne({
+            where: { id },
+            select: ['id', 'latitude', 'longitude'],
+        });
+
+        if (!listing) {
+            throw new NotFoundException('Business not found');
+        }
+
+        if (!listing.latitude || !listing.longitude) {
+            throw new BadRequestException('Business does not have location coordinates');
+        }
+
+        const lat = Number(listing.latitude);
+        const lng = Number(listing.longitude);
+        const clampedRadius = Math.min(Math.max(radius, 100), 50000); // 100m–50km
+
+        // Check cache
+        const sortedCategories = [...categories].sort();
+        const cacheKey = `${lat}:${lng}:${clampedRadius}:${sortedCategories.join(',')}`;
+        const cached = this.overpassCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+            return cached.data;
+        }
+
+        // Build Overpass query grouped by tag key
+        const tagGroups = new Map<string, string[]>();
+        for (const cat of categories) {
+            const mapping = this.CATEGORY_TAG_MAP[cat];
+            if (!mapping) continue;
+            if (!tagGroups.has(mapping.key)) tagGroups.set(mapping.key, []);
+            for (const v of mapping.values) {
+                if (!tagGroups.get(mapping.key)!.includes(v)) {
+                    tagGroups.get(mapping.key)!.push(v);
+                }
+            }
+        }
+
+        if (tagGroups.size === 0) {
+            return [];
+        }
+
+        const clauses: string[] = [];
+        for (const [key, values] of tagGroups) {
+            clauses.push(`node["${key}"~"${values.join('|')}"](around:${clampedRadius},${lat},${lng});`);
+        }
+
+        const query = `[out:json][timeout:10];(${clauses.join('')});out body;`;
+
+        try {
+            const response = await fetch('https://overpass-api.de/api/interpreter', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    'User-Agent': 'NampataBusinessDirectory/1.0',
+                },
+                body: `data=${encodeURIComponent(query)}`,
+                signal: AbortSignal.timeout(15000),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Overpass API returned ${response.status}`);
+            }
+
+            const data = await response.json();
+            const elements: any[] = data.elements || [];
+
+            const reverseTagMap = new Map<string, string>();
+            for (const [cat, mapping] of Object.entries(this.CATEGORY_TAG_MAP)) {
+                for (const v of mapping.values) {
+                    reverseTagMap.set(`${mapping.key}=${v}`, cat);
+                }
+            }
+
+            const results = elements
+                .filter((el) => el.lat != null && el.lon != null)
+                .map((el) => {
+                    let detectedCategory = 'unknown';
+                    for (const [tagKey, tagValue] of Object.entries(el.tags || {})) {
+                        const key = `${tagKey}=${tagValue}`;
+                        if (reverseTagMap.has(key)) {
+                            detectedCategory = reverseTagMap.get(key)!;
+                            break;
+                        }
+                    }
+                    return {
+                        category: detectedCategory,
+                        name: el.tags?.name || el.tags?.['name:en'] || 'Unnamed',
+                        distance: calculateDistance(lat, lng, el.lat, el.lon),
+                        lat: el.lat,
+                        lng: el.lon,
+                    };
+                })
+                .sort((a, b) => a.distance - b.distance);
+
+            // Cache results
+            this.overpassCache.set(cacheKey, {
+                data: results,
+                expiresAt: Date.now() + this.OVERPASS_CACHE_TTL,
+            });
+
+            return results;
+        } catch (error: any) {
+            if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+                throw new BadRequestException('Nearby amenities request timed out. Please try again later.');
+            }
+            throw new BadRequestException(`Failed to fetch nearby amenities: ${error.message}`);
+        }
     }
 }

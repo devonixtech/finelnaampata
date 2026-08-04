@@ -15,11 +15,13 @@ import { Subscription } from '../../entities/subscription.entity';
 import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
 
 import { AffiliateModule } from '../affiliate/affiliate.module';
+import { AdminActivityModule } from '../admin/admin-activity.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([User, Affiliate, AffiliateReferral, Vendor, Subscription, SubscriptionPlan]),
         AffiliateModule,
+        AdminActivityModule,
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
             imports: [ConfigModule],

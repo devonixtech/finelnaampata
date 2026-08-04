@@ -30,6 +30,7 @@ import { ConfigService } from '@nestjs/config';
 import { AffiliateService } from '../affiliate/affiliate.service';
 import { PromotionsService } from '../promotions/promotions.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { AdminActivityGateway } from '../admin/admin-activity.gateway';
 import Stripe from 'stripe';
 import { DEFAULT_FRONTEND_URL, getPrimaryFrontendUrl } from '../../common/utils/public-url.util';
 
@@ -69,6 +70,7 @@ export class SubscriptionsService implements OnModuleInit {
         @Inject(forwardRef(() => PromotionsService))
         private promotionsService: PromotionsService,
         private notificationsGateway: NotificationsGateway,
+        private adminActivityGateway: AdminActivityGateway,
     ) { }
 
 
@@ -841,6 +843,14 @@ export class SubscriptionsService implements OnModuleInit {
         } catch (err) {
             this.logger.warn(`Failed to send real-time notification to user ${vendor.userId}: ${err.message}`);
         }
+
+        // Broadcast to admin activity monitor
+        this.adminActivityGateway.broadcastActivity(
+            'new-subscription',
+            `New subscription: vendor "${vendor.businessName}" activated "${plan.name}" plan`,
+            vendor.userId,
+            { vendorId: vendor.id, planId: plan.id, planName: plan.name, amount: savedSub.amount },
+        );
 
         return savedSub;
     }

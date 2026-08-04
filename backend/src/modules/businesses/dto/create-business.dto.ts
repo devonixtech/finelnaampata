@@ -258,6 +258,12 @@ export class CreateBusinessDto {
     @IsObject()
     imageCaptions?: Record<string, string>;
 
+    @ApiPropertyOptional({ type: [String], description: 'Alt text for each image for accessibility' })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    imageAltTexts?: string[];
+
     @ApiPropertyOptional({ type: [String] })
     @IsOptional()
     @IsArray()

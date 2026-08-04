@@ -141,6 +141,9 @@ export class Listing {
     @Column({ name: 'image_captions', type: 'jsonb', default: '{}' })
     imageCaptions: Record<string, string>;
 
+    @Column('simple-array', { name: 'image_alt_texts', nullable: true })
+    imageAltTexts: string[];
+
     @Column({ type: 'jsonb', default: '[]' })
     videos: string[];
 

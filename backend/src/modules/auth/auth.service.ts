@@ -27,6 +27,7 @@ import { AffiliateService } from '../affiliate/affiliate.service';
 import { generateReferralCode } from '../../common/utils/referral-code';
 import { MailService } from './mail.service';
 import { normalizeGlobalPhone } from '../../common/utils/phone.util';
+import { AdminActivityGateway } from '../admin/admin-activity.gateway';
 
 @Injectable()
 export class AuthService {
@@ -50,6 +51,7 @@ export class AuthService {
         private planRepository: Repository<SubscriptionPlan>,
         private affiliateService: AffiliateService,
         private mailService: MailService,
+        private adminActivityGateway: AdminActivityGateway,
     ) { }
 
     /**
@@ -131,6 +133,14 @@ export class AuthService {
             });
 
             const savedUser = await this.userRepository.save(user);
+
+            // Broadcast to admin activity monitor
+            this.adminActivityGateway.broadcastActivity(
+                'new-user-registration',
+                `New user registered: ${savedUser.email} (${savedUser.role})`,
+                savedUser.id,
+                { email: savedUser.email, role: savedUser.role },
+            );
 
             const otpSent = await this.mailService.sendOtpEmail(savedUser.email, otpCode, savedUser.fullName);
             if (!otpSent) {
@@ -415,6 +425,14 @@ export class AuthService {
             });
             user = await this.userRepository.save(newUser);
             this.logger.log(`[GoogleAuth] Created and marked online new user from Google: ${email}`);
+
+            // Broadcast to admin activity monitor
+            this.adminActivityGateway.broadcastActivity(
+                'new-user-registration',
+                `New user registered via Google: ${email} (${user.role})`,
+                user.id,
+                { email, role: user.role, provider: 'google' },
+            );
 
             // Auto-create affiliate record for vendors
             if (user.role === UserRole.VENDOR) {

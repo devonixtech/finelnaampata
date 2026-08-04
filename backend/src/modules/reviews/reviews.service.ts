@@ -26,6 +26,7 @@ import { ReviewDetectionService } from './review-detection.service';
 import { TrustService } from '../users/trust.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { NotificationsService, NotificationType } from '../notifications/notifications.service';
+import { AdminActivityGateway } from '../admin/admin-activity.gateway';
 
 export enum ReviewSort {
     NEWEST = 'newest',
@@ -58,6 +59,7 @@ export class ReviewsService {
         private trustService: TrustService,
         private subscriptionsService: SubscriptionsService,
         private notificationsService: NotificationsService,
+        private adminActivityGateway: AdminActivityGateway,
     ) { }
 
     /**
@@ -125,12 +127,29 @@ export class ReviewsService {
         review.suspicionScore = analysis.score;
         review.suspicionReason = analysis.reason;
 
+        // High fraud score: flag for admin review instead of auto-hiding
         if (analysis.score >= 0.8) {
-            review.isApproved = false;
+            review.flaggedForReview = true;
+
+            // Broadcast flagged review to admin activity monitor
+            this.adminActivityGateway.broadcastActivity(
+                'flagged-review',
+                `Review auto-flagged (score: ${analysis.score.toFixed(2)}) on "${listing.title}"`,
+                user.id,
+                { businessId, rating: review.rating, suspicionScore: analysis.score, reason: analysis.reason, businessTitle: listing.title },
+            );
         }
 
         
         const savedReview = await this.reviewRepository.save(review);
+
+        // Broadcast to admin activity monitor
+        this.adminActivityGateway.broadcastActivity(
+            'new-review-submitted',
+            `${user.fullName} left a ${review.rating}-star review on "${listing.title}"`,
+            user.id,
+            { businessId, rating: review.rating, reviewId: savedReview.id, businessTitle: listing.title },
+        );
 
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const recentCount = await this.reviewRepository
@@ -449,6 +468,14 @@ export class ReviewsService {
 
         await this.reviewRepository.save(review);
 
+        // Broadcast flagged review to admin activity monitor
+        this.adminActivityGateway.broadcastActivity(
+            'flagged-review',
+            `Review reported for: ${reason}`,
+            user.id,
+            { reviewId, reason, details, suspicionScore: review.suspicionScore },
+        );
+
         const admin = await this.userRepository.findOne({ where: { role: 'admin' as any } });
         if (admin) {
             this.notificationsService.create({
@@ -569,7 +596,7 @@ export class ReviewsService {
      */
     async findAllForAdmin(query: any) {
         try {
-            const { isSuspicious, isApproved, businessId } = query;
+            const { isSuspicious, isApproved, businessId, flaggedForReview } = query;
             const page = Number(query.page) || 1;
             const limit = Number(query.limit) || 20;
             const skip = calculateSkip(page, limit);
@@ -590,6 +617,12 @@ export class ReviewsService {
             if (isApproved !== undefined) {
                 queryBuilder.andWhere('review.isApproved = :isApproved', { 
                     isApproved: isApproved === 'true' || isApproved === true 
+                });
+            }
+
+            if (flaggedForReview !== undefined) {
+                queryBuilder.andWhere('review.flaggedForReview = :flaggedForReview', { 
+                    flaggedForReview: flaggedForReview === 'true' || flaggedForReview === true 
                 });
             }
 
@@ -625,6 +658,8 @@ export class ReviewsService {
         if (moderationDto.isSuspicious !== undefined) {
             review.isSuspicious = moderationDto.isSuspicious;
         }
+
+        review.flaggedForReview = false;
 
         await this.reviewRepository.save(review);
         
