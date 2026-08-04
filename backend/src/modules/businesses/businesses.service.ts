@@ -1466,7 +1466,25 @@ export class BusinessesService implements OnModuleInit {
             }
 
             log(`findBySlug: ${slug} - SUCCESS`);
-            return this.sanitizeListingForPublicViewer(listing, user);
+            const sanitized = await this.sanitizeListingForPublicViewer(listing, user);
+
+            // Convert entity to plain object so dynamically-added columns survive JSON serialization
+            // TypeORM entity class-transformer may strip properties not in runtime metadata
+            const plain: any = JSON.parse(JSON.stringify(sanitized));
+            plain.searchImpressions = (sanitized as any).searchImpressions ?? 0;
+            plain.clickToCallCount = (sanitized as any).clickToCallCount ?? 0;
+            plain.convertedLeads = (sanitized as any).convertedLeads ?? 0;
+            plain.offerViews = (sanitized as any).offerViews ?? 0;
+            plain.offerClicks = (sanitized as any).offerClicks ?? 0;
+            plain.adImpressions = (sanitized as any).adImpressions ?? 0;
+            plain.adClicks = (sanitized as any).adClicks ?? 0;
+            plain.avgResponseTimeMinutes = (sanitized as any).avgResponseTimeMinutes ?? 0;
+            plain.responseCount = (sanitized as any).responseCount ?? 0;
+            plain.followerHistory = (sanitized as any).followerHistory ?? [];
+            plain.userSubmittedPhotos = (sanitized as any).userSubmittedPhotos ?? [];
+            plain.contactPersonPrefix = (sanitized as any).contactPersonPrefix ?? null;
+
+            return plain;
         } catch (error: any) {
             log(`findBySlug: ${slug} - ERROR: ${error.message}\n${error.stack}`);
             throw error;
