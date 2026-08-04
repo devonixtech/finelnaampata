@@ -1,13 +1,4 @@
 providers = ["node"]
 
-[phases.install]
-cmds = ["npm install --include=dev --force"]
-
-[phases.build]
-cmds = [
-    "rm -rf backend/dist backend/tsconfig.tsbuildinfo node_modules/.cache",
-    "npm run build --prefix backend"
-]
-
 [start]
 cmd = "npm run start:prod --prefix backend"
