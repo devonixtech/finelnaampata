@@ -1411,6 +1411,33 @@ export class BusinessesService implements OnModuleInit {
 
             log(`findBySlug: ${slug} - Found in DB. Status: ${listing.status}`);
 
+            // Fetch new columns that may not be in TypeORM metadata
+            try {
+                const extraCols = await this.listingRepository.query(
+                    `SELECT search_impressions, click_to_call_count, converted_leads, offer_views, offer_clicks,
+                            ad_impressions, ad_clicks, avg_response_time_minutes, response_count,
+                            follower_history, user_submitted_photos, contact_person_prefix
+                     FROM businesses WHERE id = $1`, [listing.id]
+                );
+                if (extraCols?.[0]) {
+                    const e = extraCols[0];
+                    (listing as any).searchImpressions = e.search_impressions;
+                    (listing as any).clickToCallCount = e.click_to_call_count;
+                    (listing as any).convertedLeads = e.converted_leads;
+                    (listing as any).offerViews = e.offer_views;
+                    (listing as any).offerClicks = e.offer_clicks;
+                    (listing as any).adImpressions = e.ad_impressions;
+                    (listing as any).adClicks = e.ad_clicks;
+                    (listing as any).avgResponseTimeMinutes = e.avg_response_time_minutes;
+                    (listing as any).responseCount = e.response_count;
+                    (listing as any).followerHistory = e.follower_history;
+                    (listing as any).userSubmittedPhotos = e.user_submitted_photos;
+                    (listing as any).contactPersonPrefix = e.contact_person_prefix;
+                }
+            } catch (e) {
+                log(`findBySlug: ${slug} - Extra columns fetch failed: ${(e as any)?.message}`);
+            }
+
             const isPubliclyVisible = listing.status === BusinessStatus.APPROVED && !listing.hiddenByDeletion;
             if (!isPubliclyVisible) {
                 const isOwner = user && listing.vendor && listing.vendor.userId === user.id;
