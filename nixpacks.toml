@@ -6,9 +6,7 @@ cmds = ["npm install --include=dev --force"]
 [phases.build]
 cmds = [
     "rm -rf backend/dist backend/tsconfig.tsbuildinfo node_modules/.cache",
-    "npm run build --prefix backend",
-    "echo 'BUILD COMPLETE v3 - cache bust'",
-    "node -e \"const e=require('./backend/dist/entities/business.entity'); console.log('Columns:', Object.getOwnPropertyNames(e.Listing.prototype))\""
+    "npm run build --prefix backend"
 ]
 
 [start]
