@@ -5,9 +5,10 @@ cmds = ["npm install --include=dev"]
 
 [phases.build]
 cmds = [
+    "rm -rf backend/dist backend/tsconfig.tsbuildinfo",
     "npm install",
     "npm run build --workspace=@business-saas/api",
-    "ls -la backend/dist",
+    "ls -la backend/dist/entities",
     "echo '--- BUILD COMPLETE ---'"
 ]
 
