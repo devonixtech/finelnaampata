@@ -162,6 +162,18 @@ export async function fixProductionSchema(dataSource: DataSource) {
                 { name: 'terms_version', type: 'varchar(32)', nullable: true },
                 { name: 'privacy_version', type: 'varchar(32)', nullable: true },
                 { name: 'hidden_by_deletion', type: 'boolean', default: 'false' },
+                { name: 'search_impressions', type: 'integer', default: '0' },
+                { name: 'converted_leads', type: 'integer', default: '0' },
+                { name: 'click_to_call_count', type: 'integer', default: '0' },
+                { name: 'response_count', type: 'integer', default: '0' },
+                { name: 'follower_history', type: 'jsonb', default: '\'[]\'' },
+                { name: 'offer_views', type: 'integer', default: '0' },
+                { name: 'offer_clicks', type: 'integer', default: '0' },
+                { name: 'ad_impressions', type: 'integer', default: '0' },
+                { name: 'ad_clicks', type: 'integer', default: '0' },
+                { name: 'avg_response_time_minutes', type: 'real', default: '0' },
+                { name: 'contact_person_prefix', type: 'varchar(10)', nullable: true },
+                { name: 'user_submitted_photos', type: 'jsonb', default: '\'[]\'' },
             ];
 
             for (const col of missingColumns) {
