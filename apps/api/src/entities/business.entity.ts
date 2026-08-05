@@ -39,6 +39,15 @@ export class Business {
     @Column({ length: 255 })
     name: string;
 
+    @Column({ length: 255, nullable: true })
+    tagline: string;
+
+    @Column({ name: 'contact_person_name', length: 150, nullable: true })
+    contactPersonName: string;
+
+    @Column({ name: 'year_established', type: 'int', nullable: true })
+    yearEstablished: number;
+
     @Column({ unique: true, length: 255 })
     slug: string;
 
@@ -47,6 +56,33 @@ export class Business {
 
     @Column({ length: 20 })
     phone: string;
+
+    @Column({ name: 'alternate_phones', type: 'jsonb', nullable: true })
+    alternatePhones: string[]; // Up to 4 extra numbers
+
+    @Column({ length: 255, nullable: true })
+    website: string;
+
+    @Column({ name: 'business_hours', type: 'jsonb', nullable: true })
+    businessHours: any; // { monday: { open: '09:00', close: '17:00' }, ... }
+
+    @Column({ name: 'social_links', type: 'jsonb', nullable: true })
+    socialLinks: any; // { facebook: 'url', instagram: 'url', ... }
+
+    @Column({ type: 'jsonb', nullable: true })
+    keywords: string[];
+
+    @Column({ name: 'service_categories', type: 'jsonb', nullable: true })
+    serviceCategories: string[]; // Up to 4 mapped categories (string array of IDs or names)
+
+    @Column({ name: 'logo_url', type: 'text', nullable: true })
+    logoUrl: string;
+
+    @Column({ name: 'cover_image_url', type: 'text', nullable: true })
+    coverImageUrl: string;
+
+    @Column({ name: 'gallery_images', type: 'jsonb', nullable: true })
+    galleryImages: string[];
 
     @Column({ type: 'text' })
     address: string;

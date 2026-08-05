@@ -111,7 +111,7 @@ export default function Navbar() {
         enquiry_reply: 'bg-green-100 text-green-700',
         new_vendor: 'bg-purple-100 text-purple-700',
         info: 'bg-slate-100 text-slate-500',
-        CHAT_MESSAGE: 'bg-emerald-100 text-emerald-700',
+        chat_message: 'bg-emerald-100 text-emerald-700',
     };
 
     useEffect(() => {
@@ -151,9 +151,9 @@ export default function Navbar() {
                 <div className="flex justify-between items-center h-20 relative">
 
                     {/* Logo Area */}
-                    <div className="flex-shrink-0 flex items-center">
-                        <Link href="/" className="flex items-center group">
-                            <img src="/logo.png" alt="naampata" className="h-[14.5rem] w-auto object-contain -my-20" />
+                    <div className="flex-shrink-0 flex items-center relative z-50">
+                        <Link href="/" className="flex items-center group relative w-32 h-10">
+                            <img src="/logo.png" alt="naampata" className="absolute top-1/2 left-0 -translate-y-1/2 h-[14.5rem] w-auto max-w-none object-contain pointer-events-none" />
                         </Link>
                     </div>
 
@@ -380,6 +380,7 @@ export default function Navbar() {
                                         List Business
                                     </Link>
                                 )}
+
                                 <Link href={user.role === 'admin' || user.role === 'superadmin' ? '/admin' : '/dashboard'} className="hidden sm:flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors">
                                     <BusinessAvatar
                                         src={user.avatarUrl}

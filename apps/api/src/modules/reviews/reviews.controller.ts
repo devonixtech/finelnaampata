@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards, Req, Param } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -30,5 +30,12 @@ export class ReviewsController {
     @UseGuards(JwtAuthGuard)
     flagAsSpam(@Param('id') id: string, @Req() req: any) {
         return this.reviewsService.flagAsSpam(id, req.user.id);
+    }
+
+    @Put(':id/status')
+    @UseGuards(JwtAuthGuard)
+    updateStatus(@Param('id') id: string, @Body('status') status: 'active' | 'flagged' | 'hidden') {
+        // In production, add AdminGuard to ensure only admins can do this
+        return this.reviewsService.updateStatus(id, status);
     }
 }

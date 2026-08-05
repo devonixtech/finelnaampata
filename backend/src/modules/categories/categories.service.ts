@@ -514,22 +514,43 @@ export class CategoriesService {
         return queryBuilder.getMany();
     }
 
-    /**
-     * Get root categories (no parent) - ACTIVE ONLY
-     */
-    async findRootCategories(activeOnly = true): Promise<Category[]> {
-        const where: any = { parentId: IsNull() };
+    async findRootCategories(activeOnly = true): Promise<any[]> {
+        const query = this.categoryRepository
+            .createQueryBuilder('category')
+            .leftJoin('category.businesses', 'business', 'business.status = :status', { status: 'approved' })
+            .leftJoinAndSelect('category.subcategories', 'subcategories')
+            .where('category.parentId IS NULL');
+            
         if (activeOnly) {
-            where.status = CategoryStatus.ACTIVE;
+            query.andWhere('category.status = :isActive', { isActive: CategoryStatus.ACTIVE });
+            query.andWhere('(subcategories.status = :isActive OR subcategories.id IS NULL)', { isActive: CategoryStatus.ACTIVE });
         }
 
-        return this.categoryRepository.find({
-            where,
-            relations: ['subcategories'],
-            order: {
-                displayOrder: 'ASC',
-                name: 'ASC',
-            },
+        const results = await query
+            .select([
+                'category.id',
+                'category.name',
+                'category.slug',
+                'category.icon',
+                'category.image_url',
+                'category.description',
+                'category.displayOrder',
+                'subcategories.id',
+                'subcategories.name',
+                'subcategories.slug'
+            ])
+            .addSelect('COUNT(DISTINCT business.id)', 'businessCount')
+            .groupBy('category.id, subcategories.id')
+            .orderBy('category.displayOrder', 'ASC')
+            .addOrderBy('category.name', 'ASC')
+            .getRawAndEntities();
+
+        return results.entities.map(entity => {
+            const raw = results.raw.find(r => r.category_id === entity.id);
+            return {
+                ...entity,
+                businessCount: parseInt(raw?.businessCount || '0')
+            };
         });
     }
 

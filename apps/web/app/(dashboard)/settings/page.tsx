@@ -62,6 +62,12 @@ export default function AccountSettings() {
     const [vendorFeatures, setVendorFeatures] = useState<{ canCreateAlbums?: boolean }>({});
     const [uploadingShopPhotos, setUploadingShopPhotos] = useState(false);
 
+    // Phone Verification State
+    const [otpModalOpen, setOtpModalOpen] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [otpSending, setOtpSending] = useState(false);
+    const [otpVerifying, setOtpVerifying] = useState(false);
+
     // Password State
     const [pwdSaving, setPwdSaving] = useState(false);
     const [pwdSuccess, setPwdSuccess] = useState(false);
@@ -585,8 +591,13 @@ export default function AccountSettings() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
-                                    <Phone className="w-3.5 h-3.5" /> Phone Number
+                                <label className="flex items-center justify-between gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
+                                    <span className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> Phone Number</span>
+                                    {user?.isPhoneVerified ? (
+                                        <span className="text-green-500 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Verified</span>
+                                    ) : (
+                                        <span className="text-orange-500 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Unverified</span>
+                                    )}
                                 </label>
                                 <input
                                     type="tel"
@@ -596,6 +607,45 @@ export default function AccountSettings() {
                                     placeholder="e.g. +1 234 567 890"
                                     className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
                                 />
+                                {!user?.isPhoneVerified && formData.phone && (
+                                    <div className="mt-2">
+                                        {!otpModalOpen ? (
+                                            <button
+                                                type="button"
+                                                onClick={handleSendOtp}
+                                                disabled={otpSending}
+                                                className="text-xs bg-orange-100 text-orange-700 px-4 py-2 rounded-lg font-bold hover:bg-orange-200 transition-colors"
+                                            >
+                                                {otpSending ? 'Sending OTP...' : 'Verify this number'}
+                                            </button>
+                                        ) : (
+                                            <div className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl border border-slate-200 mt-2">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Enter 6-digit OTP" 
+                                                    value={otp} 
+                                                    onChange={e => setOtp(e.target.value)}
+                                                    className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold w-full outline-none focus:border-blue-500"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleVerifyOtp}
+                                                    disabled={otpVerifying}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 whitespace-nowrap"
+                                                >
+                                                    {otpVerifying ? 'Verifying...' : 'Verify'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOtpModalOpen(false)}
+                                                    className="text-slate-400 hover:text-slate-600 p-2"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-3">

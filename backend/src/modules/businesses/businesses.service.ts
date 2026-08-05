@@ -626,18 +626,6 @@ export class BusinessesService implements OnModuleInit {
             }
         }
 
-        // Enforce 1 business per vendor (admins exempt)
-        if (![UserRole.ADMIN, UserRole.SUPERADMIN].includes(user.role as UserRole)) {
-            const existingBusinessCount = await this.listingRepository.count({
-                where: { vendorId: vendor.id, hiddenByDeletion: false },
-            });
-            if (existingBusinessCount > 0) {
-                throw new BadRequestException(
-                    'Each vendor can only have one business listing. Please edit your existing listing instead of creating a new one.',
-                );
-            }
-        }
-
         const requiredConsentFields = [
             createBusinessDto.legalConsentTerms,
             createBusinessDto.legalConsentPrivacy,
@@ -1220,7 +1208,7 @@ export class BusinessesService implements OnModuleInit {
                         .from('job_lead_responses', 'jlr')
                         .where('jlr.vendor_id = vendor.id')
                         .getQuery();
-                    return `EXISTS ${subQuery}`;
+                    return `EXISTS (${subQuery})`;
                 })
                 .orWhere('listing.totalLeads > 0');
             }));
@@ -1253,9 +1241,10 @@ export class BusinessesService implements OnModuleInit {
         // Open Now filter — timezone-aware
         if (openNow) {
             // Use business's own timezone if set, otherwise fallback to server timezone
+            // Note: FMDay removes padding spaces in TO_CHAR
             queryBuilder.andWhere(new Brackets((qb) => {
                 qb.where(
-                    `businessHours.dayOfWeek = LOWER(TO_CHAR(NOW() AT TIME ZONE COALESCE("listing"."timezone", 'UTC'), 'Day'))`
+                    `businessHours.dayOfWeek = LOWER(TO_CHAR(NOW() AT TIME ZONE COALESCE("listing"."timezone", 'UTC'), 'FMDay'))`
                 )
                 .andWhere('businessHours.isOpen = :isOpen', { isOpen: true })
                 .andWhere(

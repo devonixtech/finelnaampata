@@ -13,7 +13,7 @@ export default function CategoriesSidebar({ initialCategories }: { initialCatego
   }, [initialCategories, categorySearch]);
 
   return (
-    <aside className="hidden lg:flex w-80 flex-col bg-white border-r border-gray-200 h-[calc(100vh-64px)] sticky top-[64px] overflow-hidden">
+    <aside className="hidden lg:flex w-80 flex-col bg-white border-r border-gray-200 h-full overflow-hidden flex-shrink-0">
       <div className="p-4 border-b border-gray-100 flex-shrink-0">
         <h2 className="text-lg font-bold text-gray-900 mb-4">Categories</h2>
         <div className="relative">

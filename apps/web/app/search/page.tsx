@@ -7,6 +7,7 @@ import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import BusinessCard from '../../components/BusinessCard';
+import ImpressionTracker from '../../components/ImpressionTracker';
 import CitySearchSelect from '../../components/CitySearchSelect';
 import { api } from '../../lib/api';
 import { Business, City } from '../../types/api';
@@ -516,9 +517,11 @@ function SearchResults() {
                         ) : results.length > 0 ? (
                             <div className={viewMode === 'grid' ? "grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6" : "flex flex-col gap-6"}>
                                 {results.map(biz => (
-                                    <div key={biz.id} className={viewMode === 'list' ? 'max-w-2xl' : ''}>
-                                        <BusinessCard business={biz} />
-                                    </div>
+                                    <ImpressionTracker key={biz.id} businessId={biz.id}>
+                                        <div className={viewMode === 'list' ? 'max-w-2xl' : ''}>
+                                            <BusinessCard business={biz} />
+                                        </div>
+                                    </ImpressionTracker>
                                 ))}
                             </div>
                         ) : (

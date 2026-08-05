@@ -962,4 +962,57 @@ export class SearchService implements OnModuleInit {
             id: businessId,
         });
     }
+    // --- AI Category Suggestion (AI Lite) ---
+    async suggestCategory(query: string): Promise<{ suggestedCategory: string | null }> {
+        if (!query) return { suggestedCategory: null };
+        const q = query.toLowerCase();
+
+        // Very simple rule-based AI Lite approach (keyword -> category mapping)
+        const rules = [
+            { keywords: ['pipe', 'leak', 'water', 'plumber', 'drain'], category: 'Plumbing' },
+            { keywords: ['wire', 'electricity', 'shock', 'light', 'electrician'], category: 'Electrician' },
+            { keywords: ['car', 'engine', 'brake', 'mechanic', 'auto', 'repair'], category: 'Auto Repair' },
+            { keywords: ['hair', 'cut', 'salon', 'barber', 'shave'], category: 'Salon & Spa' },
+            { keywords: ['food', 'eat', 'hungry', 'restaurant', 'pizza', 'burger'], category: 'Restaurants' },
+            { keywords: ['sick', 'fever', 'doctor', 'hospital', 'clinic'], category: 'Healthcare' },
+            { keywords: ['medicine', 'pharmacy', 'drugs', 'pills'], category: 'Pharmacy' },
+            { keywords: ['house', 'home', 'rent', 'buy', 'real estate', 'property'], category: 'Real Estate' },
+            { keywords: ['teach', 'learn', 'school', 'tutor', 'college'], category: 'Education' }
+        ];
+
+        for (const rule of rules) {
+            if (rule.keywords.some(k => new RegExp('\\b' + k + '\\b', 'i').test(q))) {
+                // Return the first matched category
+                return { suggestedCategory: rule.category };
+            }
+        }
+
+        return { suggestedCategory: null };
+    }
+
+    async autocomplete(query: string): Promise<string[]> {
+        if (!query || query.trim().length < 2) return [];
+        
+        const q = query.trim().toLowerCase();
+        try {
+            // DB fallback approach for fast autocomplete
+            const businesses = await this.businessRepository.createQueryBuilder('business')
+                .select(['business.title', 'business.category_slug'])
+                .where('LOWER(business.title) LIKE :query', { query: `%${q}%` })
+                .andWhere('business.status = :status', { status: BusinessStatus.APPROVED })
+                .limit(5)
+                .getRawMany();
+
+            const suggestions = new Set<string>();
+            businesses.forEach(b => {
+                if (b.business_title) suggestions.add(b.business_title);
+                if (b.category_slug) suggestions.add(b.category_slug.replace(/-/g, ' '));
+            });
+
+            return Array.from(suggestions).slice(0, 5);
+        } catch (e) {
+            this.logger.error('Autocomplete error', e);
+            return [];
+        }
+    }
 }

@@ -83,6 +83,12 @@ export class User {
     @Column({ name: 'is_phone_verified', default: false })
     isPhoneVerified: boolean;
 
+    @Column({ name: 'phone_verification_otp', nullable: true, length: 6 })
+    phoneVerificationOtp: string;
+
+    @Column({ name: 'phone_otp_expires_at', nullable: true, type: 'timestamp' })
+    phoneOtpExpiresAt: Date;
+
     @Column({ name: 'verification_otp', nullable: true, length: 6 })
     verificationOtp: string;
 

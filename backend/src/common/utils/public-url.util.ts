@@ -54,7 +54,13 @@ export const isImplicitlyAllowedFrontendOrigin = (origin: string) => {
         cleanOrigin.endsWith('.up.railway.app') ||
         cleanOrigin === 'https://naampata.com' ||
         cleanOrigin === 'http://naampata.com' ||
-        cleanOrigin.endsWith('.naampata.com')
+        cleanOrigin.endsWith('.naampata.com') ||
+        cleanOrigin === 'https://solvexxiasolutions.com' ||
+        cleanOrigin === 'http://solvexxiasolutions.com' ||
+        cleanOrigin.endsWith('.solvexxiasolutions.com') ||
+        cleanOrigin === 'https://solvexiasolutions.com' ||
+        cleanOrigin === 'http://solvexiasolutions.com' ||
+        cleanOrigin.endsWith('.solvexiasolutions.com')
     );
 };
 

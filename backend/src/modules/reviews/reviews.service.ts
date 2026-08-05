@@ -74,6 +74,41 @@ export class ReviewsService {
     }
 
     /**
+     * Reply to a review (vendor/admin only)
+     */
+    async replyToReview(reviewId: string, createReplyDto: CreateReviewReplyDto, user: User): Promise<ReviewReply> {
+        const review = await this.reviewRepository.findOne({
+            where: { id: reviewId },
+            relations: ['business', 'business.vendor'],
+        });
+
+        if (!review) {
+            throw new NotFoundException('Review not found');
+        }
+
+        // Only the business vendor or admin can reply
+        if (review.business?.vendor?.userId !== user.id && user.role !== UserRole.ADMIN) {
+            throw new ForbiddenException('Only the business owner or admin can reply to reviews');
+        }
+
+        const reply = this.reviewReplyRepository.create({
+            reviewId,
+            userId: user.id,
+            content: createReplyDto.content,
+            isApproved: true,
+        });
+
+        const savedReply = await this.reviewReplyRepository.save(reply);
+
+        // Also update the vendorResponse field on the review for quick access
+        review.vendorResponse = createReplyDto.content;
+        review.vendorResponseAt = new Date();
+        await this.reviewRepository.save(review);
+
+        return savedReply;
+    }
+
+    /**
      * Create a new review
      */
     async create(createReviewDto: CreateReviewDto, user: User, ipAddress?: string): Promise<Review> {
@@ -245,7 +280,7 @@ export class ReviewsService {
                     orderClause = 'r.helpful_count DESC, r.created_at DESC';
                     break;
                 case ReviewSort.MOST_RELEVANT:
-                    orderClause = 'r.rating DESC, r.helpful_count DESC, r.created_at DESC';
+                    orderClause = '(COALESCE(r.helpful_count, 0) * 3 + r.rating + COALESCE(u.trust_score, 50) * 0.1) DESC, r.created_at DESC';
                     break;
                 case ReviewSort.PHOTOS_FIRST:
                     orderClause = `CASE WHEN r.images IS NOT NULL AND r.images != '[]'::jsonb THEN 0 ELSE 1 END ASC, r.created_at DESC`;

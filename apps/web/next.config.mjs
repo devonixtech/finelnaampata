@@ -7,6 +7,7 @@ const nextConfig = {
     },
     trailingSlash: isStaticExport,
     output: isStaticExport ? 'export' : 'standalone',
+    // assetPrefix removed - PHP router handles all static file serving
     typescript: {
         ignoreBuildErrors: true,
     },

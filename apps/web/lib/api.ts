@@ -62,12 +62,19 @@ async function fetcher<T>(endpoint: string, options?: FetcherOptions): Promise<T
     const url = `${API_BASE_URL.endsWith('/') ? API_BASE_URL : API_BASE_URL + '/'}${cleanEndpoint}`;
 
     try {
-        const response = await fetch(url, {
-            cache: 'no-store', // Disable Next.js aggressive fetch caching
+        const fetchOptions: RequestInit = {
             ...options,
             headers,
             signal: controller.signal,
-        });
+        };
+
+        // Disable Next.js aggressive fetch caching on the server,
+        // EXCEPT when we are performing a static export (SSG), where caching is required.
+        if (process.env.STATIC_EXPORT !== 'true' && !fetchOptions.cache && !fetchOptions.next) {
+            fetchOptions.cache = 'no-store';
+        }
+
+        const response = await fetch(url, fetchOptions);
 
         clearTimeout(timeoutId);
 
@@ -724,6 +731,8 @@ export const api = {
             categories: any[],
             cities: any[]
         }>(`/admin/search/global?q=${encodeURIComponent(q)}`),
+        searchAutocomplete: (q: string) => fetcher<string[]>(`/search/autocomplete?q=${encodeURIComponent(q)}`, { silent: true }),
+        aiCategorySuggestion: (q: string) => fetcher<{ suggestedCategory: string | null }>(`/search/ai-category-suggestion?q=${encodeURIComponent(q)}`, { silent: true }),
         affiliate: {
             getReferrals: () => fetcher<any[]>('/affiliate/admin/referrals'),
             activateReferral: (id: string) => fetcher<any>(`/affiliate/admin/activate-referral/${id}`, { method: 'POST' }),

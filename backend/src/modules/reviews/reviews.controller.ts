@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
+import { TrustService } from '../users/trust.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { VendorResponseDto } from './dto/vendor-response.dto';
@@ -36,9 +37,23 @@ const REVIEW_RATE_WINDOW_MS = 60 * 60 * 1000;
 @Controller('reviews')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReviewsController {
-    constructor(private readonly reviewsService: ReviewsService) { }
+    constructor(
+        private readonly reviewsService: ReviewsService,
+        private readonly trustService: TrustService,
+    ) { }
 
-    // Reply-to-review endpoints removed per spec
+    @Post(':id/reply')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Reply to a review (Vendor/Admin only)' })
+    @ApiResponse({ status: 201, description: 'Reply created successfully' })
+    replyToReview(
+        @Param('id', ParseUuidPipe) id: string,
+        @Body() createReplyDto: CreateReviewReplyDto,
+        @CurrentUser() user: User,
+    ) {
+        return this.reviewsService.replyToReview(id, createReplyDto, user);
+    }
 
     @Post()
     @Roles(UserRole.USER, UserRole.VENDOR, UserRole.ADMIN)
@@ -55,6 +70,7 @@ export class ReviewsController {
         const timestamps = reviewRateLimitStore.get(user.id) || [];
         const recentTimestamps = timestamps.filter(t => now - t < REVIEW_RATE_WINDOW_MS);
         if (recentTimestamps.length >= REVIEW_RATE_LIMIT) {
+            this.trustService.penalizeRateLimit(user.id).catch(e => console.error('Trust penalty failed', e));
             throw new HttpException('Too many reviews. Please wait before posting again.', HttpStatus.TOO_MANY_REQUESTS);
         }
         recentTimestamps.push(now);

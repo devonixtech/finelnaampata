@@ -185,17 +185,18 @@ export function useChat(conversationId?: string, businessId?: string) {
         const fetchHistory = async () => {
             setIsLoading(true);
             try {
-                const history = await chatApi.getMessages(conversationId) as any[];
+                const response = await chatApi.getMessages(conversationId) as any;
+                const history = Array.isArray(response) ? response : (response?.data || response?.messages || []);
                 // Merge history with existing messages (like optimistic ones)
                 setMessages(prev => {
                     // Filter out any messages from prev that are already in history (by ID or content match for optimistic)
                     const filteredPrev = prev.filter(m => {
-                        const isInHistory = history.some(h => h.id === m.id);
+                        const isInHistory = history.some((h: any) => h.id === m.id);
                         if (isInHistory) return false;
                         
                         // Also check for optimistic matches that might have arrived as real messages in history
                         if (m.isOptimistic) {
-                            return !history.some(h => h.content === m.content && h.senderId === m.senderId);
+                            return !history.some((h: any) => h.content === m.content && h.senderId === m.senderId);
                         }
                         return true;
                     });

@@ -16,10 +16,11 @@ import { TrustService } from './trust.service';
 import { Vendor } from '../../entities/vendor.entity';
 import { Lead } from '../../entities/lead.entity';
 import { Comment } from '../../entities/comment.entity';
+import { SearchLog } from '../../entities/search-log.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, SavedListing, SavedOfferEvent, OfferEvent, Notification, Listing, Review, Vendor, Lead, Comment]),
+        TypeOrmModule.forFeature([User, SavedListing, SavedOfferEvent, OfferEvent, Notification, Listing, Review, Vendor, Lead, Comment, SearchLog]),
         SubscriptionsModule,
         AdminModule,
     ],

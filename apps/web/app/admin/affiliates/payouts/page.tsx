@@ -161,7 +161,7 @@ export default function PayoutsAdminPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Pending', value: pendingCount, sub: `$${totalPending.toFixed(2)}`, color: 'bg-amber-100', textColor: 'text-amber-600', filterVal: 'pending' },
+                    { label: 'Pending', value: pendingCount, sub: `Rs. ${(Number(totalPending) || 0).toFixed(2)}`, color: 'bg-amber-100', textColor: 'text-amber-600', filterVal: 'pending' },
                     { label: 'Approved', value: approvedCount, color: 'bg-blue-100', textColor: 'text-blue-600', filterVal: 'approved' },
                     { label: 'Paid', value: paidCount, color: 'bg-emerald-100', textColor: 'text-emerald-600', filterVal: 'paid' },
                     { label: 'Rejected', value: rejectedCount, color: 'bg-red-100', textColor: 'text-red-500', filterVal: 'rejected' },
@@ -256,7 +256,7 @@ export default function PayoutsAdminPage() {
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-xs text-slate-400 font-medium flex-wrap">
-                                                <span className="font-black text-slate-900 text-lg">${payout.amount.toFixed(2)}</span>
+                                                <span className="font-black text-slate-900 text-lg">Rs. {(Number(payout.amount) || 0).toFixed(2)}</span>
                                                 <span>·</span>
                                                 <span>{payout.method}</span>
                                                 <span>·</span>

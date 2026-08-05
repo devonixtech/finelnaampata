@@ -116,10 +116,9 @@ export class CreateBusinessDto {
     @MaxLength(255)
     title: string;
 
-    @ApiPropertyOptional({ description: 'Category UUID (Optional if suggestedCategoryName is provided)' })
-    @IsOptional()
+    @ApiProperty({ description: 'Category UUID (Optional if suggestedCategoryName is provided)' })
     @IsUUID()
-    categoryId?: string;
+    categoryId: string;
 
     @ApiPropertyOptional({ description: 'New category suggested by vendor' })
     @IsOptional()
@@ -133,11 +132,10 @@ export class CreateBusinessDto {
     @IsUUID('4', { each: true })
     subCategoryIds?: string[];
 
-    @ApiPropertyOptional({ example: 'A wonderful dining experience...' })
-    @IsOptional()
+    @ApiProperty({ example: 'A wonderful dining experience...' })
     @IsString()
     @MinLength(20)
-    description?: string;
+    description: string;
 
     @ApiPropertyOptional({ example: 'Great food and ambiance', maxLength: 500 })
     @IsOptional()
@@ -221,21 +219,19 @@ export class CreateBusinessDto {
     @MaxLength(64)
     timezone?: string;
 
-    @ApiPropertyOptional({ example: 40.7128, description: 'Latitude' })
-    @IsOptional()
+    @ApiProperty({ example: 40.7128, description: 'Latitude' })
     @Type(() => Number)
     @IsNumber()
     @Min(-90)
     @Max(90)
-    latitude?: number;
+    latitude: number;
 
-    @ApiPropertyOptional({ example: -74.0060, description: 'Longitude' })
-    @IsOptional()
+    @ApiProperty({ example: -74.0060, description: 'Longitude' })
     @Type(() => Number)
     @IsNumber()
     @Min(-180)
     @Max(180)
-    longitude?: number;
+    longitude: number;
 
     @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
     @IsOptional()
@@ -270,12 +266,11 @@ export class CreateBusinessDto {
     @IsUrl({}, { each: true })
     videos?: string[];
 
-    @ApiPropertyOptional({ example: 2010 })
-    @IsOptional()
+    @ApiProperty({ example: 2010 })
     @IsInt()
     @Min(1800)
     @Max(new Date().getFullYear())
-    yearEstablished?: number;
+    yearEstablished: number;
 
     @ApiPropertyOptional({ example: '10-50' })
     @IsOptional()
@@ -288,12 +283,11 @@ export class CreateBusinessDto {
     @IsString()
     priceRange?: string;
 
-    @ApiPropertyOptional({ type: [BusinessHoursDto] })
-    @IsOptional()
+    @ApiProperty({ type: [BusinessHoursDto] })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => BusinessHoursDto)
-    businessHours?: BusinessHoursDto[];
+    businessHours: BusinessHoursDto[];
 
     @ApiPropertyOptional({ type: [String], description: 'Array of amenity UUIDs' })
     @IsOptional()
@@ -420,11 +414,10 @@ export class CreateBusinessDto {
     legalConsentMarketing?: boolean;
 
     // V2 Registration Flow Fields
-    @ApiPropertyOptional({ example: 'John Doe' })
-    @IsOptional()
+    @ApiProperty({ example: 'John Doe' })
     @IsString()
     @MaxLength(150)
-    contactPersonName?: string;
+    contactPersonName: string;
 
     @ApiPropertyOptional({ example: 'Mr.' })
     @IsOptional()
@@ -438,11 +431,10 @@ export class CreateBusinessDto {
     @MaxLength(100)
     contactPersonTitle?: string;
 
-    @ApiPropertyOptional({ example: 'Trusted local supplier since 2010' })
-    @IsOptional()
+    @ApiProperty({ example: 'Trusted local supplier since 2010' })
     @IsString()
     @MaxLength(200)
-    businessTagline?: string;
+    businessTagline: string;
 
     @ApiPropertyOptional({ example: false })
     @IsOptional()

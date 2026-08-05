@@ -72,6 +72,11 @@ export class Review {
     @Exclude()
     ipAddress: string;
 
+    @Column({ name: 'device_fingerprint', nullable: true })
+    @Index()
+    @Exclude()
+    deviceFingerprint: string;
+
     @Column({ name: 'vendor_response', nullable: true, type: 'text' })
     vendorResponse: string;
 

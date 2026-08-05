@@ -111,7 +111,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             setNotifications(prev => [notif, ...prev].slice(0, 50));
             setUnreadCount(prev => prev + 1);
             
-            if (notif.type === 'CHAT_MESSAGE') {
+            if (notif.type === 'chat_message' || notif.type === 'CHAT_MESSAGE') {
                 setUnreadChatCount(prev => prev + 1);
             }
         });

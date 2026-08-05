@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body, Put } from '@nestjs/common';
 import { BusinessesService } from './businesses.service';
 import { Business } from '../../entities/business.entity';
 
@@ -24,5 +24,15 @@ export class BusinessesController {
     @Get(':id')
     async findOne(@Param('id') id: string): Promise<Business | null> {
         return this.businessesService.findOne(id);
+    }
+
+    @Post()
+    async create(@Body() createDto: any): Promise<Business> {
+        return this.businessesService.create(createDto);
+    }
+
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() updateDto: any): Promise<Business> {
+        return this.businessesService.update(id, updateDto);
     }
 }

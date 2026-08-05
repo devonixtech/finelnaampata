@@ -403,6 +403,10 @@ export class SearchLocationService {
             if (b.totalViews > 0) relevanceScore += Math.min(10, Math.log2(b.totalViews + 1) * 2);
             if (b.totalLeads > 0) relevanceScore += Math.min(10, Math.log2(b.totalLeads + 1) * 3);
             if (b.followersCount > 0) relevanceScore += Math.min(5, Math.log2(b.followersCount + 1) * 2);
+            if (b.savedCount > 0) relevanceScore += Math.min(8, Math.log2(b.savedCount + 1) * 2);
+            if (b.avgResponseTimeMinutes !== undefined && b.avgResponseTimeMinutes !== null) { relevanceScore += (1 / (1 + b.avgResponseTimeMinutes)) * 10; }
+            if ((b as any).isOpenNow) relevanceScore *= 1.3;
+            if ((b as any).isOnline) relevanceScore *= 1.2;
             relevanceScore += (b.manualRankingBoost || 0);
             if (b.isVerified) relevanceScore += 5;
 

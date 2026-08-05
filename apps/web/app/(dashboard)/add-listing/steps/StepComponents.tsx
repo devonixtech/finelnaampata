@@ -25,7 +25,7 @@ export const Step1NameTagline = ({ formData, setFormData }: StepProps) => (
             <p className="text-xs text-slate-500 mt-2">{formData.title.length}/100 characters. Enter the exact name as it appears on your storefront or official documents.</p>
         </div>
         <div>
-            <label className={labelClass}>Business Tagline (Optional)</label>
+            <label className={labelClass}>Business Tagline</label>
             <input 
                 type="text" 
                 className={inputClass} 

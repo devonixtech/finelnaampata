@@ -40,13 +40,14 @@ export default function ChatDashboard() {
 
     const fetchConversations = useCallback(async () => {
         try {
-            let data: any[] = [];
+            let data: any = [];
             if (isVendor || isAdmin) {
-                data = await chatApi.getVendorConversations() as any[];
+                data = await chatApi.getVendorConversations();
             } else {
-                data = await chatApi.getUserConversations() as any[];
+                data = await chatApi.getUserConversations();
             }
-            setConversations(data);
+            const conversationsArray = Array.isArray(data) ? data : (data?.data || data?.conversations || []);
+            setConversations(conversationsArray);
             
             // Check for ID in URL
             const urlParams = new URLSearchParams(window.location.search);

@@ -19,6 +19,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { TrustModule } from './modules/trust/trust.module';
 import { LocationModule } from './modules/location/location.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BullModule } from '@nestjs/bullmq';
 import { NotificationsGateway } from './gateways/notifications.gateway';
 
@@ -85,6 +86,7 @@ import { NotificationsGateway } from './gateways/notifications.gateway';
     TrustModule,
     LocationModule,
     AffiliateModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService, NotificationsGateway],

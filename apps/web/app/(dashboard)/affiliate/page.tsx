@@ -43,7 +43,7 @@ export default function AffiliateDashboard() {
 
     // KYC State
     const [showKycModal, setShowKycModal] = useState(false);
-    const [kycDocumentUrl, setKycDocumentUrl] = useState('');
+    const [kycFile, setKycFile] = useState<File | null>(null);
     const [submittingKyc, setSubmittingKyc] = useState(false);
 
     useEffect(() => {
@@ -132,15 +132,16 @@ export default function AffiliateDashboard() {
 
     const handleSubmitKyc = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!kycDocumentUrl) {
-            showAlert('Missing Document', 'Please provide a document URL', 'error');
+        if (!kycFile) {
+            showAlert('Missing Document', 'Please upload a valid ID document', 'error');
             return;
         }
         setSubmittingKyc(true);
         try {
-            await api.affiliate.submitKyc(kycDocumentUrl);
+            const documentUrl = await api.listings.uploadImage(kycFile);
+            await api.affiliate.submitKyc(documentUrl);
             setShowKycModal(false);
-            setKycDocumentUrl('');
+            setKycFile(null);
             await loadData();
             showAlert('KYC Submitted', 'Your KYC document has been submitted for review!', 'success');
         } catch (err: any) {
@@ -317,6 +318,11 @@ export default function AffiliateDashboard() {
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Paid Out</p>
                     <p className="text-2xl font-black text-slate-900">Rs. {earnings?.paidOut || stats?.totalWithdrawals || 0}</p>
+                    {stats?.pendingPayoutAmount > 0 && (
+                        <p className="text-[10px] font-bold text-amber-500 mt-1 uppercase tracking-wide">
+                            + Rs. {stats.pendingPayoutAmount} Pending Processing
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -355,7 +361,7 @@ export default function AffiliateDashboard() {
                     </div>
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conversion Rate</p>
-                        <p className="text-xl font-black text-slate-900">{(earnings?.conversionRate || 0).toFixed(1)}%</p>
+                        <p className="text-xl font-black text-slate-900">{(Number(earnings?.conversionRate) || 0).toFixed(1)}%</p>
                     </div>
                 </div>
             </div>
@@ -592,9 +598,9 @@ export default function AffiliateDashboard() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl max-h-[90vh] flex flex-col"
                         >
-                            <div className="p-10">
+                            <div className="p-10 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-3xl font-black text-slate-900">Withdraw Earnings</h2>
                                     <button onClick={() => setShowPayoutModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
@@ -695,9 +701,9 @@ export default function AffiliateDashboard() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl max-h-[90vh] flex flex-col"
                         >
-                            <div className="p-10">
+                            <div className="p-10 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-3xl font-black text-slate-900">Submit KYC</h2>
                                     <button onClick={() => setShowKycModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
@@ -710,16 +716,37 @@ export default function AffiliateDashboard() {
 
                                 <form onSubmit={handleSubmitKyc} className="space-y-6">
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Document URL</label>
-                                        <input
-                                            type="url"
-                                            value={kycDocumentUrl}
-                                            onChange={(e) => setKycDocumentUrl(e.target.value)}
-                                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                            placeholder="https://example.com/document.jpg"
-                                            required
-                                        />
-                                        <p className="text-xs text-slate-400 mt-2">Upload your document to a file sharing service and paste the URL here</p>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Upload Document</label>
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex-1 cursor-pointer w-full px-6 py-4 bg-slate-50 border border-slate-200 border-dashed rounded-2xl hover:bg-slate-100 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <Upload className="w-5 h-5 text-slate-400" />
+                                                    <span className="font-bold text-slate-600 truncate">
+                                                        {kycFile ? kycFile.name : 'Choose a file (Image/PDF)...'}
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,application/pdf"
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files.length > 0) {
+                                                            setKycFile(e.target.files[0]);
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                    required
+                                                />
+                                            </label>
+                                            {kycFile && (
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setKycFile(null)}
+                                                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex gap-4 pt-4">
                                         <button

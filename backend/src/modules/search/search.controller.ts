@@ -60,6 +60,24 @@ export class SearchController {
         return this.searchLocationService.searchHybrid(searchDto);
     }
 
+    @Public()
+    @Get('ai-category-suggestion')
+    @ApiOperation({ summary: 'AI Lite: Get category suggestions based on search intent' })
+    @ApiResponse({ status: 200, description: 'Suggested category returned' })
+    async getAiCategorySuggestion(@Query('q') query: string) {
+        if (!query) return { suggestedCategory: null };
+        return this.searchService.suggestCategory(query);
+    }
+
+    @Public()
+    @Get('autocomplete')
+    @ApiOperation({ summary: 'Predictive auto-suggestions for search bar' })
+    @ApiResponse({ status: 200, description: 'List of suggestions returned' })
+    async autocomplete(@Query('q') query: string) {
+        if (!query) return [];
+        return this.searchService.autocomplete(query);
+    }
+
     @Post('sync')
     @Roles(UserRole.ADMIN)
     @ApiBearerAuth()

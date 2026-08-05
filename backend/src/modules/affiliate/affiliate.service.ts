@@ -23,6 +23,7 @@ import { Listing, BusinessStatus } from '../../entities/business.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { generateReferralCode } from '../../common/utils/referral-code';
 import { AffiliateQueueService } from './affiliate-queue.service';
+import { NotificationsService, NotificationType } from '../notifications/notifications.service';
 
 
 
@@ -53,6 +54,7 @@ export class AffiliateService implements OnModuleInit {
         @InjectRepository(SubscriptionPlan)
         private subscriptionPlanRepo: Repository<SubscriptionPlan>,
         private readonly affiliateQueueService: AffiliateQueueService,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     async onModuleInit() {
@@ -202,6 +204,22 @@ export class AffiliateService implements OnModuleInit {
             where: { affiliateId: affiliate.id, status: ReferralStatus.CONVERTED },
         });
 
+        const pendingPayoutsList = await this.payoutRepository.find({
+            where: {
+                affiliateId: affiliate.id,
+                status: PayoutStatus.PENDING, // Or IN ('pending', 'approved')
+            },
+        });
+        
+        const approvedPayoutsList = await this.payoutRepository.find({
+            where: {
+                affiliateId: affiliate.id,
+                status: PayoutStatus.APPROVED,
+            },
+        });
+
+        const pendingPayoutAmount = [...pendingPayoutsList, ...approvedPayoutsList].reduce((sum, p) => sum + Number(p.amount), 0);
+
         return {
             isAffiliate: true,
             referralCode: affiliate.referralCode,
@@ -212,10 +230,12 @@ export class AffiliateService implements OnModuleInit {
             balanceHeld: affiliate.balanceHeld,
             holdUntil: affiliate.holdUntil,
             totalWithdrawals: affiliate.totalWithdrawals,
+            pendingPayoutAmount,
             conversionRate: referrals > 0 ? (conversions / referrals) * 100 : 0,
             hasReferrer,
             referrerName: referrerName || 'Affiliate Partner',
             hasRegisteredBusiness,
+            kycStatus: affiliate.kycStatus,
         };
     }
 
@@ -546,7 +566,19 @@ export class AffiliateService implements OnModuleInit {
         affiliate.kycReviewedAt = new Date();
         affiliate.kycReviewedBy = adminId;
 
-        return this.affiliateRepository.save(affiliate);
+        const savedAffiliate = await this.affiliateRepository.save(affiliate);
+
+        this.notificationsService.create({
+            userId: affiliate.userId,
+            title: status === 'approved' ? 'KYC Approved' : 'KYC Rejected',
+            message: status === 'approved' 
+                ? 'Your KYC documents have been successfully verified. You can now request payouts.' 
+                : 'Your KYC documents were rejected. Please upload clearer documents.',
+            type: NotificationType.SYSTEM_UPDATE,
+            link: '/affiliate',
+        }).catch(err => this.logger.error('Failed to send KYC notification', err));
+
+        return savedAffiliate;
     }
 
     // --- Admin Approval Methods ---
@@ -617,7 +649,18 @@ export class AffiliateService implements OnModuleInit {
         affiliate.balance = Number(affiliate.balance) - amount;
         await this.affiliateRepository.save(affiliate);
 
-        return this.payoutRepository.save(payout);
+        const savedPayout = await this.payoutRepository.save(payout);
+
+        // Notify Admins
+        this.notificationsService.create({
+            userId: 'admin', // Or broadcast to admins
+            title: 'New Payout Request',
+            message: `An affiliate has requested a payout of Rs. ${amount}.`,
+            type: NotificationType.SYSTEM_UPDATE,
+            link: '/admin/affiliates/payouts',
+        }).catch(err => this.logger.error('Failed to send payout notification', err));
+
+        return savedPayout;
     }
 
     async adminApprovePayout(payoutId: string, adminId: string, paymentReference?: string) {

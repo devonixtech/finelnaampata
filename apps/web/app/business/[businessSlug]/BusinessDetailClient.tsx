@@ -57,6 +57,7 @@ import { api, getImageUrl } from "../../../lib/api";
 import { Business } from "../../../types/api";
 import { useAuth, setCookie } from "../../../context/AuthContext";
 import { getBusinessOpenStatus } from "../../../lib/business-status";
+import toast from "react-hot-toast";
 import ChatTrigger, {
   ChatTriggerHandle,
 } from "../../../components/chat/ChatTrigger";
@@ -65,6 +66,12 @@ import { chatApi } from "../../../services/chat.service";
 import DynamicIcon from "../../../components/DynamicIcon";
 import PopularTimesChart from "@/components/business/PopularTimesChart";
 import ReviewDistribution from "@/components/business/ReviewDistribution";
+import dynamic from "next/dynamic";
+
+const BusinessMap = dynamic(() => import("../../../components/BusinessMap"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] bg-slate-100 animate-pulse rounded-2xl border border-slate-200 flex items-center justify-center text-slate-400"><MapPin className="w-8 h-8 opacity-50" /></div>
+});
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg
@@ -103,27 +110,22 @@ const VendorOnlineBadge = ({
 const TrustBadge = ({ badge, score }: { badge?: string; score?: number }) => {
   if (!badge) return null;
 
-  const normalizedBadge = (() => {
-    const lb = badge.toLowerCase();
-    if (lb.includes("trusted") || lb.includes("verified")) return "Recommended";
-    return badge;
-  })();
-
   const getBadgeStyles = (b: string) => {
     const lb = b.toLowerCase();
-    if (lb.includes("trusted") || lb.includes("verified") || lb.includes("recommended")) return "bg-amber-50 text-amber-700 border-amber-200";
+    if (lb.includes("trusted") || lb.includes("verified")) return "bg-amber-50 text-amber-700 border-amber-200";
     if (lb.includes("active")) return "bg-blue-50 text-blue-700 border-blue-200";
+    if (lb.includes("new")) return "bg-green-50 text-green-700 border-green-200";
     return "bg-slate-50 text-slate-600 border-slate-200";
   };
 
   return (
     <div
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border shadow-sm ${getBadgeStyles(
-        normalizedBadge
+        badge
       )}`}
     >
       <Award className="w-2.5 h-2.5" />
-      {normalizedBadge}
+      {badge}
     </div>
   );
 };
@@ -167,7 +169,7 @@ export default function BusinessDetailClient({
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [comments, setComments] = useState<any[]>([]); // We keep the name 'comments' to minimize changes but it will hold Review objects
   const [isFavorite, setIsFavorite] = useState(false);
@@ -184,7 +186,7 @@ export default function BusinessDetailClient({
   const [submittingReply, setSubmittingReply] = useState(false);
 
   // Review sort & report state
-  const [reviewSort, setReviewSort] = useState<string>("relevant");
+  const [reviewSort, setReviewSort] = useState<string>("most_relevant");
   const [reportingReview, setReportingReview] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
@@ -273,6 +275,12 @@ export default function BusinessDetailClient({
   useEffect(() => {
     api.categories.getAll().then((data: any) => setCategories(data || [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (business?.id) {
+      fetch(`/api/analytics/track/view/${business.id}`, { method: 'POST' }).catch(console.error);
+    }
+  }, [business?.id]);
 
 
   const mapEmbedUrl = useMemo(
@@ -512,7 +520,7 @@ export default function BusinessDetailClient({
   };
 
   const handleContactIntent = async (
-    action: "call" | "whatsapp" | "enquiry",
+    action: "call" | "whatsapp" | "enquiry" | "sms",
   ) => {
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
@@ -539,13 +547,16 @@ export default function BusinessDetailClient({
       });
 
       if (action === "call" && business?.phone) {
-        fetch(`/api/businesses/${business.id}/track/contact`, { method: "POST" }).catch(console.error);
+        fetch(`/api/analytics/track/contact/${business.id}`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'call' }) }).catch(console.error);
         window.location.href = `tel:${business.phone}`;
+      } else if (action === "sms" && business?.phone) {
+        fetch(`/api/analytics/track/contact/${business.id}`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'sms' }) }).catch(console.error);
+        window.location.href = `sms:${business.phone}`;
       } else if (
         action === "whatsapp" &&
         (business?.whatsapp || business?.phone)
       ) {
-        fetch(`/api/businesses/${business.id}/track/contact`, { method: "POST" }).catch(console.error);
+        fetch(`/api/analytics/track/contact/${business.id}`, { method: "POST", headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'whatsapp' }) }).catch(console.error);
         const waNumber = (business.whatsapp || business.phone).replace(
           /\s+/g,
           "",
@@ -560,6 +571,8 @@ export default function BusinessDetailClient({
       // Still perform the action even if lead capture fails
       if (action === "call" && business?.phone) {
         window.location.href = `tel:${business.phone}`;
+      } else if (action === "sms" && business?.phone) {
+        window.location.href = `sms:${business.phone}`;
       } else if (
         action === "whatsapp" &&
         (business?.whatsapp || business?.phone)
@@ -578,6 +591,8 @@ export default function BusinessDetailClient({
 
   const trackContactClick = (type: string) => {
     if (!business) return;
+    
+    // Legacy lead capture
     api.leads.createLead({
       businessId: business.id,
       name: user?.fullName || "Guest",
@@ -587,6 +602,13 @@ export default function BusinessDetailClient({
       type: type as any,
       source: `listing-${type}`,
     }).catch(() => {});
+
+    // New funnel analytics
+    fetch(`/api/analytics/track/contact/${business.id}`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    }).catch(console.error);
   };
 
   const handleEnquirySubmit = async (e: React.FormEvent) => {
@@ -681,10 +703,14 @@ export default function BusinessDetailClient({
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
+    if (!user.isPhoneVerified) {
+      toast.error("Please verify your phone number before writing a review. Go to Settings → Phone Verification.");
+      return;
+    }
     if (!business) return;
 
     if (reviewComment.trim().length < 10) {
-      alert("Review comment must be at least 10 characters long.");
+      toast.error("Review comment must be at least 10 characters long.");
       return;
     }
 
@@ -964,8 +990,8 @@ export default function BusinessDetailClient({
 
           {/* Right Column (Map Top, Grid Bottom) */}
           <div className="grid grid-rows-2 gap-2 h-full">
-            {/* Map (Top Right) */}
-            <div className="relative rounded-tr-2xl overflow-hidden bg-slate-100 cursor-pointer group">
+            {/* Map (Top Right or Full Right if no extra photos) */}
+            <div className={`relative overflow-hidden bg-slate-100 cursor-pointer group ${galleryImages.length <= 1 ? 'row-span-2 rounded-r-2xl' : 'rounded-tr-2xl'}`}>
               {mapEmbedUrl ? (
                 showMapEmbed ? (
                   <iframe
@@ -992,50 +1018,61 @@ export default function BusinessDetailClient({
               )}
             </div>
 
-            {/* Smaller Photos Grid (Bottom Right) */}
-            <div className="grid grid-cols-2 gap-2 h-full relative">
-              <div
-                className="relative overflow-hidden bg-slate-100 cursor-pointer group"
-                onClick={() => openLightbox(1)}
-              >
-                {galleryImages.length > 1 ? (
+            {/* Smaller Photos Grid (Bottom Right) - Only show if we have > 1 images */}
+            {galleryImages.length > 1 && (
+              <div className="grid grid-cols-2 gap-2 h-full relative">
+                <div
+                  className="relative overflow-hidden bg-slate-100 cursor-pointer group"
+                  onClick={() => openLightbox(1)}
+                >
                   <img src={galleryImages[1]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Gallery 2" />
-                ) : (
-                  <div className="w-full h-full bg-slate-50" />
-                )}
-              </div>
-              <div
-                className="relative rounded-br-2xl overflow-hidden bg-slate-100 cursor-pointer group"
-                onClick={() => openLightbox(2)}
-              >
-                {galleryImages.length > 2 ? (
-                  <img src={galleryImages[2]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Gallery 3" />
-                ) : (
-                  <div className="w-full h-full bg-slate-50" />
-                )}
-                {galleryImages.length > 3 && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center hover:bg-black/50 transition-colors">
-                    <div className="flex items-center gap-2 text-white font-medium text-sm">
-                      <Images className="w-4 h-4" />
-                      See all {galleryImages.length} photos
+                </div>
+                <div
+                  className="relative rounded-br-2xl overflow-hidden bg-slate-100 cursor-pointer group"
+                  onClick={() => galleryImages.length > 2 ? openLightbox(2) : undefined}
+                >
+                  {galleryImages.length > 2 ? (
+                    <img src={galleryImages[2]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Gallery 3" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300">
+                       <Images className="w-6 h-6 opacity-50" />
                     </div>
-                  </div>
-                )}
+                  )}
+                  {galleryImages.length > 3 && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center hover:bg-black/50 transition-colors">
+                      <div className="flex items-center gap-2 text-white font-medium text-sm">
+                        <Images className="w-4 h-4" />
+                        See all {galleryImages.length} photos
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* TITLE BLOCK */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
-              {business.title}
-            </h1>
-            {business.isVerified && (
-              <ShieldCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
+        <div className="mb-6 flex items-start gap-4">
+          {business.logoUrl && (
+            <img 
+              src={business.logoUrl} 
+              alt={`${business.title} logo`} 
+              className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-full border border-slate-200 shadow-sm shrink-0" 
+            />
+          )}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+                {business.title}
+              </h1>
+              {business.isVerified && (
+                <ShieldCheck className="w-6 h-6 text-blue-500 fill-blue-50" />
+              )}
+            </div>
+            {business.businessTagline && (
+              <p className="text-slate-600 font-medium italic mb-2 text-lg">"{business.businessTagline}"</p>
             )}
-          </div>
           
           <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
             <div className="flex items-center gap-1">
@@ -1077,39 +1114,28 @@ export default function BusinessDetailClient({
             </button>
             {business.phone && (
               <>
-                <a 
-                  href={`tel:${business.phone}`} 
-                  onClick={() => {
-                    fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
-                  }}
+                <button 
+                  onClick={() => handleContactIntent('call')}
                   className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
                 >
                   <Phone className="w-4 h-4" /> Call
-                </a>
-                <a 
-                  href={`sms:${business.phone}`} 
-                  onClick={() => {
-                    fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
-                  }}
+                </button>
+                <button 
+                  onClick={() => handleContactIntent('sms')}
                   className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors text-sm font-bold text-blue-600"
                 >
                   <MessageSquare className="w-4 h-4" /> SMS
-                </a>
+                </button>
               </>
             )}
-            {/* WhatsApp (Paid Feature) */}
-            {(business.planFeatures?.hasWhatsApp || business.whatsappNumber) && (
-              <a 
-                href={`https://wa.me/${business.whatsappNumber || business.phone?.replace(/[^0-9]/g, '')}`} 
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  fetch(`/api/businesses/${business.id}/track/contact`, { method: 'POST' }).catch(console.error);
-                }}
+            {/* WhatsApp Button */}
+            {vendorHasChat && (business.whatsappNumber || business.whatsapp || business.phone) && (
+              <button 
+                onClick={() => handleContactIntent('whatsapp')}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366] text-white border border-[#25D366] rounded-full hover:bg-[#1ebd5a] transition-colors text-sm font-bold"
               >
                 <MessageCircle className="w-4 h-4" /> WhatsApp
-              </a>
+              </button>
             )}
             {/* In-App Chat (Paid Feature) */}
             {vendorHasChat && (
@@ -1127,6 +1153,7 @@ export default function BusinessDetailClient({
               <Share2 className="w-4 h-4" /> Share
             </button>
           </div>
+        </div>
         </div>
 
         {/* TABS */}
@@ -1193,6 +1220,17 @@ export default function BusinessDetailClient({
 
               {/* Sidebar Cards */}
               <div className="space-y-6">
+                {/* Map Integration Card */}
+                {business.latitude && business.longitude && (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+                    <BusinessMap 
+                      latitude={business.latitude} 
+                      longitude={business.longitude} 
+                      className="w-full h-[300px] rounded-xl"
+                    />
+                  </div>
+                )}
+                
                 {/* Business Information Card */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                   <h3 className="font-bold text-slate-900 mb-4">Business info</h3>
@@ -1204,6 +1242,18 @@ export default function BusinessDetailClient({
                           <div className="text-sm font-medium text-slate-900">{business.address}</div>
                           {business.city && <div className="text-sm text-slate-500">{business.city}</div>}
                         </div>
+                      </div>
+                    )}
+                    {business.yearEstablished && (
+                      <div className="flex items-center gap-4">
+                        <Calendar className="w-5 h-5 text-blue-600 shrink-0" />
+                        <span className="text-sm font-medium text-slate-900">Established {business.yearEstablished}</span>
+                      </div>
+                    )}
+                    {business.employeeCount && (
+                      <div className="flex items-center gap-4">
+                        <User className="w-5 h-5 text-blue-600 shrink-0" />
+                        <span className="text-sm font-medium text-slate-900">{business.employeeCount} Employees</span>
                       </div>
                     )}
                     {business.businessHours && business.businessHours.length > 0 && (
@@ -1232,6 +1282,16 @@ export default function BusinessDetailClient({
                         <a href={`tel:${business.phone}`} className="text-sm font-medium text-slate-900 hover:text-blue-600 hover:underline">{business.phone}</a>
                       </div>
                     )}
+                    {business.namedPhoneNumbers && business.namedPhoneNumbers.length > 0 && (
+                      <div className="pl-9 space-y-2">
+                        {business.namedPhoneNumbers.map((npn: any, idx: number) => (
+                          <div key={idx} className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{npn.label} {npn.personName && `· ${npn.personName}`}</span>
+                            <a href={`tel:${npn.number}`} className="text-sm font-bold text-slate-700 hover:text-blue-600 hover:underline">{npn.number}</a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {business.website && (
                       <div className="flex items-center gap-4">
                         <Globe className="w-5 h-5 text-blue-600 shrink-0" />
@@ -1244,6 +1304,22 @@ export default function BusinessDetailClient({
                       <div className="flex items-center gap-4">
                         <Tag className="w-5 h-5 text-blue-600 shrink-0" />
                         <span className="text-sm font-medium text-slate-900">{business.priceRange}</span>
+                      </div>
+                    )}
+                    {business.socialLinks && business.socialLinks.length > 0 && (
+                      <div className="flex items-center gap-3 pt-2 mt-2 border-t border-slate-100">
+                        {business.socialLinks.map((link: any, idx: number) => {
+                          const Icon = link.platform.toLowerCase() === 'facebook' ? Facebook :
+                                     link.platform.toLowerCase() === 'twitter' ? Twitter :
+                                     link.platform.toLowerCase() === 'instagram' ? Instagram :
+                                     link.platform.toLowerCase() === 'linkedin' ? Linkedin :
+                                     link.platform.toLowerCase() === 'youtube' ? Youtube : Globe;
+                          return (
+                            <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors" title={link.platform}>
+                              <Icon className="w-5 h-5" />
+                            </a>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1300,6 +1376,21 @@ export default function BusinessDetailClient({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-xl font-bold text-slate-900">Reviews</h3>
                 <div className="flex items-center gap-3">
+                  <select
+                    value={reviewSort}
+                    onChange={(e) => {
+                      setReviewSort(e.target.value);
+                      loadReviews(e.target.value);
+                    }}
+                    className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '32px' }}
+                  >
+                    <option value="most_relevant">Most Relevant</option>
+                    <option value="most_helpful">Most Helpful</option>
+                    <option value="photos_first">Photos First</option>
+                    <option value="newest">Newest</option>
+                    <option value="lowest">Lowest Rating</option>
+                  </select>
                   {!isOwner && (
                     <button
                       onClick={() => {
@@ -1401,21 +1492,54 @@ export default function BusinessDetailClient({
                 )}
               </div>
 
-              {galleryImages.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {galleryImages.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="aspect-square rounded-2xl overflow-hidden cursor-pointer group shadow-sm"
-                      onClick={() => openLightbox(idx)}
-                    >
-                      <img
-                        src={img}
-                        alt={`Photo ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
+              {business.albums && business.albums.length > 0 && (
+                <div className="space-y-8 mb-8">
+                  {business.albums.map((album: any, idx: number) => (
+                    <div key={idx} className="space-y-4">
+                      <h4 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">{album.name}</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {album.images?.map((img: any, imgIdx: number) => (
+                          <div
+                            key={imgIdx}
+                            className="aspect-square rounded-2xl overflow-hidden cursor-pointer group shadow-sm relative"
+                            onClick={() => window.open(img.url, '_blank')}
+                          >
+                            <img
+                              src={img.url}
+                              alt={img.caption || `${album.name} photo ${imgIdx + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            {img.caption && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                {img.caption}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {galleryImages.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">All Photos</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {galleryImages.map((img, idx) => (
+                      <div
+                        key={idx}
+                        className="aspect-square rounded-2xl overflow-hidden cursor-pointer group shadow-sm"
+                        onClick={() => openLightbox(idx)}
+                      >
+                        <img
+                          src={img}
+                          alt={`Photo ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="p-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">

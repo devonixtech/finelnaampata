@@ -526,4 +526,56 @@ export class UsersService {
             console.warn(`[UsersService] Failed to write deletion audit log (${eventType}): ${error.message}`);
         }
     }
+
+    /**
+     * Send Phone Verification OTP
+     */
+    async sendPhoneOtp(userId: string): Promise<{ success: boolean; message: string }> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User not found');
+        if (!user.phone) throw new BadRequestException('No phone number found for this user');
+
+        // Generate a 6-digit mock OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiry = new Date();
+        expiry.setMinutes(expiry.getMinutes() + 10); // 10 minutes validity
+
+        user.phoneVerificationOtp = otp;
+        user.phoneOtpExpiresAt = expiry;
+        await this.userRepository.save(user);
+
+        // MOCK SMS GATEWAY LOGIC
+        console.log(`\n\n=== SMS GATEWAY ===\nTo: ${user.phone}\nMessage: Your Naampata verification code is ${otp}. Valid for 10 mins.\n===================\n\n`);
+
+        return {
+            success: true,
+            message: 'OTP sent successfully (Check server logs in mock mode)',
+        };
+    }
+
+    /**
+     * Verify Phone OTP
+     */
+    async verifyPhoneOtp(userId: string, otp: string): Promise<{ success: boolean; message: string }> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User not found');
+
+        if (!user.phoneVerificationOtp || user.phoneVerificationOtp !== otp) {
+            throw new BadRequestException('Invalid OTP code');
+        }
+
+        if (user.phoneOtpExpiresAt && new Date() > user.phoneOtpExpiresAt) {
+            throw new BadRequestException('OTP code has expired');
+        }
+
+        user.isPhoneVerified = true;
+        user.phoneVerificationOtp = null;
+        user.phoneOtpExpiresAt = null;
+        await this.userRepository.save(user);
+
+        return {
+            success: true,
+            message: 'Phone number verified successfully',
+        };
+    }
 }

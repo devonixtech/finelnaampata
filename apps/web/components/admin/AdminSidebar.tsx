@@ -59,13 +59,15 @@ const menuSections: MenuSection[] = [
             { name: 'Plans', icon: CreditCard, href: '/admin/plans', badge: null },
             { name: 'Subscriptions', icon: Receipt, href: '/admin/subscriptions', badge: null },
             { name: 'Affiliates', icon: Handshake, href: '/admin/affiliates', badge: null },
+            { name: 'KYC Reviews', icon: ShieldCheck, href: '/admin/affiliates/kyc', badge: null },
+            { name: 'Payout Requests', icon: Receipt, href: '/admin/affiliates/payouts', badge: null },
             { name: 'Referrals', icon: Users, href: '/admin/referrals', badge: null },
         ]
     },
     {
         title: "MODERATION",
         items: [
-            { name: 'Moderation Hub', icon: ShieldAlert, href: '/admin/reports', badge: 'New' },
+            { name: 'Moderation Hub', icon: ShieldAlert, href: '/admin/reports', badge: null },
             { name: 'Review Moderation', icon: ShieldAlert, href: '/admin/reviews', badge: null },
             { name: 'Q&A Moderation', icon: MessageSquare, href: '/admin/qa', badge: null },
         ]
@@ -77,7 +79,7 @@ const menuSections: MenuSection[] = [
             { name: 'Search Analytics', icon: Activity, href: '/admin/analytics', badge: null },
             { name: 'Vendor Analytics', icon: Users, href: '/admin/analytics/vendors', badge: null },
             { name: 'Revenue Tracking', icon: DollarSign, href: '/admin/analytics/revenue', badge: null },
-            { name: 'Live Activity', icon: Activity, href: '/admin/analytics/activity', badge: 'Live' },
+            { name: 'Live Activity', icon: Activity, href: '/admin/analytics/activity', badge: null },
         ]
     },
     {

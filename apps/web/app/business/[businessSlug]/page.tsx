@@ -72,7 +72,7 @@ export default async function BusinessDetailPage({
   try {
     const [businessRes, categoriesRes] = await Promise.all([
       api.listings.getBySlug(businessSlug, { silent: true }),
-      api.categories.getAll({ silent: true })
+      api.categories.getRoot({ silent: true })
     ]);
     business = businessRes;
     categories = categoriesRes || [];
@@ -82,13 +82,13 @@ export default async function BusinessDetailPage({
 
   // Google Business Style Split Layout
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <CategoriesSidebar initialCategories={categories} />
 
         {/* Right Main Content */}
-        <main className="flex-1 w-full lg:max-w-[calc(100vw-20rem)] overflow-y-auto">
+        <main className="flex-1 w-full lg:max-w-[calc(100vw-20rem)] h-full overflow-y-auto">
           <BusinessDetailClient slug={businessSlug} initialData={business || undefined} />
         </main>
       </div>

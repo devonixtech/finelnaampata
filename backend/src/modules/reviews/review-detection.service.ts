@@ -28,6 +28,17 @@ export class ReviewDetectionService {
             }
         }
 
+        // Device fingerprint check
+        if ((review as any).deviceFingerprint) {
+            const fpCount = await this.reviewRepository.count({
+                where: { deviceFingerprint: (review as any).deviceFingerprint } as any,
+            });
+            if (fpCount > 3) {
+                totalScore += 0.3;
+                reasons.push('Multiple reviews from same device');
+            }
+        }
+
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const userCount = await this.reviewRepository.count({
             where: { 

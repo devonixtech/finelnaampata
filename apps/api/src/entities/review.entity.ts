@@ -44,6 +44,18 @@ export class Review {
     @Column({ name: 'is_verified', default: false })
     isVerified: boolean;
 
+    @Column({ name: 'is_approved', default: false })
+    isApproved: boolean;
+
+    @Column({ name: 'is_suspicious', default: false })
+    isSuspicious: boolean;
+
+    @Column({ name: 'suspicion_score', type: 'integer', default: 0 })
+    suspicionScore: number;
+
+    @Column({ name: 'suspicion_reason', type: 'text', nullable: true })
+    suspicionReason: string;
+
     @Column({ name: 'helpful_count', default: 0 })
     helpfulCount: number;
 

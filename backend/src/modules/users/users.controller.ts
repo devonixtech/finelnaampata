@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nes
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerifyPhoneDto } from './dto/verify-phone.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ParseUuidPipe } from '../../common/pipes/parse-uuid.pipe';
@@ -186,5 +187,21 @@ export class UsersController {
     @ApiOperation({ summary: 'Update device token for push notifications' })
     updateDeviceToken(@CurrentUser() user: User, @Body('token') token: string) {
         return this.usersService.updateDeviceToken(user.id, token);
+    }
+
+    @Post('verify-phone/send-otp')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Send a verification OTP to the user phone number' })
+    @ApiResponse({ status: 200, description: 'OTP sent successfully' })
+    sendPhoneOtp(@CurrentUser() user: User) {
+        return this.usersService.sendPhoneOtp(user.id);
+    }
+
+    @Post('verify-phone/verify-otp')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Verify the phone number using the received OTP' })
+    @ApiResponse({ status: 200, description: 'Phone verified successfully' })
+    verifyPhoneOtp(@CurrentUser() user: User, @Body() verifyPhoneDto: VerifyPhoneDto) {
+        return this.usersService.verifyPhoneOtp(user.id, verifyPhoneDto.otp);
     }
 }

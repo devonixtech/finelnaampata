@@ -150,7 +150,15 @@ function AddListingContent() {
         contactPersonTitle: '',
         contactPersonName: '',
         namedPhoneNumbers: [],
-        businessHours: [],
+        businessHours: [
+            { day: 'Monday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Tuesday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Wednesday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Thursday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Friday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Saturday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Sunday', isOpen: false, openTime: '09:00', closeTime: '17:00' },
+        ],
         open247: false,
         timezone: getDefaultBusinessTimezone(),
         yearEstablished: '',
@@ -216,7 +224,15 @@ function AddListingContent() {
         contactPersonTitle: '',
         contactPersonName: '',
         namedPhoneNumbers: [],
-        businessHours: [],
+        businessHours: [
+            { day: 'Monday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Tuesday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Wednesday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Thursday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Friday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Saturday', isOpen: true, openTime: '09:00', closeTime: '17:00' },
+            { day: 'Sunday', isOpen: false, openTime: '09:00', closeTime: '17:00' },
+        ],
         open247: false,
         timezone: getDefaultBusinessTimezone(),
         yearEstablished: '',
@@ -357,8 +373,16 @@ function AddListingContent() {
                     setError('Business Name is required and must be at least 2 characters.');
                     return false;
                 }
+                if (!formData.businessTagline || formData.businessTagline.trim().length < 2) {
+                    setError('Business Tagline is required.');
+                    return false;
+                }
                 break;
             case 5:
+                if (!formData.categoryId && !formData.customCategoryTag) {
+                    setError('Please select a category or suggest a new one.');
+                    return false;
+                }
                 break;
             case 7:
                 if (!formData.address || formData.address.trim().length < 5) {
@@ -374,6 +398,30 @@ function AddListingContent() {
                 const phone = toE164(formData.phoneCode, formData.phoneNumber);
                 if (!phone || !/^\+[1-9]\d{7,14}$/.test(phone)) {
                     setError('A valid Phone Number with country code is required (e.g., +923001234567).');
+                    return false;
+                }
+                break;
+            case 10:
+                const hoursPayload = buildBusinessHoursPayload(formData.businessHours);
+                if (!hoursPayload || hoursPayload.length === 0) {
+                    setError('Business hours are required. Please set your open/close times.');
+                    return false;
+                }
+                break;
+            case 11:
+                if (!formData.description || formData.description.trim().length < 20) {
+                    setError('Detailed Business Description is required and must be at least 20 characters.');
+                    return false;
+                }
+                break;
+            case 12:
+                if (!formData.yearEstablished || isNaN(Number(formData.yearEstablished))) {
+                    setError('Year Established is required and must be a valid number.');
+                    return false;
+                }
+                const year = Number(formData.yearEstablished);
+                if (year < 1800 || year > new Date().getFullYear()) {
+                    setError(`Year Established must be between 1800 and ${new Date().getFullYear()}.`);
                     return false;
                 }
                 break;
@@ -417,6 +465,18 @@ function AddListingContent() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (activeStep !== STEPS.length) return;
+
+        // Run full validation on all required steps before submitting
+        const requiredSteps = [1, 5, 7, 9, 10, 11, 12];
+        for (const step of requiredSteps) {
+            if (!validateStep(step)) {
+                setActiveStep(step);
+                if (typeof window !== 'undefined') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                return; // Stop submission and show the error on the corresponding step
+            }
+        }
 
         if (
             !formData.legalConsentTerms ||
