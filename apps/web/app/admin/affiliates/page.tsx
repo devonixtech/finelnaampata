@@ -56,13 +56,13 @@ function StatCard({ label, value, icon: Icon, color, textColor }: {
     label: string; value: number | string; icon: any; color: string; textColor: string;
 }) {
     return (
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4 shadow-sm">
-            <div className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                <Icon className={`w-5 h-5 ${textColor}`} />
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 shadow-sm h-full overflow-hidden">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 ${color} rounded-xl flex items-center justify-center shrink-0`}>
+                <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${textColor}`} />
             </div>
-            <div>
-                <p className="text-2xl font-black text-slate-900 leading-none">{value}</p>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{label}</p>
+            <div className="flex flex-col min-w-0 justify-center">
+                <p className="text-lg sm:text-xl lg:text-2xl font-black text-slate-900 leading-tight truncate">{value}</p>
+                <p className="text-[9px] sm:text-[10px] lg:text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 sm:mt-1 leading-snug line-clamp-2">{label}</p>
             </div>
         </div>
     );
