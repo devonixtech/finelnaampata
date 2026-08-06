@@ -96,7 +96,7 @@ export default function AdminSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-72 bg-[#F8FAFC] border-r border-slate-200 h-[calc(100vh-80px)] sticky top-20 flex flex-col p-6 overflow-y-auto hidden lg:flex custom-scrollbar">
+        <aside className="w-72 shrink-0 bg-[#F8FAFC] border-r border-slate-200 h-[calc(100vh-80px)] sticky top-20 flex flex-col p-6 overflow-y-auto hidden lg:flex custom-scrollbar">
             {/* Profile Info */}
             <div className="flex flex-col items-center mb-8 pt-2 shrink-0">
                 <div className="relative mb-4 group cursor-pointer">

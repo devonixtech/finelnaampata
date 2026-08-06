@@ -40,7 +40,7 @@ export default function AdminLayout({
                 <AdminHeader />
                 <div className="flex flex-grow">
                     <AdminSidebar />
-                    <main className="flex-grow p-4 lg:p-10 max-w-[1600px] w-full mx-auto">
+                    <main className="flex-grow min-w-0 p-4 lg:p-10 max-w-[1600px] w-full mx-auto">
                         {children}
                     </main>
                 </div>
