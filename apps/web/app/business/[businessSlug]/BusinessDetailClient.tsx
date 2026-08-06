@@ -1335,9 +1335,14 @@ export default function BusinessDetailClient({
                   />
                 )}
                 {!isOwner && (
-                  <button onClick={openEnquiryModal} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">
-                    <Send className="w-4 h-4" /> Send Enquiry
-                  </button>
+                  <div className="space-y-3">
+                    <button onClick={openEnquiryModal} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20">
+                      <Send className="w-4 h-4" /> Send Enquiry
+                    </button>
+                    <Link href={`/businesses/${business.slug}`} className="w-full py-4 bg-blue-50 text-blue-600 border border-blue-100 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-100 hover:text-blue-700 transition-all shadow-sm">
+                      <Store className="w-4 h-4" /> View Business Profile
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
