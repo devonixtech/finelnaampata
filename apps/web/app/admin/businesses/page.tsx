@@ -416,12 +416,22 @@ export default function AdminBusinessesPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedBusiness(null)}
-                                    className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-100 active:scale-95 shrink-0"
-                                >
-                                    <XCircle className="w-6 h-6" />
-                                </button>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <Link 
+                                        href={`/business/${selectedBusiness.slug}`} 
+                                        target="_blank" 
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-sm"
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                        View Profile
+                                    </Link>
+                                    <button
+                                        onClick={() => setSelectedBusiness(null)}
+                                        className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-100 active:scale-95"
+                                    >
+                                        <XCircle className="w-6 h-6" />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Scrollable Content */}
