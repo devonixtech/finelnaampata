@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, ArrowRight, Loader2, Phone, Megaphone, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Phone, Megaphone, Eye, EyeOff, Sparkles, Gift } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useAuth, getCookie } from '../../context/AuthContext';
@@ -326,6 +326,22 @@ function RegisterForm() {
                                 {errors.confirmPassword && (
                                     <p className="text-[10px] font-bold text-red-500 ml-1 mt-1">{errors.confirmPassword.message}</p>
                                 )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Referral Code <span className="text-slate-300 font-bold lowercase">(Optional)</span>
+                                </label>
+                                <div className="relative">
+                                    <Gift className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                    <input
+                                        type="text"
+                                        className={`${inputClass}`}
+                                        placeholder="Enter referral code if you have one"
+                                        value={referralCode}
+                                        onChange={(e) => setReferralCode(e.target.value.trim())}
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex items-start gap-3 px-1 leading-5 pt-1">
