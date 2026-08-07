@@ -1382,6 +1382,7 @@ export default function BusinessDetailClient({
                           );
                         })}
                       </div>
+                      </div>
                     )}
                   </div>
                 </div>
