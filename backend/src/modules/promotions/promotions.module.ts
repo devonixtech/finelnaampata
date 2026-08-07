@@ -13,6 +13,8 @@ import { PricingPlan } from '../../entities/pricing-plan.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
+import { SystemSetting } from '../../entities/system-setting.entity';
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([
@@ -25,6 +27,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
             Listing,
             PricingPlan,
             Transaction,
+            SystemSetting,
         ]),
         forwardRef(() => SubscriptionsModule),
     ],

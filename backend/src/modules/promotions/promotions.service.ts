@@ -22,6 +22,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { SubscriptionPlanType } from '../../entities/subscription-plan.entity';
 import { getPrimaryFrontendUrl } from '../../common/utils/public-url.util';
+import { SystemSetting } from '../../entities/system-setting.entity';
 
 @Injectable()
 export class PromotionsService implements OnModuleInit {
@@ -39,9 +40,19 @@ export class PromotionsService implements OnModuleInit {
     async getVisibilityRate(type: 'deal' | 'event' = 'deal') {
         const placement = type === 'event' ? PromotionPlacement.EVENT : PromotionPlacement.OFFER;
         const rule = await this.pricingRuleRepo.findOne({ where: { placement, isActive: true } });
+        
+        let pricePerDay = Number(rule?.pricePerDay ?? 150);
+        
+        // Also check the settings table since Admin UI saves it there
+        const settingKey = type === 'event' ? 'event_price_per_day' : 'offer_price_per_day';
+        const setting = await this.systemSettingRepository.findOne({ where: { key: settingKey } });
+        if (setting && setting.value) {
+            pricePerDay = Number(setting.value);
+        }
+
         return {
             type,
-            dayRate: Number(rule?.pricePerDay ?? 150),
+            dayRate: pricePerDay,
             placement,
         };
     }
@@ -54,7 +65,14 @@ export class PromotionsService implements OnModuleInit {
     ): Promise<{ days: number; dayRate: number; totalPrice: number; placement: PromotionPlacement }> {
         const placement = kind === 'deal' ? PromotionPlacement.OFFER : PromotionPlacement.EVENT;
         const rule = await this.pricingRuleRepo.findOne({ where: { placement, isActive: true } });
-        const dayRate = Number(rule?.pricePerDay ?? 150);
+        let dayRate = Number(rule?.pricePerDay ?? 150);
+
+        const settingKey = kind === 'event' ? 'event_price_per_day' : 'offer_price_per_day';
+        const setting = await this.systemSettingRepository.findOne({ where: { key: settingKey } });
+        if (setting && setting.value) {
+            dayRate = Number(setting.value);
+        }
+
         const start = new Date(startTime);
         const end = new Date(endTime);
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
@@ -87,6 +105,8 @@ export class PromotionsService implements OnModuleInit {
         private pricingPlanRepo: Repository<PricingPlan>,
         @InjectRepository(Transaction)
         private transactionRepository: Repository<Transaction>,
+        @InjectRepository(SystemSetting)
+        private systemSettingRepository: Repository<SystemSetting>,
         private configService: ConfigService,
         @Inject(forwardRef(() => SubscriptionsService))
         private subscriptionsService: SubscriptionsService,
