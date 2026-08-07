@@ -73,15 +73,18 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
 
                 if (parentCats.some(c => c.id === best.id)) {
                     setFormData(p => ({ ...p, categoryId: best.id, subCategoryIds: [] }));
+                    toast.success(`AI selected: "${best.name}"`, { duration: 4000 });
                 } else {
                     const parent = childCats.find(c => c.id === best.id);
                     if (parent) {
                         setFormData(p => ({ ...p, categoryId: parent.parentId, subCategoryIds: [best.id] }));
+                        const parentName = parentCats.find(c => c.id === parent.parentId)?.name || 'Parent Category';
+                        toast.success(`AI selected "${parentName}" with subcategory "${best.name}"`, { duration: 5000 });
                     } else {
                         setFormData(p => ({ ...p, categoryId: best.id, subCategoryIds: [] }));
+                        toast.success(`AI selected: "${best.name}"`, { duration: 4000 });
                     }
                 }
-                toast.success(`AI selected: "${best.name}"`, { duration: 4000 });
             } else {
                 toast.error("No matching category found. Please select one manually.");
             }
