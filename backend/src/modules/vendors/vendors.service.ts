@@ -701,10 +701,24 @@ export class VendorsService {
     async getPublicProfile(idOrSlug: string) {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
         
-        const vendor = await this.vendorRepository.findOne({
+        let vendor = await this.vendorRepository.findOne({
             where: isUuid ? { id: idOrSlug } : { slug: idOrSlug },
             relations: ['user', 'subscriptions', 'subscriptions.plan', 'activePlans', 'activePlans.plan'],
         });
+
+        // Fallback: if no vendor found by slug, try finding a business listing with that slug
+        if (!vendor && !isUuid) {
+            const listing = await this.listingRepository.findOne({
+                where: { slug: idOrSlug },
+                relations: ['vendor'],
+            });
+            if (listing?.vendor) {
+                vendor = await this.vendorRepository.findOne({
+                    where: { id: listing.vendor.id },
+                    relations: ['user', 'subscriptions', 'subscriptions.plan', 'activePlans', 'activePlans.plan'],
+                });
+            }
+        }
 
         if (!vendor) {
             throw new NotFoundException('Vendor not found');
