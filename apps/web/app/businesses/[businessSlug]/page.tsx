@@ -2,7 +2,7 @@ import React from 'react';
 import BusinessProfileClient from './BusinessProfileClient';
 import { api } from '../../../lib/api';
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
     try {
