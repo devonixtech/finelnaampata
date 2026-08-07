@@ -58,9 +58,18 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
             const suggestions = await api.categories.suggest(formData.title || '', formData.description || '');
             if (suggestions && suggestions.length > 0) {
                 const best = suggestions[0];
-                const allCats = categories;
-                const parentCats = allCats.filter(c => !c.parentId);
-                const childCats = allCats.filter(c => !!c.parentId);
+                
+                // Flatten categories to properly find parent/child relationships since API returns a tree
+                const allCats = categories.reduce((acc, cat) => {
+                    acc.push(cat);
+                    if (cat.subcategories && Array.isArray(cat.subcategories)) {
+                        acc.push(...cat.subcategories);
+                    }
+                    return acc;
+                }, [] as any[]);
+                
+                const parentCats = allCats.filter((c: any) => !c.parentId);
+                const childCats = allCats.filter((c: any) => !!c.parentId);
 
                 if (parentCats.some(c => c.id === best.id)) {
                     setFormData(p => ({ ...p, categoryId: best.id, subCategoryIds: [] }));

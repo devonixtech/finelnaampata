@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import StatsGrid from '../../../components/business/StatsGrid';
 import PerformanceChart from '../../../components/business/PerformanceChart';
 import RecentReviews from '../../../components/business/RecentReviews';
-import { Star, ChevronRight, ListTree, Heart, MessageSquare, Plus, TrendingUp, Loader2, Bell, CheckCircle2, Zap, Share2, Copy, Gift, Mail, Clock, BadgeCheck } from 'lucide-react';
+import { Star, ChevronRight, ListTree, Heart, MessageSquare, Plus, TrendingUp, Loader2, Bell, CheckCircle2, Zap, Share2, Copy, Gift, Mail, Clock, BadgeCheck, CreditCard } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import Link from 'next/link';
 import { api, getImageUrl } from '../../../lib/api';
@@ -300,13 +300,22 @@ export default function GenericDashboard() {
                                                 Join our expert network, list your services, and connect with thousands of local customers.
                                             </p>
                                         </div>
-                                        <Link
-                                            href="/add-listing"
-                                            className="group flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-2xl shadow-blue-600/20 whitespace-nowrap active:scale-95 w-full md:w-auto"
-                                        >
-                                            <Zap className="w-5 h-5 text-white animate-pulse" />
-                                            Create Business Profile
-                                        </Link>
+                                        <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 w-full md:w-auto mt-4 md:mt-0">
+                                              <Link
+                                                  href="/add-listing"
+                                                  className="group flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-2xl shadow-blue-600/20 whitespace-nowrap active:scale-95 w-full sm:w-auto"
+                                              >
+                                                  <Zap className="w-5 h-5 text-white animate-pulse" />
+                                                  List your business
+                                              </Link>
+                                              <Link
+                                                  href="/pricing"
+                                                  className="group flex items-center justify-center gap-3 px-8 py-5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all shadow-2xl shadow-slate-900/20 whitespace-nowrap active:scale-95 w-full sm:w-auto border border-slate-700"
+                                              >
+                                                  <CreditCard className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+                                                  Purchase Plan
+                                              </Link>
+                                          </div>
                                     </div>
                                 </div>
                             )}
