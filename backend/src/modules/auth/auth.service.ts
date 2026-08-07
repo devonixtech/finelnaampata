@@ -176,7 +176,7 @@ export class AuthService {
             delete savedUser.password;
 
             // Handle referral if provided
-            if (registerDto.referralCode && savedUser.role === UserRole.VENDOR) {
+            if (registerDto.referralCode) {
                 await this.handleReferral(registerDto.referralCode, savedUser.id);
             }
 
@@ -478,7 +478,7 @@ export class AuthService {
         }
 
         // Handle referral if provided (for new or upgraded vendors)
-        if (dto.referralCode && user.role === UserRole.VENDOR) {
+        if (dto.referralCode) {
             await this.handleReferral(dto.referralCode, user.id);
         }
 
@@ -666,7 +666,7 @@ export class AuthService {
                 relations: ['user']
             });
 
-            if (affiliate && affiliate.user && affiliate.user.role === 'vendor') {
+            if (affiliate && affiliate.user) {
                 // Check if referral already exists to avoid duplicates
                 const existingReferral = await this.referralRepository.findOne({
                     where: { referredUserId }
