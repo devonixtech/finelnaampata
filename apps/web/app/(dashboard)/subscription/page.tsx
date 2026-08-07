@@ -458,24 +458,7 @@ function ConsentModal({
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-black text-slate-700 mb-2">
-                            Have a referral code? <span className="text-slate-400 font-bold">(Optional)</span>
-                        </label>
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-orange-400 focus-within:bg-white transition-colors">
-                            <TicketPercent className="w-5 h-5 text-slate-400 shrink-0" />
-                            <input
-                                type="text"
-                                value={referralCode}
-                                onChange={(e) => onReferralCodeChange(e.target.value)}
-                                placeholder="Enter referral code"
-                                className="w-full py-3 bg-transparent outline-none text-sm font-bold text-slate-900 placeholder:text-slate-400"
-                            />
-                        </div>
-                        <p className="text-xs font-bold text-slate-400 mt-2 leading-relaxed">
-                            If a friend referred you, enter their code and both of you get <span className="text-orange-500 font-black">+10 days</span> added to your plan after a successful purchase.
-                        </p>
-                    </div>
+
 
                     <label className="flex items-start gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center mt-0.5">
