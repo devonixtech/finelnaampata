@@ -1230,45 +1230,84 @@ export default function BusinessDetailClient({
                     />
                   </div>
                 )}
-                
-                {/* Business Information Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                  <h3 className="font-bold text-slate-900 mb-4">Business info</h3>
-                  <div className="space-y-4">
+                            {/* Business Information Card */}
+                <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+                  
+                  <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
+                    Business Info
+                    <div className="h-px bg-slate-100 flex-1 ml-2" />
+                  </h3>
+                  
+                  <div className="space-y-6 relative z-10">
                     {business.address && (
-                      <div className="flex gap-4">
-                        <MapPin className="w-5 h-5 text-blue-600 shrink-0" />
-                        <div>
-                          <div className="text-sm font-medium text-slate-900">{business.address}</div>
-                          {business.city && <div className="text-sm text-slate-500">{business.city}</div>}
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-blue-100 transition-all">
+                          <MapPin className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="pt-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Location</div>
+                          <div className="text-sm font-bold text-slate-800 leading-tight">{business.address}</div>
+                          {business.city && <div className="text-sm text-slate-500 mt-1">{business.city}</div>}
                         </div>
                       </div>
                     )}
+                    
                     {business.yearEstablished && (
-                      <div className="flex items-center gap-4">
-                        <Calendar className="w-5 h-5 text-blue-600 shrink-0" />
-                        <span className="text-sm font-medium text-slate-900">Established {business.yearEstablished}</span>
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-indigo-100 transition-all">
+                          <Calendar className="w-6 h-6 text-indigo-600" />
+                        </div>
+                        <div className="pt-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Established</div>
+                          <div className="text-sm font-bold text-slate-800">{business.yearEstablished}</div>
+                        </div>
                       </div>
                     )}
+
                     {business.employeeCount && (
-                      <div className="flex items-center gap-4">
-                        <User className="w-5 h-5 text-blue-600 shrink-0" />
-                        <span className="text-sm font-medium text-slate-900">{business.employeeCount} Employees</span>
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-purple-100 transition-all">
+                          <User className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div className="pt-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Team Size</div>
+                          <div className="text-sm font-bold text-slate-800">{business.employeeCount} Employees</div>
+                        </div>
                       </div>
                     )}
+
                     {business.businessHours && business.businessHours.length > 0 && (
-                      <div className="flex gap-4">
-                        <Clock className="w-5 h-5 text-blue-600 shrink-0" />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-slate-900 mb-2">Hours</div>
-                          <div className="space-y-1.5">
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-emerald-100 transition-all">
+                          <Clock className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-3">Operating Hours</div>
+                          <div className="space-y-2 bg-slate-50 rounded-2xl p-4 border border-slate-100">
                             {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
                               const hour = business.businessHours?.find((h: any) => h.dayOfWeek.toLowerCase() === day);
                               const isToday = day === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                              
+                              const formatTime = (time: string) => {
+                                if (!time) return '';
+                                const [h, m] = time.split(':');
+                                let hours = parseInt(h, 10);
+                                const ampm = hours >= 12 ? 'PM' : 'AM';
+                                hours = hours % 12;
+                                hours = hours ? hours : 12;
+                                return `${hours}:${m} ${ampm}`;
+                              };
+
+                              let timeDisplay = 'Closed';
+                              if (hour?.isOpen && hour.openTime && hour.closeTime) {
+                                timeDisplay = `${formatTime(hour.openTime)} - ${formatTime(hour.closeTime)}`;
+                              }
+
                               return (
-                                <div key={day} className={`flex items-center justify-between text-sm ${isToday ? 'font-bold text-slate-900' : 'text-slate-600'}`}>
+                                <div key={day} className={`flex items-center justify-between text-sm ${isToday ? 'font-black text-blue-600 bg-blue-50/50 p-2 -mx-2 rounded-lg' : 'text-slate-600 font-medium px-2'}`}>
                                   <span className="capitalize">{day.substring(0, 3)}</span>
-                                  <span>{hour ? (hour.isOpen ? `${hour.openTime} - ${hour.closeTime}` : 'Closed') : 'Closed'}</span>
+                                  <span>{timeDisplay}</span>
                                 </div>
                               );
                             })}
@@ -1276,44 +1315,66 @@ export default function BusinessDetailClient({
                         </div>
                       </div>
                     )}
+
                     {business.phone && (
-                      <div className="flex items-center gap-4">
-                        <Phone className="w-5 h-5 text-blue-600 shrink-0" />
-                        <a href={`tel:${business.phone}`} className="text-sm font-medium text-slate-900 hover:text-blue-600 hover:underline">{business.phone}</a>
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-amber-100 transition-all">
+                          <Phone className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div className="pt-1 flex-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Contact Number</div>
+                          <a href={`tel:${business.phone}`} className="text-sm font-bold text-slate-800 hover:text-blue-600 hover:underline">{business.phone}</a>
+                          
+                          {business.namedPhoneNumbers && business.namedPhoneNumbers.length > 0 && (
+                            <div className="mt-3 space-y-2.5">
+                              {business.namedPhoneNumbers.map((npn: any, idx: number) => (
+                                <div key={idx} className="flex flex-col bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                  <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider mb-0.5">{npn.label} {npn.personName && `• ${npn.personName}`}</span>
+                                  <a href={`tel:${npn.number}`} className="text-sm font-bold text-slate-800 hover:text-blue-600">{npn.number}</a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-                    {business.namedPhoneNumbers && business.namedPhoneNumbers.length > 0 && (
-                      <div className="pl-9 space-y-2">
-                        {business.namedPhoneNumbers.map((npn: any, idx: number) => (
-                          <div key={idx} className="flex flex-col">
-                            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{npn.label} {npn.personName && `· ${npn.personName}`}</span>
-                            <a href={`tel:${npn.number}`} className="text-sm font-bold text-slate-700 hover:text-blue-600 hover:underline">{npn.number}</a>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+
                     {business.website && (
-                      <div className="flex items-center gap-4">
-                        <Globe className="w-5 h-5 text-blue-600 shrink-0" />
-                        <a href={business.website.startsWith('http') ? business.website : `https://${business.website}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate">
-                          {business.website.replace(/^https?:\/\//, '')}
-                        </a>
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-rose-100 transition-all">
+                          <Globe className="w-6 h-6 text-rose-600" />
+                        </div>
+                        <div className="pt-1 overflow-hidden">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Website</div>
+                          <a href={business.website.startsWith('http') ? business.website : `https://${business.website}`} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-600 hover:underline block truncate">
+                            {business.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
                       </div>
                     )}
+
                     {business.priceRange && (
-                      <div className="flex items-center gap-4">
-                        <Tag className="w-5 h-5 text-blue-600 shrink-0" />
-                        <span className="text-sm font-medium text-slate-900">{business.priceRange}</span>
+                      <div className="flex gap-4 group">
+                        <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:bg-green-100 transition-all">
+                          <Tag className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="pt-1">
+                          <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Price Range</div>
+                          <span className="text-sm font-bold text-slate-800">{business.priceRange}</span>
+                        </div>
                       </div>
                     )}
+
                     {business.socialLinks && business.socialLinks.length > 0 && (
-                      <div className="flex items-center gap-3 pt-2 mt-2 border-t border-slate-100">
-                        {business.socialLinks.map((link: any, idx: number) => {
-                          const Icon = link.platform.toLowerCase() === 'facebook' ? Facebook :
-                                     link.platform.toLowerCase() === 'twitter' ? Twitter :
-                                     link.platform.toLowerCase() === 'instagram' ? Instagram :
-                                     link.platform.toLowerCase() === 'linkedin' ? Linkedin :
-                                     link.platform.toLowerCase() === 'youtube' ? Youtube : Globe;
+                      <div className="pt-6 mt-6 border-t border-slate-100">
+                        <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-4">Social Media</div>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {business.socialLinks.map((link: any, idx: number) => {
+                            const Icon = link.platform.toLowerCase() === 'facebook' ? Facebook :
+                                       link.platform.toLowerCase() === 'twitter' ? Twitter :
+                                       link.platform.toLowerCase() === 'instagram' ? Instagram :
+                                       link.platform.toLowerCase() === 'linkedin' ? Linkedin :
+                                       link.platform.toLowerCase() === 'youtube' ? Youtube : Globe;
                           return (
                             <a key={idx} href={link.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors" title={link.platform}>
                               <Icon className="w-5 h-5" />
