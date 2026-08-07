@@ -368,7 +368,7 @@ function RegisterForm() {
                             )}
 
                             <button
-                                disabled={loading || !isValid}
+                                disabled={loading}
                                 type="button"
                                 onClick={handleSubmit(onSubmit)}
                                 className="w-full py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-lg bg-[#112D4E] hover:bg-black shadow-slate-900/10"
