@@ -290,9 +290,9 @@ export default function GenericDashboard() {
                                 <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl relative overflow-hidden group border border-slate-800">
                                     <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none transition-all group-hover:bg-blue-600/20" />
                                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                                        <div className="text-center md:text-left">
-                                            <div className="flex items-center justify-center md:justify-start gap-2 text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4">
-                                                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
+                                        <div className="text-center md:text-left flex-1">
+                                            <div className="flex items-center justify-center md:justify-start gap-2 text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-4 whitespace-nowrap">
+                                                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full shrink-0" />
                                                 Business Opportunities
                                             </div>
                                             <h3 className="text-2xl sm:text-3xl font-black text-white mb-3 tracking-tight">Own a Business?</h3>
@@ -300,22 +300,22 @@ export default function GenericDashboard() {
                                                 Join our expert network, list your services, and connect with thousands of local customers.
                                             </p>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 w-full md:w-auto mt-4 md:mt-0">
-                                              <Link
-                                                  href="/add-listing"
-                                                  className="group flex items-center justify-center gap-3 px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-2xl shadow-blue-600/20 whitespace-nowrap active:scale-95 w-full sm:w-auto"
-                                              >
-                                                  <Zap className="w-5 h-5 text-white animate-pulse" />
-                                                  List your business
-                                              </Link>
-                                              <Link
-                                                  href="/pricing"
-                                                  className="group flex items-center justify-center gap-3 px-8 py-5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all shadow-2xl shadow-slate-900/20 whitespace-nowrap active:scale-95 w-full sm:w-auto border border-slate-700"
-                                              >
-                                                  <CreditCard className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
-                                                  Purchase Plan
-                                              </Link>
-                                          </div>
+                                        <div className="flex flex-col sm:flex-row items-center justify-center md:justify-end gap-3 w-full md:w-auto shrink-0">
+                                            <Link
+                                                href="/add-listing"
+                                                className="group flex items-center justify-center gap-2.5 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all shadow-2xl shadow-blue-600/20 whitespace-nowrap active:scale-95 w-full sm:w-auto"
+                                            >
+                                                <Zap className="w-5 h-5 text-white animate-pulse shrink-0" />
+                                                List your business
+                                            </Link>
+                                            <Link
+                                                href="/pricing"
+                                                className="group flex items-center justify-center gap-2.5 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all shadow-2xl shadow-slate-900/20 whitespace-nowrap active:scale-95 w-full sm:w-auto border border-slate-700"
+                                            >
+                                                <CreditCard className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors shrink-0" />
+                                                Purchase Plan
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             )}
