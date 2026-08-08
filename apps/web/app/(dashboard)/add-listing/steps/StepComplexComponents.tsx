@@ -246,17 +246,18 @@ export const Step9Contact = ({ formData, setFormData }: StepProps) => {
         <div className="space-y-6 pb-4">
             <div>
                 <label className={labelClass}>Contact Person Title (Optional)</label>
-                <select
-                    className={inputClass + " appearance-none cursor-pointer"}
+                <SearchableSelect
+                    options={[
+                        { label: 'Mr.', value: 'Mr.' },
+                        { label: 'Ms.', value: 'Ms.' },
+                        { label: 'Dr.', value: 'Dr.' },
+                        { label: 'Other', value: 'Other' },
+                    ]}
                     value={formData.contactPersonTitle}
-                    onChange={e => setFormData(p => ({ ...p, contactPersonTitle: e.target.value }))}
-                >
-                    <option value="">Select title</option>
-                    <option value="Mr.">Mr.</option>
-                    <option value="Ms.">Ms.</option>
-                    <option value="Dr.">Dr.</option>
-                    <option value="Other">Other</option>
-                </select>
+                    onChange={value => setFormData(p => ({ ...p, contactPersonTitle: value }))}
+                    searchable={false}
+                    placeholder="Select title"
+                />
             </div>
             <div>
                 <label className={labelClass}>Contact Person Name</label>
