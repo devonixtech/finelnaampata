@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             }
 
             // Customer / Regular User
-            const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Settings'].includes(item.name);
+            const allowedForUsers = ['Dashboard', 'List Your Business', 'Live Chat', 'Saved Businesses', 'Following', 'Notifications', 'Subscription & Billing', 'Settings'].includes(item.name);
             if (!allowedForUsers) return false;
             return item.feature ? hasFeature(item.feature) : true;
         });
