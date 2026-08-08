@@ -175,7 +175,8 @@ export default function AffiliateDashboard() {
     }
 
     if ((!stats || stats.isAffiliate === false) && !loading) {
-        return (
+                const isBusiness = user?.role === 'vendor' || user?.role === 'admin' || user?.role === 'superadmin';
+                return (
             <main className="max-w-4xl mx-auto px-4 py-20 text-center">
                 {!stats?.hasRegisteredBusiness && !user?.vendor?.id && stats?.hasReferrer && (
                     <div className="mb-12 p-6 bg-slate-50 border border-slate-100 rounded-3xl max-w-md mx-auto text-left shadow-sm">
@@ -188,7 +189,7 @@ export default function AffiliateDashboard() {
                 </div>
                 <h1 className="text-4xl font-black text-slate-900 mb-4">Join Our Affiliate Program</h1>
                 <p className="text-slate-500 text-lg mb-10 max-w-2xl mx-auto font-medium">
-                    Earn rewards for every business you refer. Start earning today with Punjab's leading business network.
+                    {isBusiness ? 'Earn rewards for every business you refer. Get 10 extra days added to your subscription for every successful referral!' : 'Earn rewards for every business you refer. Earn 35% cash commission on every successful referral!'}
                 </p>
                 <button
                     onClick={handleJoin}
@@ -217,8 +218,8 @@ export default function AffiliateDashboard() {
                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm mb-6">
                             <Wallet className="w-6 h-6" />
                         </div>
-                        <h3 className="font-black text-slate-900 mb-2">3. Get Paid</h3>
-                        <p className="text-sm text-slate-500 font-medium">Earn commission after 30-day hold period.</p>
+                        <h3 className="font-black text-slate-900 mb-2">{isBusiness ? '3. Get Extended' : '3. Get Paid'}</h3>
+                        <p className="text-sm text-slate-500 font-medium">{isBusiness ? 'Your active subscription is automatically extended by 10 days.' : 'Earn 35% commission after 30-day hold period.'}</p>
                     </div>
                 </div>
             </main>
