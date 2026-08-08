@@ -53,7 +53,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
                 <Link 
-                    href="/dashboard/subscription" 
+                    href="/subscription" 
                     className="group flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-[20px] font-black shadow-2xl hover:bg-black transition-all active:scale-95"
                 >
                     Upgrade Your Plan

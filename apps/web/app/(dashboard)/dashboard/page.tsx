@@ -309,7 +309,7 @@ export default function GenericDashboard() {
                                                 List your business
                                             </Link>
                                             <Link
-                                                href="/dashboard/subscription"
+                                                href="/subscription"
                                                 className="group flex items-center justify-center gap-2.5 px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black transition-all shadow-2xl shadow-slate-900/20 whitespace-nowrap active:scale-95 w-full sm:w-auto border border-slate-700"
                                             >
                                                 <CreditCard className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors shrink-0" />
