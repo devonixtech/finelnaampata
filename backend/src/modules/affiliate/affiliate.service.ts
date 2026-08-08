@@ -236,6 +236,7 @@ export class AffiliateService implements OnModuleInit {
             referrerName: referrerName || 'Affiliate Partner',
             hasRegisteredBusiness,
             kycStatus: affiliate.kycStatus,
+            adminApproved: affiliate.adminApproved,
         };
     }
 

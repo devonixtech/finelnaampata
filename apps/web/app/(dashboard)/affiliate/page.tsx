@@ -226,6 +226,23 @@ export default function AffiliateDashboard() {
         );
     }
 
+    if (stats?.isAffiliate && !stats.adminApproved) {
+        return (
+            <main className="max-w-3xl mx-auto px-4 py-32 text-center">
+                <div className="w-24 h-24 bg-amber-50 rounded-[28px] flex items-center justify-center mx-auto mb-8 border border-amber-100">
+                    <Shield className="w-12 h-12 text-amber-500" />
+                </div>
+                <h1 className="text-4xl font-black text-slate-900 mb-4">Pending Approval</h1>
+                <p className="text-slate-500 text-lg mb-10 max-w-xl mx-auto font-medium leading-relaxed">
+                    Your application to join the affiliate program has been received and is currently under review by our admin team. You will be able to access your dashboard and referral links once approved.
+                </p>
+                <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all">
+                    Return to Home
+                </Link>
+            </main>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-12">
             {/* Header */}
