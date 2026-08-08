@@ -381,8 +381,37 @@ export class SubscriptionsService implements OnModuleInit {
         const plan = await this.planRepository.findOne({ where: { id: checkoutDto.planId } });
         if (!plan) throw new NotFoundException('Plan not found');
 
-        // Free plan — no Stripe involved
-        if (plan.price === 0) {
+        // ── Affiliate Credits Logic ──────────────────────────────────────────
+        let finalPrice = Number(plan.price);
+        let creditsToUse = 0;
+        let affiliate = null;
+        let usedCreditValue = 1;
+
+        if (checkoutDto.applyCredits) {
+            affiliate = await this.affiliateRepository.findOne({ where: { user: { id: userId } } });
+            if (affiliate && affiliate.balance > 0) {
+                const settings = await this.affiliateService.getSettings();
+                usedCreditValue = Number(settings.creditValue) || 1;
+                
+                const maxCreditsNeeded = Math.ceil(finalPrice / usedCreditValue);
+                if (affiliate.balance >= maxCreditsNeeded) {
+                    creditsToUse = maxCreditsNeeded;
+                    finalPrice = 0;
+                } else {
+                    creditsToUse = affiliate.balance;
+                    finalPrice = finalPrice - (creditsToUse * usedCreditValue);
+                }
+            }
+        }
+
+        // Free plan or Fully covered by credits — no Stripe involved
+        if (finalPrice <= 0) {
+            if (creditsToUse > 0 && affiliate) {
+                affiliate.balance -= creditsToUse;
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`Used ${creditsToUse} credits for user ${userId} to fully cover plan ${plan.id}`);
+            }
+
             const frontendUrl = this.configService.get<string>('FRONTEND_URL') || DEFAULT_FRONTEND_URL;
             const mockId = `MOCK-FREE-${Date.now()}`;
             // Auto-activate free plan inline
@@ -402,12 +431,14 @@ export class SubscriptionsService implements OnModuleInit {
 
         // ── Ensure plan has a valid Stripe Price ID (matching the current price) ────────────────
         let needsNewPrice = !plan.stripePriceId;
+        let productId = null;
 
         if (plan.stripePriceId) {
             try {
                 // Check if the price exists on Stripe and matches our current plan price
                 const stripePrice = await this.stripe.prices.retrieve(plan.stripePriceId);
                 const currentAmount = Math.round(Number(plan.price) * 100);
+                productId = typeof stripePrice.product === 'string' ? stripePrice.product : stripePrice.product?.id;
 
                 if (stripePrice.unit_amount !== currentAmount || !stripePrice.active) {
                     this.logger.warn(`Stripe price ${plan.stripePriceId} mismatch (Active: ${stripePrice.active}, Amount: ${stripePrice.unit_amount} vs Expected: ${currentAmount}). Regenerating...`);
@@ -422,6 +453,7 @@ export class SubscriptionsService implements OnModuleInit {
         if (needsNewPrice) {
             this.logger.log(`Syncing plan "${plan.name}" price with Stripe...`);
             const product = await this.stripe.products.create({ name: plan.name });
+            productId = product.id;
             const price = await this.stripe.prices.create({
                 product: product.id,
                 unit_amount: Math.round(Number(plan.price) * 100),
@@ -480,6 +512,30 @@ export class SubscriptionsService implements OnModuleInit {
         }
 
         // ── Create Checkout Session ────────────────────────────────────────
+        const lineItems: any = finalPrice < plan.price
+            ? [{
+                price_data: {
+                    currency: 'pkr',
+                    product: productId,
+                    unit_amount: Math.round(finalPrice * 100),
+                    recurring: { interval: plan.billingCycle.toLowerCase() === 'yearly' ? 'year' : 'month' },
+                },
+                quantity: 1,
+            }]
+            : [{ price: plan.stripePriceId, quantity: 1 }];
+
+        const metadata: any = {};
+        if (checkoutDto.referralCode) metadata.referralCode = checkoutDto.referralCode;
+        if (creditsToUse > 0) {
+            metadata.creditsUsed = creditsToUse.toString();
+            // We deduct credits immediately to prevent double spending during checkout
+            if (affiliate) {
+                affiliate.balance -= creditsToUse;
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`Deducted ${creditsToUse} credits for user ${userId} for partial payment`);
+            }
+        }
+
         const session = await this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             customer: customerId,
@@ -491,9 +547,9 @@ export class SubscriptionsService implements OnModuleInit {
             billing_address_collection: 'required',
             phone_number_collection: { enabled: true },
             locale: 'en',
-            line_items: [{ price: plan.stripePriceId, quantity: 1 }],
+            line_items: lineItems,
             mode: 'subscription',
-            metadata: checkoutDto.referralCode ? { referralCode: checkoutDto.referralCode } : undefined,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
             success_url: `${baseUrl}/subscription/success/?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${baseUrl}/subscription/?canceled=true`,
         });
@@ -1146,7 +1202,7 @@ export class SubscriptionsService implements OnModuleInit {
     /**
      * Create a Stripe Checkout session for a new PricingPlan (Subscription or Boost)
      */
-    async createPricingCheckoutSession(userId: string, planId: string, targetId?: string, origin?: string, referralCode?: string) {
+    async createPricingCheckoutSession(userId: string, planId: string, targetId?: string, origin?: string, referralCode?: string, applyCredits?: boolean) {
         const vendor = await this.vendorRepository.findOne({
             where: { userId },
             relations: ['user']
@@ -1156,8 +1212,37 @@ export class SubscriptionsService implements OnModuleInit {
         const plan = await this.pricingPlanRepository.findOne({ where: { id: planId } });
         if (!plan) throw new NotFoundException('Plan not found');
 
+        // ── Affiliate Credits Logic ──────────────────────────────────────────
+        let finalPrice = Number(plan.price);
+        let creditsToUse = 0;
+        let affiliate = null;
+        let usedCreditValue = 1;
+
+        if (applyCredits) {
+            affiliate = await this.affiliateRepository.findOne({ where: { user: { id: userId } } });
+            if (affiliate && affiliate.balance > 0) {
+                const settings = await this.affiliateService.getSettings();
+                usedCreditValue = Number(settings.creditValue) || 1;
+                
+                const maxCreditsNeeded = Math.ceil(finalPrice / usedCreditValue);
+                if (affiliate.balance >= maxCreditsNeeded) {
+                    creditsToUse = maxCreditsNeeded;
+                    finalPrice = 0;
+                } else {
+                    creditsToUse = affiliate.balance;
+                    finalPrice = finalPrice - (creditsToUse * usedCreditValue);
+                }
+            }
+        }
+
         // Free plan - instant activation
-        if (plan.price <= 0) {
+        if (finalPrice <= 0) {
+            if (creditsToUse > 0 && affiliate) {
+                affiliate.balance -= creditsToUse;
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`Used ${creditsToUse} credits for user ${userId} to fully cover pricing plan ${plan.id}`);
+            }
+
             await this.processActivePlanSuccess(vendor.id, plan.id, `FREE-${Date.now()}`, 'Mock', targetId);
             return { sessionId: 'FREE', checkoutUrl: null };
         }
@@ -1221,17 +1306,48 @@ export class SubscriptionsService implements OnModuleInit {
             this.logger.log(`Created new Stripe customer ${customerId} for vendor ${vendor.id}`);
         }
 
+        let lineItems: any = [{ price: plan.stripePriceId, quantity: 1 }];
+
+        if (finalPrice < plan.price) {
+            const product = await this.stripe.products.create({
+                name: plan.name,
+                metadata: { type: plan.type }
+            });
+            lineItems = [{
+                price_data: {
+                    currency: 'pkr',
+                    product: product.id,
+                    unit_amount: Math.round(finalPrice * 100),
+                    recurring: plan.type === PricingPlanType.SUBSCRIPTION ? {
+                        interval: plan.unit === PricingPlanUnit.YEARS ? 'year' : 'month'
+                    } : undefined,
+                },
+                quantity: 1,
+            }];
+        }
+
+        const metadata: any = {
+            planId: plan.id,
+            targetId: targetId || '',
+            type: plan.type,
+            referralCode: referralCode || ''
+        };
+
+        if (creditsToUse > 0) {
+            metadata.creditsUsed = creditsToUse.toString();
+            if (affiliate) {
+                affiliate.balance -= creditsToUse;
+                await this.affiliateRepository.save(affiliate);
+                this.logger.log(`Deducted ${creditsToUse} credits for user ${userId} for partial pricing plan payment`);
+            }
+        }
+
         const sessionParams: Stripe.Checkout.SessionCreateParams = {
             payment_method_types: ['card'],
             customer: customerId,
             client_reference_id: vendor.id,
-            metadata: {
-                planId: plan.id,
-                targetId: targetId || '',
-                type: plan.type,
-                referralCode: referralCode || ''
-            },
-            line_items: [{ price: plan.stripePriceId, quantity: 1 }],
+            metadata,
+            line_items: lineItems,
             mode: plan.type === PricingPlanType.SUBSCRIPTION ? 'subscription' : 'payment',
             success_url: `${baseUrl}/subscription/success/?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${baseUrl}/subscription?canceled=true`,

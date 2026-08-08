@@ -18,13 +18,12 @@ export default function AffiliateDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [earnings, setEarnings] = useState<any>(null);
     const [referrals, setReferrals] = useState<any[]>([]);
-    const [payouts, setPayouts] = useState<any[]>([]);
-    const [settings, setSettings] = useState<any>(null);
+        const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [joining, setJoining] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'conversions' | 'payouts'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'conversions'>('overview');
 
     // Custom Alert State
     const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
@@ -32,14 +31,6 @@ export default function AffiliateDashboard() {
     const showAlert = (title: string, message: string, type: 'success' | 'error' = 'error') => {
         setAlertConfig({ title, message, type });
     };
-
-    // Payout Form State
-    const [showPayoutModal, setShowPayoutModal] = useState(false);
-    const [payoutAmount, setPayoutAmount] = useState('');
-    const [payoutMethod, setPayoutMethod] = useState('Bank Transfer');
-    const [payoutDetails, setPayoutDetails] = useState('');
-    const [submittingPayout, setSubmittingPayout] = useState(false);
-    const [payoutAgreed, setPayoutAgreed] = useState(false);
 
     // KYC State
     const [showKycModal, setShowKycModal] = useState(false);
@@ -55,17 +46,15 @@ export default function AffiliateDashboard() {
 
     const loadData = async () => {
         try {
-            const [statsData, earningsData, refData, payoutData, settingsData] = await Promise.all([
+            const [statsData, earningsData, refData, settingsData] = await Promise.all([
                 api.affiliate.getStats(),
                 api.affiliate.getEarningsBreakdown().catch(() => null),
                 api.affiliate.getReferrals(),
-                api.affiliate.getPayouts(),
                 api.affiliate.getSettings()
             ]);
             setStats(statsData);
             setEarnings(earningsData);
             setReferrals(refData as any[]);
-            setPayouts(payoutData as any[]);
             setSettings(settingsData);
         } catch (err) {
             console.error('Failed to load affiliate data:', err);
@@ -86,50 +75,6 @@ export default function AffiliateDashboard() {
             setJoining(false);
         }
     };
-
-    const handleRequestPayout = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const amount = parseFloat(payoutAmount);
-
-        if (isNaN(amount) || amount < 500) {
-            showAlert('Invalid Amount', 'Minimum withdrawal is Rs. 500', 'error');
-            return;
-        }
-
-        if (amount > (earnings?.balance || stats?.balance || 0)) {
-            showAlert('Insufficient Balance', 'You do not have enough balance for this withdrawal', 'error');
-            return;
-        }
-
-        if (!payoutDetails) {
-            showAlert('Missing Details', 'Please provide payment details', 'error');
-            return;
-        }
-
-        if (!payoutAgreed) {
-            showAlert('Agreement Required', 'Please confirm the payment details are accurate before submitting.', 'error');
-            return;
-        }
-
-        setSubmittingPayout(true);
-        try {
-            await api.affiliate.requestPayout({
-                amount,
-                method: payoutMethod,
-                details: payoutDetails
-            });
-            setShowPayoutModal(false);
-            setPayoutAmount('');
-            setPayoutDetails('');
-            await loadData();
-            showAlert('Request Submitted', 'Payout request submitted successfully!', 'success');
-        } catch (err: any) {
-            showAlert('Request Failed', err.message || 'Failed to submit payout request', 'error');
-        } finally {
-            setSubmittingPayout(false);
-        }
-    };
-
     const handleSubmitKyc = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!kycFile) {
@@ -270,12 +215,6 @@ export default function AffiliateDashboard() {
                         {stats?.kycStatus === 'approved' ? <FileCheck className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                         {stats?.kycStatus === 'approved' ? 'KYC Verified' : stats?.kycStatus === 'pending' ? 'KYC Pending' : 'Submit KYC'}
                     </button>
-                    <button
-                        onClick={() => setShowPayoutModal(true)}
-                        className="px-6 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-orange-500 transition-all flex items-center gap-2"
-                    >
-                        <Wallet className="w-4 h-4" /> Withdraw
-                    </button>
                 </div>
             </div>
 
@@ -314,31 +253,31 @@ export default function AffiliateDashboard() {
                         <DollarSign className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Earned</p>
-                    <p className="text-2xl font-black text-slate-900">Rs. {earnings?.totalEarned || stats?.totalEarnings || 0}</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {earnings?.totalEarned || stats?.totalEarnings || 0}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 mb-4">
                         <Wallet className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Balance</p>
-                    <p className="text-2xl font-black text-slate-900">Rs. {earnings?.balance || stats?.balance || 0}</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {earnings?.balance || stats?.balance || 0}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4">
                         <Clock className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending (30-day hold)</p>
-                    <p className="text-2xl font-black text-slate-900">Rs. {earnings?.balanceHeld || 0}</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {earnings?.balanceHeld || 0}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 mb-4">
                         <DollarSign className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Paid Out</p>
-                    <p className="text-2xl font-black text-slate-900">Rs. {earnings?.paidOut || stats?.totalWithdrawals || 0}</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {earnings?.paidOut || stats?.totalWithdrawals || 0}</p>
                     {stats?.pendingPayoutAmount > 0 && (
                         <p className="text-[10px] font-bold text-amber-500 mt-1 uppercase tracking-wide">
-                            + Rs. {stats.pendingPayoutAmount} Pending Processing
+                            + Credits {stats.pendingPayoutAmount} Pending Processing
                         </p>
                     )}
                 </div>
@@ -386,7 +325,7 @@ export default function AffiliateDashboard() {
 
             {/* Tabs */}
             <div className="flex gap-2 mb-8 p-1 bg-slate-100 rounded-2xl w-fit">
-                {(['overview', 'conversions', 'payouts'] as const).map(tab => (
+                {(['overview', 'conversions'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -394,7 +333,7 @@ export default function AffiliateDashboard() {
                             activeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                         }`}
                     >
-                        {tab === 'overview' ? 'Referral History' : tab === 'conversions' ? 'Conversions' : 'Payout History'}
+                        {tab === 'overview' ? 'Referral History' : 'Conversions'}
                     </button>
                 ))}
             </div>
@@ -485,69 +424,7 @@ export default function AffiliateDashboard() {
                 </div>
             )}
 
-            {activeTab === 'payouts' && (
-                <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-black text-slate-900">Payout History</h3>
-                            <p className="text-sm text-slate-500 mt-1">Your withdrawal requests and their status</p>
-                        </div>
-                        <button
-                            onClick={() => setShowPayoutModal(true)}
-                            className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-500 transition-all"
-                        >
-                            Request Payout
-                        </button>
-                    </div>
-                    <div className="p-4">
-                        {payouts.length > 0 ? (
-                            <div className="space-y-2">
-                                {payouts.map((payout, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                                payout.status === 'paid' ? 'bg-emerald-50 text-emerald-500' :
-                                                payout.status === 'approved' ? 'bg-blue-50 text-blue-500' :
-                                                payout.status === 'rejected' ? 'bg-red-50 text-red-500' :
-                                                'bg-amber-50 text-amber-500'
-                                            }`}>
-                                                <Wallet className="w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-black text-slate-900">Rs. {payout.amount}</h4>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                    {payout.paymentMethod} • {new Date(payout.createdAt).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                                payout.status === 'paid' ? 'bg-emerald-100 text-emerald-600' :
-                                                payout.status === 'approved' ? 'bg-blue-100 text-blue-600' :
-                                                payout.status === 'rejected' ? 'bg-red-100 text-red-600' :
-                                                'bg-amber-100 text-amber-600'
-                                            }`}>
-                                                {payout.status}
-                                            </span>
-                                            {payout.paymentReference && (
-                                                <p className="text-[10px] text-slate-400 mt-1">Ref: {payout.paymentReference}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-20 text-center">
-                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                    <Wallet className="w-8 h-8 text-slate-200" />
-                                </div>
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No payouts yet</p>
-                                <p className="text-xs text-slate-400 mt-2">Minimum withdrawal: Rs. 500</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+
 
             {/* Earning Guide Sidebar */}
             <div className="mt-8 p-8 bg-slate-900 rounded-[28px] text-white">
@@ -596,94 +473,6 @@ export default function AffiliateDashboard() {
                             >
                                 Okay
                             </button>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Payout Modal */}
-            <AnimatePresence>
-                {showPayoutModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowPayoutModal(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl max-h-[90vh] flex flex-col"
-                        >
-                            <div className="p-10 overflow-y-auto">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-3xl font-black text-slate-900">Withdraw Earnings</h2>
-                                    <button onClick={() => setShowPayoutModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                                        <X className="w-5 h-5 text-slate-400" />
-                                    </button>
-                                </div>
-                                <p className="text-slate-500 font-medium mb-8">Available balance: <b className="text-slate-900">Rs. {earnings?.balance || stats?.balance || 0}</b></p>
-
-                                <form onSubmit={handleRequestPayout} className="space-y-6">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Amount (Min Rs. 500)</label>
-                                        <input
-                                            type="number"
-                                            value={payoutAmount}
-                                            onChange={(e) => setPayoutAmount(e.target.value)}
-                                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                            placeholder="Enter amount"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Payment Details (Account #, Name)</label>
-                                        <textarea
-                                            value={payoutDetails}
-                                            onChange={(e) => setPayoutDetails(e.target.value)}
-                                            className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                            placeholder="Enter your account details..."
-                                            rows={3}
-                                            required
-                                        />
-                                    </div>
-                                    <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                        <div className="relative flex items-center justify-center mt-0.5">
-                                            <input
-                                                type="checkbox"
-                                                checked={payoutAgreed}
-                                                onChange={(e) => setPayoutAgreed(e.target.checked)}
-                                                className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-lg checked:border-orange-500 checked:bg-orange-500 transition-colors cursor-pointer peer"
-                                            />
-                                            <svg className="w-3 h-3 text-white absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                                            I confirm that the payment details above are accurate and authorize the platform to process this withdrawal. *
-                                        </span>
-                                    </label>
-                                    <div className="flex gap-4 pt-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPayoutModal(false)}
-                                            className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={submittingPayout || !payoutAgreed}
-                                            className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-orange-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {submittingPayout ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Request'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
                         </motion.div>
                     </div>
                 )}

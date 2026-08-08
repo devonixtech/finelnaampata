@@ -85,12 +85,7 @@ export class AffiliateController {
         return this.affiliateService.requestPayout(user.id, body.amount, body.method, body.details);
     }
 
-    @Get('payouts')
-    @ApiOperation({ summary: 'Get payout history' })
-    async getPayoutHistory(@CurrentUser() user: User) {
-        return this.affiliateService.getPayoutHistory(user.id);
-    }
-
+    
     @Get('earnings/breakdown')
     @ApiOperation({ summary: 'Get detailed earnings breakdown' })
     async getEarningsBreakdown(@CurrentUser() user: User) {
@@ -127,60 +122,11 @@ export class AffiliateController {
         return this.affiliateService.adminGetAllStats();
     }
 
-    @Get('admin/payouts')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Get all payout requests' })
-    async adminGetPayouts() {
-        return this.affiliateService.adminGetAllPayouts();
-    }
-
-    @Patch('admin/payouts/:id')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Update payout status' })
-    async adminUpdatePayout(
-        @Param('id') id: string,
-        @Body() body: { status: PayoutStatus; notes?: string },
-    ) {
-        return this.affiliateService.adminUpdatePayout(id, body.status, body.notes);
-    }
-
-    @Post('admin/payout/:id/approve')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Approve payout request' })
-    async adminApprovePayout(
-        @Param('id') id: string,
-        @CurrentUser() user: User,
-        @Body() body: { paymentReference?: string },
-    ) {
-        return this.affiliateService.adminApprovePayout(id, user.id, body.paymentReference);
-    }
-
-    @Post('admin/payout/:id/reject')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Reject payout request' })
-    async adminRejectPayout(
-        @Param('id') id: string,
-        @Body() body: { reason: string },
-    ) {
-        return this.affiliateService.adminRejectPayout(id, body.reason);
-    }
-
-    @Post('admin/payout/:id/mark-paid')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Mark payout as paid' })
-    async adminMarkAsPaid(
-        @Param('id') id: string,
-        @CurrentUser() user: User,
-        @Body() body: { paymentReference: string },
-    ) {
-        return this.affiliateService.adminMarkAsPaid(id, user.id, body.paymentReference);
-    }
-
+    
+    
+    
+    
+    
     @Get('admin/affiliates')
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
@@ -247,14 +193,7 @@ export class AffiliateController {
         return this.affiliateService.exportAffiliates(format || 'csv');
     }
 
-    @Get('admin/export/payouts')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Export payout reports' })
-    async adminExportPayouts(@Query('format') format: 'csv' | 'json') {
-        return this.affiliateService.exportPayoutReports(format || 'csv');
-    }
-
+    
     @Post('admin/referrals/:id/cancel')
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
@@ -291,7 +230,8 @@ export class AffiliateController {
         checkinReward: string; 
         checkinType: string;
         validityMonths: string;
-        expiryDate: string 
+        expiryDate: string;
+        creditValue: string;
     }) {
         return this.affiliateService.adminUpdateSettings(settings);
     }

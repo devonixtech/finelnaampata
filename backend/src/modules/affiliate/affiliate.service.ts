@@ -486,7 +486,8 @@ export class AffiliateService implements OnModuleInit {
         checkinReward: string; 
         checkinType: string;
         validityMonths: string;
-        expiryDate: string 
+        expiryDate: string;
+        creditValue: string;
     }) {
         const updates = [
             { key: 'affiliate_commission_rate', value: settings.commissionRate },
@@ -495,6 +496,7 @@ export class AffiliateService implements OnModuleInit {
             { key: 'affiliate_checkin_type', value: settings.checkinType },
             { key: 'affiliate_validity_months', value: settings.validityMonths },
             { key: 'affiliate_settings_expiry', value: settings.expiryDate },
+            { key: 'affiliate_credit_value', value: settings.creditValue },
         ];
 
         for (const update of updates) {
@@ -522,6 +524,7 @@ export class AffiliateService implements OnModuleInit {
             checkinType: config.checkin_type || 'fixed',
             validityMonths: config.validity_months || '2',
             expiryDate: config.settings_expiry || '',
+            creditValue: config.credit_value || '1',
         };
     }
 
@@ -1328,32 +1331,36 @@ export class AffiliateService implements OnModuleInit {
                     return { success: true, message: 'Commission already granted on previous conversion' };
                 }
 
-                let commission = 0;
+                let rsCommission = 0;
 
                 // NEW POLICY: 
                 // 1. If referrer is a Business (Vendor), they DO NOT get cash commission (they already got 10 days extension).
-                // 2. If referrer is a Normal User, they get 35% cash commission.
+                // 2. If referrer is a Normal User, they get cash commission.
+                const config = await this.getSettings();
+                const userCommRate = Number(config.commissionRate) || 35;
+                const creditValue = Number(config.creditValue) || 1;
+
                 if (referrerVendor) {
                     this.logger.log(`[Referral] Referrer ${referrerUserId} is a Business. Skipping cash commission, already granted 10 days extension.`);
-                    commission = 0;
+                    rsCommission = 0;
                 } else {
-                    const userCommRate = 35; // 35% as per new client policy
-                    commission = (Number(paidAmount) * userCommRate) / 100;
+                    rsCommission = (Number(paidAmount) * userCommRate) / 100;
                     this.logger.log(`[Referral] Referrer ${referrerUserId} is a User. Calculating ${userCommRate}% cash commission.`);
                 }
 
-                if (commission > 0) {
+                if (rsCommission > 0) {
+                    const credits = Math.floor(rsCommission / creditValue);
                     const affiliateObj = referral.affiliate;
-                    affiliateObj.totalEarnings = Number(affiliateObj.totalEarnings) + commission;
-                    affiliateObj.balanceHeld = Number(affiliateObj.balanceHeld) + commission;
+                    affiliateObj.totalEarnings = Number(affiliateObj.totalEarnings) + credits;
+                    affiliateObj.balanceHeld = Number(affiliateObj.balanceHeld) + credits;
                     const holdDays = affiliateObj.referralHoldDays || 30;
                     const holdEnd = new Date();
                     holdEnd.setDate(holdEnd.getDate() + holdDays);
                     affiliateObj.holdUntil = holdEnd;
                     await this.affiliateRepository.save(affiliateObj);
-                    referral.commissionAmount = commission;
+                    referral.commissionAmount = credits; // store credits instead of rs
                     await this.referralRepository.save(referral);
-                    this.logger.log(`[Referral] Commission of PKR ${commission} placed on ${holdDays}-day hold for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
+                    this.logger.log(`[Referral] Commission of ${credits} credits (Rs ${rsCommission}) placed on ${holdDays}-day hold for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
                 }
             } catch (commErr) {
                 this.logger.error(`[Referral] Failed to calculate commission for referral ${referral.id}: ${commErr.message}`);

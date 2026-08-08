@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     CreditCard, CheckCircle2, Clock, Zap, Check,
     AlertTriangle, FileText, Download, X, ChevronRight, Loader2,
-    BadgeCheck, RefreshCw, Eye, TicketPercent
+    BadgeCheck, RefreshCw, Eye, TicketPercent, Coins
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../lib/api';
@@ -399,6 +399,10 @@ function ConsentModal({
     onClose,
     onContinue,
     loading,
+    creditBalance,
+    creditValue,
+    applyCredits,
+    onApplyCreditsChange,
 }: {
     plan: Plan;
     agreed: boolean;
@@ -406,9 +410,19 @@ function ConsentModal({
     onClose: () => void;
     onContinue: () => void;
     loading: boolean;
+    creditBalance: number;
+    creditValue: number;
+    applyCredits: boolean;
+    onApplyCreditsChange: (value: boolean) => void;
 }) {
     const planPrice = Number(plan.price);
     const cycleLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly';
+
+    const maxCreditsNeeded = creditValue > 0 ? Math.ceil(planPrice / creditValue) : 0;
+    const creditsToUse = Math.min(creditBalance, maxCreditsNeeded);
+    const discount = creditsToUse * creditValue;
+    const finalPrice = Math.max(0, planPrice - discount);
+    const fullyPaidByCredits = finalPrice <= 0;
 
     return (
         <motion.div
@@ -454,7 +468,55 @@ function ConsentModal({
                         </div>
                     </div>
 
-
+                    {/* Credits Section */}
+                    {creditBalance > 0 && planPrice > 0 && (
+                        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                                        <Coins className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black text-slate-900">Use Credits</p>
+                                        <p className="text-xs font-bold text-slate-500">
+                                            You have <span className="text-emerald-600 font-black">{creditBalance}</span> credits
+                                            {creditValue > 0 && <> (1 credit = PKR {creditValue})</>}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => onApplyCreditsChange(!applyCredits)}
+                                    className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${applyCredits ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                                >
+                                    <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${applyCredits ? 'translate-x-5' : ''}`} />
+                                </button>
+                            </div>
+                            {applyCredits && (
+                                <div className="mt-3 pt-3 border-t border-emerald-200/50 space-y-1">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-bold text-slate-500">Credits applied</span>
+                                        <span className="font-black text-emerald-600">-{creditsToUse} credits (PKR {discount.toLocaleString()})</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="font-black text-slate-900">Amount to pay</span>
+                                        <span className="font-black text-slate-900 text-lg">
+                                            {fullyPaidByCredits ? (
+                                                <span className="text-emerald-600">FREE ✨</span>
+                                            ) : (
+                                                <>PKR {finalPrice.toLocaleString()}</>
+                                            )}
+                                        </span>
+                                    </div>
+                                    {creditBalance > creditsToUse && (
+                                        <p className="text-[11px] font-bold text-slate-400 mt-1">
+                                            Remaining after purchase: {creditBalance - creditsToUse} credits
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <label className="flex items-start gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center mt-0.5">
@@ -487,7 +549,7 @@ function ConsentModal({
                         className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-black text-white font-black flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Continue to Payment
+                        {applyCredits && fullyPaidByCredits ? 'Activate with Credits' : 'Continue to Payment'}
                     </button>
                 </div>
             </motion.div>
@@ -510,6 +572,9 @@ export default function BusinessSubscriptionPage() {
     const [agreed, setAgreed] = useState(false);
     const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
     const [billingCycleFilter, setBillingCycleFilter] = useState<'Monthly' | 'Yearly'>('Monthly');
+    const [applyCredits, setApplyCredits] = useState(false);
+    const [creditBalance, setCreditBalance] = useState(0);
+    const [creditValue, setCreditValue] = useState(1);
 
     // Custom Alert State
     const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
@@ -578,6 +643,23 @@ export default function BusinessSubscriptionPage() {
             }
 
             setInvoices(Array.isArray(inv) ? inv : []);
+
+            // Load affiliate credits info
+            try {
+                const [affiliateStats, affiliateSettings] = await Promise.all([
+                    api.affiliate.getStats(),
+                    api.affiliate.getSettings(),
+                ]);
+                if (affiliateStats?.isAffiliate && affiliateStats.balance > 0) {
+                    setCreditBalance(Number(affiliateStats.balance) || 0);
+                }
+                if (affiliateSettings?.credit_value) {
+                    setCreditValue(Number(affiliateSettings.credit_value) || 1);
+                }
+            } catch (creditErr) {
+                // Not an affiliate or affiliate data unavailable — that's fine
+                console.debug('Could not load credit info:', creditErr);
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -599,22 +681,25 @@ export default function BusinessSubscriptionPage() {
     const processCheckout = async (plan: Plan) => {
         setCheckingOut(plan.id);
         try {
-            const res = await api.subscriptions.createCheckout(plan.id);
+            const res = await api.subscriptions.createCheckout(plan.id, undefined, applyCredits);
             if (res.checkoutUrl) {
                 window.location.href = res.checkoutUrl;
                 return; // Stripe checkout — browser navigates away
             }
-            // Fallback: free plan mock success (shouldn't reach here for paid plans)
+            // Credits fully covered the cost or free plan — plan activated directly
             setSuccessMsg(`🎉 Successfully activated ${plan.name}!`);
             setTimeout(() => setSuccessMsg(''), 4000);
             await fetchAll();
             await syncProfile();
+            // Redirect to active subscription screen
+            router.push('/subscription');
         } catch (err: any) {
             showAlert('Checkout Failed', err.message || 'Failed to process plan. Please try again.', 'error');
         } finally {
             setCheckingOut(null);
             setPendingPlan(null);
             setAgreed(false);
+            setApplyCredits(false);
         }
     };
 
@@ -933,9 +1018,13 @@ export default function BusinessSubscriptionPage() {
                         plan={pendingPlan}
                         agreed={agreed}
                         onAgreeChange={setAgreed}
-                        onClose={() => { setPendingPlan(null); setAgreed(false); }}
+                        onClose={() => { setPendingPlan(null); setAgreed(false); setApplyCredits(false); }}
                         onContinue={() => processCheckout(pendingPlan)}
                         loading={checkingOut === pendingPlan.id}
+                        creditBalance={creditBalance}
+                        creditValue={creditValue}
+                        applyCredits={applyCredits}
+                        onApplyCreditsChange={setApplyCredits}
                     />
                 )}
             </AnimatePresence>

@@ -183,7 +183,8 @@ export class SubscriptionsController {
             checkoutDto.planId, 
             checkoutDto.targetId, 
             origin || referer, 
-            referralCode
+            referralCode,
+            checkoutDto.applyCredits
         );
     }
 

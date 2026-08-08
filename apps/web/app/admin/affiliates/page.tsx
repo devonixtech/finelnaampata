@@ -22,6 +22,7 @@ import {
     Clock,
     ArrowUpRight,
     Download,
+    Settings,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { formatDistanceToNow } from 'date-fns';
@@ -137,6 +138,9 @@ export default function AffiliatesAdminPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [stats, setStats] = useState<AdminAffiliateStats | null>(null);
+    const [showSettings, setShowSettings] = useState(false);
+    const [settingsForm, setSettingsForm] = useState({ commissionRate: '35', creditValue: '1' });
+    const [savingSettings, setSavingSettings] = useState(false);
 
     const fetchAffiliates = useCallback(async () => {
         setLoading(true);
@@ -155,6 +159,41 @@ export default function AffiliatesAdminPage() {
     }, []);
 
     useEffect(() => { fetchAffiliates(); }, [fetchAffiliates]);
+
+    const openSettings = async () => {
+        setShowSettings(true);
+        try {
+            const data = await api.admin.affiliate.getSettings();
+            setSettingsForm({
+                commissionRate: data?.affiliate_commission_rate || '35',
+                creditValue: data?.affiliate_credit_value || '1'
+            });
+        } catch (err) {
+            console.error('Failed to load settings', err);
+        }
+    };
+
+    const saveSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingSettings(true);
+        try {
+            await api.admin.affiliate.updateSettings({
+                commissionRate: settingsForm.commissionRate,
+                commissionType: 'percentage',
+                checkinReward: '0',
+                checkinType: 'fixed',
+                validityMonths: '12',
+                expiryDate: '',
+                creditValue: settingsForm.creditValue
+            });
+            setShowSettings(false);
+            // Show toast/alert here if available
+        } catch (err) {
+            console.error('Failed to save settings', err);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
 
     const handleApprove = async (id: string) => {
         setActionLoading(id);
@@ -323,12 +362,12 @@ export default function AffiliatesAdminPage() {
                             <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-md">{pendingKyc}</span>
                         )}
                     </Link>
-                    <Link
-                        href="/admin/affiliates/payouts"
+                    <button
+                        onClick={openSettings}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
                     >
-                        <DollarSign className="w-4 h-4 text-emerald-500" /> Payout Queue
-                    </Link>
+                        <Settings className="w-4 h-4 text-emerald-500" /> Affiliate Settings
+                    </button>
                 </div>
             </div>
 
@@ -459,6 +498,57 @@ export default function AffiliatesAdminPage() {
                     </table>
                 </div>
             </div>
+        {/* Settings Modal */}
+        {showSettings && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                    <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                        <h2 className="text-xl font-black text-slate-900">Affiliate Settings</h2>
+                        <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                            <XCircle className="w-5 h-5 text-slate-400" />
+                        </button>
+                    </div>
+                    <form onSubmit={saveSettings} className="p-6 space-y-6">
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Commission Rate (%)</label>
+                            <input
+                                type="number"
+                                value={settingsForm.commissionRate}
+                                onChange={(e) => setSettingsForm(prev => ({ ...prev, commissionRate: e.target.value }))}
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">1 Credit = Rs. ?</label>
+                            <input
+                                type="number"
+                                value={settingsForm.creditValue}
+                                onChange={(e) => setSettingsForm(prev => ({ ...prev, creditValue: e.target.value }))}
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                required
+                            />
+                        </div>
+                        <div className="flex gap-4 pt-4">
+                            <button
+                                type="button"
+                                onClick={() => setShowSettings(false)}
+                                className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={savingSettings}
+                                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 disabled:opacity-50"
+                            >
+                                {savingSettings ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
         </div>
     );
 }

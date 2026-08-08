@@ -107,6 +107,11 @@ export class CheckoutDto {
     @IsOptional()
     @IsString()
     referralCode?: string;
+
+    @ApiPropertyOptional({ description: 'Whether to apply affiliate credits to this purchase' })
+    @IsOptional()
+    @IsBoolean()
+    applyCredits?: boolean;
 }
 
 export class AssignPlanDto {

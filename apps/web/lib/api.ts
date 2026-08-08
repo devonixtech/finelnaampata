@@ -851,7 +851,7 @@ export const api = {
         getInvoice: (id: string, options?: FetcherOptions) => fetcher<any>(`/subscriptions/invoice/${id}`, options),
         getDetailedAnalytics: (businessId: string) => fetcher<any>(`/businesses/${businessId}/analytics`, { silent: true }),
         mockCheckout: (planId: string) => fetcher<any>(`/subscriptions/mock-success/${planId}`, { method: 'POST' }),
-        createCheckout: (planId: string, referralCode?: string) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId, referralCode }),
+        createCheckout: (planId: string, referralCode?: string, applyCredits?: boolean) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId, referralCode, applyCredits }),
         verify: (sessionId: string) => api.post<{ success: boolean; alreadyProcessed: boolean }>('/subscriptions/verify', { sessionId }),
         changePlan: (planId: string) => api.post<any>('/subscriptions/change', { planId }),
 
