@@ -529,8 +529,6 @@ export default function BusinessSubscriptionPage() {
         if (authLoading) return; // Don't redirect while auth is still initializing
         if (!user) {
             router.replace('/login');
-        } else if (!['vendor', 'admin', 'superadmin'].includes(user.role)) {
-            router.replace('/');
         }
     }, [user, authLoading, router]);
 
@@ -596,6 +594,10 @@ export default function BusinessSubscriptionPage() {
 
     const handleSelectPlan = (plan: Plan) => {
         if (plan.planType === 'free') return;
+        if (user && !['vendor', 'admin', 'superadmin'].includes(user.role)) {
+            router.push('/add-listing');
+            return;
+        }
         setPendingPlan(plan);
     };
 
