@@ -596,7 +596,17 @@ export class AffiliateService implements OnModuleInit {
         affiliate.adminApprovedBy = adminId;
         affiliate.status = 'active';
 
-        return this.affiliateRepository.save(affiliate);
+        const savedAffiliate = await this.affiliateRepository.save(affiliate);
+
+        this.notificationsService.create({
+            userId: affiliate.userId,
+            title: 'Affiliate Application Approved',
+            message: 'Congratulations! Your application to join the affiliate program has been approved. You can now access your dashboard and start referring.',
+            type: NotificationType.SYSTEM_UPDATE,
+            link: '/affiliate',
+        }).catch(err => this.logger.error('Failed to send affiliate approval notification', err));
+
+        return savedAffiliate;
     }
 
     async suspendAffiliate(affiliateId: string, adminId: string, reason?: string) {
