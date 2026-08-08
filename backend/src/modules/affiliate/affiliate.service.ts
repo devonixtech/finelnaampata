@@ -930,6 +930,11 @@ export class AffiliateService implements OnModuleInit {
             return { success: false, reason: 'No referral found' };
         }
 
+        if (!referral.affiliate?.adminApproved) {
+            this.logger.debug(`[Referral] Affiliate ${referral.affiliate?.id} is not approved or suspended. Skipping commission.`);
+            return { success: false, reason: 'Affiliate not approved' };
+        }
+
         const referrerUserId = referral.affiliate.user.id;
         let extensionGranted = false;
 
