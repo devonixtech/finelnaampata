@@ -1312,14 +1312,18 @@ export class AffiliateService implements OnModuleInit {
                     return { success: true, message: 'Commission already granted on previous conversion' };
                 }
 
-                const settings = await this.getSettings();
-                const rate = parseFloat(settings.commissionRate) || 10;
-                const commType = settings.commissionType || 'percent';
                 let commission = 0;
-                if (commType === 'percent') {
-                    commission = (Number(paidAmount) * rate) / 100;
+
+                // NEW POLICY: 
+                // 1. If referrer is a Business (Vendor), they DO NOT get cash commission (they already got 10 days extension).
+                // 2. If referrer is a Normal User, they get 35% cash commission.
+                if (referrerVendor) {
+                    this.logger.log(`[Referral] Referrer ${referrerUserId} is a Business. Skipping cash commission, already granted 10 days extension.`);
+                    commission = 0;
                 } else {
-                    commission = rate;
+                    const userCommRate = 35; // 35% as per new client policy
+                    commission = (Number(paidAmount) * userCommRate) / 100;
+                    this.logger.log(`[Referral] Referrer ${referrerUserId} is a User. Calculating ${userCommRate}% cash commission.`);
                 }
 
                 if (commission > 0) {
