@@ -290,8 +290,8 @@ export class AffiliateService implements OnModuleInit {
             relations: ['user']
         });
 
-        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor') {
-            throw new NotFoundException('Invalid referral code');
+        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor' || !affiliate.adminApproved) {
+            throw new NotFoundException('Invalid or unapproved referral code');
         }
 
         if (affiliate.user.id === userId) {
@@ -374,8 +374,8 @@ export class AffiliateService implements OnModuleInit {
             relations: ['user'],
         });
 
-        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor') {
-            throw new NotFoundException('Invalid referral code');
+        if (!affiliate || !affiliate.user || affiliate.user.role !== 'vendor' || !affiliate.adminApproved) {
+            throw new NotFoundException('Invalid or unapproved referral code');
         }
 
         if (affiliate.user.id === userId) {
@@ -864,13 +864,13 @@ export class AffiliateService implements OnModuleInit {
             where: { referralCode: ILike(affiliateCode) },
         });
 
-        if (!affiliate) return;
+        if (!affiliate || !affiliate.adminApproved) return;
 
         await this.listingRepo
             .createQueryBuilder()
             .update(Listing)
             .set({ clickCount: () => '"click_count" + 1' })
-            .where('id = :businessId', { businessId })
+            .where('id = :id', { id: businessId })
             .execute();
 
         this.logger.log(`Business click tracked: affiliate=${affiliate.id}, business=${businessId}, ip=${ip}`);
