@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check, LayoutGrid, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { Category } from '../types/api';
 import DynamicIcon from './DynamicIcon';
 
@@ -16,6 +17,7 @@ export default function CategorySearchSelect({ categories, value, onChange, load
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
+    const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
 
     const selectedCategory = useMemo(() =>
         categories.find(c => c.id === value),
@@ -33,6 +35,10 @@ export default function CategorySearchSelect({ categories, value, onChange, load
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                // Check if they clicked inside the portal
+                const portalNode = document.getElementById('category-portal-dropdown');
+                if (portalNode && portalNode.contains(e.target as Node)) return;
+                
                 setIsOpen(false);
             }
         };
@@ -40,30 +46,22 @@ export default function CategorySearchSelect({ categories, value, onChange, load
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    return (
-        <div className={`relative ${isOpen ? 'z-[120]' : 'z-10'}`} ref={containerRef}>
-            <button
-                type="button"
-                onClick={() => !loading && setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all ${loading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-                <div className="flex items-center gap-3">
-                    {loading ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                    ) : (
-                        <div className="text-lg flex items-center justify-center">
-                            {selectedCategory ? <DynamicIcon name={selectedCategory.icon} className="w-5 h-5 text-slate-600" /> : <LayoutGrid className="w-4 h-4 text-slate-400" />}
-                        </div>
-                    )}
-                    <span className={!selectedCategory ? 'text-slate-400' : ''}>
-                        {loading ? 'Loading categories...' : selectedCategory?.name || '-- Select Category --'}
-                    </span>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
+    const handleToggle = () => {
+        if (!loading) {
+            if (!isOpen && containerRef.current) {
+                setButtonRect(containerRef.current.getBoundingClientRect());
+            }
+            setIsOpen(!isOpen);
+        }
+    };
 
-            {isOpen && (
-                <div className="w-full bg-white border border-slate-100 rounded-2xl mt-2 overflow-hidden flex flex-col max-h-[350px]">
+    const dropdownContent = isOpen && buttonRect ? (() => {
+        const spaceBelow = window.innerHeight - buttonRect.bottom;
+        const openAbove = spaceBelow < 340;
+        const top = openAbove ? buttonRect.top - 8 : buttonRect.bottom + 8;
+        return (
+            <div id="category-portal-dropdown" className="fixed z-[9999]" style={{ top: openAbove ? 'auto' : top, bottom: openAbove ? window.innerHeight - buttonRect.top + 8 : 'auto', left: buttonRect.left, width: buttonRect.width }} onMouseDown={e => e.stopPropagation()}>
+                <div className={`w-full bg-white border border-slate-100 rounded-2xl overflow-hidden flex flex-col max-h-[350px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] ${openAbove ? 'origin-bottom' : ''}`}>
                     <div className="p-4 border-b border-slate-50">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -112,7 +110,33 @@ export default function CategorySearchSelect({ categories, value, onChange, load
                         )}
                     </div>
                 </div>
-            )}
+            </div>
+        );
+    })() : null;
+
+    return (
+        <div className={`relative ${isOpen ? 'z-[120]' : 'z-10'}`} ref={containerRef}>
+            <button
+                type="button"
+                onClick={handleToggle}
+                className={`w-full flex items-center justify-between px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold text-sm focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all ${loading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+                <div className="flex items-center gap-3">
+                    {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                    ) : (
+                        <div className="text-lg flex items-center justify-center">
+                            {selectedCategory ? <DynamicIcon name={selectedCategory.icon} className="w-5 h-5 text-slate-600" /> : <LayoutGrid className="w-4 h-4 text-slate-400" />}
+                        </div>
+                    )}
+                    <span className={!selectedCategory ? 'text-slate-400' : ''}>
+                        {loading ? 'Loading categories...' : selectedCategory?.name || '-- Select Category --'}
+                    </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {typeof document !== 'undefined' && createPortal(dropdownContent, document.body)}
         </div>
     );
 }
