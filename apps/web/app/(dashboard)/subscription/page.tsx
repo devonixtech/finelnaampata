@@ -399,8 +399,6 @@ function ConsentModal({
     onClose,
     onContinue,
     loading,
-    referralCode,
-    onReferralCodeChange,
 }: {
     plan: Plan;
     agreed: boolean;
@@ -408,8 +406,6 @@ function ConsentModal({
     onClose: () => void;
     onContinue: () => void;
     loading: boolean;
-    referralCode: string;
-    onReferralCodeChange: (value: string) => void;
 }) {
     const planPrice = Number(plan.price);
     const cycleLabel = plan.billingCycle?.toLowerCase() === 'yearly' ? 'yearly' : 'monthly';
@@ -513,7 +509,6 @@ export default function BusinessSubscriptionPage() {
     const [successMsg, setSuccessMsg] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [pendingPlan, setPendingPlan] = useState<Plan | null>(null);
-    const [referralCode, setReferralCode] = useState('');
     const [billingCycleFilter, setBillingCycleFilter] = useState<'Monthly' | 'Yearly'>('Monthly');
 
     // Custom Alert State
@@ -604,7 +599,7 @@ export default function BusinessSubscriptionPage() {
     const processCheckout = async (plan: Plan) => {
         setCheckingOut(plan.id);
         try {
-            const res = await api.subscriptions.createCheckout(plan.id, referralCode.trim() || undefined);
+            const res = await api.subscriptions.createCheckout(plan.id);
             if (res.checkoutUrl) {
                 window.location.href = res.checkoutUrl;
                 return; // Stripe checkout — browser navigates away
@@ -941,8 +936,6 @@ export default function BusinessSubscriptionPage() {
                         onClose={() => { setPendingPlan(null); setAgreed(false); }}
                         onContinue={() => processCheckout(pendingPlan)}
                         loading={checkingOut === pendingPlan.id}
-                        referralCode={referralCode}
-                        onReferralCodeChange={setReferralCode}
                     />
                 )}
             </AnimatePresence>
