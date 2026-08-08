@@ -776,7 +776,7 @@ function AddListingContent() {
     const progress = (activeStep / STEPS.length) * 100;
 
     return (
-        <div className="max-w-4xl mx-auto pb-6 h-[calc(100vh-40px)] flex flex-col">
+        <div className="max-w-5xl mx-auto pb-12 pt-4 flex flex-col min-h-screen">
             {/* Header & Progress */}
             <div className="mb-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
@@ -796,13 +796,13 @@ function AddListingContent() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl flex flex-col min-h-0 flex-1 relative">
+            <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-100 shadow-xl flex flex-col relative">
                 <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 rounded-t-3xl shrink-0">
                     <h2 className="text-xl font-black text-slate-900">{currentStepConfig?.label}</h2>
                     <p className="text-sm font-medium text-slate-500 mt-1">{currentStepConfig?.description}</p>
                 </div>
 
-                <div className="p-6 md:p-8 flex-1 overflow-y-auto">
+                <div className="p-6 md:p-10">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeStep}
