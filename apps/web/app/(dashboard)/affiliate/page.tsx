@@ -640,21 +640,6 @@ export default function AffiliateDashboard() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Payment Method</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {['Bank Transfer', 'EasyPaisa', 'JazzCash', 'UPI'].map(method => (
-                                                <button
-                                                    key={method}
-                                                    type="button"
-                                                    onClick={() => setPayoutMethod(method)}
-                                                    className={`py-3 rounded-xl border-2 text-xs font-black transition-all ${payoutMethod === method ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
-                                                >
-                                                    {method}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
                                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Payment Details (Account #, Name)</label>
                                         <textarea
                                             value={payoutDetails}
