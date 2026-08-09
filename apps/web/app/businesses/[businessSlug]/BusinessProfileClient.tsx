@@ -41,7 +41,7 @@ interface BusinessProfile {
     events?: any[];
 }
 
-export default function BusinessProfileClient({ slugOrId, initialData }: { slugOrId: string, initialData?: any }) {
+export default function BusinessProfileClient({ slugOrId, initialData, initialCategories }: { slugOrId: string, initialData?: any, initialCategories?: any[] }) {
     const router = useRouter();
     const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(initialData || null);
     const [loading, setLoading] = useState(!initialData);
@@ -172,8 +172,8 @@ export default function BusinessProfileClient({ slugOrId, initialData }: { slugO
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
                     
                     {/* Left Sidebar (Categories) */}
-                    <div className="hidden lg:block w-[300px] shrink-0 sticky top-28">
-                        <CategoriesSidebar />
+                    <div className="hidden lg:block w-[300px] shrink-0 sticky top-28 h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar">
+                        <CategoriesSidebar initialCategories={initialCategories || []} />
                     </div>
 
                     {/* Right Main Content */}

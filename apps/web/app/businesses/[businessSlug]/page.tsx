@@ -40,15 +40,6 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
     }
 
     return (
-        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-            <div className="flex flex-1 overflow-hidden">
-                <CategoriesSidebar initialCategories={categories} />
-
-                {/* Right Main Content */}
-                <main className="flex-1 w-full lg:max-w-[calc(100vw-20rem)] h-full overflow-y-auto">
-                    <BusinessProfileClient slugOrId={businessSlug} />
-                </main>
-            </div>
-        </div>
+        <BusinessProfileClient slugOrId={businessSlug} initialCategories={categories} />
     );
 }
