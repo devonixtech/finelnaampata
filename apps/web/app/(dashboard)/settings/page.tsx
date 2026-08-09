@@ -479,6 +479,38 @@ export default function AccountSettings() {
         return days > 0 ? days : 0;
     };
 
+    const handleSendOtp = async () => {
+        if (!formData.phone) return;
+        setOtpSending(true);
+        try {
+            // Mock API call to send OTP
+            await new Promise(r => setTimeout(r, 1000));
+            setOtpModalOpen(true);
+            setOtp('');
+        } catch(e) {
+            console.error(e);
+        } finally {
+            setOtpSending(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!otp) return;
+        setOtpVerifying(true);
+        try {
+            // Mock API call to verify OTP
+            await new Promise(r => setTimeout(r, 1000));
+            setOtpModalOpen(false);
+            if (updateUser && user) {
+                updateUser({ ...user, isPhoneVerified: true });
+            }
+        } catch(e) {
+            console.error(e);
+        } finally {
+            setOtpVerifying(false);
+        }
+    };
+
     const getScheduledDeleteDate = (scheduledAt: string) => {
         const deleteDate = new Date(scheduledAt);
         deleteDate.setDate(deleteDate.getDate() + 30);
