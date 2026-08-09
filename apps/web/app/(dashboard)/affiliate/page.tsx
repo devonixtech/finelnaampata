@@ -247,7 +247,7 @@ export default function AffiliateDashboard() {
             </div>
 
             {/* Earnings Overview Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 mb-4">
                         <Coins className="w-5 h-5" />
@@ -268,18 +268,6 @@ export default function AffiliateDashboard() {
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending (30-day hold)</p>
                     <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.balanceHeld || 0).toFixed(2)}</p>
-                </div>
-                <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
-                    <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 mb-4">
-                        <Coins className="w-5 h-5" />
-                    </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Paid Out</p>
-                    <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.paidOut || stats?.totalWithdrawals || 0).toFixed(2)}</p>
-                    {stats?.pendingPayoutAmount > 0 && (
-                        <p className="text-[10px] font-bold text-amber-500 mt-1 uppercase tracking-wide">
-                            + Credits {Number(stats.pendingPayoutAmount).toFixed(2)} Pending Processing
-                        </p>
-                    )}
                 </div>
             </div>
 
@@ -436,7 +424,7 @@ export default function AffiliateDashboard() {
                     </div>
                     <div className="flex gap-4">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0">2</div>
-                        <p className="text-sm text-slate-300 font-medium">Commission is held for <span className="text-white font-black">30 days</span> before becoming available for withdrawal.</p>
+                        <p className="text-sm text-slate-300 font-medium">Commission is held for <span className="text-white font-black">30 days</span> before becoming available.</p>
                     </div>
                     <div className="flex gap-4">
                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">3</div>
