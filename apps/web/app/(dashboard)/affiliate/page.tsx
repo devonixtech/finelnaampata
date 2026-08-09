@@ -253,31 +253,31 @@ export default function AffiliateDashboard() {
                         <DollarSign className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Earned</p>
-                    <p className="text-2xl font-black text-slate-900">\</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.totalEarned || stats?.totalEarnings || 0).toFixed(2)}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 mb-4">
                         <Wallet className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Balance</p>
-                    <p className="text-2xl font-black text-slate-900">\</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.balance || stats?.balance || 0).toFixed(2)}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4">
                         <Clock className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending (30-day hold)</p>
-                    <p className="text-2xl font-black text-slate-900">\</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.balanceHeld || 0).toFixed(2)}</p>
                 </div>
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-500 mb-4">
                         <DollarSign className="w-5 h-5" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Paid Out</p>
-                    <p className="text-2xl font-black text-slate-900">\</p>
+                    <p className="text-2xl font-black text-slate-900">Credits {Number(earnings?.paidOut || stats?.totalWithdrawals || 0).toFixed(2)}</p>
                     {stats?.pendingPayoutAmount > 0 && (
                         <p className="text-[10px] font-bold text-amber-500 mt-1 uppercase tracking-wide">
-                            + \ Pending Processing
+                            + Credits {Number(stats.pendingPayoutAmount).toFixed(2)} Pending Processing
                         </p>
                     )}
                 </div>
