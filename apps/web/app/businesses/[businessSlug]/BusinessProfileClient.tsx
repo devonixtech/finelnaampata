@@ -53,7 +53,7 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showShareModal, setShowShareModal] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
-    const [showMapEmbed, setShowMapEmbed] = useState(false);
+    const [showMapEmbed, setShowMapEmbed] = useState(true);
 
     useEffect(() => {
         const fetchProfile = async () => {
