@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import BusinessDetailClient from './BusinessDetailClient';
-import CategoriesSidebar from './CategoriesSidebar';
 import { api } from '../../../lib/api';
-import Navbar from '../../../components/Navbar';
 
 export async function generateStaticParams() {
   try {
@@ -80,18 +78,9 @@ export default async function BusinessDetailPage({
     console.error(`[BusinessPage] Error fetching data for ${businessSlug}:`, err);
   }
 
-  // Google Business Style Split Layout
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <CategoriesSidebar initialCategories={categories} />
-
-        {/* Right Main Content */}
-        <main className="flex-1 w-full lg:max-w-[calc(100vw-20rem)] h-full overflow-y-auto">
-          <BusinessDetailClient slug={businessSlug} initialData={business || undefined} />
-        </main>
-      </div>
-    </div>
+    <main className="w-full min-h-screen">
+      <BusinessDetailClient slug={businessSlug} initialData={business || undefined} />
+    </main>
   );
 }

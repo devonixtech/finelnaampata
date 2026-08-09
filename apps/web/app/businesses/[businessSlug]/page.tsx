@@ -1,6 +1,7 @@
 import React from 'react';
 import BusinessProfileClient from './BusinessProfileClient';
 import { api } from '../../../lib/api';
+import CategoriesSidebar from '../../../components/CategoriesSidebar';
 
 export const dynamicParams = true;
 
@@ -30,5 +31,24 @@ export async function generateMetadata({ params }: { params: Promise<{ businessS
 
 export default async function BusinessProfilePage({ params }: { params: Promise<{ businessSlug: string }> }) {
     const { businessSlug } = await params;
-    return <BusinessProfileClient slugOrId={businessSlug} />;
+    
+    let categories: any[] = [];
+    try {
+        categories = await api.categories.getRoot({ silent: true }) || [];
+    } catch (err) {
+        console.error(`[BusinessProfilePage] Error fetching categories:`, err);
+    }
+
+    return (
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+            <div className="flex flex-1 overflow-hidden">
+                <CategoriesSidebar initialCategories={categories} />
+
+                {/* Right Main Content */}
+                <main className="flex-1 w-full lg:max-w-[calc(100vw-20rem)] h-full overflow-y-auto">
+                    <BusinessProfileClient slugOrId={businessSlug} />
+                </main>
+            </div>
+        </div>
+    );
 }
