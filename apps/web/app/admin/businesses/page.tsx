@@ -12,6 +12,7 @@ import {
 import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
+import Link from 'next/link';
 
 type BusinessStatus = 'pending_geocode' | 'approved' | 'rejected' | 'suspended';
 

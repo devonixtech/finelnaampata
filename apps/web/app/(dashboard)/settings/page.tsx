@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award, Lock } from 'lucide-react';
+import { Settings, User, Phone, MapPin, Globe, Save, Loader2, CheckCircle2, AlertCircle, Upload, KeyRound, Camera, ChevronDown, Clock, Facebook, Instagram, Linkedin, Twitter, Youtube, ExternalLink, Trash2, Plus, Share2, AlertTriangle, RefreshCcw, Bell, Mail, ShieldCheck, Award, Lock, X } from 'lucide-react';
 import { api, getImageUrl } from '../../../lib/api';
 import BusinessAvatar from '../../../components/BusinessAvatar';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
