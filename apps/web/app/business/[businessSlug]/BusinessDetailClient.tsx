@@ -183,6 +183,8 @@ export default function BusinessDetailClient({
   const [reviewStep, setReviewStep] = useState(1);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
