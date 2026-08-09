@@ -180,6 +180,7 @@ export default function BusinessDetailClient({
   const [comments, setComments] = useState<any[]>([]); // We keep the name 'comments' to minimize changes but it will hold Review objects
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewStep, setReviewStep] = useState(1);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -1736,12 +1737,9 @@ export default function BusinessDetailClient({
                                 </button>
                               )}
                               {((business as any).whatsapp || business.phone) && (
-                                <button
-                                  onClick={() => handleContactIntent("whatsapp")}
-                                  className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-[#25D366] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-[#128C7E] transition-all shadow-lg shadow-green-500/20"
-                                >
+                                <a href={`https://wa.me/${((business as any)?.whatsapp || business?.phone)?.replace(/[^0-9]/g, '')}?text=Hi, I found your business on Nampata.`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 px-5 md:px-6 py-3 md:py-3.5 bg-[#25D366] text-white rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-[#128C7E] transition-all shadow-lg shadow-green-500/20" title="WhatsApp">
                                   <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" /> WhatsApp
-                                </button>
+                                </a>
                               )}
                             </div>
                             {business.offerExpiresAt && (
@@ -1875,12 +1873,9 @@ export default function BusinessDetailClient({
                     </button>
                   )}
                   {((business as any).whatsapp || business.phone) && (
-                    <button
-                      onClick={() => handleContactIntent("whatsapp")}
-                      className="w-full py-5 bg-[#25D366] text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-[#128C7E] transition-all duration-300 shadow-xl shadow-green-500/20 active:scale-95"
-                    >
+                    <a href={`https://wa.me/${((business as any)?.whatsapp || business?.phone)?.replace(/[^0-9]/g, '')}?text=Hi, I found your business on Nampata.`} target="_blank" rel="noopener noreferrer" className="w-full py-5 bg-[#25D366] text-white rounded-[20px] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-[#128C7E] transition-all duration-300 shadow-xl shadow-green-500/20 active:scale-95" title="WhatsApp">
                       <WhatsAppIcon className="w-6 h-6" /> WhatsApp
-                    </button>
+                    </a>
                   )}
                 </div>
 
@@ -2354,12 +2349,9 @@ export default function BusinessDetailClient({
               </button>
             )}
             {((business as any).whatsapp || business.phone) && (
-              <button
-                onClick={() => handleContactIntent("whatsapp")}
-                className="flex-1 h-12 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
-              >
+              <a href={`https://wa.me/${((business as any)?.whatsapp || business?.phone)?.replace(/[^0-9]/g, '')}?text=Hi, I found your business on Nampata.`} target="_blank" rel="noopener noreferrer" className="flex-1 h-12 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all text-sm" title="WhatsApp">
                 <WhatsAppIcon className="w-5 h-5" /> WhatsApp
-              </button>
+              </a>
             )}
             <button
               onClick={() => openEnquiryModal()}
@@ -2377,7 +2369,7 @@ export default function BusinessDetailClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-[20px] md:rounded-[16px] p-6 md:p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setShowReviewModal(false)}
+              onClick={() => { setShowReviewModal(false); setReviewStep(1); }}
               className="absolute top-4 right-4 md:top-8 md:right-8 text-slate-400 hover:text-slate-900 transition-colors p-2"
             >
               <span className="sr-only">Close</span>
@@ -2385,6 +2377,20 @@ export default function BusinessDetailClient({
             </button>
 
             <div className="text-center mb-6 md:mb-8">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                {[1, 2, 3].map((step) => (
+                  <div
+                    key={step}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      step <= reviewStep
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {step}
+                  </div>
+                ))}
+              </div>
               <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">
                 Write a Review
               </h3>
@@ -2393,49 +2399,146 @@ export default function BusinessDetailClient({
               </p>
             </div>
 
-            <form onSubmit={handleReviewSubmit} className="space-y-4 md:space-y-6">
-              <div className="flex flex-col items-center">
-                <label className="block text-sm font-bold text-slate-700 mb-4">
-                  How was your experience?
-                </label>
-                <div className="flex gap-1 md:gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      className="p-1 transition-transform hover:scale-110 active:scale-90"
-                    >
-                      <Star
-                        className={`w-8 h-8 md:w-10 md:h-10 ${star <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
-                      />
-                    </button>
-                  ))}
+            <div className="space-y-4 md:space-y-6">
+              {reviewStep === 1 && (
+                <div className="flex flex-col items-center">
+                  <label className="block text-sm font-bold text-slate-700 mb-4">
+                    How was your experience?
+                  </label>
+                  <div className="flex gap-1 md:gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="p-1 transition-transform hover:scale-110 active:scale-90"
+                      >
+                        <Star
+                          className={`w-8 h-8 md:w-10 md:h-10 ${star <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReviewStep(2)}
+                    className="mt-8 w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+                  >
+                    Next
+                  </button>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Your review
-                </label>
-                <textarea
-                  required
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  rows={4}
-                  placeholder="Tell others what you liked or disliked..."
-                  className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 text-sm md:text-base text-slate-600"
-                />
-              </div>
+              {reviewStep === 2 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Your review
+                    </label>
+                    <textarea
+                      required
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      rows={4}
+                      placeholder="Tell others what you liked or disliked..."
+                      className="w-full px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 text-sm md:text-base text-slate-600"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(1)}
+                      className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(3)}
+                      className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
 
-              <button
-                type="submit"
-                disabled={submittingReview}
-                className="w-full py-3.5 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-              >
-                {submittingReview ? "Submitting..." : "Submit Review"}
-              </button>
-            </form>
+              {reviewStep === 3 && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Photos (optional, max 5)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      max={5}
+                      onChange={async (e) => {
+                        const rawFiles = Array.from(e.target.files || []).slice(0, 5);
+                        for (const file of rawFiles) {
+                          try {
+                            const imageCompression = (await import('browser-image-compression')).default;
+                            const compressed = await imageCompression(file, {
+                              maxSizeMB: 0.5,
+                              maxWidthOrHeight: 1600,
+                              useWebWorker: true,
+                              fileType: 'image/jpeg',
+                              initialQuality: 0.8,
+                            });
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                            };
+                            reader.readAsDataURL(compressed);
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setReviewImages(prev => [...prev.slice(0, 4), reader.result as string]);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }
+                      }}
+                      className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all"
+                    />
+                    {reviewImages.length > 0 && (
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        {reviewImages.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`Preview ${idx + 1}`} className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                            <button
+                              type="button"
+                              onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setReviewStep(2)}
+                      className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReviewSubmit}
+                      disabled={submittingReview}
+                      className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
