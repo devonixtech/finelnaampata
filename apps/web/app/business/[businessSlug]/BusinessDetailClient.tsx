@@ -609,7 +609,7 @@ export default function BusinessDetailClient({
     if (!business) return;
 
     if (reviewComment.trim().length < 10) {
-      alert("Review comment must be at least 10 characters long.");
+      toast.error("Review comment must be at least 10 characters long.");
       return;
     }
 
@@ -627,7 +627,7 @@ export default function BusinessDetailClient({
       setReviewComment("");
       setReviewRating(5);
     } catch (err: any) {
-      alert(err.message || "Failed to submit review");
+      toast.error(err.message || "Failed to submit review");
     } finally {
       setSubmittingReview(false);
     }
@@ -639,7 +639,7 @@ export default function BusinessDetailClient({
       return;
     }
     if (!isOwner) {
-      alert("Only the business owner can reply to reviews");
+      toast.error("Only the business owner can reply to reviews");
       return;
     }
     if (!replyContent.trim()) return;
@@ -653,7 +653,7 @@ export default function BusinessDetailClient({
       setReplyingTo(null);
       setReplyContent("");
     } catch (err: any) {
-      alert(err.message || "Failed to submit reply");
+      toast.error(err.message || "Failed to submit reply");
     } finally {
       setSubmittingReply(false);
     }
@@ -668,7 +668,7 @@ export default function BusinessDetailClient({
     if (!business || !questionContent.trim()) return;
 
     if (questionContent.trim().length < 10) {
-      alert("Question must be at least 10 characters long.");
+      toast.error("Question must be at least 10 characters long.");
       return;
     }
 
@@ -678,10 +678,10 @@ export default function BusinessDetailClient({
         businessId: business.id,
         content: questionContent.trim(),
       });
-      alert("Your question has been submitted and is pending moderation.");
+      toast.success("Your question has been submitted and is pending moderation.");
       setQuestionContent("");
     } catch (err: any) {
-      alert(err.message || "Failed to submit question");
+      toast.error(err.message || "Failed to submit question");
     } finally {
       setSubmittingQuestion(false);
     }
@@ -701,11 +701,11 @@ export default function BusinessDetailClient({
         questionId,
         content: answerContent.trim(),
       });
-      alert("Your answer has been submitted and is pending moderation.");
+      toast.success("Your answer has been submitted and is pending moderation.");
       setAnswerContent("");
       setAnsweringQuestionId(null);
     } catch (err: any) {
-      alert(err.message || "Failed to submit answer");
+      toast.error(err.message || "Failed to submit answer");
     } finally {
       setSubmittingAnswer(false);
     }
