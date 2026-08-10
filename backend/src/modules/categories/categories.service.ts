@@ -474,7 +474,7 @@ export class CategoriesService {
         });
 
         const saved = await this.categoryRepository.save(category);
-        await this.cacheManager.reset();
+        await (this.cacheManager as any).store?.reset?.() || await (this.cacheManager as any).clear?.();
         return saved;
     }
 
@@ -707,7 +707,7 @@ export class CategoriesService {
         await this.categoryRepository.update(id, updateCategoryDto);
 
         const saved = await this.findOne(id);
-        await this.cacheManager.reset();
+        await (this.cacheManager as any).store?.reset?.() || await (this.cacheManager as any).clear?.();
         return saved;
     }
 
@@ -718,7 +718,7 @@ export class CategoriesService {
         const category = await this.findOne(id);
         category.status = status;
         const saved = await this.categoryRepository.save(category);
-        await this.cacheManager.reset();
+        await (this.cacheManager as any).store?.reset?.() || await (this.cacheManager as any).clear?.();
         return saved;
     }
 
@@ -778,7 +778,7 @@ export class CategoriesService {
 
             // Delete the category
             await this.categoryRepository.delete(id);
-            await this.cacheManager.reset();
+            await (this.cacheManager as any).store?.reset?.() || await (this.cacheManager as any).clear?.();
         } catch (err: any) {
             console.error('Error deleting category:', err);
             throw new BadRequestException('Could not delete category: ' + (err.message || 'database error'));
