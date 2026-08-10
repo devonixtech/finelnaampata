@@ -465,6 +465,20 @@ ${JSON.stringify(insights.slice(0, 10))}
                 .getRawMany();
 
             if (!stats || stats.length === 0) {
+                // Fallback: try city-based matching by finding the nearest city from recent logs
+                const nearestCity = await this.searchLogRepository.createQueryBuilder('log')
+                    .select('log.city', 'city')
+                    .where('log.city IS NOT NULL')
+                    .andWhere('log.latitude IS NOT NULL')
+                    .orderBy(`ABS(log.latitude - :lat) + ABS(log.longitude - :lng)`, 'nearest')
+                    .setParameters({ lat, lng })
+                    .getRawOne();
+
+                if (nearestCity?.city) {
+                    this.logger.log(`[Demand] No nearby lat/lng data, falling back to city: ${nearestCity.city}`);
+                    return this.getInsights(nearestCity.city);
+                }
+
                 return this.getInsights();
             }
 

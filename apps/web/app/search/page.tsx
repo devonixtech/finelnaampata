@@ -105,12 +105,15 @@ function SearchResults() {
 
                 // Log demand if there's a query or category
                 if (query || categorySlug) {
-                    api.demand.logSearch({
+                    const logPayload: any = {
                         keyword: query || "",
                         city: city || undefined,
                         country: country || undefined,
                         categorySlug: categorySlug || undefined,
-                    });
+                    };
+                    if (latitude) logPayload.latitude = parseFloat(latitude);
+                    if (longitude) logPayload.longitude = parseFloat(longitude);
+                    api.demand.logSearch(logPayload);
                 }
             } catch (err) {
                 console.error("Search failed", err);
