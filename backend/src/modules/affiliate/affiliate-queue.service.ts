@@ -72,7 +72,14 @@ export class AffiliateQueueService implements OnModuleInit, OnModuleDestroy {
 
     async enqueueProcessReferral(data: ProcessReferralJobData) {
         if (!this.commissionQueue) {
-            this.logger.warn('Queue disabled — processing referral inline');
+            this.logger.warn('Queue disabled — processing referral inline (no Redis)');
+            if (this.affiliateServiceRef) {
+                return this.affiliateServiceRef.processSuccessfulReferralDirect(
+                    data.referredUserId,
+                    data.paidAmount,
+                    data.force,
+                );
+            }
             return null;
         }
 
@@ -87,7 +94,13 @@ export class AffiliateQueueService implements OnModuleInit, OnModuleDestroy {
 
     async enqueueReverseCommission(data: ReverseCommissionJobData) {
         if (!this.commissionQueue) {
-            this.logger.warn('Queue disabled — reversing commission inline');
+            this.logger.warn('Queue disabled — reversing commission inline (no Redis)');
+            if (this.affiliateServiceRef) {
+                return this.affiliateServiceRef.reverseCommissionDirect(
+                    data.vendorId,
+                    data.reason,
+                );
+            }
             return null;
         }
 
@@ -102,7 +115,15 @@ export class AffiliateQueueService implements OnModuleInit, OnModuleDestroy {
 
     async enqueueReleaseHeldFunds(data: ReleaseHeldFundsJobData) {
         if (!this.commissionQueue) {
-            this.logger.warn('Queue disabled — releasing held funds inline');
+            this.logger.warn('Queue disabled — releasing held funds inline (no Redis)');
+            if (this.affiliateServiceRef) {
+                const affiliate = await this.affiliateServiceRef['affiliateRepository'].findOne({
+                    where: { id: data.affiliateId },
+                });
+                if (affiliate) {
+                    return this.affiliateServiceRef.releaseHeldFunds(affiliate);
+                }
+            }
             return null;
         }
 

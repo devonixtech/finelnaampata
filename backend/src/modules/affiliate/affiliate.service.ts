@@ -1323,20 +1323,13 @@ export class AffiliateService implements OnModuleInit {
 
                 let rsCommission = 0;
 
-                // NEW POLICY: 
-                // 1. If referrer is a Business (Vendor), they DO NOT get cash commission (they already got 10 days extension).
-                // 2. If referrer is a Normal User, they get cash commission.
+                // POLICY: ALL referrers (vendors and normal users) earn credits commission.
                 const config = await this.getSettings();
                 const userCommRate = Number(config.commissionRate) || 35;
                 const creditValue = Number(config.creditValue) || 1;
 
-                if (referrerVendor) {
-                    this.logger.log(`[Referral] Referrer ${referrerUserId} is a Business. Skipping cash commission, already granted 10 days extension.`);
-                    rsCommission = 0;
-                } else {
-                    rsCommission = (Number(paidAmount) * userCommRate) / 100;
-                    this.logger.log(`[Referral] Referrer ${referrerUserId} is a User. Calculating ${userCommRate}% cash commission.`);
-                }
+                rsCommission = (Number(paidAmount) * userCommRate) / 100;
+                this.logger.log(`[Referral] Referrer ${referrerUserId}. Calculating ${userCommRate}% credits commission.`);
 
                 if (rsCommission > 0) {
                     const credits = Math.floor(rsCommission / creditValue);
