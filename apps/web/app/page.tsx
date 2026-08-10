@@ -147,8 +147,8 @@ export default function HomePage() {
           api.listings.getFeatured(1, 12),
           api.cities.getPopular(),
           Promise.allSettled([
-            api.deals.search({ limit: 10 }),
-            api.events.search({ limit: 10 }),
+            api.deals.search({ limit: 10, placement: 'homepage' }),
+            api.events.search({ limit: 10, placement: 'homepage' }),
           ]),
           api.reviews.getPopular(15),
         ]);

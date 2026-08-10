@@ -279,7 +279,9 @@ export class DealsService {
             }
 
             if (placement) {
-                qb.andWhere('o.isFeatured = :trueVal', { trueVal: true });
+                // Only show deals that have an active booking with this specific placement
+                qb.andWhere('pb.id IS NOT NULL')
+                  .andWhere("pb.placements @> :placementArr", { placementArr: JSON.stringify([placement]) });
             } else if (isFeatured === true) {
                 qb.andWhere('o.isFeatured = :trueVal', { trueVal: true });
             }
