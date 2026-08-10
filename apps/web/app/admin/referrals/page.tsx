@@ -51,7 +51,7 @@ export default function AdminReferralsPage() {
         try {
             const result = await api.admin.affiliate.activateReferral(id);
             if (result.success) {
-                toast.error(result.message);
+                toast.success(result.message || 'Referral activated');
                 await fetchData();
             } else {
                 toast.error('Failed to activate: ' + (result.reason || 'Unknown error'));
@@ -59,6 +59,46 @@ export default function AdminReferralsPage() {
         } catch (err: any) {
             console.error('Activation failed:', err);
             toast.error('Activation error: ' + err.message);
+        } finally {
+            setActionId(null);
+        }
+    };
+
+    const handleApproveCommission = async (id: string) => {
+        if (!confirm('Approve this commission? Credits will be added to the affiliate balance.')) return;
+        
+        setActionId(id);
+        try {
+            const result = await api.admin.affiliate.approveCommission(id);
+            if (result.success) {
+                toast.success(result.message || 'Commission approved and credits added');
+                await fetchData();
+            } else {
+                toast.error('Failed to approve: ' + (result.reason || 'Unknown error'));
+            }
+        } catch (err: any) {
+            console.error('Commission approval failed:', err);
+            toast.error('Approval error: ' + err.message);
+        } finally {
+            setActionId(null);
+        }
+    };
+
+    const handleCancelCommission = async (id: string) => {
+        if (!confirm('Reject this commission? The referral will be marked as cancelled.')) return;
+        
+        setActionId(id);
+        try {
+            const result = await api.admin.affiliate.cancelCommission(id, 'Rejected by admin');
+            if (result?.success) {
+                toast.success(result.message || 'Commission rejected');
+                await fetchData();
+            } else {
+                toast.error('Failed to reject commission');
+            }
+        } catch (err: any) {
+            console.error('Commission cancel failed:', err);
+            toast.error('Error: ' + err.message);
         } finally {
             setActionId(null);
         }
@@ -91,11 +131,18 @@ export default function AdminReferralsPage() {
             shadow: 'shadow-emerald-500/20'
         },
         {
-            label: 'Pending Activation',
-            value: referrals.filter(r => r.status === 'pending').length.toString(),
+            label: 'Pending Approval',
+            value: referrals.filter(r => r.status === 'pending_approval').length.toString(),
             icon: Clock,
             color: 'bg-amber-500',
             shadow: 'shadow-amber-500/20'
+        },
+        {
+            label: 'Pending Signup',
+            value: referrals.filter(r => r.status === 'pending').length.toString(),
+            icon: Clock,
+            color: 'bg-blue-500',
+            shadow: 'shadow-blue-500/20'
         }
     ];
 
@@ -126,8 +173,10 @@ export default function AdminReferralsPage() {
                             onChange={(val) => setStatusFilter(val)}
                             options={[
                                 { label: "All Status", value: "all" },
-                                { label: "Pending", value: "pending" },
-                                { label: "Converted", value: "converted" }
+                                { label: "Pending Signup", value: "pending" },
+                                { label: "Awaiting Approval", value: "pending_approval" },
+                                { label: "Approved", value: "converted" },
+                                { label: "Rejected", value: "cancelled" }
                             ]}
                         />
                     </div>
@@ -146,6 +195,7 @@ export default function AdminReferralsPage() {
                                 <th className="px-8 py-5">Referrer (Affiliate)</th>
                                 <th className="px-8 py-5">Referred User</th>
                                 <th className="px-8 py-5">Type</th>
+                                <th className="px-8 py-5">Commission</th>
                                 <th className="px-8 py-5">Status</th>
                                 <th className="px-8 py-5">Date</th>
                                 <th className="px-8 py-5 text-right">Action</th>
@@ -155,7 +205,7 @@ export default function AdminReferralsPage() {
                             {loading ? (
                                 Array(5).fill(0).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
-                                        <td colSpan={6} className="px-8 py-6 h-20 bg-slate-50/20"></td>
+                                        <td colSpan={7} className="px-8 py-6 h-20 bg-slate-50/20"></td>
                                     </tr>
                                 ))
                             ) : filteredReferrals.length > 0 ? (
@@ -192,14 +242,28 @@ export default function AdminReferralsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6">
+                                            <span className="text-sm font-black text-slate-900">
+                                                {Number(ref.commissionAmount || 0) > 0 ? `${Number(ref.commissionAmount).toFixed(0)} Credits` : '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-1.5 h-1.5 rounded-full ${
-                                                    ref.status === 'converted' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+                                                    ref.status === 'converted' ? 'bg-emerald-500' :
+                                                    ref.status === 'pending_approval' ? 'bg-amber-500 animate-pulse' :
+                                                    ref.status === 'cancelled' ? 'bg-red-500' :
+                                                    'bg-blue-500 animate-pulse'
                                                 }`} />
                                                 <span className={`text-[10px] font-black uppercase tracking-widest ${
-                                                    ref.status === 'converted' ? 'text-emerald-600' : 'text-amber-600'
+                                                    ref.status === 'converted' ? 'text-emerald-600' :
+                                                    ref.status === 'pending_approval' ? 'text-amber-600' :
+                                                    ref.status === 'cancelled' ? 'text-red-600' :
+                                                    'text-blue-600'
                                                 }`}>
-                                                    {ref.status === 'converted' ? 'Earned' : 'Awaiting Activation'}
+                                                    {ref.status === 'converted' ? 'Approved' :
+                                                     ref.status === 'pending_approval' ? 'Awaiting Approval' :
+                                                     ref.status === 'cancelled' ? 'Rejected' :
+                                                     'Awaiting Signup'}
                                                 </span>
                                             </div>
                                         </td>
@@ -213,7 +277,28 @@ export default function AdminReferralsPage() {
                                             </p>
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            {ref.status === 'pending' ? (
+                                            {ref.status === 'pending_approval' ? (
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleCancelCommission(ref.id)}
+                                                        disabled={!!actionId}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 active:scale-95 disabled:opacity-50 transition-all"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleApproveCommission(ref.id)}
+                                                        disabled={!!actionId}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50 transition-all"
+                                                    >
+                                                        {actionId === ref.id ? (
+                                                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                        ) : (
+                                                            <>Approve Commission</>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ) : ref.status === 'pending' ? (
                                                 <button
                                                     onClick={() => handleActivate(ref.id)}
                                                     disabled={!!actionId}
@@ -225,10 +310,14 @@ export default function AdminReferralsPage() {
                                                         <>Activate Reward <ArrowRight className="w-3 h-3" /></>
                                                     )}
                                                 </button>
+                                            ) : ref.status === 'cancelled' ? (
+                                                <div className="inline-flex items-center gap-2 text-red-400">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Rejected</span>
+                                                </div>
                                             ) : (
                                                 <div className="inline-flex items-center gap-2 text-emerald-500">
                                                     <ShieldCheck className="w-5 h-5" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Bonus Granted</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Approved</span>
                                                 </div>
                                             )}
                                         </td>
@@ -236,7 +325,7 @@ export default function AdminReferralsPage() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-8 py-20 text-center">
+                                    <td colSpan={7} className="px-8 py-20 text-center">
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <AlertCircle className="w-8 h-8 text-slate-200" />
                                         </div>
