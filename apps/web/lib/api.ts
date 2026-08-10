@@ -737,6 +737,7 @@ export const api = {
             getReferrals: () => fetcher<any[]>('/affiliate/admin/referrals'),
             activateReferral: (id: string) => fetcher<any>(`/affiliate/admin/activate-referral/${id}`, { method: 'POST' }),
             getStats: () => fetcher<any>('/affiliate/admin/stats'),
+            getPendingCommissions: () => fetcher<any[]>('/affiliate/admin/commissions/pending'),
             approveCommission: (id: string) => fetcher<any>(`/affiliate/admin/referrals/${id}/approve-commission`, { method: 'POST' }),
             getPayouts: () => fetcher<any[]>('/affiliate/admin/payouts'),
             updatePayout: (id: string, status: string, notes?: string) => fetcher<any>(`/affiliate/admin/payouts/${id}`, {

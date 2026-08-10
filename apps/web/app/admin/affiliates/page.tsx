@@ -24,6 +24,7 @@ import {
     Download,
     Settings,
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { api } from '../../../lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
@@ -245,8 +246,10 @@ export default function AffiliatesAdminPage() {
             setReferrals(prev => prev.map(r => r.id === id ? { ...r, status: 'converted' } : r));
             // Refetch to update affiliate balances
             fetchAffiliates();
-        } catch (err) {
+            toast.success('Commission approved successfully');
+        } catch (err: any) {
             console.error('Approve failed:', err);
+            toast.error(err.response?.data?.message || 'Failed to approve commission');
         } finally {
             setActionLoading(null);
         }

@@ -1580,5 +1580,13 @@ export class AffiliateService implements OnModuleInit {
         };
     }
 
+    async getPendingCommissions() {
+        return this.referralRepository.find({
+            where: { status: ReferralStatus.PENDING_APPROVAL },
+            relations: ['affiliate', 'affiliate.user', 'referredUser'],
+            order: { createdAt: 'DESC' }
+        });
+    }
+
 }
 

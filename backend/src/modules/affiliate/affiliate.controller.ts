@@ -214,6 +214,14 @@ export class AffiliateController {
         return this.affiliateService.adminApproveCommission(id);
     }
 
+    @Get('admin/commissions/pending')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Get pending commissions' })
+    async adminGetPendingCommissions() {
+        return this.affiliateService.getPendingCommissions();
+    }
+
     @Get('settings')
     @ApiOperation({ summary: 'Get affiliate program settings' })
     async getSettings() {
