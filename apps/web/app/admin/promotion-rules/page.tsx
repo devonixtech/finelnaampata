@@ -5,20 +5,12 @@ import {
   Zap,
   Home,
   LayoutGrid,
-  Info,
   Save,
   Loader2,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
-  Settings,
-  CreditCard,
-  TrendingUp,
   ShieldCheck,
   MinusSquare,
   Tag,
   Calendar,
-  Layout,
 } from "lucide-react";
 import { api } from "../../../lib/api";
 import { toast } from "react-hot-toast";
@@ -29,7 +21,6 @@ type VisibilityPlacement = "homepage" | "category" | "listing" | "offer" | "even
 interface PricingRule {
   id: string;
   placement: VisibilityPlacement | string;
-  pricePerHour: number;
   pricePerDay: number;
   isActive: boolean;
 }
@@ -94,68 +85,6 @@ const PLACEMENT_INFO: Record<
     borderColor: "border-rose-100",
   },
 };
-
-// const PLACEMENT_INFO = {
-//   homepage: {
-//     title: "Home Page Spotlight",
-//     description:
-//       "Boost listings to the prime hero section and search foreground.",
-//     icon: Home,
-//     color: "bg-orange-500",
-//     lightColor: "bg-orange-50",
-//     textColor: "text-orange-600",
-//     borderColor: "border-orange-100",
-//   },
-//   category: {
-//     title: "Category Dominance",
-//     description:
-//       "Ensure visibility at the top of specific business categories.",
-//     icon: LayoutGrid,
-//     color: "bg-blue-600",
-//     lightColor: "bg-blue-50",
-//     textColor: "text-blue-600",
-//     borderColor: "border-blue-100",
-//   },
-//   listing: {
-//     title: "Related Listings",
-//     description:
-//       'Appear in "Suggested" and "Similar" sections of competitor pages.',
-//     icon: Zap,
-//     color: "bg-violet-600",
-//     lightColor: "bg-violet-50",
-//     textColor: "text-violet-600",
-//     borderColor: "border-violet-100",
-//   },
-//   offer: {
-//     title: "Offer Boost",
-//     description:
-//       "Set baseline for time-limited deal promotions across the app.",
-//     icon: Tag,
-//     color: "bg-emerald-600",
-//     lightColor: "bg-emerald-50",
-//     textColor: "text-emerald-700",
-//     borderColor: "border-emerald-100",
-//   },
-//   event: {
-//     title: "Event Promotion",
-//     description:
-//       "Control baseline cost for increasing event and workshop reach.",
-//     icon: Calendar,
-//     color: "bg-rose-600",
-//     lightColor: "bg-rose-50",
-//     textColor: "text-rose-700",
-//     borderColor: "border-rose-100",
-//   },
-//   page: {
-//     title: "Page Highlight",
-//     description: "Dynamic price for highlighting entire business pages.",
-//     icon: Layout,
-//     color: "bg-indigo-600",
-//     lightColor: "bg-indigo-50",
-//     textColor: "text-indigo-700",
-//     borderColor: "border-indigo-100",
-//   },
-// };
 
 export default function PromotionRulesPage() {
   const [rules, setRules] = useState<PricingRule[]>([]);
@@ -224,7 +153,7 @@ export default function PromotionRulesPage() {
     visibleRules.length > 0
       ? Math.round(
           visibleRules.reduce(
-            (acc, curr) => acc + Number(curr.pricePerDay || curr.pricePerHour * 24),
+            (acc, curr) => acc + Number(curr.pricePerDay),
             0,
           ) / visibleRules.length,
         )
@@ -249,7 +178,7 @@ export default function PromotionRulesPage() {
               Placement Controls
             </h1>
             <p className="text-slate-400 font-bold text-lg max-w-md">
-              Set hourly boost rates for each placement. Businesses pay per-day based on selected placements.
+              Set daily boost rates for each placement. Businesses pay per-day based on selected placements.
             </p>
           </div>
 
@@ -259,7 +188,6 @@ export default function PromotionRulesPage() {
                 Active Zones
               </div>
               <div className="text-3xl font-black">
-                {/* {activeRules} / {rules.length} */}
                 {activeRules} / {visibleRules.length}
               </div>
             </div>
@@ -291,11 +219,6 @@ export default function PromotionRulesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* {rules.map((rule) => {
-            const info =
-              PLACEMENT_INFO[rule.placement as keyof typeof PLACEMENT_INFO] ||
-              PLACEMENT_INFO.listing;
-            const isSaving = savingId === rule.id; */}
           {visibleRules.map((rule) => {
             const info = PLACEMENT_INFO[rule.placement];
             const isSaving = savingId === rule.id;
@@ -347,12 +270,11 @@ export default function PromotionRulesPage() {
                         </div>
                         <input
                           type="number"
-                          defaultValue={rule.pricePerDay || Number(rule.pricePerHour) * 24}
+                          defaultValue={rule.pricePerDay}
                           onBlur={(e) => {
                             const val = Number(e.target.value);
-                            const current = rule.pricePerDay || Number(rule.pricePerHour) * 24;
-                            if (val !== current)
-                              handleUpdate(rule.id, { pricePerDay: val, pricePerHour: Math.round(val / 24) });
+                            if (val !== rule.pricePerDay)
+                              handleUpdate(rule.id, { pricePerDay: val });
                           }}
                           className="w-full px-8 py-3 pr-20 pl-16 bg-slate-50 border-2 border-transparent rounded-[24px] focus:outline-none focus:border-red-500 focus:bg-white transition-all font-black text-2xl text-slate-900 placeholder:text-slate-200 shadow-inner"
                           placeholder="0"
@@ -365,15 +287,7 @@ export default function PromotionRulesPage() {
                   </div>
 
                   {/* Action Footnote */}
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        Reference Hourly
-                      </span>
-                      <span className="text-lg font-black text-slate-900">
-                        Rs {Math.round(Number(rule.pricePerDay || rule.pricePerHour * 24) / 24)}
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-end pt-4 border-t border-slate-50">
                     <button
                       disabled={isSaving}
                       className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${isSaving ? "bg-slate-100" : "bg-slate-900 text-white hover:bg-black shadow-xl"}`}
@@ -406,19 +320,6 @@ export default function PromotionRulesPage() {
           )}
         </div>
       </div>
-
-      {/* Strategy Insight */}
-      {/* <div className="bg-emerald-50 rounded-[20px] p-10 border-2 border-emerald-100/50 flex flex-col md:flex-row items-center gap-8">
-                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-lg flex-shrink-0">
-                    <TrendingUp className="w-10 h-10 text-emerald-600" />
-                </div>
-                <div className="space-y-4 text-center md:text-left">
-                    <h4 className="text-2xl font-extrabold text-emerald-900">Monetization intelligence</h4>
-                    <p className="text-emerald-700 font-medium text-lg leading-snug">
-                        The above prices are your global baseline. Businesses on **Diamond** or **Platinum** tiers receive discounted rates based on their plan settings, incentivizing high-tier subscriptions.
-                    </p>
-                </div>
-            </div> */}
     </div>
   );
 }

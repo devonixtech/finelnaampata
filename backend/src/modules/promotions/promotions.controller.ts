@@ -94,7 +94,7 @@ export class PromotionsController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Update a promotion pricing rule' })
     @ApiResponse({ status: 200, description: 'Rule updated' })
-    async updateRule(@Param('id') id: string, @Body() dto: { pricePerHour?: number, basePrice?: number, isActive?: boolean }) {
+    async updateRule(@Param('id') id: string, @Body() dto: { pricePerDay?: number, isActive?: boolean }) {
         return this.promotionsService.updatePricingRule(id, dto);
     }
 }

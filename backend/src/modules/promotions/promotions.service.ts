@@ -53,7 +53,7 @@ export class PromotionsService implements OnModuleInit {
         // Fetch placement-specific rates
         const placementRules = await this.pricingRuleRepo.find({ 
             where: { isActive: true },
-            select: ['placement', 'pricePerDay', 'pricePerHour']
+            select: ['placement', 'pricePerDay']
         });
         const placementRates: Record<string, number> = {};
         for (const pr of placementRules) {
@@ -140,11 +140,11 @@ export class PromotionsService implements OnModuleInit {
 
     private async seedDefaultRules() {
         const defaults = [
-            { placement: PromotionPlacement.HOMEPAGE, pricePerHour: 80, pricePerDay: 1920 },
-            { placement: PromotionPlacement.CATEGORY, pricePerHour: 70, pricePerDay: 1680 },
-            { placement: PromotionPlacement.LISTING, pricePerHour: 50, pricePerDay: 1200 },
-            { placement: PromotionPlacement.OFFER, pricePerHour: 40, pricePerDay: 960 },
-            { placement: PromotionPlacement.EVENT, pricePerHour: 60, pricePerDay: 1440 },
+            { placement: PromotionPlacement.HOMEPAGE, pricePerDay: 1920 },
+            { placement: PromotionPlacement.CATEGORY, pricePerDay: 1680 },
+            { placement: PromotionPlacement.LISTING, pricePerDay: 1200 },
+            { placement: PromotionPlacement.OFFER, pricePerDay: 960 },
+            { placement: PromotionPlacement.EVENT, pricePerDay: 1440 },
         ];
 
         for (const ruleData of defaults) {
@@ -496,18 +496,13 @@ export class PromotionsService implements OnModuleInit {
     /**
      * Admin: Update pricing rules
      */
-    async updatePricingRule(id: string, dto: { pricePerHour?: number, pricePerDay?: number, isActive?: boolean }) {
+    async updatePricingRule(id: string, dto: { pricePerDay?: number, isActive?: boolean }) {
         this.assertPromotionEnabled();
         const rule = await this.pricingRuleRepo.findOne({ where: { id } });
         if (!rule) throw new NotFoundException('Pricing rule not found');
 
         if (dto.pricePerDay !== undefined) {
             rule.pricePerDay = dto.pricePerDay;
-            rule.pricePerHour = Math.round(dto.pricePerDay / 24);
-        }
-        if (dto.pricePerHour !== undefined) {
-            rule.pricePerHour = dto.pricePerHour;
-            rule.pricePerDay = dto.pricePerHour * 24; // Sync day rate (24x hourly)
         }
         if (dto.isActive !== undefined) rule.isActive = dto.isActive;
 
