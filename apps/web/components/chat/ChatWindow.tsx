@@ -103,7 +103,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, businessId, bu
                 animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, y: 30, scale: 0.9, filter: 'blur(10px)' }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="fixed bottom-24 right-6 w-85 sm:w-96 h-[550px] bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/20 dark:border-white/10 flex flex-col z-[1000] overflow-hidden"
+                className="fixed bottom-6 right-6 w-85 sm:w-96 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/20 dark:border-white/10 flex flex-col z-[1000] overflow-hidden"
+                style={{ height: 'min(550px, calc(100vh - 90px))', maxHeight: 'calc(100vh - 90px)' }}
             >
                 {/* Premium Header */}
                 <div className="relative p-5 bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-between shadow-lg">
