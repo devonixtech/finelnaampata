@@ -162,7 +162,7 @@ export default function AdminCategoriesPage() {
             await fetchCategories();
         } catch (err: any) {
             toast.error(err.message || 'Bulk import failed');
-import { toast } from "react-hot-toast";
+
         } finally {
             setIsImporting(false);
         }

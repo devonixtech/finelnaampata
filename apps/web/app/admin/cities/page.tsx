@@ -176,7 +176,6 @@ export default function AdminCitiesPage() {
             setIsBulkImportOpen(false);
         } catch (err: any) {
             toast.error(err.message || 'Bulk import failed');
-import { toast } from "react-hot-toast";
         } finally {
             setIsBulkImporting(false);
         }
