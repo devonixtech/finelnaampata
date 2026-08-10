@@ -737,6 +737,7 @@ export const api = {
             getReferrals: () => fetcher<any[]>('/affiliate/admin/referrals'),
             activateReferral: (id: string) => fetcher<any>(`/affiliate/admin/activate-referral/${id}`, { method: 'POST' }),
             getStats: () => fetcher<any>('/affiliate/admin/stats'),
+            approveCommission: (id: string) => fetcher<any>(`/affiliate/admin/referrals/${id}/approve-commission`, { method: 'POST' }),
             getPayouts: () => fetcher<any[]>('/affiliate/admin/payouts'),
             updatePayout: (id: string, status: string, notes?: string) => fetcher<any>(`/affiliate/admin/payouts/${id}`, {
                 method: 'PATCH',
@@ -755,12 +756,7 @@ export const api = {
                 body: JSON.stringify({ paymentReference }),
             }),
             getAffiliates: () => fetcher<any[]>('/affiliate/admin/affiliates'),
-            approveAffiliate: (id: string) => fetcher<any>(`/affiliate/admin/approve/${id}`, { method: 'POST' }),
             suspendAffiliate: (id: string) => fetcher<any>(`/affiliate/admin/suspend/${id}`, { method: 'POST' }),
-            reviewKyc: (id: string, status: 'approved' | 'rejected') => fetcher<any>(`/affiliate/admin/kyc/${id}/review`, {
-                method: 'POST',
-                body: JSON.stringify({ status }),
-            }),
             exportAffiliates: (format: 'csv' | 'json') => fetcher<any>(`/affiliate/admin/export?format=${format}`),
             exportPayoutReports: (format: 'csv' | 'json') => fetcher<any>(`/affiliate/admin/export/payouts?format=${format}`),
             setRankingBoost: (businessId: string, boost: number) => fetcher<any>(`/businesses/${businessId}/admin/ranking-boost`, {
@@ -827,10 +823,7 @@ export const api = {
             body: JSON.stringify({ code }),
         }),
         getEarningsBreakdown: () => fetcher<any>('/affiliate/earnings/breakdown'),
-        submitKyc: (documentUrl: string) => fetcher('/affiliate/kyc/submit', {
-            method: 'POST',
-            body: JSON.stringify({ documentUrl }),
-        }),
+
         requestPayout: (data: { amount: number; method: string; details: string }) => fetcher('/affiliate/payouts', {
             method: 'POST',
             body: JSON.stringify(data),

@@ -11,6 +11,7 @@ export default function SubscriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
 
     // Modal state for assigning
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -108,7 +109,7 @@ export default function SubscriptionsPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Active Subscriptions</h1>
+                    <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Subscriptions</h1>
                     <p className="text-slate-500 font-bold mt-2">Manage user plans, manual assignments, and expirations.</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -137,6 +138,29 @@ export default function SubscriptionsPage() {
                 </div>
             )}
 
+            <div className="flex bg-slate-100 p-1 rounded-xl w-max">
+                <button
+                    onClick={() => setStatusFilter('active')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        statusFilter === 'active'
+                            ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                >
+                    Active Only
+                </button>
+                <button
+                    onClick={() => setStatusFilter('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        statusFilter === 'all'
+                            ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                    }`}
+                >
+                    All History
+                </button>
+            </div>
+
             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -163,11 +187,13 @@ export default function SubscriptionsPage() {
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <Calendar className="w-8 h-8 text-slate-400" />
                                         </div>
-                                        <p className="text-slate-900 font-black text-lg">No active subscriptions</p>
+                                        <p className="text-slate-900 font-black text-lg">No subscriptions found</p>
                                     </td>
                                 </tr>
                             ) : (
-                                subscriptions.map((sub) => (
+                                subscriptions
+                                    .filter(sub => statusFilter === 'all' || sub.status.toLowerCase() === 'active')
+                                    .map((sub) => (
                                     <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div>

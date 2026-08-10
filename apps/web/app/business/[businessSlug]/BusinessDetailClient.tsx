@@ -535,18 +535,12 @@ export default function BusinessDetailClient({
       });
 
       // Integrate with Chat: Send the enquiry as a message and open chat window
+      // Integrate with Chat: Send the enquiry as a message
       try {
         const conversation = await chatApi.getOrCreateConversation(business.id) as any;
         if (conversation && conversation.id) {
           const inquiryText = `BUSINESS INQUIRY:\n\nMessage: ${enquiryMessage.trim()}\n\nSender: ${enquiryName.trim()}\nEmail: ${enquiryEmail.trim()}${enquiryPhone.trim() ? `\nPhone: ${enquiryPhone.trim()}` : ""}`;
           await chatApi.sendMessage(conversation.id, inquiryText);
-          
-          // Open chat window after a small delay to allow state to settle
-          setTimeout(() => {
-            if (chatRef.current) {
-              chatRef.current.open();
-            }
-          }, 500);
         }
       } catch (chatErr) {
         console.error("Failed to sync inquiry with chat:", chatErr);

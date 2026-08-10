@@ -1301,19 +1301,9 @@ export class AffiliateService implements OnModuleInit {
         // --- 3. Finalize Referral Status & Calculate Commission ---
         if (Number(paidAmount) > 0) {
             try {
-                // Issue 12: 30-day account age check
-                const referredUser = await this.userRepository.findOne({ where: { id: referredUserId } });
-                if (referredUser) {
-                    const accountAge = Date.now() - new Date(referredUser.createdAt).getTime();
-                    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-                    if (accountAge < thirtyDaysMs) {
-                        referral.status = ReferralStatus.PENDING_DEFERRED;
-                        await this.referralRepository.save(referral);
-                        this.logger.log(`[Referral] Commission deferred for user ${referredUserId} - account is less than 30 days old`);
-                        return { success: true, message: 'Referral activated, commission deferred (account < 30 days)' };
-                    }
-                }
-
+                // Removed 30-day account age check (Forever Deferred bug)
+                
+                // Set initial status to converted, will be updated to pending_approval if commission is granted
                 referral.status = ReferralStatus.CONVERTED;
                 await this.referralRepository.save(referral);
 
@@ -1351,16 +1341,12 @@ export class AffiliateService implements OnModuleInit {
                 if (rsCommission > 0) {
                     const credits = Math.floor(rsCommission / creditValue);
                     const affiliateObj = referral.affiliate;
-                    affiliateObj.totalEarnings = Number(affiliateObj.totalEarnings) + credits;
-                    affiliateObj.balanceHeld = Number(affiliateObj.balanceHeld) + credits;
-                    const holdDays = affiliateObj.referralHoldDays || 30;
-                    const holdEnd = new Date();
-                    holdEnd.setDate(holdEnd.getDate() + holdDays);
-                    affiliateObj.holdUntil = holdEnd;
-                    await this.affiliateRepository.save(affiliateObj);
+                    
                     referral.commissionAmount = credits; // store credits instead of rs
+                    referral.status = ReferralStatus.PENDING_APPROVAL;
                     await this.referralRepository.save(referral);
-                    this.logger.log(`[Referral] Commission of ${credits} credits (Rs ${rsCommission}) placed on ${holdDays}-day hold for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
+                    
+                    this.logger.log(`[Referral] Commission of ${credits} credits (Rs ${rsCommission}) pending admin approval for affiliate ${affiliateObj.id} (paid amount PKR ${paidAmount})`);
                 }
             } catch (commErr) {
                 this.logger.error(`[Referral] Failed to calculate commission for referral ${referral.id}: ${commErr.message}`);
@@ -1422,6 +1408,40 @@ export class AffiliateService implements OnModuleInit {
         } catch (err) {
             this.logger.error(`[Referral] Failed to reverse commission for vendor ${vendorId}: ${err.message}`);
         }
+    }
+
+    async adminApproveCommission(referralId: string): Promise<{ success: boolean; message: string }> {
+        const referral = await this.referralRepository.findOne({
+            where: { id: referralId },
+            relations: ['affiliate']
+        });
+
+        if (!referral) {
+            throw new NotFoundException('Commission/Referral not found');
+        }
+
+        if (referral.status !== ReferralStatus.PENDING_APPROVAL) {
+            throw new BadRequestException('Commission is not in pending approval state');
+        }
+
+        const affiliate = referral.affiliate;
+        if (!affiliate) {
+            throw new NotFoundException('Affiliate not found for this commission');
+        }
+
+        // Add commission to available balance directly
+        const amount = Number(referral.commissionAmount) || 0;
+        affiliate.totalEarnings = Number(affiliate.totalEarnings) + amount;
+        affiliate.balance = Number(affiliate.balance) + amount; // Making it instantly available
+        
+        await this.affiliateRepository.save(affiliate);
+
+        referral.status = ReferralStatus.CONVERTED;
+        await this.referralRepository.save(referral);
+
+        this.logger.log(`[Admin] Approved commission of ${amount} credits for affiliate ${affiliate.id}`);
+
+        return { success: true, message: 'Commission approved and added to affiliate balance' };
     }
 
     async adminCancelCommission(referralId: string, adminId: string, reason: string) {

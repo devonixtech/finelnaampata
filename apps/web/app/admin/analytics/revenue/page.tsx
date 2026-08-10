@@ -173,10 +173,21 @@ export default function AdminRevenuePage() {
                                     {[0,1,2,3].map(i => <div key={i} className="w-full h-px bg-slate-50" />)}
                                 </div>
                                 
-                                {monthlyGraph.map((item: any, i: number) => {
-                                    const maxVal = Math.max(...monthlyGraph.map((m: any) => m.revenue || m.count || 0), 1);
-                                    const val = item.revenue || item.count || 0;
-                                    const heightPct = Math.max((val / maxVal) * 100, 5);
+                                {(() => {
+                                    const last6Months = Array.from({length: 6}, (_, i) => {
+                                        const d = new Date();
+                                        d.setMonth(d.getMonth() - (5 - i));
+                                        return d.toLocaleString('en-US', { month: 'short' });
+                                    });
+                                    const paddedGraph = last6Months.map(month => {
+                                        const existing = monthlyGraph.find((m: any) => (m.month || m.label) === month);
+                                        return existing || { month, revenue: 0, count: 0 };
+                                    });
+                                    const maxVal = Math.max(...paddedGraph.map((m: any) => m.revenue || m.count || 0), 1);
+                                    
+                                    return paddedGraph.map((item: any, i: number) => {
+                                        const val = item.revenue || item.count || 0;
+                                        const heightPct = Math.max((val / maxVal) * 100, 5);
                                     return (
                                         <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative z-10 h-full justify-end">
                                             {/* Tooltip */}
@@ -192,7 +203,8 @@ export default function AdminRevenuePage() {
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.month || item.label}</span>
                                         </div>
                                     );
-                                })}
+                                });
+                                })()}
                             </div>
                         </div>
                     )}
@@ -258,46 +270,7 @@ export default function AdminRevenuePage() {
                 {/* Right Column: Affiliate Management & Breakdown */}
                 <div className="space-y-8">
                     
-                    {/* Affiliate Quick Actions & Summary */}
-                    <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm p-8">
-                        <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
-                            <Wallet className="w-5 h-5 text-emerald-500" />
-                            Payout Operations
-                        </h3>
-                        
-                        <div className="space-y-4 mb-8">
-                            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-between group hover:border-amber-300 transition-colors cursor-default">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500">
-                                        <Clock className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-700/70">Pending Review</p>
-                                        <p className="text-lg font-black text-amber-900">Rs. {totalPending.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-between group hover:border-blue-300 transition-colors cursor-default">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-500">
-                                        <CheckCircle2 className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-700/70">Approved (Unpaid)</p>
-                                        <p className="text-lg font-black text-blue-900">Rs. {totalApproved.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <Link
-                            href="/admin/affiliates/payouts"
-                            className="w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
-                        >
-                            Process Payouts <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                        </Link>
-                    </div>
 
                     {/* Revenue Breakdown */}
                     <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm p-8">

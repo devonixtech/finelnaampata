@@ -254,13 +254,22 @@ export class SubscriptionsService implements OnModuleInit {
         const vendor = await this.vendorRepository.findOne({ where: { id: dto.vendorId } });
         if (!vendor) throw new NotFoundException('Vendor not found');
 
-        // Cancel existing active subscription
+        // Cancel existing active subscription (old system)
         await this.subscriptionRepository.update(
             { vendorId: dto.vendorId, status: SubscriptionStatus.ACTIVE },
             {
                 status: SubscriptionStatus.CANCELLED,
                 cancelledAt: new Date(),
                 cancellationReason: 'Cancelled to assign new plan'
+            }
+        );
+
+        // Cancel existing active plan (new system)
+        await this.activePlanRepository.update(
+            { vendorId: dto.vendorId, status: ActivePlanStatus.ACTIVE },
+            {
+                status: ActivePlanStatus.CANCELLED,
+                endDate: new Date()
             }
         );
 

@@ -32,10 +32,6 @@ export default function AffiliateDashboard() {
         setAlertConfig({ title, message, type });
     };
 
-    // KYC State
-    const [showKycModal, setShowKycModal] = useState(false);
-    const [kycFile, setKycFile] = useState<File | null>(null);
-    const [submittingKyc, setSubmittingKyc] = useState(false);
 
     useEffect(() => {
         setIsMounted(true);
@@ -75,26 +71,7 @@ export default function AffiliateDashboard() {
             setJoining(false);
         }
     };
-    const handleSubmitKyc = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!kycFile) {
-            showAlert('Missing Document', 'Please upload a valid ID document', 'error');
-            return;
-        }
-        setSubmittingKyc(true);
-        try {
-            const documentUrl = await api.listings.uploadImage(kycFile);
-            await api.affiliate.submitKyc(documentUrl);
-            setShowKycModal(false);
-            setKycFile(null);
-            await loadData();
-            showAlert('KYC Submitted', 'Your KYC document has been submitted for review!', 'success');
-        } catch (err: any) {
-            showAlert('KYC Failed', err.message || 'Failed to submit KYC', 'error');
-        } finally {
-            setSubmittingKyc(false);
-        }
-    };
+
 
     const copyCode = () => {
         if (!isMounted || !stats?.referralCode) return;
@@ -171,22 +148,7 @@ export default function AffiliateDashboard() {
         );
     }
 
-    if (stats?.isAffiliate && !stats.adminApproved) {
-        return (
-            <main className="max-w-3xl mx-auto px-4 py-32 text-center">
-                <div className="w-24 h-24 bg-amber-50 rounded-[28px] flex items-center justify-center mx-auto mb-8 border border-amber-100">
-                    <Shield className="w-12 h-12 text-amber-500" />
-                </div>
-                <h1 className="text-4xl font-black text-slate-900 mb-4">Pending Approval</h1>
-                <p className="text-slate-500 text-lg mb-10 max-w-xl mx-auto font-medium leading-relaxed">
-                    Your application to join the affiliate program has been received and is currently under review by our admin team. You will be able to access your dashboard and referral links once approved.
-                </p>
-                <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all">
-                    Return to Home
-                </Link>
-            </main>
-        );
-    }
+
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-12">
@@ -201,21 +163,7 @@ export default function AffiliateDashboard() {
                     <h1 className="text-4xl font-black text-slate-900">Affiliate Dashboard</h1>
                 </div>
 
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setShowKycModal(true)}
-                        className={`px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
-                            stats?.kycStatus === 'approved' 
-                                ? 'bg-emerald-100 text-emerald-600' 
-                                : stats?.kycStatus === 'pending' 
-                                    ? 'bg-amber-100 text-amber-600' 
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                    >
-                        {stats?.kycStatus === 'approved' ? <FileCheck className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-                        {stats?.kycStatus === 'approved' ? 'KYC Verified' : stats?.kycStatus === 'pending' ? 'KYC Pending' : 'Submit KYC'}
-                    </button>
-                </div>
+
             </div>
 
             {/* Referral Code Card */}
@@ -466,90 +414,7 @@ export default function AffiliateDashboard() {
                 )}
             </AnimatePresence>
 
-            {/* KYC Modal */}
-            <AnimatePresence>
-                {showKycModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowKycModal(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[28px] shadow-2xl max-h-[90vh] flex flex-col"
-                        >
-                            <div className="p-10 overflow-y-auto">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-3xl font-black text-slate-900">Submit KYC</h2>
-                                    <button onClick={() => setShowKycModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
-                                        <X className="w-5 h-5 text-slate-400" />
-                                    </button>
-                                </div>
-                                <p className="text-slate-500 font-medium mb-8">
-                                    Upload a valid ID document (CNIC, Passport, or Driver's License) for verification.
-                                </p>
 
-                                <form onSubmit={handleSubmitKyc} className="space-y-6">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Upload Document</label>
-                                        <div className="flex items-center gap-4">
-                                            <label className="flex-1 cursor-pointer w-full px-6 py-4 bg-slate-50 border border-slate-200 border-dashed rounded-2xl hover:bg-slate-100 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <Upload className="w-5 h-5 text-slate-400" />
-                                                    <span className="font-bold text-slate-600 truncate">
-                                                        {kycFile ? kycFile.name : 'Choose a file (Image/PDF)...'}
-                                                    </span>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*,application/pdf"
-                                                    onChange={(e) => {
-                                                        if (e.target.files && e.target.files.length > 0) {
-                                                            setKycFile(e.target.files[0]);
-                                                        }
-                                                    }}
-                                                    className="hidden"
-                                                    required
-                                                />
-                                            </label>
-                                            {kycFile && (
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setKycFile(null)}
-                                                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-4 pt-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowKycModal(false)}
-                                            className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={submittingKyc}
-                                            className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-orange-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {submittingKyc ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit KYC'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

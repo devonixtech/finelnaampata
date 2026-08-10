@@ -9,7 +9,7 @@ import {
     UseGuards,
     Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { ModerateReviewDto } from './dto/moderate.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -298,4 +298,13 @@ export class AdminController {
         return this.adminService.getSuspiciousUsers();
     }
 
+    @Get('activity-feed')
+    @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Get recent platform activity feed' })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    @ApiResponse({ status: 200, description: 'Activity feed retrieved' })
+    getActivityFeed(@Query('limit') limit?: string) {
+        const parsedLimit = limit ? parseInt(limit, 10) : 50;
+        return this.adminService.getActivityFeed(parsedLimit);
+    }
 }

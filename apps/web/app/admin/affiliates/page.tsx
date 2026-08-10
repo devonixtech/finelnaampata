@@ -37,7 +37,6 @@ interface Affiliate {
     paidOut: number;
     isActive: boolean;
     isSuspended: boolean;
-    kycStatus: 'none' | 'pending' | 'approved' | 'rejected';
     adminApproved: boolean;
     address?: string;
     nicNumber?: string;
@@ -69,9 +68,8 @@ function StatCard({ label, value, icon: Icon, color, textColor }: {
     );
 }
 
-function KebabMenu({ affiliate, onApprove, onSuspend }: {
+function KebabMenu({ affiliate, onSuspend }: {
     affiliate: Affiliate;
-    onApprove: (id: string) => void;
     onSuspend: (id: string) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -89,28 +87,12 @@ function KebabMenu({ affiliate, onApprove, onSuspend }: {
             </button>
             {open && (
                 <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[9999] overflow-hidden">
-                    <Link
-                        href={`/admin/affiliates/kyc`}
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
+                    <button
+                        onClick={() => { onSuspend(affiliate.id); setOpen(false); }}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors w-full text-left"
                     >
-                        <ShieldCheck className="w-4 h-4" /> View KYC Status
-                    </Link>
-                    {!affiliate.adminApproved ? (
-                        <button
-                            onClick={() => { onApprove(affiliate.id); setOpen(false); }}
-                            className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 transition-colors w-full text-left"
-                        >
-                            <CheckCircle className="w-4 h-4" /> Approve Affiliate
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => { onSuspend(affiliate.id); setOpen(false); }}
-                            className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-                        >
-                            <Ban className="w-4 h-4" /> Suspend Affiliate
-                        </button>
-                    )}
+                        <Ban className="w-4 h-4" /> Suspend Affiliate
+                    </button>
                 </div>
             )}
         </div>
@@ -120,7 +102,6 @@ function KebabMenu({ affiliate, onApprove, onSuspend }: {
 interface AdminAffiliateStats {
     totalAffiliates: number;
     activeAffiliates: number;
-    pendingApprovals: number;
     totalEarnings: number;
     totalPaidOut: number;
     totalCommissionOwed: number;
@@ -131,10 +112,12 @@ interface AdminAffiliateStats {
 
 export default function AffiliatesAdminPage() {
     const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+    const [referrals, setReferrals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [kycFilter, setKycFilter] = useState('all');
+    const [activeTab, setActiveTab] = useState('affiliates');
+
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [stats, setStats] = useState<AdminAffiliateStats | null>(null);
@@ -145,12 +128,14 @@ export default function AffiliatesAdminPage() {
     const fetchAffiliates = useCallback(async () => {
         setLoading(true);
         try {
-            const [affiliatesData, statsData] = await Promise.all([
+            const [affiliatesData, statsData, referralsData] = await Promise.all([
                 api.admin.affiliate.getAffiliates(),
                 api.admin.affiliate.getStats(),
+                api.admin.affiliate.getReferrals()
             ]);
             setAffiliates(affiliatesData || []);
             setStats(statsData);
+            setReferrals(referralsData || []);
         } catch (err) {
             console.error('Failed to fetch affiliates:', err);
         } finally {
@@ -195,17 +180,7 @@ export default function AffiliatesAdminPage() {
         }
     };
 
-    const handleApprove = async (id: string) => {
-        setActionLoading(id);
-        try {
-            await api.admin.affiliate.approveAffiliate(id);
-            setAffiliates(prev => prev.map(a => a.id === id ? { ...a, adminApproved: true } : a));
-        } catch (err) {
-            console.error('Approval failed:', err);
-        } finally {
-            setActionLoading(null);
-        }
-    };
+
 
     const handleSuspend = async (id: string) => {
         setActionLoading(id);
@@ -258,32 +233,28 @@ export default function AffiliatesAdminPage() {
             a.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
             a.referralCode?.toLowerCase().includes(search.toLowerCase());
         const matchesStatus = statusFilter === 'all' ||
-            (statusFilter === 'active' && a.adminApproved && !a.isSuspended) ||
-            (statusFilter === 'pending' && !a.adminApproved) ||
+            (statusFilter === 'active' && !a.isSuspended) ||
             (statusFilter === 'suspended' && a.isSuspended);
-        const matchesKyc = kycFilter === 'all' ||
-            (kycFilter === 'none' && a.kycStatus === 'none') ||
-            (kycFilter === 'pending' && a.kycStatus === 'pending') ||
-            (kycFilter === 'approved' && a.kycStatus === 'approved') ||
-            (kycFilter === 'rejected' && a.kycStatus === 'rejected');
-        return matchesSearch && matchesStatus && matchesKyc;
+        return matchesSearch && matchesStatus;
     });
 
-    const pendingKyc = affiliates.filter(a => a.kycStatus === 'pending').length;
-
-    const getKycBadge = (status: string) => {
-        switch (status) {
-            case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-            case 'rejected': return 'bg-red-50 text-red-600 border-red-100';
-            case 'pending': return 'bg-amber-50 text-amber-600 border-amber-100';
-            default: return 'bg-slate-50 text-slate-400 border-slate-200';
+    const handleApproveCommission = async (id: string) => {
+        setActionLoading(id);
+        try {
+            await api.admin.affiliate.approveCommission(id);
+            setReferrals(prev => prev.map(r => r.id === id ? { ...r, status: 'converted' } : r));
+            // Refetch to update affiliate balances
+            fetchAffiliates();
+        } catch (err) {
+            console.error('Approve failed:', err);
+        } finally {
+            setActionLoading(null);
         }
     };
 
     const getStatusBadge = (affiliate: Affiliate) => {
         if (affiliate.isSuspended) return { label: 'Suspended', color: 'bg-red-50 text-red-600 border-red-100' };
-        if (affiliate.adminApproved) return { label: 'Active', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-        return { label: 'Pending', color: 'bg-amber-50 text-amber-600 border-amber-100' };
+        return { label: 'Active', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
     };
 
     return (
@@ -294,7 +265,7 @@ export default function AffiliatesAdminPage() {
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1">
                         Affiliate <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">Management</span>
                     </h1>
-                    <p className="text-slate-500 font-medium text-sm">Manage affiliates, approvals, and payouts.</p>
+                    <p className="text-slate-500 font-medium text-sm">Manage affiliates and payouts.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -326,16 +297,46 @@ export default function AffiliatesAdminPage() {
                 <StatCard label="Revenue Generated" value={`Rs. ${(Number(stats?.totalRevenueGenerated) || 0).toFixed(2)}`} icon={TrendingUp} color="bg-blue-100" textColor="text-blue-600" />
                 <StatCard label="Commission Owed" value={`Rs. ${(Number(stats?.totalCommissionOwed) || 0).toFixed(2)}`} icon={DollarSign} color="bg-amber-100" textColor="text-amber-600" />
                 <StatCard label="Total Paid" value={`Rs. ${(Number(stats?.totalPaidOut) || 0).toFixed(2)}`} icon={DollarSign} color="bg-emerald-100" textColor="text-emerald-600" />
-                <StatCard label="Pending Approvals" value={stats?.pendingApprovals ?? 0} icon={AlertTriangle} color="bg-orange-100" textColor="text-orange-600" />
+
             </div>
 
+            {/* Main Tabs */}
+            <div className="flex border-b border-slate-200">
+                <button
+                    onClick={() => setActiveTab('affiliates')}
+                    className={`px-6 py-3 font-bold text-sm border-b-2 transition-all ${
+                        activeTab === 'affiliates'
+                            ? 'border-emerald-500 text-emerald-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }`}
+                >
+                    Affiliate Management
+                </button>
+                <button
+                    onClick={() => setActiveTab('commissions')}
+                    className={`flex items-center gap-2 px-6 py-3 font-bold text-sm border-b-2 transition-all ${
+                        activeTab === 'commissions'
+                            ? 'border-emerald-500 text-emerald-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }`}
+                >
+                    Pending Commissions
+                    {referrals.filter(r => r.status === 'pending_approval').length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-black">
+                            {referrals.filter(r => r.status === 'pending_approval').length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {activeTab === 'affiliates' ? (
+                <>
             {/* Quick Links & Tabs */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">
                     {[
                         { id: 'all', label: 'All Affiliates' },
-                        { id: 'pending', label: 'Pending Approvals' },
-                        { id: 'active', label: 'Active / Approved' },
+                        { id: 'active', label: 'Active' },
                         { id: 'suspended', label: 'Suspended' }
                     ].map(tab => (
                         <button
@@ -353,15 +354,6 @@ export default function AffiliatesAdminPage() {
                 </div>
                 
                 <div className="flex gap-3">
-                    <Link
-                        href="/admin/affiliates/kyc"
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
-                    >
-                        <ShieldCheck className="w-4 h-4 text-amber-500" /> KYC Reviews
-                        {pendingKyc > 0 && (
-                            <span className="px-1.5 py-0.5 bg-red-500 text-white text-[9px] font-black rounded-md">{pendingKyc}</span>
-                        )}
-                    </Link>
                     <button
                         onClick={openSettings}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
@@ -384,19 +376,6 @@ export default function AffiliatesAdminPage() {
                     />
                 </div>
 
-                <div className="w-40">
-                    <SearchableSelect
-                        value={kycFilter}
-                        onChange={val => setKycFilter(val)}
-                        options={[
-                            { label: 'All KYC', value: 'all' },
-                            { label: '⏳ Pending', value: 'pending' },
-                            { label: '✓ Approved', value: 'approved' },
-                            { label: '✗ Rejected', value: 'rejected' },
-                            { label: '— None', value: 'none' },
-                        ]}
-                    />
-                </div>
                 <span className="ml-auto text-xs font-bold text-slate-400">{filtered.length} of {affiliates.length}</span>
             </div>
 
@@ -411,7 +390,7 @@ export default function AffiliatesAdminPage() {
                                 <th className="px-6 py-4">Address</th>
                                 <th className="px-6 py-4">NIC</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">KYC</th>
+
                                 <th className="px-6 py-4 text-right">Earnings</th>
                                 <th className="px-6 py-4 text-right">Held</th>
                                 <th className="px-6 py-4 text-right">Referrals</th>
@@ -469,11 +448,7 @@ export default function AffiliatesAdminPage() {
                                                     {status.label}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border ${getKycBadge(affiliate.kycStatus)}`}>
-                                                    {affiliate.kycStatus}
-                                                </span>
-                                            </td>
+
                                             <td className="px-6 py-4 text-right">
                                                 <span className="text-sm font-black text-slate-900">Rs. {(Number(affiliate.totalEarnings) || 0).toFixed(2)}</span>
                                             </td>
@@ -486,7 +461,6 @@ export default function AffiliatesAdminPage() {
                                             <td className="px-6 py-4 text-right">
                                                 <KebabMenu
                                                     affiliate={affiliate}
-                                                    onApprove={handleApprove}
                                                     onSuspend={handleSuspend}
                                                 />
                                             </td>
@@ -498,6 +472,78 @@ export default function AffiliatesAdminPage() {
                     </table>
                 </div>
             </div>
+            </>
+            ) : (
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">
+                                    <th className="px-6 py-4">Affiliate</th>
+                                    <th className="px-6 py-4">Referred User</th>
+                                    <th className="px-6 py-4">Type</th>
+                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4 text-right">Commission (Credits)</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-8 text-center text-slate-500">Loading...</td>
+                                    </tr>
+                                ) : referrals.filter(r => r.status === 'pending_approval').length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-16 text-center">
+                                            <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+                                            <p className="font-bold text-slate-900">All caught up!</p>
+                                            <p className="text-xs text-slate-400">No pending commissions to approve.</p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    referrals.filter(r => r.status === 'pending_approval').map(ref => (
+                                        <tr key={ref.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-slate-900">{ref.affiliate?.user?.fullName || 'Unknown'}</p>
+                                                <p className="text-xs text-slate-500">{ref.affiliate?.user?.email || 'N/A'}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-slate-700">{ref.referredUser?.fullName || 'Unknown'}</p>
+                                                <p className="text-xs text-slate-400">ID: {ref.referredUser?.id?.slice(0, 8)}...</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide border bg-blue-50 text-blue-600 border-blue-100">
+                                                    {ref.type}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-medium text-slate-600">{new Date(ref.createdAt).toLocaleDateString()}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="text-sm font-black text-emerald-600">+{ref.commissionAmount} Credits</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleApproveCommission(ref.id)}
+                                                    disabled={actionLoading === ref.id}
+                                                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all disabled:opacity-50 flex items-center justify-center ml-auto gap-2"
+                                                >
+                                                    {actionLoading === ref.id ? (
+                                                        <RefreshCcw className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                    )}
+                                                    Approve
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         {/* Settings Modal */}
         {showSettings && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">

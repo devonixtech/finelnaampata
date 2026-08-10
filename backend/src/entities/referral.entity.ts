@@ -22,6 +22,7 @@ export enum ReferralStatus {
     REVERSED = 'reversed',
     CANCELLED = 'cancelled',
     PENDING_DEFERRED = 'pending_deferred',
+    PENDING_APPROVAL = 'pending_approval',
 }
 
 @Entity('affiliate_referrals')

@@ -937,7 +937,7 @@ export class AdminService {
                 businessCount: listings.length,
                 totalViews,
                 totalLeads,
-                conversionRate: totalViews > 0 ? ((totalLeads / totalViews) * 100).toFixed(1) : '0',
+                conversionRate: totalViews > 0 ? ((totalLeads / totalViews) * 100).toFixed(1) : '0.0',
                 avgResponseTime: Math.round(avgResponseTime),
                 subscriptionStatus: activeSubscription?.status || 'none',
                 subscriptionPlan: activeSubscription?.plan?.name || 'Free',
@@ -1104,5 +1104,64 @@ export class AdminService {
         await this.userRepository.save(user);
 
         return { message: 'Account deletion cancelled successfully' };
+    }
+
+    async getActivityFeed(limit: number = 50) {
+        const users = await this.userRepository.find({ order: { createdAt: 'DESC' }, take: limit });
+        const businesses = await this.businessRepository.find({ order: { createdAt: 'DESC' }, take: limit });
+        const reviews = await this.reviewRepository.find({ order: { createdAt: 'DESC' }, take: limit, relations: ['user', 'business'] });
+        const subscriptions = await this.activePlanRepository.find({ order: { createdAt: 'DESC' }, take: limit, relations: ['vendor', 'vendor.user'] });
+        const leads = await this.leadRepository.find({ order: { createdAt: 'DESC' }, take: limit, relations: ['business'] });
+
+        const events = [];
+
+        users.forEach(u => events.push({
+            id: `usr_${u.id}`,
+            type: 'user_registered',
+            message: `New user registered: ${u.fullName || u.email}`,
+            timestamp: u.createdAt,
+            userId: u.id,
+            userName: u.fullName || 'Unknown'
+        }));
+
+        businesses.forEach(b => events.push({
+            id: `biz_${b.id}`,
+            type: 'business_created',
+            message: `New business listing created: ${b.name}`,
+            timestamp: b.createdAt,
+            businessName: b.name
+        }));
+
+        reviews.forEach(r => events.push({
+            id: `rev_${r.id}`,
+            type: 'review_posted',
+            message: `New ${r.rating}-star review posted on ${r.business?.name || 'a business'}`,
+            timestamp: r.createdAt,
+            userId: r.user?.id,
+            userName: r.user?.fullName || 'Anonymous',
+            businessName: r.business?.name
+        }));
+
+        subscriptions.forEach(s => events.push({
+            id: `sub_${s.id}`,
+            type: 'subscription_purchased',
+            message: `New subscription purchased by ${s.vendor?.businessName || s.vendor?.user?.fullName || 'a vendor'}`,
+            timestamp: s.createdAt,
+            userId: s.vendor?.user?.id,
+            businessName: s.vendor?.businessName
+        }));
+
+        leads.forEach(l => events.push({
+            id: `lead_${l.id}`,
+            type: 'enquiry_submitted',
+            message: `New enquiry submitted for ${l.business?.name || 'a business'}`,
+            timestamp: l.createdAt,
+            businessName: l.business?.name
+        }));
+
+        // Sort by timestamp desc and take limit
+        events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        return events.slice(0, limit);
     }
 }

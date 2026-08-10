@@ -3,7 +3,10 @@ import {
     NotFoundException,
     ConflictException,
     BadRequestException,
+    Inject,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -21,6 +24,7 @@ export class CategoriesService {
         @InjectRepository(Category)
         private categoryRepository: Repository<Category>,
         private readonly searchService: SearchService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
 
     /**
@@ -469,7 +473,9 @@ export class CategoriesService {
             source: source || CategorySource.ADMIN,
         });
 
-        return this.categoryRepository.save(category);
+        const saved = await this.categoryRepository.save(category);
+        await this.cacheManager.reset();
+        return saved;
     }
 
     /**
@@ -700,7 +706,9 @@ export class CategoriesService {
 
         await this.categoryRepository.update(id, updateCategoryDto);
 
-        return this.findOne(id);
+        const saved = await this.findOne(id);
+        await this.cacheManager.reset();
+        return saved;
     }
 
     /**
@@ -709,7 +717,9 @@ export class CategoriesService {
     async updateStatus(id: string, status: CategoryStatus): Promise<Category> {
         const category = await this.findOne(id);
         category.status = status;
-        return this.categoryRepository.save(category);
+        const saved = await this.categoryRepository.save(category);
+        await this.cacheManager.reset();
+        return saved;
     }
 
 
@@ -768,6 +778,7 @@ export class CategoriesService {
 
             // Delete the category
             await this.categoryRepository.delete(id);
+            await this.cacheManager.reset();
         } catch (err: any) {
             console.error('Error deleting category:', err);
             throw new BadRequestException('Could not delete category: ' + (err.message || 'database error'));

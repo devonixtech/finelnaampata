@@ -308,7 +308,7 @@ export default function AdminEventsDealsPage() {
                             <tr>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Type & Title</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Vendor / Business</th>
-                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Pricing & Discount</th>
+                                <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Ticket / Deal Price</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Dates / Validity</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Actions</th>
@@ -372,7 +372,7 @@ export default function AdminEventsDealsPage() {
                                                         item.price ? (
                                                             <p className="font-black text-slate-900">PKR {Number(item.price).toLocaleString()}</p>
                                                         ) : (
-                                                            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-black rounded-lg">Free</span>
+                                                            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-black rounded-lg">Free Entry</span>
                                                         )
                                                     ) : (
                                                         <div>

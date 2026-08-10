@@ -89,7 +89,7 @@ export default function CategoriesPage() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const data = await api.categories.getRoot();
+        const data = await api.categories.getAll();
         setCategories(data || []);
       } catch (err) {
         console.error('Failed to load categories:', err);

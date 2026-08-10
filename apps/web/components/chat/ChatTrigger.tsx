@@ -29,10 +29,7 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
                 router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
                 return;
             }
-            if (!vendorHasChat) {
-                alert('In-App Chat requires the business to have a paid plan.');
-                return;
-            }
+
             setIsOpen(true);
         }
     }));
@@ -46,10 +43,7 @@ const ChatTrigger = forwardRef<ChatTriggerHandle, ChatTriggerProps>(({ businessI
             return;
         }
         
-        if (!vendorHasChat) {
-            alert('In-App Chat requires the business to have a paid plan.');
-            return;
-        }
+
         
         setIsOpen(!isOpen);
     };

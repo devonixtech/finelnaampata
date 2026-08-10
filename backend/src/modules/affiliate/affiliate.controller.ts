@@ -206,6 +206,14 @@ export class AffiliateController {
         return this.affiliateService.adminCancelCommission(id, user.id, body.reason);
     }
 
+    @Post('admin/referrals/:id/approve-commission')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Approve pending commission' })
+    async adminApproveCommission(@Param('id') id: string) {
+        return this.affiliateService.adminApproveCommission(id);
+    }
+
     @Get('settings')
     @ApiOperation({ summary: 'Get affiliate program settings' })
     async getSettings() {

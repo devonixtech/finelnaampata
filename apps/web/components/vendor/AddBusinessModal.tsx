@@ -493,17 +493,29 @@ export default function AddBusinessModal({ isOpen, onClose, onSuccess, business 
             (submissionData as any).contactPersonName = submissionData.contactPersonName || '';
             (submissionData as any).logoUrl = submissionData.logoUrl || null;
             (submissionData as any).imageCaptions = submissionData.imageCaptions || {};
-            (submissionData as any).albums = (submissionData.albums || []).map((a: any) => ({
-                name: a.name,
-                description: a.description,
-                images: a.images || [],
-            }));
-            (submissionData as any).businessHours = (submissionData.businessHours || []).map((h: any) => ({
-                dayOfWeek: h.dayOfWeek,
-                isOpen: h.isOpen,
-                openTime: h.openTime,
-                closeTime: h.closeTime,
-            }));
+
+            // Parse yearEstablished strictly as an integer, if invalid, delete it so validator might catch it, or send a valid number
+            if (submissionData.yearEstablished && String(submissionData.yearEstablished).trim() !== '') {
+                (submissionData as any).yearEstablished = parseInt(String(submissionData.yearEstablished).trim(), 10);
+            } else {
+                delete (submissionData as any).yearEstablished; // Let the backend validation handle or complain, or set to null
+            }
+            
+            // Remove fields that DTO complains "should not exist"
+            delete (submissionData as any).albums;
+            delete (submissionData as any).tagline;
+            
+            // Format business hours strictly as HH:MM
+            (submissionData as any).businessHours = (submissionData.businessHours || []).map((h: any) => {
+                // Ensure time string is exactly 5 chars "HH:MM" by slicing just in case it has seconds (e.g. 09:00:00)
+                const formatTime = (t: string) => (t ? t.substring(0, 5) : '00:00'); 
+                return {
+                    dayOfWeek: h.dayOfWeek,
+                    isOpen: h.isOpen,
+                    openTime: h.isOpen ? formatTime(h.openTime) : undefined,
+                    closeTime: h.isOpen ? formatTime(h.closeTime) : undefined,
+                };
+            });
             console.log("[AddBusinessModal] Submitting data:", submissionData);
         
             try {
