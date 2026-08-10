@@ -15,6 +15,7 @@ import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (d: string) => {
@@ -206,7 +207,7 @@ export default function BusinessReviews() {
     const handleReply = async () => {
         if (!respondingTo || !responseText.trim()) return;
         if (!canReplyReviews) {
-            alert('Replying to reviews requires a paid plan. Upgrade to respond.');
+            toast.error('Replying to reviews requires a paid plan. Upgrade to respond.');
             return;
         }
         setIsSubmitting(true);
@@ -218,7 +219,7 @@ export default function BusinessReviews() {
             await fetchReviews();
         } catch (error: any) {
             console.error('Reply failed:', error);
-            alert(error.message || 'Failed to submit. Try again.');
+            toast.error(error.message || 'Failed to submit. Try again.');
         }
         finally { setIsSubmitting(false); }
     };

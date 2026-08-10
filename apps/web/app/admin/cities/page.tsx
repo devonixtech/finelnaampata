@@ -103,7 +103,7 @@ export default function AdminCitiesPage() {
             setIsGoogleImportOpen(false);
             setQuickImportData({ name: '', state: '', country: 'Pakistan', isPopular: false, displayOrder: 0 });
         } catch (err: any) {
-            alert(err.message || 'Failed to import city');
+            toast.error(err.message || 'Failed to import city');
         } finally {
             setActionLoading(null);
         }
@@ -118,7 +118,7 @@ export default function AdminCitiesPage() {
             const response = await api.listings.uploadImage(file);
             setFormData(prev => ({ ...prev, heroImageUrl: response.url }));
         } catch (err: any) {
-            alert(err.message || 'Failed to upload image');
+            toast.error(err.message || 'Failed to upload image');
         } finally {
             setActionLoading(null);
         }
@@ -133,7 +133,7 @@ export default function AdminCitiesPage() {
             setIsCreateModalOpen(false);
             resetForm();
         } catch (err: any) {
-            alert(err.message || 'Failed to create city');
+            toast.error(err.message || 'Failed to create city');
         } finally {
             setActionLoading(null);
         }
@@ -149,7 +149,7 @@ export default function AdminCitiesPage() {
             setIsEditModalOpen(false);
             resetForm();
         } catch (err: any) {
-            alert(err.message || 'Failed to update city');
+            toast.error(err.message || 'Failed to update city');
         } finally {
             setActionLoading(null);
         }
@@ -161,7 +161,7 @@ export default function AdminCitiesPage() {
             await api.cities.adminUpdate(city.id, { isPopular: !city.isPopular });
             setCities(prev => prev.map(c => c.id === city.id ? { ...c, isPopular: !c.isPopular } : c));
         } catch (err: any) {
-            alert(err.message || 'Failed to update city');
+            toast.error(err.message || 'Failed to update city');
         } finally {
             setActionLoading(null);
         }
@@ -171,11 +171,12 @@ export default function AdminCitiesPage() {
         setIsBulkImporting(true);
         try {
             const result = await api.cities.bulkImport(selectedBulkCountry);
-            alert(`✅ Successfully imported ${result.count} new cities from ${selectedBulkCountry}! (${result.total} total in dataset, ${result.total - result.count} already existed)`);
+            toast.success(`✅ Successfully imported ${result.count} new cities from ${selectedBulkCountry}! (${result.total} total in dataset, ${result.total - result.count} already existed)`);
             await fetchCities();
             setIsBulkImportOpen(false);
         } catch (err: any) {
-            alert(err.message || 'Bulk import failed');
+            toast.error(err.message || 'Bulk import failed');
+import { toast } from "react-hot-toast";
         } finally {
             setIsBulkImporting(false);
         }
@@ -190,7 +191,7 @@ export default function AdminCitiesPage() {
             setIsDeleteModalOpen(false);
             setSelectedCity(null);
         } catch (err: any) {
-            alert(err.message || 'Failed to delete city');
+            toast.error(err.message || 'Failed to delete city');
         } finally {
             setActionLoading(null);
         }

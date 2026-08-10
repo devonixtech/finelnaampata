@@ -5,6 +5,7 @@ import { api } from '../../../lib/api';
 import { Loader2, Plus, Edit, Trash2, CheckCircle2, XCircle, AlertCircle, Save, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 // Defined features from usePlanFeature.ts
 const booleanFeatures = [
@@ -94,7 +95,7 @@ export default function PlansPage() {
             await fetchPlans();
             setModalMode(null);
         } catch (err: any) {
-            alert(err.message || 'Failed to save plan');
+            toast.error(err.message || 'Failed to save plan');
         } finally {
             setActionLoading(null);
         }
@@ -107,7 +108,7 @@ export default function PlansPage() {
             await api.admin.plans.delete(id);
             setPlans(prev => prev.filter(p => p.id !== id));
         } catch (err: any) {
-            alert(err.message || 'Failed to delete plan');
+            toast.error(err.message || 'Failed to delete plan');
         } finally {
             setActionLoading(null);
         }

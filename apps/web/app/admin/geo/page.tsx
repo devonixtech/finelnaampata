@@ -15,6 +15,7 @@ import { api, getImageUrl } from '../../../lib/api';
 import { ListingImage } from '../../../components/ListingImage';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from "react-hot-toast";
 
 export default function AdminGeoPage() {
     const [businesses, setBusinesses] = useState<any[]>([]);
@@ -42,7 +43,7 @@ export default function AdminGeoPage() {
         const lat = parseFloat(latInput);
         const lng = parseFloat(lngInput);
         if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            alert('Invalid coordinates. Latitude must be -90 to 90, longitude -180 to 180.');
+            toast.error('Invalid coordinates. Latitude must be -90 to 90, longitude -180 to 180.');
             return;
         }
         setSaving(id);
@@ -53,7 +54,7 @@ export default function AdminGeoPage() {
             setLatInput('');
             setLngInput('');
         } catch (err: any) {
-            alert(err.message || 'Failed to update coordinates');
+            toast.error(err.message || 'Failed to update coordinates');
         } finally {
             setSaving(null);
         }

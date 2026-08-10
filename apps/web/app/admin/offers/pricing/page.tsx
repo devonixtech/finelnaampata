@@ -13,6 +13,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 export default function AdminOfferPricingPage() {
     const { user } = useAuth();
@@ -69,7 +70,7 @@ export default function AdminOfferPricingPage() {
                 isActive: true
             });
         } catch (err: any) {
-            alert(err.message || 'Failed to save pricing');
+            toast.error(err.message || 'Failed to save pricing');
         } finally {
             setSaving(false);
         }
@@ -81,7 +82,7 @@ export default function AdminOfferPricingPage() {
             await api.admin.pricingPlans.delete(id);
             setPrices(prev => prev.filter(p => p.id !== id));
         } catch (err: any) {
-            alert(err.message || 'Failed to delete pricing');
+            toast.error(err.message || 'Failed to delete pricing');
         }
     };
 

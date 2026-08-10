@@ -1,4 +1,5 @@
 import { City } from '../types/api';
+import { toast } from "react-hot-toast";
 
 export type GeoCoords = { latitude: number; longitude: number };
 
@@ -110,7 +111,7 @@ export async function detectLocationForUi(): Promise<GeoCoords | null> {
     const result = await tryDetectDeviceLocation();
     if (!result.ok) {
         if (typeof window !== 'undefined') {
-            window.alert(result.message);
+            window.toast.error(result.message);
         }
         return null;
     }
@@ -300,7 +301,7 @@ export async function detectNearestCityName(
                 coords = gpsResult.coords;
             } else {
                 if (showAlertIfDenied && gpsResult.reason === 'denied') {
-                    alert(gpsResult.message);
+                    toast.error(gpsResult.message);
                 }
             }
         }

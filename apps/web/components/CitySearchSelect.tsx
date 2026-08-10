@@ -5,6 +5,7 @@ import { MapPin, ChevronDown, Check, Search, Navigation, Loader2, Signal } from 
 import { City } from '../types/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { detectNearestCityName, sortAndDedupeCities } from '../lib/location-detect';
+import { toast } from "react-hot-toast";
 
 interface Props {
     cities: City[];
@@ -53,11 +54,11 @@ export default function CitySearchSelect({ cities, value, onChange, onCountryDet
                 }
                 setIsOpen(false);
             } else {
-                alert('Could not match your location to a city. Please select manually.');
+                toast.error('Could not match your location to a city. Please select manually.');
             }
         } catch (error) {
             console.error('Error getting location:', error);
-            alert('Could not get your location. Please select manually.');
+            toast.error('Could not get your location. Please select manually.');
         } finally {
             setIsLocating(false);
         }

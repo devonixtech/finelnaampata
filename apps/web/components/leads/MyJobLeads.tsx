@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { JobLead, JobLeadResponse } from '../../types/api';
 import { formatDistanceToNow } from 'date-fns';
 import { Megaphone, MessageSquare, CheckCircle2, Clock, MapPin, Phone, User, ArrowRight, Loader2, Zap } from 'lucide-react';
+import { toast } from "react-hot-toast";
 
 export default function MyJobLeads() {
     const [leads, setLeads] = useState<JobLead[]>([]);
@@ -162,7 +163,7 @@ export default function MyJobLeads() {
                                                         const waNumber = cleanPhone.startsWith('+') ? cleanPhone.substring(1) : cleanPhone;
                                                         window.open(`https://wa.me/${waNumber}`, '_blank');
                                                     } else {
-                                                        alert('No contact phone available for this expert.');
+                                                        toast.error('No contact phone available for this expert.');
                                                     }
                                                 }}
                                                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2"

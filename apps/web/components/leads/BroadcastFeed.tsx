@@ -8,6 +8,7 @@ import { Megaphone, RefreshCcw, Send, CheckCircle2, X, DollarSign, Loader2, Lock
 import { usePlanFeature } from '../../hooks/usePlanFeature';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from "react-hot-toast";
 
 export default function BroadcastFeed() {
     const { hasFeature } = usePlanFeature();
@@ -74,7 +75,7 @@ export default function BroadcastFeed() {
         e.preventDefault();
         if (!selectedLead) return;
         if (!canRespond) {
-            alert('Responding to broadcast leads requires a paid plan. Upgrade to send proposals.');
+            toast.error('Responding to broadcast leads requires a paid plan. Upgrade to send proposals.');
             return;
         }
 
@@ -108,7 +109,7 @@ export default function BroadcastFeed() {
                 );
                 setSelectedLead(null);
             } else {
-                alert(err.message || 'Failed to send response. Please check your connection and try again.');
+                toast.error(err.message || 'Failed to send response. Please check your connection and try again.');
             }
         } finally {
             setSubmitting(false);

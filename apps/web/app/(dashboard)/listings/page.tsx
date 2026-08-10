@@ -13,6 +13,7 @@ import { FeatureGate } from '../../../components/business/FeatureGate';
 import { usePlanFeature } from '../../../hooks/usePlanFeature';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 
 const PAGE_SIZE = 9;
@@ -81,7 +82,7 @@ export default function BusinessListings() {
             setNewKeyword('');
         } catch (error: any) {
             console.error('Error updating keywords:', error);
-            alert(error?.message || 'Failed to save keywords. Please try again.');
+            toast.error(error?.message || 'Failed to save keywords. Please try again.');
         } finally {
             setActionLoading(null);
         }

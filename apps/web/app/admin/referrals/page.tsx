@@ -19,6 +19,7 @@ import {
 import { api } from '../../../lib/api';
 import StatsGrid from '../../../components/business/StatsGrid';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 export default function AdminReferralsPage() {
     const [referrals, setReferrals] = useState<any[]>([]);
@@ -50,14 +51,14 @@ export default function AdminReferralsPage() {
         try {
             const result = await api.admin.affiliate.activateReferral(id);
             if (result.success) {
-                alert(result.message);
+                toast.error(result.message);
                 await fetchData();
             } else {
-                alert('Failed to activate: ' + (result.reason || 'Unknown error'));
+                toast.error('Failed to activate: ' + (result.reason || 'Unknown error'));
             }
         } catch (err: any) {
             console.error('Activation failed:', err);
-            alert('Activation error: ' + err.message);
+            toast.error('Activation error: ' + err.message);
         } finally {
             setActionId(null);
         }

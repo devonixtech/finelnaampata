@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Review {
@@ -288,7 +289,7 @@ export default function ReviewModerationPage() {
             setTotalReviews(prev => prev - 1);
         } catch (err: any) {
             console.error('Delete failed:', err);
-            alert(err.message || 'Failed to delete review');
+            toast.error(err.message || 'Failed to delete review');
         } finally {
             setActionLoading(null);
         }

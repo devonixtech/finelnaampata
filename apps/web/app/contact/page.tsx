@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { toast } from "react-hot-toast";
 
 const contactInfo = [
     {
@@ -84,7 +85,7 @@ export default function ContactPage() {
             setForm({ name: "", email: "", subject: "", message: "" });
         } catch (err) {
             setStatus("idle");
-            alert("Failed to send message. Please try again later.");
+            toast.error("Failed to send message. Please try again later.");
         }
     };
 

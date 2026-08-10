@@ -14,6 +14,7 @@ import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { chatApi } from '../../../services/chat.service';
+import { toast } from "react-hot-toast";
 
 type Role = 'user' | 'vendor' | 'superadmin' | 'admin';
 
@@ -180,7 +181,7 @@ export default function AdminUsersPage() {
             setNoteInput('');
             await loadConversationNotes(selectedConversationId);
         } catch (err: any) {
-            alert(err.message || 'Failed to save private note');
+            toast.error(err.message || 'Failed to save private note');
         } finally {
             setNoteSaving(false);
         }
@@ -192,7 +193,7 @@ export default function AdminUsersPage() {
             await api.admin.updateUserRole(userId, role);
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
         } catch (err: any) {
-            alert(err.message || 'Failed to change role');
+            toast.error(err.message || 'Failed to change role');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -205,7 +206,7 @@ export default function AdminUsersPage() {
             await api.admin.toggleUserStatus(userId, !isActive);
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: !isActive } : u));
         } catch (err: any) {
-            alert(err.message || 'Failed to update status');
+            toast.error(err.message || 'Failed to update status');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -221,9 +222,9 @@ export default function AdminUsersPage() {
         try {
             await api.admin.scheduleUserDeletion(userId);
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, deletionScheduledAt: new Date().toISOString() } : u));
-            alert('User scheduled for deletion (30 days)');
+            toast.success('User scheduled for deletion (30 days)');
         } catch (err: any) {
-            alert(err.message || 'Failed to schedule deletion');
+            toast.error(err.message || 'Failed to schedule deletion');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -235,9 +236,9 @@ export default function AdminUsersPage() {
         try {
             await api.admin.cancelUserDeletion(userId);
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, deletionScheduledAt: null } : u));
-            alert('Scheduled deletion cancelled');
+            toast.success('Scheduled deletion cancelled');
         } catch (err: any) {
-            alert(err.message || 'Failed to cancel deletion');
+            toast.error(err.message || 'Failed to cancel deletion');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -253,9 +254,9 @@ export default function AdminUsersPage() {
         try {
             await api.admin.deleteUser(userId);
             setUsers(prev => prev.filter(u => u.id !== userId));
-            alert('User PERMANENTLY deleted');
+            toast.error('User PERMANENTLY deleted');
         } catch (err: any) {
-            alert(err.message || 'Failed to delete user');
+            toast.error(err.message || 'Failed to delete user');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);

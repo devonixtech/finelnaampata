@@ -12,6 +12,7 @@ import {
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
+import { toast } from "react-hot-toast";
 
 export default function OfferEventDetailClient() {
     const params = useParams();
@@ -231,7 +232,7 @@ export default function OfferEventDetailClient() {
         } else if (business.website) {
             window.open(business.website, '_blank');
         } else {
-            alert("This offer can be claimed at the store location.");
+            toast.error("This offer can be claimed at the store location.");
         }
     };
 

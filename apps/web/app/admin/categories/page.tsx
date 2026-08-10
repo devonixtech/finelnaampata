@@ -71,7 +71,7 @@ export default function AdminCategoriesPage() {
             const result = await api.cloudinary.uploadToCloudinary(file, 'categories');
             setFormData(prev => ({ ...prev, imageUrl: result.secure_url }));
         } catch (err: any) {
-            alert(err.message || 'Image upload failed');
+            toast.error(err.message || 'Image upload failed');
         } finally {
             setImageUploading(false);
         }
@@ -94,7 +94,7 @@ export default function AdminCategoriesPage() {
             setIsCreateModalOpen(false);
             resetForm();
         } catch (err: any) {
-            alert(err.message || 'Failed to create category');
+            toast.error(err.message || 'Failed to create category');
         } finally {
             setActionLoading(null);
         }
@@ -118,7 +118,7 @@ export default function AdminCategoriesPage() {
             setIsEditModalOpen(false);
             resetForm();
         } catch (err: any) {
-            alert(err.message || 'Failed to update category');
+            toast.error(err.message || 'Failed to update category');
         } finally {
             setActionLoading(null);
         }
@@ -131,7 +131,7 @@ export default function AdminCategoriesPage() {
             await api.categories.adminUpdateStatus(category.id, newStatus);
             setCategories(prev => prev.map(c => c.id === category.id ? { ...c, status: newStatus } : c));
         } catch (err: any) {
-            alert(err.message || 'Failed to update status');
+            toast.error(err.message || 'Failed to update status');
         } finally {
             setActionLoading(null);
         }
@@ -147,7 +147,7 @@ export default function AdminCategoriesPage() {
             setIsDeleteModalOpen(false);
             setSelectedCategory(null);
         } catch (err: any) {
-            alert(err.message || 'Failed to delete category. Make sure it has no subcategories or active listings.');
+            toast.error(err.message || 'Failed to delete category. Make sure it has no subcategories or active listings.');
         } finally {
             setActionLoading(null);
         }
@@ -158,10 +158,11 @@ export default function AdminCategoriesPage() {
         setIsImporting(true);
         try {
             const result = await api.categories.bulkImportGoogle() as { count: number };
-            alert(`Successfully imported/synced ${result.count} categories!`);
+            toast.success(`Successfully imported/synced ${result.count} categories!`);
             await fetchCategories();
         } catch (err: any) {
-            alert(err.message || 'Bulk import failed');
+            toast.error(err.message || 'Bulk import failed');
+import { toast } from "react-hot-toast";
         } finally {
             setIsImporting(false);
         }

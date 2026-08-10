@@ -17,6 +17,7 @@ import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { toast } from "react-hot-toast";
 
 type ReportTab = 'reviews' | 'businesses' | 'users';
 
@@ -66,7 +67,7 @@ export default function AdminReportsPage() {
             setReviews((prev) => prev.filter((review) => review.id !== id));
             setStats((current) => ({ ...current, flaggedReviews: Math.max(0, current.flaggedReviews - 1) }));
         } catch {
-            alert('Moderation failed');
+            toast.error('Moderation failed');
         }
     };
 

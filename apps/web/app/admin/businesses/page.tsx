@@ -13,6 +13,7 @@ import { api, getImageUrl } from '../../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import Link from 'next/link';
+import { toast } from "react-hot-toast";
 
 type BusinessStatus = 'pending_geocode' | 'approved' | 'rejected' | 'suspended';
 
@@ -76,7 +77,7 @@ export default function AdminBusinessesPage() {
             await api.admin.setBusinessSuspension(id, suspended);
             setBusinesses(prev => prev.map(b => b.id === id ? { ...b, status: nextStatus } : b));
         } catch (err: any) {
-            alert(err.message || 'Failed to update business status');
+            toast.error(err.message || 'Failed to update business status');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -89,7 +90,7 @@ export default function AdminBusinessesPage() {
             await api.admin.affiliate.setRankingBoost(id, boost);
             setBusinesses(prev => prev.map(b => b.id === id ? { ...b, manualRankingBoost: boost } : b));
         } catch (err: any) {
-            alert(err.message || 'Failed to update ranking boost');
+            toast.error(err.message || 'Failed to update ranking boost');
         } finally {
             setActionLoading(null);
         }
@@ -101,7 +102,7 @@ export default function AdminBusinessesPage() {
             await api.admin.toggleFeatured(id, isFeatured);
             setBusinesses(prev => prev.map(b => b.id === id ? { ...b, isFeatured } : b));
         } catch (err: any) {
-            alert(err.message || 'Failed to update featured status');
+            toast.error(err.message || 'Failed to update featured status');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);
@@ -119,7 +120,7 @@ export default function AdminBusinessesPage() {
             setBusinesses(prev => prev.filter(b => b.id !== id));
             setMeta((m: any) => ({ ...m, total: m.total - 1 }));
         } catch (err: any) {
-            alert(err.message || 'Failed to delete business');
+            toast.error(err.message || 'Failed to delete business');
         } finally {
             setActionLoading(null);
             setOpenMenu(null);

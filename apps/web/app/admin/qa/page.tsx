@@ -15,6 +15,7 @@ import {
 import { api } from '../../../lib/api';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from "react-hot-toast";
 
 export default function AdminQAModeration() {
     const [pendingData, setPendingData] = useState<{ questions: any[], answers: any[] }>({ questions: [], answers: [] });
@@ -50,7 +51,7 @@ export default function AdminQAModeration() {
             await fetchData();
         } catch (err) {
             console.error(`Failed to moderate ${type}:`, err);
-            alert(`Failed to ${action} ${type}. Please try again.`);
+            toast.error(`Failed to ${action} ${type}. Please try again.`);
         } finally {
             setActionId(null);
         }

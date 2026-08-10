@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { toast } from "react-hot-toast";
 
 export default function AdminOffersPage() {
     const { user } = useAuth();
@@ -48,7 +49,7 @@ export default function AdminOffersPage() {
             await api.offers.adminToggleFeatured(id, !currentStatus);
             setOffers(prev => prev.map(o => o.id === id ? { ...o, isFeatured: !currentStatus } : o));
         } catch (err: any) {
-            alert(err.message || 'Failed to toggle featured status');
+            toast.error(err.message || 'Failed to toggle featured status');
         } finally {
             setTogglingId(null);
         }
@@ -60,7 +61,7 @@ export default function AdminOffersPage() {
             await api.offers.remove(id);
             setOffers(prev => prev.filter(o => o.id !== id));
         } catch (err: any) {
-            alert(err.message || 'Failed to delete offer');
+            toast.error(err.message || 'Failed to delete offer');
         }
     };
 

@@ -20,6 +20,7 @@ import {
 import { api } from '../../../../lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { SearchableSelect } from '../../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 interface Payout {
     id: string;
@@ -91,7 +92,7 @@ export default function PayoutsAdminPage() {
     const handleMarkAsPaid = async (id: string) => {
         const ref = paymentRefInputs[id];
         if (!ref?.trim()) {
-            alert('Please enter a payment reference before marking as paid.');
+            toast.error('Please enter a payment reference before marking as paid.');
             return;
         }
         setActionLoading(id);

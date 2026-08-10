@@ -5,6 +5,7 @@ import { api } from '../../../lib/api';
 import { Loader2, Plus, AlertCircle, RefreshCw, XCircle, Search, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchableSelect } from '../../../components/ui/SearchableSelect';
+import { toast } from "react-hot-toast";
 
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -68,7 +69,7 @@ export default function SubscriptionsPage() {
             setAssignForm({ vendorId: '', planId: '', durationDays: 30 });
             await fetchSubscriptions();
         } catch (err: any) {
-            alert(err.message || 'Failed to assign plan');
+            toast.error(err.message || 'Failed to assign plan');
         } finally {
             setActionLoading(null);
         }
@@ -81,7 +82,7 @@ export default function SubscriptionsPage() {
             await api.subscriptions.adminCancel(id);
             await fetchSubscriptions();
         } catch (err: any) {
-            alert(err.message || 'Failed to cancel subscription');
+            toast.error(err.message || 'Failed to cancel subscription');
         } finally {
             setActionLoading(null);
         }
@@ -91,10 +92,10 @@ export default function SubscriptionsPage() {
         try {
             setActionLoading('expiry');
             await api.subscriptions.adminTriggerExpiryCheck();
-            alert('Expiry check triggered successfully.');
+            toast.success('Expiry check triggered successfully.');
             await fetchSubscriptions();
         } catch (err: any) {
-            alert(err.message || 'Failed to trigger expiry check');
+            toast.error(err.message || 'Failed to trigger expiry check');
         } finally {
             setActionLoading(null);
         }
