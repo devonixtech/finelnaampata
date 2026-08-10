@@ -2,24 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    Users, TrendingUp, Wallet, Link as LinkIcon,
+    Users, Wallet, Link as LinkIcon,
     CheckCircle2, Copy, Share2, ArrowRight,
-    Gift, Timer, AlertCircle, ChevronRight, Loader2,
-    Eye, MousePointerClick, Coins, Clock, Shield,
-    Upload, FileCheck, X, ExternalLink, Hourglass, Ban, CircleDollarSign
+    Gift, Timer, AlertCircle, Loader2,
+    Coins, Clock, Hourglass, Ban, CircleDollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-    pending: { label: 'Signup Done', color: 'text-blue-600', bg: 'bg-blue-100', icon: Clock },
-    pending_approval: { label: 'Commission Pending', color: 'text-amber-600', bg: 'bg-amber-100', icon: Hourglass },
-    converted: { label: 'Commission Approved', color: 'text-emerald-600', bg: 'bg-emerald-100', icon: CheckCircle2 },
-    cancelled: { label: 'Commission Rejected', color: 'text-red-600', bg: 'bg-red-100', icon: Ban },
-    reversed: { label: 'Reversed', color: 'text-slate-600', bg: 'bg-slate-100', icon: AlertCircle },
-    expired: { label: 'Expired', color: 'text-slate-400', bg: 'bg-slate-50', icon: Timer },
+    pending_approval: { label: 'Awaiting Approval', color: 'text-amber-600', bg: 'bg-amber-100', icon: Hourglass },
+    converted: { label: 'Approved', color: 'text-emerald-600', bg: 'bg-emerald-100', icon: CheckCircle2 },
+    cancelled: { label: 'Rejected', color: 'text-red-600', bg: 'bg-red-100', icon: Ban },
 };
 
 export default function AffiliateDashboard() {
@@ -27,12 +22,10 @@ export default function AffiliateDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [earnings, setEarnings] = useState<any>(null);
     const [referrals, setReferrals] = useState<any[]>([]);
-    const [settings, setSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [joining, setJoining] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
-    const [activeTab, setActiveTab] = useState<'all' | 'commissions'>('all');
     const [alertConfig, setAlertConfig] = useState<{ title: string; message: string; type: 'success' | 'error' } | null>(null);
 
     const showAlert = (title: string, message: string, type: 'success' | 'error' = 'error') => {
@@ -46,16 +39,14 @@ export default function AffiliateDashboard() {
 
     const loadData = async () => {
         try {
-            const [statsData, earningsData, refData, settingsData] = await Promise.all([
+            const [statsData, earningsData, refData] = await Promise.all([
                 api.affiliate.getStats(),
                 api.affiliate.getEarningsBreakdown().catch(() => null),
                 api.affiliate.getReferrals(),
-                api.affiliate.getSettings()
             ]);
             setStats(statsData);
             setEarnings(earningsData);
             setReferrals(refData as any[]);
-            setSettings(settingsData);
         } catch (err) {
             console.error('Failed to load affiliate data:', err);
         } finally {
@@ -91,6 +82,7 @@ export default function AffiliateDashboard() {
         setTimeout(() => setCopySuccess(false), 2000);
     };
 
+    const commissionReferrals = referrals.filter(r => r.status === 'pending_approval' || r.status === 'converted' || r.status === 'cancelled');
     const pendingCommissions = referrals.filter(r => r.status === 'pending_approval');
     const approvedCommissions = referrals.filter(r => r.status === 'converted');
     const totalPendingCredits = pendingCommissions.reduce((sum, r) => sum + (Number(r.commissionAmount) || 0), 0);
@@ -105,21 +97,14 @@ export default function AffiliateDashboard() {
     }
 
     if ((!stats || stats.isAffiliate === false) && !loading) {
-        const isBusiness = user?.role === 'vendor' || user?.role === 'admin' || user?.role === 'superadmin';
         return (
             <main className="max-w-4xl mx-auto px-4 py-20 text-center">
-                {!stats?.hasRegisteredBusiness && !user?.vendor?.id && stats?.hasReferrer && (
-                    <div className="mb-12 p-6 bg-slate-50 border border-slate-100 rounded-3xl max-w-md mx-auto text-left shadow-sm">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Referred By Affiliate</p>
-                        <p className="text-base font-black text-slate-900">{stats.referrerName || 'Affiliate Partner'}</p>
-                    </div>
-                )}
                 <div className="w-24 h-24 bg-orange-50 rounded-[28px] flex items-center justify-center mx-auto mb-8">
                     <Gift className="w-12 h-12 text-orange-500" />
                 </div>
                 <h1 className="text-4xl font-black text-slate-900 mb-4">Join Our Affiliate Program</h1>
                 <p className="text-slate-500 text-lg mb-10 max-w-2xl mx-auto font-medium">
-                    {isBusiness ? 'Earn rewards for every business you refer. Get 10 extra days added to your subscription for every successful referral!' : 'Earn rewards for every business you refer. Earn 35% cash commission on every successful referral!'}
+                    Share your referral code. When someone purchases a plan, you earn commission!
                 </p>
                 <button
                     onClick={handleJoin}
@@ -128,30 +113,6 @@ export default function AffiliateDashboard() {
                 >
                     {joining ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Start Earning Now <ArrowRight className="w-5 h-5" /></>}
                 </button>
-
-                <div className="grid md:grid-cols-3 gap-8 mt-20">
-                    <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-left">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm mb-6">
-                            <Share2 className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-black text-slate-900 mb-2">1. Share Code</h3>
-                        <p className="text-sm text-slate-500 font-medium">Give your unique referral code to businesses or friends.</p>
-                    </div>
-                    <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-left">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm mb-6">
-                            <Users className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-black text-slate-900 mb-2">2. They Purchase</h3>
-                        <p className="text-sm text-slate-500 font-medium">When they buy a plan, a commission request is sent to admin.</p>
-                    </div>
-                    <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100 text-left">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm mb-6">
-                            <Wallet className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-black text-slate-900 mb-2">3. Get Paid</h3>
-                        <p className="text-sm text-slate-500 font-medium">After admin approves, commission is added to your balance.</p>
-                    </div>
-                </div>
             </main>
         );
     }
@@ -198,7 +159,7 @@ export default function AffiliateDashboard() {
                 </div>
             </div>
 
-            {/* Earnings Overview Cards */}
+            {/* Earnings Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div className="p-6 bg-white rounded-[24px] border border-slate-200 shadow-sm">
                     <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 mb-4">
@@ -224,16 +185,7 @@ export default function AffiliateDashboard() {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="p-5 bg-white rounded-[20px] border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
-                        <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Signups</p>
-                        <p className="text-xl font-black text-slate-900">{referrals.length}</p>
-                    </div>
-                </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 <div className="p-5 bg-white rounded-[20px] border border-slate-200 shadow-sm flex items-center gap-4">
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
                         <Hourglass className="w-5 h-5" />
@@ -263,135 +215,56 @@ export default function AffiliateDashboard() {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-8 p-1 bg-slate-100 rounded-2xl w-fit">
-                {([
-                    { key: 'all' as const, label: 'All Referrals' },
-                    { key: 'commissions' as const, label: 'Commission Requests' }
-                ]).map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                            activeTab === tab.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-                        }`}
-                    >
-                        {tab.label}
-                        {tab.key === 'commissions' && pendingCommissions.length > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white rounded-full text-[9px]">{pendingCommissions.length}</span>
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            {/* All Referrals Tab */}
-            {activeTab === 'all' && (
-                <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden">
-                    <div className="p-8 border-b border-slate-100">
-                        <h3 className="text-xl font-black text-slate-900">All Referrals</h3>
-                        <p className="text-sm text-slate-500 mt-1">Everyone who signed up using your referral code</p>
-                    </div>
-                    <div className="p-4">
-                        {referrals.length > 0 ? (
-                            <div className="space-y-2">
-                                {referrals.map((ref, idx) => {
-                                    const statusInfo = STATUS_CONFIG[ref.status] || STATUS_CONFIG.pending;
-                                    const StatusIcon = statusInfo.icon;
-                                    return (
-                                        <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
-                                                    <Users className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'New User'}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                        {new Date(ref.createdAt).toLocaleDateString()} · {ref.type === 'subscription' ? 'Plan Purchase' : 'Signup'}
-                                                    </p>
-                                                </div>
+            {/* Commission Requests */}
+            <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden">
+                <div className="p-8 border-b border-slate-100">
+                    <h3 className="text-xl font-black text-slate-900">Commission Requests</h3>
+                    <p className="text-sm text-slate-500 mt-1">When someone you referred buys a plan, a commission request goes to admin for approval</p>
+                </div>
+                <div className="p-4">
+                    {commissionReferrals.length > 0 ? (
+                        <div className="space-y-2">
+                            {commissionReferrals.map((ref, idx) => {
+                                const statusInfo = STATUS_CONFIG[ref.status] || STATUS_CONFIG.pending_approval;
+                                const StatusIcon = statusInfo.icon;
+                                return (
+                                    <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${statusInfo.bg} ${statusInfo.color}`}>
+                                                <StatusIcon className="w-6 h-6" />
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                {Number(ref.commissionAmount) > 0 && (
-                                                    <span className="text-sm font-black text-slate-700">
-                                                        {Number(ref.commissionAmount).toFixed(0)} Credits
-                                                    </span>
-                                                )}
-                                                <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${statusInfo.bg} ${statusInfo.color}`}>
-                                                    <StatusIcon className="w-3 h-3" />
-                                                    {statusInfo.label}
-                                                </span>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'User'}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                    {new Date(ref.createdAt).toLocaleDateString()} · {ref.type === 'subscription' ? 'Plan Purchase' : 'Referral'}
+                                                </p>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="py-20 text-center">
-                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                    <Timer className="w-8 h-8 text-slate-200" />
-                                </div>
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No referrals yet</p>
-                                <p className="text-xs text-slate-400 mt-2">Share your referral code to get started</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Commission Requests Tab */}
-            {activeTab === 'commissions' && (
-                <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden">
-                    <div className="p-8 border-b border-slate-100">
-                        <h3 className="text-xl font-black text-slate-900">Commission Requests</h3>
-                        <p className="text-sm text-slate-500 mt-1">When someone you referred buys a plan, a commission request goes to admin for approval</p>
-                    </div>
-                    <div className="p-4">
-                        {referrals.filter(r => r.status === 'pending_approval' || r.status === 'converted' || r.status === 'cancelled').length > 0 ? (
-                            <div className="space-y-2">
-                                {referrals
-                                    .filter(r => r.status === 'pending_approval' || r.status === 'converted' || r.status === 'cancelled')
-                                    .map((ref, idx) => {
-                                        const statusInfo = STATUS_CONFIG[ref.status] || STATUS_CONFIG.pending;
-                                        const StatusIcon = statusInfo.icon;
-                                        return (
-                                            <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${statusInfo.bg} ${statusInfo.color}`}>
-                                                        <StatusIcon className="w-6 h-6" />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'User'}</h4>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                            {new Date(ref.createdAt).toLocaleDateString()} · {ref.type === 'subscription' ? 'Plan Purchase' : 'Signup'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="text-right">
-                                                        <p className="text-lg font-black text-slate-900">{Number(ref.commissionAmount || 0).toFixed(0)} Credits</p>
-                                                        <p className="text-[10px] font-bold text-slate-400">Commission</p>
-                                                    </div>
-                                                    <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${statusInfo.bg} ${statusInfo.color}`}>
-                                                        <StatusIcon className="w-3 h-3" />
-                                                        {statusInfo.label}
-                                                    </span>
-                                                </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <p className="text-lg font-black text-slate-900">{Number(ref.commissionAmount || 0).toFixed(0)} Credits</p>
+                                                <p className="text-[10px] font-bold text-slate-400">Commission</p>
                                             </div>
-                                        );
-                                    })}
+                                            <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${statusInfo.bg} ${statusInfo.color}`}>
+                                                <StatusIcon className="w-3 h-3" />
+                                                {statusInfo.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="py-20 text-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                <CircleDollarSign className="w-8 h-8 text-slate-200" />
                             </div>
-                        ) : (
-                            <div className="py-20 text-center">
-                                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                                    <CircleDollarSign className="w-8 h-8 text-slate-200" />
-                                </div>
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No commission requests yet</p>
-                                <p className="text-xs text-slate-400 mt-2">Commissions appear when your referrals purchase a plan</p>
-                            </div>
-                        )}
-                    </div>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No commission requests yet</p>
+                            <p className="text-xs text-slate-400 mt-2">Commissions appear when your referrals purchase a plan</p>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
 
             {/* How Commission Works */}
             <div className="mt-8 p-8 bg-slate-900 rounded-[28px] text-white">
@@ -416,7 +289,7 @@ export default function AffiliateDashboard() {
                 </div>
             </div>
 
-            {/* Custom Alert Modal */}
+            {/* Alert Modal */}
             <AnimatePresence>
                 {alertConfig && (
                     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
