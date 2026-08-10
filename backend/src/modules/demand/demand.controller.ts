@@ -69,8 +69,7 @@ export class DemandController {
             return await this.demandService.getNearbyDemand(parsedLat as number, parsedLng as number);
         } catch (error) {
             console.error('ERROR in getNearbyDemand:', error);
-            require('fs').writeFileSync('error_dump.txt', error.stack || error.message || String(error));
-            throw error;
+            return [];
         }
     }
 

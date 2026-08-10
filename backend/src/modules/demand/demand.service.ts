@@ -430,70 +430,74 @@ ${JSON.stringify(insights.slice(0, 10))}
             return this.getInsights();
         }
 
-        const now = new Date();
-        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const prevWindowStart = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        try {
+            const now = new Date();
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+            const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+            const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const prevWindowStart = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        // Bounding box for ~50km radius
-        const latDelta = 50 / 111; 
-        const lngDelta = 50 / (111 * Math.cos(lat * (Math.PI / 180)));
-        
-        const query = this.searchLogRepository.createQueryBuilder('log')
-            .select('LOWER(log.normalizedKeyword)', 'normalizedKeyword')
-            .addSelect('MAX(log.keyword)', 'keyword')
-            .addSelect('MAX(log.city)', 'topCity')
-            .addSelect('COUNT(log.id)', 'count7d')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :oneHour THEN 1 END)', 'count1h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :sixHours THEN 1 END)', 'count6h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :twentyFourHours THEN 1 END)', 'count24h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :prevStart AND log.searched_at < :oneHour THEN 1 END)', 'countPrevHour')
-            .setParameters({
-                oneHour: oneHourAgo,
-                sixHours: sixHoursAgo,
-                twentyFourHours: twentyFourHoursAgo,
-                prevStart: prevWindowStart
-            })
-            .where('log.latitude BETWEEN :minLat AND :maxLat', { minLat: lat - latDelta, maxLat: lat + latDelta })
-            .andWhere('log.longitude BETWEEN :minLng AND :maxLng', { minLng: lng - lngDelta, maxLng: lng + lngDelta });
+            const latDelta = 50 / 111; 
+            const lngDelta = 50 / (111 * Math.cos(lat * (Math.PI / 180)));
+            
+            const query = this.searchLogRepository.createQueryBuilder('log')
+                .select('LOWER(log.normalizedKeyword)', 'normalizedKeyword')
+                .addSelect('MAX(log.keyword)', 'keyword')
+                .addSelect('MAX(log.city)', 'topCity')
+                .addSelect('COUNT(log.id)', 'count7d')
+                .addSelect('COUNT(CASE WHEN log.searched_at >= :oneHour THEN 1 END)', 'count1h')
+                .addSelect('COUNT(CASE WHEN log.searched_at >= :sixHours THEN 1 END)', 'count6h')
+                .addSelect('COUNT(CASE WHEN log.searched_at >= :twentyFourHours THEN 1 END)', 'count24h')
+                .addSelect('COUNT(CASE WHEN log.searched_at >= :prevStart AND log.searched_at < :oneHour THEN 1 END)', 'countPrevHour')
+                .setParameters({
+                    oneHour: oneHourAgo,
+                    sixHours: sixHoursAgo,
+                    twentyFourHours: twentyFourHoursAgo,
+                    prevStart: prevWindowStart
+                })
+                .where('log.latitude BETWEEN :minLat AND :maxLat', { minLat: lat - latDelta, maxLat: lat + latDelta })
+                .andWhere('log.longitude BETWEEN :minLng AND :maxLng', { minLng: lng - lngDelta, maxLng: lng + lngDelta });
 
-        const stats = await query
-            .groupBy('LOWER(log.normalizedKeyword)')
-            .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
-            .getRawMany();
+            const stats = await query
+                .groupBy('LOWER(log.normalizedKeyword)')
+                .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
+                .getRawMany();
 
-        if (!stats || stats.length === 0) {
+            if (!stats || stats.length === 0) {
+                return this.getInsights();
+            }
+
+            return stats.map(res => {
+                const c7d = parseInt(res.count7d) || 0;
+                const c1h = parseInt(res.count1h) || 0;
+                const c6h = parseInt(res.count6h) || 0;
+                const c24h = parseInt(res.count24h) || 0;
+                const cPrev = parseInt(res.countPrevHour) || 0;
+
+                const recentScore = (c1h * 10) + (c6h * 5) + (c24h * 2);
+                const score = recentScore > 0 ? recentScore : (c7d * 0.5);
+                const growth = cPrev === 0 ? (c1h > 0 ? 100 : 0) : Math.round(((c1h - cPrev) / cPrev) * 100);
+
+                return {
+                    keyword: res.keyword || res.normalizedKeyword,
+                    normalizedKeyword: res.normalizedKeyword,
+                    score,
+                    count1h: c1h,
+                    count6h: c6h,
+                    count24h: c24h,
+                    count7d: c7d,
+                    topCity: res.topCity || 'Nearby',
+                    isTrending: growth >= 20 && c1h >= 1,
+                    growth,
+                    type: res.normalizedKeyword.startsWith('category:') ? 'category' : 'keyword'
+                } as DemandInsight;
+
+            }).sort((a, b) => b.score - a.score).slice(0, 50);
+        } catch (error) {
+            this.logger.error('getNearbyDemand failed, falling back to insights:', error.message);
             return this.getInsights();
         }
-
-        return stats.map(res => {
-            const c7d = parseInt(res.count7d) || 0;
-            const c1h = parseInt(res.count1h) || 0;
-            const c6h = parseInt(res.count6h) || 0;
-            const c24h = parseInt(res.count24h) || 0;
-            const cPrev = parseInt(res.countPrevHour) || 0;
-
-            const recentScore = (c1h * 10) + (c6h * 5) + (c24h * 2);
-            const score = recentScore > 0 ? recentScore : (c7d * 0.5);
-            const growth = cPrev === 0 ? (c1h > 0 ? 100 : 0) : Math.round(((c1h - cPrev) / cPrev) * 100);
-
-            return {
-                keyword: res.keyword || res.normalizedKeyword,
-                normalizedKeyword: res.normalizedKeyword,
-                score,
-                count1h: c1h,
-                count6h: c6h,
-                count24h: c24h,
-                count7d: c7d,
-                topCity: res.topCity || 'Nearby',
-                isTrending: growth >= 20 && c1h >= 1,
-                growth,
-                type: res.normalizedKeyword.startsWith('category:') ? 'category' : 'keyword'
-            } as DemandInsight;
-
-        }).sort((a, b) => b.score - a.score).slice(0, 50);
     }
 
     async getHeatmap(keyword?: string, startDate?: string, endDate?: string) {
