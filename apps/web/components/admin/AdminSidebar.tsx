@@ -60,7 +60,6 @@ const menuSections: MenuSection[] = [
             { name: 'Subscriptions', icon: Receipt, href: '/admin/subscriptions', badge: null },
             { name: 'Affiliates', icon: Handshake, href: '/admin/affiliates', badge: null },
 
-            { name: 'Payout Requests', icon: Receipt, href: '/admin/affiliates/payouts', badge: null },
             { name: 'Referrals', icon: Users, href: '/admin/referrals', badge: null },
         ]
     },

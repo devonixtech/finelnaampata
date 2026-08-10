@@ -278,12 +278,6 @@ export default function AffiliatesAdminPage() {
                         <Download className="w-4 h-4" /> Export CSV
                     </button>
                     <button
-                        onClick={handleExportPayouts}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
-                    >
-                        <Download className="w-4 h-4" /> Export Payouts
-                    </button>
-                    <button
                         onClick={fetchAffiliates}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
@@ -297,9 +291,9 @@ export default function AffiliatesAdminPage() {
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <StatCard label="Total Affiliates" value={stats?.totalAffiliates ?? affiliates.length} icon={Users} color="bg-slate-100" textColor="text-slate-500" />
                 <StatCard label="Active Affiliates" value={stats?.activeAffiliates ?? 0} icon={CheckCircle} color="bg-emerald-100" textColor="text-emerald-600" />
-                <StatCard label="Revenue Generated" value={`Rs. ${(Number(stats?.totalRevenueGenerated) || 0).toFixed(2)}`} icon={TrendingUp} color="bg-blue-100" textColor="text-blue-600" />
-                <StatCard label="Commission Owed" value={`Rs. ${(Number(stats?.totalCommissionOwed) || 0).toFixed(2)}`} icon={DollarSign} color="bg-amber-100" textColor="text-amber-600" />
-                <StatCard label="Total Paid" value={`Rs. ${(Number(stats?.totalPaidOut) || 0).toFixed(2)}`} icon={DollarSign} color="bg-emerald-100" textColor="text-emerald-600" />
+                        <StatCard label="Revenue Generated" value={`${Number(stats?.totalRevenueGenerated) || 0} Credits`} icon={TrendingUp} color="bg-blue-100" textColor="text-blue-600" />
+                        <StatCard label="Commission Pending" value={`${Number(stats?.totalCommissionOwed) || 0} Credits`} icon={DollarSign} color="bg-amber-100" textColor="text-amber-600" />
+                        <StatCard label="Total Approved" value={`${Number(stats?.totalPaidOut) || 0} Credits`} icon={DollarSign} color="bg-emerald-100" textColor="text-emerald-600" />
 
             </div>
 
@@ -453,10 +447,10 @@ export default function AffiliatesAdminPage() {
                                             </td>
 
                                             <td className="px-6 py-4 text-right">
-                                                <span className="text-sm font-black text-slate-900">Rs. {(Number(affiliate.totalEarnings) || 0).toFixed(2)}</span>
+                                                <span className="text-sm font-black text-slate-900">{Number(affiliate.totalEarnings) || 0} Credits</span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <span className="text-sm font-bold text-amber-600">Rs. {(Number(affiliate.balanceHeld) || 0).toFixed(2)}</span>
+                                                <span className="text-sm font-bold text-amber-600">{Number(affiliate.balanceHeld) || 0} Credits</span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <span className="text-sm font-bold text-slate-700">{affiliate._count?.referrals || 0}</span>
@@ -569,7 +563,7 @@ export default function AffiliatesAdminPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">1 Credit = Rs. ?</label>
+                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Credit Value</label>
                             <input
                                 type="number"
                                 value={settingsForm.creditValue}

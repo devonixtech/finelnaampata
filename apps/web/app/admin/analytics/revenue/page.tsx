@@ -145,12 +145,12 @@ export default function AdminRevenuePage() {
                         <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 mb-6">
                             <Wallet className="w-6 h-6" />
                         </div>
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Affiliate Payouts</p>
-                        <p className="text-4xl font-black text-slate-900 tracking-tight mb-2">Rs. {totalPaid.toLocaleString()}</p>
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Commission Credits</p>
+                        <p className="text-4xl font-black text-slate-900 tracking-tight mb-2">{totalApproved.toLocaleString()} Credits</p>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                        <span className="text-xs font-bold text-amber-700">Pending</span>
-                        <span className="text-sm font-black text-amber-900">Rs. {totalPending.toLocaleString()}</span>
+                        <span className="text-xs font-bold text-amber-700">Pending Approval</span>
+                        <span className="text-sm font-black text-amber-900">{totalPending.toLocaleString()} Credits</span>
                     </div>
                 </div>
             </div>
@@ -303,71 +303,6 @@ export default function AdminRevenuePage() {
                 </div>
             </div>
 
-            {/* Recent Payments Table */}
-            <div className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden mt-8">
-                <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-700">
-                        <Receipt className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-black text-slate-900">Recent Transactions</h3>
-                        <p className="text-xs text-slate-500 font-medium mt-1">Latest affiliate payout requests</p>
-                    </div>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 bg-white">
-                                <th className="px-8 py-5">Affiliate Name</th>
-                                <th className="px-8 py-5 text-right">Amount</th>
-                                <th className="px-8 py-5">Method</th>
-                                <th className="px-8 py-5 text-center">Status</th>
-                                <th className="px-8 py-5 text-right">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 bg-white">
-                            {payments.slice(0, 10).map((p: any) => (
-                                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-8 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-600">
-                                                {p.affiliate?.user?.fullName?.[0]?.toUpperCase() || 'A'}
-                                            </div>
-                                            <span className="text-sm font-bold text-slate-900">{p.affiliate?.user?.fullName || 'Unknown'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-4 text-right">
-                                        <span className="text-sm font-black text-slate-900">Rs. {(Number(p.amount) || 0).toLocaleString()}</span>
-                                    </td>
-                                    <td className="px-8 py-4">
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">{p.paymentMethod || p.method || 'Bank'}</span>
-                                    </td>
-                                    <td className="px-8 py-4 text-center">
-                                        <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                                            p.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
-                                            p.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                                            p.status === 'rejected' ? 'bg-rose-100 text-rose-700' :
-                                            'bg-amber-100 text-amber-700'
-                                        }`}>
-                                            {p.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-4 text-right">
-                                        <span className="text-xs font-bold text-slate-500">{formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}</span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {payments.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-8 py-12 text-center text-slate-400 text-sm font-medium">
-                                        No recent payments found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 }
