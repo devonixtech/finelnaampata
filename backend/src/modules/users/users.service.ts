@@ -14,6 +14,7 @@ import { SavedOfferEvent } from '../../entities/saved-offer-event.entity';
 import { Notification } from '../../entities/notification.entity';
 import { Listing } from '../../entities/business.entity';
 import { OfferEvent } from '../../entities/offer-event.entity';
+import { Deal } from '../../entities/deal.entity';
 import { Lead } from '../../entities/lead.entity';
 import { Comment } from '../../entities/comment.entity';
 import { Vendor } from '../../entities/vendor.entity';
@@ -44,6 +45,8 @@ export class UsersService {
         private vendorRepository: Repository<Vendor>,
         @InjectRepository(OfferEvent)
         private offerEventRepository: Repository<OfferEvent>,
+        @InjectRepository(Deal)
+        private dealRepository: Repository<Deal>,
         @InjectRepository(Lead)
         private leadRepository: Repository<Lead>,
         @InjectRepository(Comment)
@@ -253,8 +256,12 @@ export class UsersService {
      * Add saved offer/event
      */
     async addSavedOfferEvent(userId: string, offerEventId: string): Promise<void> {
+        // Check both offer_events and deals tables
         const offerEvent = await this.offerEventRepository.findOne({ where: { id: offerEventId } });
-        if (!offerEvent) throw new NotFoundException('Offer/Event not found');
+        if (!offerEvent) {
+            const deal = await this.dealRepository.findOne({ where: { id: offerEventId } });
+            if (!deal) throw new NotFoundException('Offer/Event not found');
+        }
 
         const existing = await this.savedOfferEventRepository.findOne({ where: { userId, offerEventId } });
         if (existing) return;
