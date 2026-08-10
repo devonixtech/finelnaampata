@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -8,13 +8,11 @@ import {
     Clock, 
     ArrowRight,
     Search,
-    Filter,
     ShieldCheck,
     AlertCircle,
     UserCircle,
-    Gift,
-    ChevronLeft,
-    ChevronRight
+    Hourglass,
+    Ban
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import StatsGrid from '../../../components/business/StatsGrid';
@@ -44,26 +42,6 @@ export default function AdminReferralsPage() {
         fetchData();
     }, []);
 
-    const handleActivate = async (id: string) => {
-        if (!confirm('Are you sure you want to manually activate this referral and grant the extension to the referrer?')) return;
-        
-        setActionId(id);
-        try {
-            const result = await api.admin.affiliate.activateReferral(id);
-            if (result.success) {
-                toast.success(result.message || 'Referral activated');
-                await fetchData();
-            } else {
-                toast.error('Failed to activate: ' + (result.reason || 'Unknown error'));
-            }
-        } catch (err: any) {
-            console.error('Activation failed:', err);
-            toast.error('Activation error: ' + err.message);
-        } finally {
-            setActionId(null);
-        }
-    };
-
     const handleApproveCommission = async (id: string) => {
         if (!confirm('Approve this commission? Credits will be added to the affiliate balance.')) return;
         
@@ -71,7 +49,7 @@ export default function AdminReferralsPage() {
         try {
             const result = await api.admin.affiliate.approveCommission(id);
             if (result.success) {
-                toast.success(result.message || 'Commission approved and credits added');
+                toast.success(result.message || 'Commission approved and credits added to affiliate balance');
                 await fetchData();
             } else {
                 toast.error('Failed to approve: ' + (result.reason || 'Unknown error'));
@@ -105,6 +83,8 @@ export default function AdminReferralsPage() {
     };
 
     const filteredReferrals = referrals.filter(ref => {
+        if (ref.status === 'pending') return false;
+        
         const matchesSearch = 
             ref.affiliate?.user?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             ref.referredUser?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,44 +95,45 @@ export default function AdminReferralsPage() {
         return matchesSearch && matchesStatus;
     });
 
+    const commissionReferrals = referrals.filter(r => r.status !== 'pending');
+
     const stats = [
         {
-            label: 'Total Referrals',
-            value: referrals.length.toString(),
-            icon: LinkIcon,
-            color: 'bg-slate-900',
-            shadow: 'shadow-slate-500/20'
+            label: 'Awaiting Approval',
+            value: referrals.filter(r => r.status === 'pending_approval').length.toString(),
+            icon: Hourglass,
+            color: 'bg-amber-500',
+            shadow: 'shadow-amber-500/20'
         },
         {
-            label: 'Converted',
+            label: 'Approved',
             value: referrals.filter(r => r.status === 'converted').length.toString(),
             icon: CheckCircle,
             color: 'bg-emerald-500',
             shadow: 'shadow-emerald-500/20'
         },
         {
-            label: 'Pending Approval',
-            value: referrals.filter(r => r.status === 'pending_approval').length.toString(),
-            icon: Clock,
-            color: 'bg-amber-500',
-            shadow: 'shadow-amber-500/20'
+            label: 'Rejected',
+            value: referrals.filter(r => r.status === 'cancelled').length.toString(),
+            icon: Ban,
+            color: 'bg-red-500',
+            shadow: 'shadow-red-500/20'
         },
         {
-            label: 'Pending Signup',
-            value: referrals.filter(r => r.status === 'pending').length.toString(),
-            icon: Clock,
-            color: 'bg-blue-500',
-            shadow: 'shadow-blue-500/20'
+            label: 'Total Credits Paid',
+            value: `${referrals.filter(r => r.status === 'converted').reduce((s, r) => s + (Number(r.commissionAmount) || 0), 0).toFixed(0)}`,
+            icon: LinkIcon,
+            color: 'bg-slate-900',
+            shadow: 'shadow-slate-500/20'
         }
     ];
 
     return (
         <div className="space-y-10 pb-20">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-2">Referral History</h1>
-                    <p className="text-slate-400 font-bold tracking-tight">Status of referrers and referred businesses</p>
+                    <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-2">Commission Requests</h1>
+                    <p className="text-slate-400 font-bold tracking-tight">Approve or reject commission requests from affiliate referrals</p>
                 </div>
                 
                 <div className="flex items-center gap-3">
@@ -173,7 +154,6 @@ export default function AdminReferralsPage() {
                             onChange={(val) => setStatusFilter(val)}
                             options={[
                                 { label: "All Status", value: "all" },
-                                { label: "Pending Signup", value: "pending" },
                                 { label: "Awaiting Approval", value: "pending_approval" },
                                 { label: "Approved", value: "converted" },
                                 { label: "Rejected", value: "cancelled" }
@@ -183,10 +163,8 @@ export default function AdminReferralsPage() {
                 </div>
             </div>
 
-            {/* Stats */}
             <StatsGrid stats={stats} />
 
-            {/* Referrals Table */}
             <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -251,19 +229,16 @@ export default function AdminReferralsPage() {
                                                 <div className={`w-1.5 h-1.5 rounded-full ${
                                                     ref.status === 'converted' ? 'bg-emerald-500' :
                                                     ref.status === 'pending_approval' ? 'bg-amber-500 animate-pulse' :
-                                                    ref.status === 'cancelled' ? 'bg-red-500' :
-                                                    'bg-blue-500 animate-pulse'
+                                                    'bg-red-500'
                                                 }`} />
                                                 <span className={`text-[10px] font-black uppercase tracking-widest ${
                                                     ref.status === 'converted' ? 'text-emerald-600' :
                                                     ref.status === 'pending_approval' ? 'text-amber-600' :
-                                                    ref.status === 'cancelled' ? 'text-red-600' :
-                                                    'text-blue-600'
+                                                    'text-red-600'
                                                 }`}>
                                                     {ref.status === 'converted' ? 'Approved' :
                                                      ref.status === 'pending_approval' ? 'Awaiting Approval' :
-                                                     ref.status === 'cancelled' ? 'Rejected' :
-                                                     'Awaiting Signup'}
+                                                     'Rejected'}
                                                 </span>
                                             </div>
                                         </td>
@@ -289,7 +264,7 @@ export default function AdminReferralsPage() {
                                                     <button
                                                         onClick={() => handleApproveCommission(ref.id)}
                                                         disabled={!!actionId}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50 transition-all"
+                                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50 transition-all"
                                                     >
                                                         {actionId === ref.id ? (
                                                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -298,20 +273,9 @@ export default function AdminReferralsPage() {
                                                         )}
                                                     </button>
                                                 </div>
-                                            ) : ref.status === 'pending' ? (
-                                                <button
-                                                    onClick={() => handleActivate(ref.id)}
-                                                    disabled={!!actionId}
-                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-red-500/20 active:scale-95 disabled:opacity-50 transition-all"
-                                                >
-                                                    {actionId === ref.id ? (
-                                                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    ) : (
-                                                        <>Activate Reward <ArrowRight className="w-3 h-3" /></>
-                                                    )}
-                                                </button>
                                             ) : ref.status === 'cancelled' ? (
                                                 <div className="inline-flex items-center gap-2 text-red-400">
+                                                    <Ban className="w-4 h-4" />
                                                     <span className="text-[10px] font-black uppercase tracking-widest">Rejected</span>
                                                 </div>
                                             ) : (
@@ -329,8 +293,8 @@ export default function AdminReferralsPage() {
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <AlertCircle className="w-8 h-8 text-slate-200" />
                                         </div>
-                                        <h3 className="text-slate-900 font-bold">No referrals found</h3>
-                                        <p className="text-slate-400 text-xs mt-1">Try adjusting your filters or search query.</p>
+                                        <h3 className="text-slate-900 font-bold">No commission requests found</h3>
+                                        <p className="text-slate-400 text-xs mt-1">Commissions appear when referrals purchase a plan.</p>
                                     </td>
                                 </tr>
                             )}
@@ -341,4 +305,3 @@ export default function AdminReferralsPage() {
         </div>
     );
 }
-
