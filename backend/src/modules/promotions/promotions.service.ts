@@ -50,10 +50,21 @@ export class PromotionsService implements OnModuleInit {
             pricePerDay = Number(setting.value);
         }
 
+        // Fetch placement-specific rates
+        const placementRules = await this.pricingRuleRepo.find({ 
+            where: { isActive: true },
+            select: ['placement', 'pricePerDay', 'pricePerHour']
+        });
+        const placementRates: Record<string, number> = {};
+        for (const pr of placementRules) {
+            placementRates[pr.placement] = Number(pr.pricePerDay);
+        }
+
         return {
             type,
             dayRate: pricePerDay,
             placement,
+            placementRates,
         };
     }
 
@@ -129,6 +140,9 @@ export class PromotionsService implements OnModuleInit {
 
     private async seedDefaultRules() {
         const defaults = [
+            { placement: PromotionPlacement.HOMEPAGE, pricePerHour: 80, pricePerDay: 1920 },
+            { placement: PromotionPlacement.CATEGORY, pricePerHour: 70, pricePerDay: 1680 },
+            { placement: PromotionPlacement.LISTING, pricePerHour: 50, pricePerDay: 1200 },
             { placement: PromotionPlacement.OFFER, pricePerHour: 40, pricePerDay: 960 },
             { placement: PromotionPlacement.EVENT, pricePerHour: 60, pricePerDay: 1440 },
         ];
@@ -156,20 +170,73 @@ export class PromotionsService implements OnModuleInit {
         const breakup = [];
         let durationHours = 0;
 
-        if (dto.placements?.length > 0 && dto.startTime && dto.endTime) {
-            const kind: 'deal' | 'event' = 'deal';
-            const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, kind);
-            durationHours = vis.days * 24;
-            totalPrice += vis.totalPrice;
-            breakup.push({
-                placement: vis.placement,
-                label: 'Per-day visibility',
-                subtotal: vis.totalPrice,
-                price: vis.totalPrice,
-                dayRate: vis.dayRate,
-                days: vis.days,
-                isBaseFee: false,
-            });
+        if (dto.startTime && dto.endTime) {
+            const start = new Date(dto.startTime);
+            const end = new Date(dto.endTime);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+                throw new BadRequestException('End time must be after start time');
+            }
+            const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+            durationHours = days * 24;
+
+            // Calculate per-placement pricing
+            const placements = dto.placements?.length > 0 ? dto.placements : [];
+
+            if (placements.length > 0) {
+                for (const placement of placements) {
+                    // Skip legacy offer/event placements — use visibility pricing instead
+                    if (placement === PromotionPlacement.OFFER || placement === PromotionPlacement.EVENT) {
+                        const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, placement === PromotionPlacement.EVENT ? 'event' : 'deal');
+                        totalPrice += vis.totalPrice;
+                        breakup.push({
+                            placement,
+                            label: `${placement === 'event' ? 'Event' : 'Offer'} Visibility`,
+                            subtotal: vis.totalPrice,
+                            price: vis.totalPrice,
+                            dayRate: vis.dayRate,
+                            days: vis.days,
+                            isBaseFee: true,
+                        });
+                    } else {
+                        // HOMEPAGE, CATEGORY, LISTING — use per-placement pricing
+                        const rule = await this.pricingRuleRepo.findOne({ where: { placement: placement as PromotionPlacement, isActive: true } });
+                        let dayRate = Number(rule?.pricePerDay ?? 0);
+
+                        // Also check system_settings as fallback
+                        const settingKey = `${placement}_price_per_day`;
+                        const setting = await this.systemSettingRepository.findOne({ where: { key: settingKey } });
+                        if (setting && setting.value) {
+                            dayRate = Number(setting.value);
+                        }
+
+                        const placementTotal = days * dayRate;
+                        totalPrice += placementTotal;
+                        breakup.push({
+                            placement,
+                            label: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Placement`,
+                            subtotal: placementTotal,
+                            price: placementTotal,
+                            dayRate,
+                            days,
+                            isBaseFee: false,
+                        });
+                    }
+                }
+            } else {
+                // No placements selected — default visibility pricing
+                const kind: 'deal' | 'event' = offerType === 'event' ? 'event' : 'deal';
+                const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, kind);
+                totalPrice = vis.totalPrice;
+                breakup.push({
+                    placement: vis.placement,
+                    label: 'Per-day visibility',
+                    subtotal: vis.totalPrice,
+                    price: vis.totalPrice,
+                    dayRate: vis.dayRate,
+                    days: vis.days,
+                    isBaseFee: true,
+                });
+            }
         }
 
         return { totalPrice, durationHours, breakup, isMinimumApplied: false };
@@ -429,11 +496,15 @@ export class PromotionsService implements OnModuleInit {
     /**
      * Admin: Update pricing rules
      */
-    async updatePricingRule(id: string, dto: { pricePerHour?: number, isActive?: boolean }) {
+    async updatePricingRule(id: string, dto: { pricePerHour?: number, pricePerDay?: number, isActive?: boolean }) {
         this.assertPromotionEnabled();
         const rule = await this.pricingRuleRepo.findOne({ where: { id } });
         if (!rule) throw new NotFoundException('Pricing rule not found');
 
+        if (dto.pricePerDay !== undefined) {
+            rule.pricePerDay = dto.pricePerDay;
+            rule.pricePerHour = Math.round(dto.pricePerDay / 24);
+        }
         if (dto.pricePerHour !== undefined) {
             rule.pricePerHour = dto.pricePerHour;
             rule.pricePerDay = dto.pricePerHour * 24; // Sync day rate (24x hourly)

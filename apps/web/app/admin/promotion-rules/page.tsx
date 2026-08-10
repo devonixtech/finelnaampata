@@ -24,7 +24,7 @@ import { api } from "../../../lib/api";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-type VisibilityPlacement = "offer" | "event";
+type VisibilityPlacement = "homepage" | "category" | "listing" | "offer" | "event";
 
 interface PricingRule {
   id: string;
@@ -34,7 +34,7 @@ interface PricingRule {
   isActive: boolean;
 }
 
-const ALLOWED_PLACEMENTS: VisibilityPlacement[] = ["offer", "event"];
+const ALLOWED_PLACEMENTS: VisibilityPlacement[] = ["homepage", "category", "listing", "offer", "event"];
 
 const PLACEMENT_INFO: Record<
   VisibilityPlacement,
@@ -48,9 +48,36 @@ const PLACEMENT_INFO: Record<
     borderColor: string;
   }
 > = {
+  homepage: {
+    title: "Home Page",
+    description: "Boost listings to the prime hero section and search foreground.",
+    icon: Home,
+    color: "bg-orange-500",
+    lightColor: "bg-orange-50",
+    textColor: "text-orange-600",
+    borderColor: "border-orange-100",
+  },
+  category: {
+    title: "Category Page",
+    description: "Ensure visibility at the top of specific business categories.",
+    icon: LayoutGrid,
+    color: "bg-blue-600",
+    lightColor: "bg-blue-50",
+    textColor: "text-blue-600",
+    borderColor: "border-blue-100",
+  },
+  listing: {
+    title: "Listing Boost",
+    description: 'Appear in "Suggested" and "Similar" sections of competitor pages.',
+    icon: Zap,
+    color: "bg-violet-600",
+    lightColor: "bg-violet-50",
+    textColor: "text-violet-600",
+    borderColor: "border-violet-100",
+  },
   offer: {
     title: "Deal Visibility",
-    description: "Per-day rate when businesses publish offers and events.",
+    description: "Per-day rate when businesses publish offers and deals.",
     icon: Tag,
     color: "bg-emerald-600",
     lightColor: "bg-emerald-50",
@@ -219,10 +246,10 @@ export default function PromotionRulesPage() {
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
-              Deal & Event Visibility Pricing
+              Placement Controls
             </h1>
             <p className="text-slate-400 font-bold text-lg max-w-md">
-              Set per-day rates for deal and event listings. Legacy ad placements are no longer used.
+              Set hourly boost rates for each placement. Businesses pay per-day based on selected placements.
             </p>
           </div>
 
@@ -263,7 +290,7 @@ export default function PromotionRulesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* {rules.map((rule) => {
             const info =
               PLACEMENT_INFO[rule.placement as keyof typeof PLACEMENT_INFO] ||

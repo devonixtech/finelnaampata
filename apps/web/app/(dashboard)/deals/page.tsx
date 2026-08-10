@@ -26,6 +26,9 @@ import {
   Clock,
   Download,
   Zap,
+  Home,
+  LayoutGrid,
+  ShieldCheck,
 } from "lucide-react";
 import { api } from "../../../lib/api";
 import { SearchableSelect } from "../../../components/ui/SearchableSelect";
@@ -97,6 +100,12 @@ const emptyForm = {
   promoEndTime: "",
 };
 
+const PLACEMENT_CONFIG = [
+  { key: 'homepage', label: 'Homepage', description: 'Pinned on home screen', icon: Home, selectedBg: 'bg-orange-50 border-orange-500', selectedIcon: 'bg-orange-500 text-white', checkBg: 'bg-orange-500', rateText: 'text-orange-600' },
+  { key: 'category', label: 'Category Page', description: 'Top of category results', icon: LayoutGrid, selectedBg: 'bg-blue-50 border-blue-500', selectedIcon: 'bg-blue-500 text-white', checkBg: 'bg-blue-500', rateText: 'text-blue-600' },
+  { key: 'listing', label: 'Listing Boost', description: 'Highlighted in search', icon: Zap, selectedBg: 'bg-violet-50 border-violet-500', selectedIcon: 'bg-violet-500 text-white', checkBg: 'bg-violet-500', rateText: 'text-violet-600' },
+];
+
 export default function BusinessDealsPage() {
   const { user } = useAuth();
   const pathname = usePathname();
@@ -116,6 +125,7 @@ export default function BusinessDealsPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [estimatedPrice, setEstimatedPrice] = useState(0);
   const [dayRate, setDayRate] = useState(150);
+  const [placementRates, setPlacementRates] = useState<Record<string, number>>({});
   const [deleting, setDeleting] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [activeSub, setActiveSub] = useState<any>({
@@ -208,7 +218,10 @@ export default function BusinessDealsPage() {
   };
 
   useEffect(() => {
-    fetchVisibilityDayRate('deal').then(setDayRate);
+    fetchVisibilityDayRate('deal').then((res: any) => {
+      if (res?.dayRate) setDayRate(res.dayRate);
+      if (res?.placementRates) setPlacementRates(res.placementRates);
+    });
   }, []);
 
   useEffect(() => {
@@ -246,11 +259,18 @@ export default function BusinessDealsPage() {
     calculateVisibilityTotal(form.startDate, form.endDate, 'deal').then((res) => {
       if (!cancelled) {
         setDayRate(res.dayRate);
-        setEstimatedPrice(res.totalPrice);
+        // Add placement costs
+        let total = res.totalPrice;
+        for (const p of form.placements) {
+          const rate = placementRates[p] || 0;
+          const days = visibilityDayCount(form.startDate, form.endDate);
+          total += days * rate;
+        }
+        setEstimatedPrice(total);
       }
     });
     return () => { cancelled = true; };
-  }, [form.startDate, form.endDate, showModal]);
+  }, [form.startDate, form.endDate, showModal, form.placements]);
 
   if (loading) {
     return (
@@ -357,6 +377,7 @@ export default function BusinessDealsPage() {
             dealId: editingId,
             startTime: form.startDate,
             endTime: form.endDate,
+            placements: form.placements.length > 0 ? form.placements : ['offer'],
           });
           if (checkout.checkoutUrl) {
             window.location.href = checkout.checkoutUrl;
@@ -372,6 +393,7 @@ export default function BusinessDealsPage() {
             dealId: offerId,
             startTime: form.startDate,
             endTime: form.endDate,
+            placements: form.placements.length > 0 ? form.placements : ['offer'],
           });
           if (checkout.checkoutUrl) {
             window.location.href = checkout.checkoutUrl;
@@ -813,6 +835,60 @@ export default function BusinessDealsPage() {
                       </div>
 
                       <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-6">
+                        {/* Placement Selection */}
+                        <div>
+                          <label className={labelClass}>Select Placements</label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {PLACEMENT_CONFIG.map((p) => {
+                              const selected = form.placements.includes(p.key);
+                              const rate = placementRates[p.key] || 0;
+                              const Icon = p.icon;
+                              return (
+                                <button
+                                  key={p.key}
+                                  type="button"
+                                  onClick={() => {
+                                    setForm((prev) => ({
+                                      ...prev,
+                                      placements: selected
+                                        ? prev.placements.filter((x) => x !== p.key)
+                                        : [...prev.placements, p.key],
+                                    }));
+                                  }}
+                                  className={`relative p-4 rounded-2xl border-2 text-center transition-all ${
+                                    selected
+                                      ? `${p.selectedBg} shadow-md`
+                                      : "border-slate-200 bg-white hover:border-slate-300"
+                                  }`}
+                                >
+                                  {selected && (
+                                    <div className={`absolute top-2 right-2 w-5 h-5 rounded-full ${p.checkBg} flex items-center justify-center`}>
+                                      <CheckCircle2 className="w-3 h-3 text-white" />
+                                    </div>
+                                  )}
+                                  <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${
+                                    selected ? p.selectedIcon : 'bg-slate-100 text-slate-400'
+                                  }`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <p className={`text-xs font-black ${selected ? 'text-slate-900' : 'text-slate-500'}`}>
+                                    {p.label}
+                                  </p>
+                                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{p.description}</p>
+                                  {rate > 0 && (
+                                    <p className={`text-[10px] font-black mt-1 ${selected ? p.rateText : 'text-slate-400'}`}>
+                                      Rs. {rate.toLocaleString()}/day
+                                    </p>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">
+                            Select where you want your deal to be seen
+                          </p>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className={labelClass}>Visibility Start</label>
@@ -855,22 +931,38 @@ export default function BusinessDealsPage() {
                         <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
-                              Per-Day Visibility Pricing
+                              Listing Price Summary
                             </h3>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">
-                              Rs. {dayRate.toLocaleString()}/day
-                            </span>
                           </div>
                           {(() => {
                             const days = visibilityDayCount(form.startDate, form.endDate);
-                            const total = days * dayRate;
                             return (
-                              <div className="space-y-1 text-sm font-bold text-slate-700">
-                                <p>{days > 0 ? `${days} day${days === 1 ? '' : 's'} selected` : 'Select start and end dates'}</p>
+                              <div className="space-y-3 text-sm font-bold text-slate-700">
+                                <p>{days > 0 ? `${days} day${days === 1 ? '' : 's'} selected` : 'Select placements, start time, and end time to see pricing'}</p>
                                 {days > 0 && (
-                                  <p className="text-orange-600 text-lg font-black">
-                                    Estimated total: Rs. {total.toLocaleString()}
-                                  </p>
+                                  <>
+                                    {/* Base visibility */}
+                                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                                      <span className="text-slate-600">Offer Visibility</span>
+                                      <span className="text-slate-900">Rs. {(days * dayRate).toLocaleString()}</span>
+                                    </div>
+                                    {/* Selected placements */}
+                                    {form.placements.map((pKey) => {
+                                      const pConfig = PLACEMENT_CONFIG.find((x) => x.key === pKey);
+                                      const rate = placementRates[pKey] || 0;
+                                      return (
+                                        <div key={pKey} className="flex justify-between items-center py-2 border-b border-slate-100">
+                                          <span className="text-slate-600">{pConfig?.label || pKey}</span>
+                                          <span className="text-slate-900">Rs. {(days * rate).toLocaleString()}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {/* Total */}
+                                    <div className="flex justify-between items-center pt-2">
+                                      <span className="text-xs font-black uppercase tracking-widest text-slate-400">Total Fee</span>
+                                      <span className="text-orange-600 text-lg font-black">Rs. {estimatedPrice.toLocaleString()}</span>
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             );

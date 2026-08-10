@@ -3,12 +3,15 @@ import { visibilityDayCount } from './location-detect';
 
 const DEFAULT_DAY_RATE = 150;
 
-export async function fetchVisibilityDayRate(type: 'deal' | 'event'): Promise<number> {
+export async function fetchVisibilityDayRate(type: 'deal' | 'event'): Promise<{ dayRate: number; placementRates: Record<string, number> }> {
     try {
         const res = await api.promotions.getVisibilityRate(type);
-        return Number(res?.dayRate) || DEFAULT_DAY_RATE;
+        return {
+            dayRate: Number(res?.dayRate) || DEFAULT_DAY_RATE,
+            placementRates: res?.placementRates || {},
+        };
     } catch {
-        return DEFAULT_DAY_RATE;
+        return { dayRate: DEFAULT_DAY_RATE, placementRates: {} };
     }
 }
 
