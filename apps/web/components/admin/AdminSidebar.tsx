@@ -85,7 +85,6 @@ const menuSections: MenuSection[] = [
     {
         title: "SYSTEM",
         items: [
-            { name: 'Geo Correction', icon: MapPin, href: '/admin/geo', badge: null },
             { name: 'Settings', icon: Settings, href: '/admin/settings', badge: null },
         ]
     }
