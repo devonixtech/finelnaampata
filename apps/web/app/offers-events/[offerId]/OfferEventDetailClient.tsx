@@ -411,28 +411,22 @@ export default function OfferEventDetailClient() {
                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">({offer.business?.totalReviews || '230'} reviews)</span>
                             </div>
                             <div className="w-full space-y-4 pt-6 border-t border-slate-50">
-                                <a href={`tel:${offer.business?.phone}`} className="flex items-center gap-4 group">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#FF7904] group-hover:text-white transition-all duration-300">
-                                        <Phone className="w-5 h-5" />
-                                    </div>
-                                    <span className="font-bold text-slate-700 tracking-tight group-hover:text-[#FF7904] transition-colors">{offer.business?.phone}</span>
-                                </a>
-                                <div className="flex items-center gap-4 py-2">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
-                                        <Globe className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <Twitter className="w-5 h-5 text-slate-400 cursor-pointer hover:text-[#1DA1F2] transition-colors" />
-                                        <Facebook className="w-5 h-5 text-slate-400 cursor-pointer hover:text-[#1877F2] transition-colors" />
-                                        <Instagram className="w-5 h-5 text-slate-400 cursor-pointer hover:text-[#E4405F] transition-colors" />
-                                    </div>
-                                </div>
-                                <a href={offer.business?.website || '#'} className="flex items-center gap-4 group">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#FF7904] group-hover:text-white transition-all duration-300">
-                                        <Globe className="w-5 h-5" />
-                                    </div>
-                                    <span className="font-bold text-slate-700 tracking-tight truncate group-hover:text-[#FF7904] transition-colors">{offer.business?.website || 'Visit Website'}</span>
-                                </a>
+                                {offer.business?.phone && (
+                                    <a href={`tel:${offer.business.phone}`} className="flex items-center gap-4 group">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#FF7904] group-hover:text-white transition-all duration-300">
+                                            <Phone className="w-5 h-5" />
+                                        </div>
+                                        <span className="font-bold text-slate-700 tracking-tight group-hover:text-[#FF7904] transition-colors">{offer.business.phone}</span>
+                                    </a>
+                                )}
+                                {offer.business?.website && (
+                                    <a href={offer.business.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#FF7904] group-hover:text-white transition-all duration-300">
+                                            <Globe className="w-5 h-5" />
+                                        </div>
+                                        <span className="font-bold text-slate-700 tracking-tight truncate group-hover:text-[#FF7904] transition-colors">{offer.business.website}</span>
+                                    </a>
+                                )}
                             </div>
                         </div>
 
