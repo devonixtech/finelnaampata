@@ -78,13 +78,13 @@ const OffersEventsContent = () => {
 
             const loaders: Promise<{ data: any[]; meta: any }>[] = [];
             if (type === 'event') {
-                loaders.push(api.events.search(params));
+                loaders.push(api.events.search({ ...params, placement: 'listing' }));
             } else if (type === 'offer') {
-                loaders.push(api.deals.search(params));
+                loaders.push(api.deals.search({ ...params, placement: 'listing' }));
             } else {
                 loaders.push(
-                    api.deals.search(params),
-                    api.events.search({ ...params, page: 1, limit: 50 }),
+                    api.deals.search({ ...params, placement: 'listing' }),
+                    api.events.search({ ...params, page: 1, limit: 50, placement: 'listing' }),
                 );
             }
 
