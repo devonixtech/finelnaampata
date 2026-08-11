@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, MapPin, Star, X, Filter, Navigation, LayoutGrid, List, ChevronDown, Clock, Zap, Globe, Award, ShieldCheck } from 'lucide-react';
+import { Search, MapPin, Star, X, Filter, Navigation, LayoutGrid, List, ChevronDown, Clock, Zap, Globe, Award, ShieldCheck, Loader2 } from 'lucide-react';
 import { detectLocationForUi } from '../../lib/location-detect';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import BusinessCard from '../../components/BusinessCard';
+import OfferCard from '../../components/OfferCard';
 import ImpressionTracker from '../../components/ImpressionTracker';
 import CitySearchSelect from '../../components/CitySearchSelect';
 import { api } from '../../lib/api';
@@ -35,6 +36,8 @@ function SearchResults() {
     const filterParam = searchParams.get('filter') || '';
 
     const [results, setResults] = useState<Business[]>([]);
+    const [categoryOffers, setCategoryOffers] = useState<any[]>([]);
+    const [offersLoading, setOffersLoading] = useState(false);
     const [cities, setCities] = useState<City[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -114,6 +117,28 @@ function SearchResults() {
                     if (latitude) logPayload.latitude = parseFloat(latitude);
                     if (longitude) logPayload.longitude = parseFloat(longitude);
                     api.demand.logSearch(logPayload);
+                }
+
+                // Load category-promoted deals when filtering by category
+                if (categorySlug) {
+                    try {
+                        setOffersLoading(true);
+                        const catData = await api.categories.getBySlug(categorySlug);
+                        if (catData?.id) {
+                            const offersRes = await api.offers.search({
+                                categoryId: catData.id,
+                                placement: 'category',
+                                limit: 10,
+                            });
+                            setCategoryOffers(offersRes.data || []);
+                        }
+                    } catch (err) {
+                        console.error('Failed to load category offers:', err);
+                    } finally {
+                        setOffersLoading(false);
+                    }
+                } else {
+                    setCategoryOffers([]);
                 }
             } catch (err) {
                 console.error("Search failed", err);
@@ -504,6 +529,31 @@ function SearchResults() {
                                 </div>
                             );
                         })()}
+
+                        {/* Category Promoted Deals */}
+                        {!loading && categoryOffers.length > 0 && (
+                            <div className="mb-8">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50 rounded-full border border-orange-200/60">
+                                        <Zap className="w-4 h-4 text-orange-500" />
+                                        <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Promoted</span>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800">Category Offers</h3>
+                                </div>
+                                <div className="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                                    {categoryOffers.map((offer) => (
+                                        <OfferCard key={offer.id} offer={offer} />
+                                    ))}
+                                </div>
+                                <div className="border-b border-slate-200 my-8" />
+                            </div>
+                        )}
+                        {!loading && categoryOffers.length === 0 && offersLoading && (
+                            <div className="mb-6 flex items-center gap-2 text-sm text-slate-500">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Loading category offers...
+                            </div>
+                        )}
 
                         {loading ? (
                             <div className={viewMode === 'grid' ? "grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6" : "flex flex-col gap-6"}>
