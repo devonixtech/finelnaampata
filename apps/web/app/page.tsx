@@ -813,14 +813,7 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="mt-16 text-center">
-            <Link
-              href="/offers-events"
-              className="text-orange-500 font-bold hover:gap-4 transition-all inline-flex items-center gap-2 text-lg"
-            >
-              View All Offers & Events <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
+
         </div>
       </section>
 
