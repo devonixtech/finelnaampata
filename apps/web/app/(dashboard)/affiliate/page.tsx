@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -185,36 +185,7 @@ export default function AffiliateDashboard() {
                 </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                <div className="p-5 bg-white rounded-[20px] border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
-                        <Hourglass className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Approval</p>
-                        <p className="text-xl font-black text-slate-900">{pendingCommissions.length}</p>
-                    </div>
-                </div>
-                <div className="p-5 bg-white rounded-[20px] border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
-                        <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Approved</p>
-                        <p className="text-xl font-black text-slate-900">{approvedCommissions.length}</p>
-                    </div>
-                </div>
-                <div className="p-5 bg-white rounded-[20px] border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center text-violet-500">
-                        <Coins className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Earned Credits</p>
-                        <p className="text-xl font-black text-slate-900">{totalApprovedCredits.toFixed(0)}</p>
-                    </div>
-                </div>
-            </div>
+
 
             {/* Referred Users */}
             <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden mb-8">
@@ -256,10 +227,6 @@ export default function AffiliateDashboard() {
                                                     <p className="text-[10px] font-bold text-slate-400">Commission</p>
                                                 </div>
                                             )}
-                                            <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${statusInfo.bg} ${statusInfo.color}`}>
-                                                <StatusIcon className="w-3 h-3" />
-                                                {statusInfo.label}
-                                            </span>
                                         </div>
                                     </div>
                                 );
