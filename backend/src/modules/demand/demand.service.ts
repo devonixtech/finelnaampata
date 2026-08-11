@@ -470,7 +470,7 @@ ${JSON.stringify(insights.slice(0, 10))}
                     .select('log.city', 'city')
                     .where('log.city IS NOT NULL')
                     .andWhere('log.latitude IS NOT NULL')
-                    .orderBy(`ABS(log.latitude - :lat) + ABS(log.longitude - :lng)`, 'nearest')
+                    .orderBy(`ABS(log.latitude - :lat) + ABS(log.longitude - :lng)`, 'ASC')
                     .setParameters({ lat, lng })
                     .getRawOne();
 
