@@ -302,9 +302,11 @@ export class DealsService {
             }
 
             if (placement) {
-                // Only show deals that have an active booking with this specific placement
-                qb.andWhere('pb.id IS NOT NULL')
-                  .andWhere("pb.placements @> :placementArr", { placementArr: JSON.stringify([placement]) });
+                // Show deals that have an active booking with this placement OR are manually featured
+                qb.andWhere(new Brackets(inner => {
+                    inner.where('pb.id IS NOT NULL AND pb.placements @> :placementArr', { placementArr: JSON.stringify([placement]) })
+                         .orWhere('o.isFeatured = :trueVal', { trueVal: true });
+                }));
             } else if (isFeatured === true) {
                 qb.andWhere('o.isFeatured = :trueVal', { trueVal: true });
             }
