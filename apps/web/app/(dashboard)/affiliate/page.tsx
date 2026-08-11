@@ -5,7 +5,7 @@ import {
     Users, Wallet, Link as LinkIcon,
     CheckCircle2, Copy, Share2, ArrowRight,
     Gift, Timer, AlertCircle, Loader2,
-    Coins, Clock, Hourglass, Ban, CircleDollarSign
+    Coins, Clock, Hourglass, Ban, CircleDollarSign, UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../../lib/api';
@@ -83,6 +83,7 @@ export default function AffiliateDashboard() {
     };
 
     const commissionReferrals = referrals.filter(r => r.status === 'pending_approval' || r.status === 'converted' || r.status === 'cancelled');
+    const allReferrals = referrals; // Show ALL referrals including pending
     const pendingCommissions = referrals.filter(r => r.status === 'pending_approval');
     const approvedCommissions = referrals.filter(r => r.status === 'converted');
     const totalPendingCredits = pendingCommissions.reduce((sum, r) => sum + (Number(r.commissionAmount) || 0), 0);
@@ -212,6 +213,67 @@ export default function AffiliateDashboard() {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Earned Credits</p>
                         <p className="text-xl font-black text-slate-900">{totalApprovedCredits.toFixed(0)}</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Referred Users */}
+            <div className="bg-white rounded-[28px] border border-slate-200 overflow-hidden mb-8">
+                <div className="p-8 border-b border-slate-100">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900">Referred Users</h3>
+                            <p className="text-sm text-slate-500 mt-1">People who signed up using your referral code</p>
+                        </div>
+                        <div className="px-4 py-2 bg-slate-100 rounded-xl">
+                            <span className="text-2xl font-black text-slate-900">{allReferrals.length}</span>
+                            <span className="text-xs font-bold text-slate-500 ml-1">total</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4">
+                    {allReferrals.length > 0 ? (
+                        <div className="space-y-2">
+                            {allReferrals.map((ref, idx) => {
+                                const statusInfo = STATUS_CONFIG[ref.status] || { label: ref.status, color: 'text-slate-600', bg: 'bg-slate-100', icon: Users };
+                                const StatusIcon = statusInfo.icon;
+                                return (
+                                    <div key={idx} className="flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${statusInfo.bg} ${statusInfo.color}`}>
+                                                <UserCheck className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900">{ref.referredUser?.fullName || 'User'}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                    Joined {new Date(ref.createdAt).toLocaleDateString()} · {ref.type === 'subscription' ? 'Plan Purchase' : 'Signup'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            {ref.commissionAmount > 0 && (
+                                                <div className="text-right">
+                                                    <p className="text-lg font-black text-slate-900">{Number(ref.commissionAmount).toFixed(0)} Credits</p>
+                                                    <p className="text-[10px] font-bold text-slate-400">Commission</p>
+                                                </div>
+                                            )}
+                                            <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${statusInfo.bg} ${statusInfo.color}`}>
+                                                <StatusIcon className="w-3 h-3" />
+                                                {statusInfo.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="py-16 text-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                                <Users className="w-8 h-8 text-slate-200" />
+                            </div>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No referrals yet</p>
+                            <p className="text-xs text-slate-400 mt-2">Share your referral code to start earning</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
