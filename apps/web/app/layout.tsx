@@ -41,7 +41,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body
-                className="bg-white text-slate-900 min-h-screen antialiased"
+                className="bg-white text-slate-900 min-h-screen antialiased overflow-x-hidden w-full"
                 suppressHydrationWarning
             >
                 <AuthProvider>
