@@ -391,25 +391,28 @@ export default function OfferEventDetailClient() {
 
                 <div className="space-y-8">
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm relative overflow-hidden group">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8">Restaurant Info</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8">Business Info</h3>
                         <div className="flex flex-col items-center text-center">
                             <div className="w-28 h-28 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner p-3 mb-6 flex items-center justify-center overflow-hidden">
                                 {offer.business?.logoUrl ? (
                                     <img src={getImageUrl(offer.business.logoUrl) || undefined} className="w-full h-full object-contain" />
                                 ) : (
-                                    <div className="text-3xl font-black text-slate-300 uppercase">{offer.business?.title[0]}</div>
+                                    <div className="text-3xl font-black text-slate-300 uppercase">{offer.business?.title?.[0]}</div>
                                 )}
                             </div>
-                            <h4 className="text-2xl font-black text-slate-900 mb-2 truncate max-w-full">{offer.business?.title}</h4>
-                            <p className="text-[11px] font-black uppercase tracking-widest text-[#FF7904] mb-4 flex items-center gap-1.5 justify-center">
-                                <Compass className="w-3.5 h-3.5" /> 3.2 km away
-                            </p>
-                            <div className="flex flex-col items-center gap-2 mb-8">
-                                <div className="flex text-yellow-500">
-                                    {[1, 2, 3, 4, 5].map(s => <span key={s} className="text-xl">★</span>)}
+                            <h4 className="text-2xl font-black text-slate-900 mb-4 truncate max-w-full">{offer.business?.title}</h4>
+                            
+                            {offer.business?.totalReviews > 0 && (
+                                <div className="flex flex-col items-center gap-2 mb-8">
+                                    <div className="flex">
+                                        {[1, 2, 3, 4, 5].map(s => (
+                                            <span key={s} className={`text-xl ${s <= Math.round(offer.business?.averageRating || 0) ? 'text-yellow-500' : 'text-slate-200'}`}>★</span>
+                                        ))}
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">({offer.business.totalReviews} reviews)</span>
                                 </div>
-                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">({offer.business?.totalReviews || '230'} reviews)</span>
-                            </div>
+                            )}
+                            
                             <div className="w-full space-y-4 pt-6 border-t border-slate-50">
                                 {offer.business?.phone && (
                                     <a href={`tel:${offer.business.phone}`} className="flex items-center gap-4 group">
