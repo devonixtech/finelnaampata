@@ -751,6 +751,7 @@ export const api = {
                 method: 'PATCH',
                 body: JSON.stringify(settings),
             }),
+            getSettings: () => fetcher<any>('/affiliate/admin/settings'),
         },
         activityFeed: (limit?: number) => fetcher<any[]>(`/admin/activity-feed?limit=${limit || 50}`),
         searchAnalytics: {
