@@ -475,9 +475,20 @@ export class AffiliateService implements OnModuleInit {
     // --- KYC Methods ---
 
     async adminGetAllAffiliates() {
-        return this.affiliateRepository.find({
-            relations: ['user'],
+        const affiliates = await this.affiliateRepository.find({
+            relations: ['user', 'referrals'],
             order: { totalEarnings: 'DESC' },
+        });
+
+        return affiliates.map(affiliate => {
+            const pendingReferrals = affiliate.referrals?.filter(r => r.status === 'pending_approval') || [];
+            const pendingCommissions = pendingReferrals.reduce((sum, r) => sum + (Number(r.commissionAmount) || 0), 0);
+            
+            return {
+                ...affiliate,
+                balanceHeld: pendingCommissions,
+                totalReferrals: affiliate.referrals?.length || 0,
+            };
         });
     }
 

@@ -11,6 +11,7 @@ import {
     AlertTriangle,
     TrendingUp,
     DollarSign,
+    Ticket,
     Eye,
     Ban,
     ChevronDown,
@@ -274,8 +275,8 @@ export default function AffiliatesAdminPage() {
                 <StatCard label="Total Affiliates" value={stats?.totalAffiliates ?? affiliates.length} icon={Users} color="bg-slate-100" textColor="text-slate-500" />
                 <StatCard label="Active Affiliates" value={stats?.activeAffiliates ?? 0} icon={CheckCircle} color="bg-emerald-100" textColor="text-emerald-600" />
                         <StatCard label="Revenue Generated" value={`${Number(stats?.totalRevenueGenerated) || 0} Credits`} icon={TrendingUp} color="bg-blue-100" textColor="text-blue-600" />
-                        <StatCard label="Commission Pending" value={`${Number(stats?.totalCommissionOwed) || 0} Credits`} icon={DollarSign} color="bg-amber-100" textColor="text-amber-600" />
-                        <StatCard label="Total Approved" value={`${Number(stats?.totalPaidOut) || 0} Credits`} icon={DollarSign} color="bg-emerald-100" textColor="text-emerald-600" />
+                        <StatCard label="Commission Pending" value={`${Number(stats?.totalCommissionOwed) || 0} Credits`} icon={Ticket} color="bg-amber-100" textColor="text-amber-600" />
+                        <StatCard label="Total Approved" value={`${Number(stats?.totalPaidOut) || 0} Credits`} icon={Ticket} color="bg-emerald-100" textColor="text-emerald-600" />
 
             </div>
 
@@ -370,9 +371,9 @@ export default function AffiliatesAdminPage() {
                                 <th className="px-6 py-4">NIC</th>
                                 <th className="px-6 py-4">Status</th>
 
-                                <th className="px-6 py-4 text-right">Earnings</th>
-                                <th className="px-6 py-4 text-right">Held</th>
-                                <th className="px-6 py-4 text-right">Referrals</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 tracking-wider">Earnings</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 tracking-wider">Pending</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 tracking-wider">Referrals</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
