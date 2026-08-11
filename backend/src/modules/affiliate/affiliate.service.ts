@@ -933,7 +933,7 @@ export class AffiliateService implements OnModuleInit {
             return { success: false, reason: 'No referral found' };
         }
 
-        // Skip commission if affiliate is suspended (but not if simply unapproved)
+        // Skip commission if affiliate is suspended
         if (referral.affiliate?.status === 'suspended') {
             this.logger.debug(`[Referral] Affiliate ${referral.affiliate?.id} is suspended. Skipping commission.`);
             return { success: false, reason: 'Affiliate suspended' };
