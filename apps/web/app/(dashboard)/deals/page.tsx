@@ -61,6 +61,13 @@ interface OfferItem {
   featuredUntil?: string;
   pricingId?: string;
   isActive?: boolean;
+  booking?: {
+    id: string;
+    placements: string[];
+    startTime: string;
+    endTime: string;
+    totalPrice: number;
+  } | null;
 }
 
 const inputClass =
@@ -290,6 +297,9 @@ export default function BusinessDealsPage() {
 
   const openEdit = (offer: OfferItem) => {
     setAgreed(false);
+    const bookingPlacements = offer.booking?.placements || [];
+    const bookingStart = offer.booking?.startTime ? offer.booking.startTime.slice(0, 10) : "";
+    const bookingEnd = offer.booking?.endTime ? offer.booking.endTime.slice(0, 10) : "";
     setForm({
       ...emptyForm,
       title: offer.title || "",
@@ -298,14 +308,14 @@ export default function BusinessDealsPage() {
       offerBadge: offer.offerBadge || "",
       imageUrl: offer.imageUrl || "",
       businessId: offer.businessId || "",
-      startDate: offer.startDate ? offer.startDate.slice(0, 16) : "",
-      endDate: offer.endDate ? offer.endDate.slice(0, 16) : "",
-      expiryDate: offer.expiryDate ? offer.expiryDate.slice(0, 16) : "",
+      startDate: bookingStart || (offer.startDate ? offer.startDate.slice(0, 10) : ""),
+      endDate: bookingEnd || (offer.endDate ? offer.endDate.slice(0, 10) : ""),
+      expiryDate: offer.expiryDate ? offer.expiryDate.slice(0, 10) : "",
       highlights: Array.isArray(offer.highlights) ? offer.highlights : [],
       terms: Array.isArray(offer.terms) ? offer.terms : [],
-      placements: [],
-      promoStartTime: offer.startDate ? offer.startDate.slice(0, 16) : "",
-      promoEndTime: offer.endDate ? offer.endDate.slice(0, 16) : "",
+      placements: bookingPlacements.filter((p: string) => ['homepage', 'category', 'listing'].includes(p)),
+      promoStartTime: bookingStart || "",
+      promoEndTime: bookingEnd || "",
     });
     setEditingId(offer.id);
     setShowModal(true);

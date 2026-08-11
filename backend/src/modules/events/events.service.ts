@@ -213,23 +213,46 @@ export class EventsService {
         return this.eventRepository.save(event);
     }
 
-    /** Get all events for the authenticated vendor */
+    /** Get all events for the authenticated vendor, with active promotion booking data */
     async findByVendor(userId: string, page = 1, limit = 10) {
         const vendor = await this.getVendorByUserId(userId);
         const skip = (Number(page) - 1) * Number(limit);
+        const now = new Date();
 
-        const [events, total] = await this.eventRepository.findAndCount({
-            where: { vendorId: vendor.id },
-            relations: ['business'],
-            order: { createdAt: 'DESC' },
-            skip,
-            take: Number(limit),
+        const [events, total] = await this.eventRepository.createQueryBuilder('e')
+            .leftJoinAndSelect('e.business', 'b')
+            .leftJoin('promotion_bookings', 'pb',
+                'pb.event_id = e.id AND pb.status = :activeStatus AND pb.start_time <= :now AND pb.end_time > :now',
+                { activeStatus: BookingStatus.ACTIVE, now })
+            .addSelect('pb.placements', 'pb_placements')
+            .addSelect('pb.start_time', 'pb_start_time')
+            .addSelect('pb.end_time', 'pb_end_time')
+            .addSelect('pb.id', 'pb_id')
+            .addSelect('pb.total_price', 'pb_total_price')
+            .where('e.vendorId = :vendorId', { vendorId: vendor.id })
+            .orderBy('e.createdAt', 'DESC')
+            .skip(skip)
+            .take(Number(limit))
+            .getRawAndEntities();
+
+        const withStatus = events.entities.map(e => this.computeStatus(e));
+
+        const enriched = withStatus.map((event, idx) => {
+            const raw = events.raw[idx];
+            return {
+                ...event,
+                booking: raw?.pb_id ? {
+                    id: raw.pb_id,
+                    placements: raw.pb_placements,
+                    startTime: raw.pb_start_time,
+                    endTime: raw.pb_end_time,
+                    totalPrice: raw.pb_total_price,
+                } : null,
+            };
         });
 
-        const withStatus = events.map(e => this.computeStatus(e));
-
         return {
-            data: withStatus,
+            data: enriched,
             meta: {
                 total,
                 page: Number(page),

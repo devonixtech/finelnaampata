@@ -216,23 +216,46 @@ export class DealsService {
         return this.dealRepository.save(deal);
     }
 
-    /** Get all deals for the authenticated vendor */
+    /** Get all deals for the authenticated vendor, with active promotion booking data */
     async findByVendor(userId: string, page = 1, limit = 10) {
         const vendor = await this.getVendorByUserId(userId);
         const skip = (Number(page) - 1) * Number(limit);
+        const now = new Date();
 
-        const [deals, total] = await this.dealRepository.findAndCount({
-            where: { vendorId: vendor.id },
-            relations: ['business'],
-            order: { createdAt: 'DESC' },
-            skip,
-            take: Number(limit),
+        const [deals, total] = await this.dealRepository.createQueryBuilder('d')
+            .leftJoinAndSelect('d.business', 'b')
+            .leftJoin('promotion_bookings', 'pb',
+                'pb.deal_id = d.id AND pb.status = :activeStatus AND pb.start_time <= :now AND pb.end_time > :now',
+                { activeStatus: BookingStatus.ACTIVE, now })
+            .addSelect('pb.placements', 'pb_placements')
+            .addSelect('pb.start_time', 'pb_start_time')
+            .addSelect('pb.end_time', 'pb_end_time')
+            .addSelect('pb.id', 'pb_id')
+            .addSelect('pb.total_price', 'pb_total_price')
+            .where('d.vendorId = :vendorId', { vendorId: vendor.id })
+            .orderBy('d.createdAt', 'DESC')
+            .skip(skip)
+            .take(Number(limit))
+            .getRawAndEntities();
+
+        const withStatus = deals.entities.map(d => this.computeStatus(d));
+
+        const enriched = withStatus.map((deal, idx) => {
+            const raw = deals.raw[idx];
+            return {
+                ...deal,
+                booking: raw?.pb_id ? {
+                    id: raw.pb_id,
+                    placements: raw.pb_placements,
+                    startTime: raw.pb_start_time,
+                    endTime: raw.pb_end_time,
+                    totalPrice: raw.pb_total_price,
+                } : null,
+            };
         });
 
-        const withStatus = deals.map(d => this.computeStatus(d));
-
         return {
-            data: withStatus,
+            data: enriched,
             meta: {
                 total,
                 page: Number(page),
