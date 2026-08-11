@@ -25,20 +25,17 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function AdminRevenuePage() {
     const [stats, setStats] = useState<any>(null);
-    const [payments, setPayments] = useState<any[]>([]);
     const [revenueMetrics, setRevenueMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [statsData, paymentsData, metricsData] = await Promise.all([
+            const [statsData, metricsData] = await Promise.all([
                 api.admin.getStats(),
-                api.admin.affiliate.getPayouts().catch(() => []),
                 api.admin.getRevenueMetrics().catch(() => null),
             ]);
             setStats(statsData);
-            setPayments(paymentsData || []);
             setRevenueMetrics(metricsData);
         } catch (err) {
             console.error('Failed to fetch revenue data:', err);
@@ -48,10 +45,6 @@ export default function AdminRevenuePage() {
     }, []);
 
     useEffect(() => { fetchData(); }, [fetchData]);
-
-    const totalPaid = payments.filter((p: any) => p.status === 'paid').reduce((s: number, p: any) => s + (p.amount || 0), 0);
-    const totalPending = payments.filter((p: any) => p.status === 'pending').reduce((s: number, p: any) => s + (p.amount || 0), 0);
-    const totalApproved = payments.filter((p: any) => p.status === 'approved').reduce((s: number, p: any) => s + (p.amount || 0), 0);
 
     const monthlyRevenue = stats?.monthlyRevenue || 0;
     const totalRevenue = stats?.totalRevenue || 0;
@@ -72,7 +65,7 @@ export default function AdminRevenuePage() {
                         <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-2">
                             Revenue <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Tracking</span>
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm md:text-base max-w-lg">Track overall platform revenue, subscription payments, and manage affiliate payouts in real-time.</p>
+                        <p className="text-slate-500 font-medium text-sm md:text-base max-w-lg">Track overall platform revenue, subscription payments, and commissions in real-time.</p>
                     </div>
                     <button
                         onClick={fetchData}

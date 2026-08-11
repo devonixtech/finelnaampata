@@ -106,7 +106,6 @@ interface AdminAffiliateStats {
     totalEarnings: number;
     totalPaidOut: number;
     totalCommissionOwed: number;
-    pendingPayouts: number;
     totalClicks: number;
     totalRevenueGenerated: number;
 }
@@ -212,23 +211,6 @@ export default function AffiliatesAdminPage() {
         }
     };
 
-    const handleExportPayouts = async () => {
-        try {
-            const data = await api.admin.affiliate.exportPayoutReports('csv');
-            const blob = new Blob([typeof data === 'string' ? data : JSON.stringify(data, null, 2)], {
-                type: 'text/csv'
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `payout-reports.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Export payouts failed:', err);
-        }
-    };
-
     const filtered = affiliates.filter(a => {
         const matchesSearch = !search ||
             a.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -268,7 +250,7 @@ export default function AffiliatesAdminPage() {
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1">
                         Affiliate <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">Management</span>
                     </h1>
-                    <p className="text-slate-500 font-medium text-sm">Manage affiliates and payouts.</p>
+                    <p className="text-slate-500 font-medium text-sm">Manage affiliates.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
