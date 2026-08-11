@@ -179,62 +179,50 @@ export class PromotionsService implements OnModuleInit {
             const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
             durationHours = days * 24;
 
-            // Calculate per-placement pricing
             const placements = dto.placements?.length > 0 ? dto.placements : [];
 
-            if (placements.length > 0) {
-                for (const placement of placements) {
-                    // Skip legacy offer/event placements — use visibility pricing instead
-                    if (placement === PromotionPlacement.OFFER || placement === PromotionPlacement.EVENT) {
-                        const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, placement === PromotionPlacement.EVENT ? 'event' : 'deal');
-                        totalPrice += vis.totalPrice;
-                        breakup.push({
-                            placement,
-                            label: `${placement === 'event' ? 'Event' : 'Offer'} Visibility`,
-                            subtotal: vis.totalPrice,
-                            price: vis.totalPrice,
-                            dayRate: vis.dayRate,
-                            days: vis.days,
-                            isBaseFee: true,
-                        });
-                    } else {
-                        // HOMEPAGE, CATEGORY, LISTING — use per-placement pricing
-                        const rule = await this.pricingRuleRepo.findOne({ where: { placement: placement as PromotionPlacement, isActive: true } });
-                        let dayRate = Number(rule?.pricePerDay ?? 0);
+            // ALWAYS add base visibility
+            const kind: 'deal' | 'event' = offerType === 'event' ? 'event' : 'deal';
+            const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, kind);
+            totalPrice += vis.totalPrice;
+            breakup.push({
+                placement: vis.placement,
+                label: `${kind === 'event' ? 'Event' : 'Offer'} Visibility`,
+                subtotal: vis.totalPrice,
+                price: vis.totalPrice,
+                dayRate: vis.dayRate,
+                days: vis.days,
+                isBaseFee: true,
+            });
 
-                        // Also check system_settings as fallback
-                        const settingKey = `${placement}_price_per_day`;
-                        const setting = await this.systemSettingRepository.findOne({ where: { key: settingKey } });
-                        if (setting && setting.value) {
-                            dayRate = Number(setting.value);
-                        }
-
-                        const placementTotal = days * dayRate;
-                        totalPrice += placementTotal;
-                        breakup.push({
-                            placement,
-                            label: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Placement`,
-                            subtotal: placementTotal,
-                            price: placementTotal,
-                            dayRate,
-                            days,
-                            isBaseFee: false,
-                        });
-                    }
+            // Add extra placements if any
+            for (const placement of placements) {
+                // Skip base placements since we already added it
+                if (placement === PromotionPlacement.OFFER || placement === PromotionPlacement.EVENT) {
+                    continue;
                 }
-            } else {
-                // No placements selected — default visibility pricing
-                const kind: 'deal' | 'event' = offerType === 'event' ? 'event' : 'deal';
-                const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, kind);
-                totalPrice = vis.totalPrice;
+
+                // HOMEPAGE, CATEGORY, LISTING — use per-placement pricing
+                const rule = await this.pricingRuleRepo.findOne({ where: { placement: placement as PromotionPlacement, isActive: true } });
+                let dayRate = Number(rule?.pricePerDay ?? 0);
+
+                // Also check system_settings as fallback
+                const settingKey = `${placement}_price_per_day`;
+                const setting = await this.systemSettingRepository.findOne({ where: { key: settingKey } });
+                if (setting && setting.value) {
+                    dayRate = Number(setting.value);
+                }
+
+                const placementTotal = vis.days * dayRate;
+                totalPrice += placementTotal;
                 breakup.push({
-                    placement: vis.placement,
-                    label: 'Per-day visibility',
-                    subtotal: vis.totalPrice,
-                    price: vis.totalPrice,
-                    dayRate: vis.dayRate,
+                    placement,
+                    label: `${placement.charAt(0).toUpperCase() + placement.slice(1)} Placement`,
+                    subtotal: placementTotal,
+                    price: placementTotal,
+                    dayRate,
                     days: vis.days,
-                    isBaseFee: true,
+                    isBaseFee: false,
                 });
             }
         }
@@ -245,7 +233,7 @@ export class PromotionsService implements OnModuleInit {
     /**
      * Create a pending booking and a Stripe Checkout session
      */
-    async createBooking(userId: string, dto: CreateBookingDto, origin?: string) {
+    async createBooking(userId: string, email: string, dto: CreateBookingDto, origin?: string) {
         this.assertPromotionEnabled();
         const vendor = await this.vendorRepository.findOne({ where: { userId } });
         if (!vendor) throw new NotFoundException('Vendor profile not found');
@@ -324,6 +312,7 @@ export class PromotionsService implements OnModuleInit {
         const session = await this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             client_reference_id: vendor.id,
+            customer_email: email,
             line_items: [{
                 price_data: {
                     currency: 'pkr',

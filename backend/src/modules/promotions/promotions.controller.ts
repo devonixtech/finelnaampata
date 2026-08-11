@@ -67,7 +67,7 @@ export class PromotionsController {
     @ApiOperation({ summary: 'Initiate a promotion booking (Stripe Checkou)' })
     async createBooking(@Req() req, @Body() dto: CreateBookingDto) {
         const origin = req.get('origin');
-        return this.promotionsService.createBooking(req.user.id, dto, origin);
+        return this.promotionsService.createBooking(req.user.id, req.user.email, dto, origin);
     }
 
     @Get('verify-session')
