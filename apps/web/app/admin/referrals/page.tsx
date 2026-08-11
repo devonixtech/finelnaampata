@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { 
     Users, 
     Link as LinkIcon, 
@@ -25,6 +26,7 @@ export default function AdminReferralsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [actionId, setActionId] = useState<string | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, type: 'approve' | 'reject', id: string } | null>(null);
 
     const fetchData = async () => {
         try {
@@ -43,7 +45,10 @@ export default function AdminReferralsPage() {
     }, []);
 
     const handleApproveCommission = async (id: string) => {
-        if (!confirm('Approve this commission? Credits will be added to the affiliate balance.')) return;
+        setConfirmModal({ isOpen: true, type: 'approve', id });
+    };
+
+    const confirmApproveCommission = async (id: string) => {
         
         setActionId(id);
         try {
@@ -59,11 +64,15 @@ export default function AdminReferralsPage() {
             toast.error('Approval error: ' + err.message);
         } finally {
             setActionId(null);
+            setConfirmModal(null);
         }
     };
 
     const handleCancelCommission = async (id: string) => {
-        if (!confirm('Reject this commission? The referral will be marked as cancelled.')) return;
+        setConfirmModal({ isOpen: true, type: 'reject', id });
+    };
+
+    const confirmCancelCommission = async (id: string) => {
         
         setActionId(id);
         try {
@@ -79,6 +88,7 @@ export default function AdminReferralsPage() {
             toast.error('Error: ' + err.message);
         } finally {
             setActionId(null);
+            setConfirmModal(null);
         }
     };
 
@@ -302,6 +312,67 @@ export default function AdminReferralsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Custom Confirm Modal */}
+            <AnimatePresence>
+                {confirmModal?.isOpen && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setConfirmModal(null)}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-[24px] shadow-2xl overflow-hidden p-8 text-center"
+                        >
+                            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6 ${confirmModal.type === 'approve' ? 'bg-emerald-100 text-emerald-500' : 'bg-red-100 text-red-500'}`}>
+                                {confirmModal.type === 'approve' ? <CheckCircle className="w-8 h-8" /> : <Ban className="w-8 h-8" />}
+                            </div>
+                            
+                            <h3 className="text-xl font-black text-slate-900 mb-2">
+                                {confirmModal.type === 'approve' ? 'Approve Commission?' : 'Reject Commission?'}
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-8 font-medium">
+                                {confirmModal.type === 'approve' 
+                                    ? 'This action will approve the commission and add the credits to the affiliate\'s balance. This cannot be undone.' 
+                                    : 'This action will reject the commission request and mark it as cancelled. This cannot be undone.'}
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmModal(null)}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (confirmModal.type === 'approve') confirmApproveCommission(confirmModal.id);
+                                        else confirmCancelCommission(confirmModal.id);
+                                    }}
+                                    disabled={actionId === confirmModal.id}
+                                    className={`flex-1 px-4 py-3 rounded-xl text-white font-bold transition-all text-sm flex items-center justify-center gap-2 ${
+                                        confirmModal.type === 'approve' 
+                                            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/25' 
+                                            : 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25'
+                                    }`}
+                                >
+                                    {actionId === confirmModal.id ? (
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        confirmModal.type === 'approve' ? 'Yes, Approve' : 'Yes, Reject'
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
