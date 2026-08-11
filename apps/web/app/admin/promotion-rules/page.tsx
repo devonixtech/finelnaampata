@@ -9,14 +9,12 @@ import {
   Loader2,
   ShieldCheck,
   MinusSquare,
-  Tag,
-  Calendar,
 } from "lucide-react";
 import { api } from "../../../lib/api";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-type VisibilityPlacement = "homepage" | "category" | "listing" | "offer" | "event";
+type VisibilityPlacement = "homepage" | "category" | "listing";
 
 interface PricingRule {
   id: string;
@@ -25,7 +23,7 @@ interface PricingRule {
   isActive: boolean;
 }
 
-const ALLOWED_PLACEMENTS: VisibilityPlacement[] = ["homepage", "category", "listing", "offer", "event"];
+const ALLOWED_PLACEMENTS: VisibilityPlacement[] = ["homepage", "category", "listing"];
 
 const PLACEMENT_INFO: Record<
   VisibilityPlacement,
@@ -65,24 +63,6 @@ const PLACEMENT_INFO: Record<
     lightColor: "bg-violet-50",
     textColor: "text-violet-600",
     borderColor: "border-violet-100",
-  },
-  offer: {
-    title: "Deal Visibility",
-    description: "Per-day rate when businesses publish offers and deals.",
-    icon: Tag,
-    color: "bg-emerald-600",
-    lightColor: "bg-emerald-50",
-    textColor: "text-emerald-700",
-    borderColor: "border-emerald-100",
-  },
-  event: {
-    title: "Event Visibility",
-    description: "Per-day rate when businesses publish events and workshops.",
-    icon: Calendar,
-    color: "bg-rose-600",
-    lightColor: "bg-rose-50",
-    textColor: "text-rose-700",
-    borderColor: "border-rose-100",
   },
 };
 

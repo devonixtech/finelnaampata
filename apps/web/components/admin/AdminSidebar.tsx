@@ -21,6 +21,7 @@ import {
     Calendar,
     DollarSign,
     Handshake,
+    Zap,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../lib/api';
@@ -59,7 +60,7 @@ const menuSections: MenuSection[] = [
             { name: 'Plans', icon: CreditCard, href: '/admin/plans', badge: null },
             { name: 'Subscriptions', icon: Receipt, href: '/admin/subscriptions', badge: null },
             { name: 'Affiliates', icon: Handshake, href: '/admin/affiliates', badge: null },
-
+            { name: 'Promotions', icon: Zap, href: '/admin/promotion-rules', badge: null },
             { name: 'Commissions', icon: Users, href: '/admin/referrals', badge: null },
         ]
     },
