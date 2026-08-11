@@ -677,20 +677,10 @@ export class AuthService {
                         affiliateId: affiliate.id,
                         referredUserId: referredUserId,
                         type: 'signup' as any,
-                        status: 'pending' as any,
+                        status: 'converted' as any,
                     });
                     await this.referralRepository.save(referral);
-                    this.logger.log(`[Referral] Created PENDING referral for user ${referredUserId} from affiliate ${affiliate.id}`);
-
-                    // AUTOMATION: Immediately process the referral to activate features for the vendor
-                    try {
-                        // We pass 0 as amount because this is just a signup trigger (Free Plan by default).
-                        // Rewards will only trigger later when as successful purchase occurs.
-                        await this.affiliateService.processSuccessfulReferral(referredUserId, 0, true);
-                        this.logger.log(`[Referral] Automated feature activation triggered for referred user ${referredUserId}`);
-                    } catch (procErr) {
-                        this.logger.error(`[Referral] Failed to AUTOMATE feature activation for ${referredUserId}: ${procErr.message}`);
-                    }
+                    this.logger.log(`[Referral] Created referral record for user ${referredUserId} from affiliate ${affiliate.id}`);
                 }
             } else {
                 this.logger.warn(`[Referral] Invalid referral code provided: ${referralCode}`);

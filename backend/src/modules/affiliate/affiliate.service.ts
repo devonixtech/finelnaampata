@@ -353,19 +353,12 @@ export class AffiliateService implements OnModuleInit {
             affiliateId: affiliate.id,
             referredUserId: userId,
             type: ReferralType.SIGNUP,
-            status: ReferralStatus.PENDING,
+            status: ReferralStatus.CONVERTED,
             ipAddress: ipAddress || null,
             userAgent: userAgent || null,
         });
 
         await this.referralRepository.save(referral);
-
-        // Enqueue referral processing (worker handles extension reward + conversion)
-        await this.affiliateQueueService.enqueueProcessReferral({
-            referredUserId: userId,
-            paidAmount: 0,
-            force: true,
-        });
 
         return { success: true, message: 'Referral code applied successfully' };
     }
