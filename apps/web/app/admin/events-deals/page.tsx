@@ -608,9 +608,28 @@ export default function AdminEventsDealsPage() {
                                     <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Publication Status</p>
                                         <p className={`text-sm font-black mt-0.5 ${selectedItem.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
-                                            {selectedItem.isActive ? 'Published Live' : 'Draft'}
+                                            {selectedItem.isActive ? 'Published Live' : 'Draft / Inactive'}
                                         </p>
                                     </div>
+
+                                    {selectedItem.placements && selectedItem.placements.length > 0 && (
+                                        <div className="bg-amber-50/50 rounded-2xl p-3 border border-amber-100/50 sm:col-span-3">
+                                            <p className="text-[10px] font-black text-amber-500/80 uppercase tracking-wider">Active Promotions</p>
+                                            <div className="flex flex-wrap gap-2 mt-1.5">
+                                                {selectedItem.placements.map((p: string) => (
+                                                    <span key={p} className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5">
+                                                        <Star className="w-3 h-3 fill-amber-500" />
+                                                        {p.replace(/_/g, ' ')}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            {selectedItem.featuredUntil && (
+                                                <p className="text-[10px] font-bold text-amber-600/70 mt-1.5">
+                                                    Expires: {new Date(selectedItem.featuredUntil).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Vendor Information */}
