@@ -1485,6 +1485,20 @@ export class SubscriptionsService implements OnModuleInit {
 
         // 4. Record Transaction (Invoice)
         try {
+            let invoiceUrl = '';
+            if (gateway === 'Stripe') {
+                try {
+                    const session = await this.stripe.checkout.sessions.retrieve(gatewayTransactionId, {
+                        expand: ['payment_intent', 'payment_intent.latest_charge']
+                    });
+                    if (session.payment_intent && (session.payment_intent as any).latest_charge) {
+                        invoiceUrl = ((session.payment_intent as any).latest_charge as any).receipt_url || '';
+                    }
+                } catch (e) {
+                    this.logger.warn(`Could not fetch receipt URL for session ${gatewayTransactionId}`);
+                }
+            }
+
             const transaction = this.transactionRepository.create({
                 vendorId,
                 amount: amountPaidOverride !== undefined ? amountPaidOverride : plan.price,
@@ -1492,6 +1506,7 @@ export class SubscriptionsService implements OnModuleInit {
                 paidAt: now,
                 gatewayTransactionId,
                 paymentGateway: gateway,
+                invoiceUrl: invoiceUrl || undefined,
                 // Stripe invoice becomes deterministic to prevent double entry via standard DB unique constraint
                 // We use a safe slice to ensure it fits in VARCHAR(50) if DB hasn't synced yet
                 invoiceNumber: gateway === 'Stripe'

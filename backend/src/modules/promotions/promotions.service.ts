@@ -429,6 +429,20 @@ export class PromotionsService implements OnModuleInit {
             });
 
             if (!existingTrans) {
+                let invoiceUrl = '';
+                if (booking.stripeSessionId) {
+                    try {
+                        const session = await this.stripe.checkout.sessions.retrieve(booking.stripeSessionId, {
+                            expand: ['payment_intent', 'payment_intent.latest_charge']
+                        });
+                        if (session.payment_intent && (session.payment_intent as any).latest_charge) {
+                            invoiceUrl = ((session.payment_intent as any).latest_charge as any).receipt_url || '';
+                        }
+                    } catch (e) {
+                        this.logger.warn(`Could not fetch receipt URL for booking ${booking.id}`);
+                    }
+                }
+
                 const transaction = this.transactionRepository.create({
                     vendorId: booking.vendorId,
                     amount: booking.totalPrice,
@@ -439,6 +453,7 @@ export class PromotionsService implements OnModuleInit {
                     paymentGateway: 'Stripe',
                     stripeSessionId: booking.stripeSessionId,
                     invoiceNumber: `INV-BST-${Date.now()}`,
+                    invoiceUrl: invoiceUrl || undefined,
                     metadata: {
                         bookingId: booking.id,
                         type: 'visibility_payment',
