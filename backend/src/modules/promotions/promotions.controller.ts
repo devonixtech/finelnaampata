@@ -17,6 +17,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../entities/user.entity';
 import { CalculatePriceDto, CreateBookingDto } from './dto/create-booking.dto';
+import { UpdatePricingRuleDto } from './dto/update-pricing-rule.dto';
 import { Public } from '../../common/decorators/public.decorator';
 @ApiTags('promotions')
 @Controller('promotions')
@@ -94,7 +95,7 @@ export class PromotionsController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Update a promotion pricing rule' })
     @ApiResponse({ status: 200, description: 'Rule updated' })
-    async updateRule(@Param('id') id: string, @Body() dto: { pricePerDay?: number, isActive?: boolean }) {
+    async updateRule(@Param('id') id: string, @Body() dto: UpdatePricingRuleDto) {
         return this.promotionsService.updatePricingRule(id, dto);
     }
 }
