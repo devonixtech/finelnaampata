@@ -889,11 +889,11 @@ export default function BusinessEventsPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className={labelClass}>Visibility Start</label>
+                            <label className={labelClass}>Start Date</label>
                             <div className="relative">
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                               <input
-                                type="datetime-local"
+                                type="date"
                                 value={form.startDate}
                                 onChange={(e) =>
                                   setForm((p) => ({
@@ -907,11 +907,11 @@ export default function BusinessEventsPage() {
                             </div>
                           </div>
                           <div>
-                            <label className={labelClass}>Visibility End</label>
+                            <label className={labelClass}>End Date</label>
                             <div className="relative">
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                               <input
-                                type="datetime-local"
+                                type="date"
                                 value={form.endDate}
                                 onChange={(e) =>
                                   setForm((p) => ({
