@@ -533,41 +533,87 @@ export default function AffiliatesAdminPage() {
                             <XCircle className="w-5 h-5 text-slate-400" />
                         </button>
                     </div>
-                    <form onSubmit={saveSettings} className="p-6 space-y-6">
-                        <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Commission Rate (%)</label>
-                            <input
-                                type="number"
-                                value={settingsForm.commissionRate}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, commissionRate: e.target.value }))}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                required
-                            />
+                    <form onSubmit={saveSettings} className="p-6 space-y-5">
+                        <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 mb-2">
+                            <p className="text-xs font-bold text-blue-800 leading-relaxed">
+                                This settings panel controls how much commission affiliates earn when someone purchases a plan using their referral code.
+                            </p>
                         </div>
+                        
                         <div>
-                            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Credit Value</label>
-                            <input
-                                type="number"
-                                value={settingsForm.creditValue}
-                                onChange={(e) => setSettingsForm(prev => ({ ...prev, creditValue: e.target.value }))}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                required
-                            />
+                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                Commission Rate (%)
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={settingsForm.commissionRate}
+                                    onChange={(e) => setSettingsForm(prev => ({ ...prev, commissionRate: e.target.value }))}
+                                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-lg text-slate-900 transition-all pr-10"
+                                    required
+                                    min="0"
+                                    max="100"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400">%</span>
+                            </div>
                         </div>
-                        <div className="flex gap-4 pt-4">
+
+                        <div>
+                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                1 Credit = ? PKR <span className="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full ml-1">(Credit Value)</span>
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">Rs</span>
+                                <input
+                                    type="number"
+                                    value={settingsForm.creditValue}
+                                    onChange={(e) => setSettingsForm(prev => ({ ...prev, creditValue: e.target.value }))}
+                                    className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-black text-lg text-slate-900 transition-all"
+                                    required
+                                    min="1"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mt-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1.5">
+                                <TrendingUp className="w-3.5 h-3.5" /> Example Calculation
+                            </p>
+                            <div className="space-y-2.5">
+                                <div className="flex justify-between items-center text-sm font-bold text-slate-600">
+                                    <span>Plan Price</span>
+                                    <span>Rs 10,000</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm font-bold text-slate-600">
+                                    <span>Commission ({settingsForm.commissionRate || 0}%)</span>
+                                    <span>Rs {((10000 * (Number(settingsForm.commissionRate) || 0)) / 100).toLocaleString()}</span>
+                                </div>
+                                <div className="w-full h-px bg-slate-200 my-1"></div>
+                                <div className="flex justify-between items-center text-sm font-black text-emerald-600">
+                                    <span>Affiliate Gets</span>
+                                    <span>{Math.floor(((10000 * (Number(settingsForm.commissionRate) || 0)) / 100) / (Number(settingsForm.creditValue) || 1)).toLocaleString()} Credits</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-2">
                             <button
                                 type="button"
                                 onClick={() => setShowSettings(false)}
-                                className="flex-1 py-3 bg-slate-100 text-slate-500 rounded-xl font-bold hover:bg-slate-200"
+                                className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={savingSettings}
-                                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 disabled:opacity-50"
+                                className="flex-1 py-3.5 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 disabled:opacity-50 transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
                             >
-                                {savingSettings ? 'Saving...' : 'Save Settings'}
+                                {savingSettings ? (
+                                    <><RefreshCcw className="w-4 h-4 animate-spin" /> Saving...</>
+                                ) : (
+                                    'Save Settings'
+                                )}
                             </button>
                         </div>
                     </form>
