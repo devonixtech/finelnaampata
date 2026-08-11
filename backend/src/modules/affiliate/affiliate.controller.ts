@@ -17,7 +17,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User, UserRole } from '../../entities/user.entity';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { PayoutStatus } from '../../entities/payout.entity';
 
 @ApiTags('affiliate')
 @Controller('affiliate')
@@ -76,16 +75,6 @@ export class AffiliateController {
         return this.affiliateService.applyReferralCode(user.id, code);
     }
 
-    @Post('payouts')
-    @ApiOperation({ summary: 'Request a withdrawal' })
-    async requestPayout(
-        @CurrentUser() user: User,
-        @Body() body: { amount: number; method: string; details: string },
-    ) {
-        return this.affiliateService.requestPayout(user.id, body.amount, body.method, body.details);
-    }
-
-    
     @Get('earnings/breakdown')
     @ApiOperation({ summary: 'Get detailed earnings breakdown' })
     async getEarningsBreakdown(@CurrentUser() user: User) {
@@ -212,38 +201,6 @@ export class AffiliateController {
     @ApiOperation({ summary: 'Admin: Approve pending commission' })
     async adminGetPendingCommissions() {
         return this.affiliateService.getPendingCommissions();
-    }
-
-    @Get('admin/payouts')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Get all payout requests' })
-    async adminGetPayouts() {
-        return this.affiliateService.adminGetAllPayouts();
-    }
-
-    @Post('admin/payout/:id/approve')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Approve a payout request' })
-    async adminApprovePayout(@Param('id') id: string, @CurrentUser() user: User) {
-        return this.affiliateService.adminApprovePayout(id, user.id);
-    }
-
-    @Post('admin/payout/:id/reject')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Reject a payout request' })
-    async adminRejectPayout(@Param('id') id: string, @Body() body: { reason: string }) {
-        return this.affiliateService.adminRejectPayout(id, body.reason);
-    }
-
-    @Post('admin/payout/:id/mark-paid')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Mark payout as paid' })
-    async adminMarkAsPaid(@Param('id') id: string, @CurrentUser() user: User, @Body() body: { paymentReference?: string }) {
-        return this.affiliateService.adminMarkAsPaid(id, user.id, body.paymentReference || '');
     }
 
     @Get('settings')
