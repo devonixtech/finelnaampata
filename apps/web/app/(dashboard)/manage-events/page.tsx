@@ -905,6 +905,7 @@ export default function BusinessEventsPage() {
                               <input
                                 type="date"
                                 value={form.startDate}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) =>
                                   setForm((p) => ({
                                     ...p,
@@ -923,6 +924,7 @@ export default function BusinessEventsPage() {
                               <input
                                 type="date"
                                 value={form.endDate}
+                                min={form.startDate || new Date().toISOString().split('T')[0]}
                                 onChange={(e) =>
                                   setForm((p) => ({
                                     ...p,
