@@ -6,7 +6,7 @@ import {
     OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
+import { Repository, MoreThan, LessThan, Not } from 'typeorm';
 import { PromotionPricingRule, PromotionPlacement } from '../../entities/promotion-pricing-rule.entity';
 import { PromotionBooking, BookingStatus } from '../../entities/promotion-booking.entity';
 import { OfferEvent, OfferType } from '../../entities/offer-event.entity';
@@ -528,15 +528,52 @@ export class PromotionsService implements OnModuleInit {
         this.logger.log(`Cleaning up ${expiredBookings.length} expired visibility bookings...`);
 
         // Mark bookings as expired
-        const result = await this.bookingRepo
+        await this.bookingRepo
             .createQueryBuilder()
             .update(PromotionBooking)
             .set({ status: BookingStatus.EXPIRED })
             .where('status = :active', { active: BookingStatus.ACTIVE })
             .andWhere('endTime < :now', { now })
             .execute();
-        
-        return result.affected || 0;
+
+        // 2. Deactivate deals/events whose ONLY active booking just expired
+        for (const booking of expiredBookings) {
+            if (booking.dealId) {
+                const hasOtherActive = await this.bookingRepo.findOne({
+                    where: {
+                        dealId: booking.dealId,
+                        status: BookingStatus.ACTIVE,
+                        id: Not(booking.id),
+                    }
+                });
+                if (!hasOtherActive) {
+                    const deal = await this.dealRepository.findOne({ where: { id: booking.dealId } });
+                    if (deal) {
+                        deal.isActive = false;
+                        await this.dealRepository.save(deal);
+                        this.logger.log(`Deactivated deal ${deal.id} — no active promotion bookings remain`);
+                    }
+                }
+            } else if (booking.eventId) {
+                const hasOtherActive = await this.bookingRepo.findOne({
+                    where: {
+                        eventId: booking.eventId,
+                        status: BookingStatus.ACTIVE,
+                        id: Not(booking.id),
+                    }
+                });
+                if (!hasOtherActive) {
+                    const event = await this.eventRepository.findOne({ where: { id: booking.eventId } });
+                    if (event) {
+                        event.isActive = false;
+                        await this.eventRepository.save(event);
+                        this.logger.log(`Deactivated event ${event.id} — no active promotion bookings remain`);
+                    }
+                }
+            }
+        }
+
+        return expiredBookings.length;
     }
 
     /**

@@ -1815,7 +1815,7 @@ export class BusinessesService implements OnModuleInit {
         return this.listingRepository.find({
             where: {
                 categoryId: listing.categoryId,
-                id: Not(listing.id), // Exclude current listing
+                id: Not(listing.id),
                 status: BusinessStatus.APPROVED,
                 hiddenByDeletion: false,
             },

@@ -405,7 +405,7 @@ export class DealsService {
         return this.dealRepository.save(deal);
     }
 
-    /** Public: get active/scheduled deals for a business */
+    /** Public: get active deals for a business */
     async findPublicByBusiness(businessId: string): Promise<Deal[]> {
         const now = new Date();
         const deals = await this.dealRepository.createQueryBuilder('o')

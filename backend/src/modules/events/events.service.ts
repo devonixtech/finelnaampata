@@ -400,7 +400,7 @@ export class EventsService {
         return this.eventRepository.save(event);
     }
 
-    /** Public: get active/scheduled events for a business */
+    /** Public: get active events for a business */
     async findPublicByBusiness(businessId: string): Promise<Event[]> {
         const now = new Date();
         const events = await this.eventRepository.createQueryBuilder('o')
