@@ -109,7 +109,7 @@ const emptyForm = {
 const PLACEMENT_CONFIG = [
   { key: 'homepage', label: 'Homepage', description: 'Pinned on home screen', icon: Home, selectedBg: 'bg-orange-50 border-orange-500', selectedIcon: 'bg-orange-500 text-white', checkBg: 'bg-orange-500', rateText: 'text-orange-600' },
   { key: 'category', label: 'Category Page', description: 'Top of category results', icon: LayoutGrid, selectedBg: 'bg-blue-50 border-blue-500', selectedIcon: 'bg-blue-500 text-white', checkBg: 'bg-blue-500', rateText: 'text-blue-600' },
-  { key: 'listing', label: 'Listing Boost', description: 'Highlighted in search', icon: Zap, selectedBg: 'bg-violet-50 border-violet-500', selectedIcon: 'bg-violet-500 text-white', checkBg: 'bg-violet-500', rateText: 'text-violet-600' },
+  { key: 'listing', label: 'Listing Boost', description: 'Highlight in offers list', icon: Zap, selectedBg: 'bg-violet-50 border-violet-500', selectedIcon: 'bg-violet-500 text-white', checkBg: 'bg-violet-500', rateText: 'text-violet-600' },
 ];
 
 export default function BusinessEventsPage() {

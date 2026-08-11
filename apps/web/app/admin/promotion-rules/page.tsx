@@ -57,7 +57,7 @@ const PLACEMENT_INFO: Record<
   },
   listing: {
     title: "Listing Boost",
-    description: 'Appear in "Suggested" and "Similar" sections of competitor pages.',
+    description: 'Highlight in offers list',
     icon: Zap,
     color: "bg-violet-600",
     lightColor: "bg-violet-50",
