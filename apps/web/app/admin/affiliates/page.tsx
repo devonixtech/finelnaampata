@@ -150,8 +150,8 @@ export default function AffiliatesAdminPage() {
         try {
             const data = await api.admin.affiliate.getSettings();
             setSettingsForm({
-                commissionRate: data?.affiliate_commission_rate || '35',
-                creditValue: data?.affiliate_credit_value || '1'
+                commissionRate: data?.commissionRate || '35',
+                creditValue: data?.creditValue || '1'
             });
         } catch (err) {
             console.error('Failed to load settings', err);
