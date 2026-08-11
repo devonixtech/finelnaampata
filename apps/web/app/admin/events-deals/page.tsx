@@ -376,9 +376,14 @@ export default function AdminEventsDealsPage() {
                                                         )
                                                     ) : (
                                                         <div>
-                                                            <p className="font-black text-slate-900">PKR {Number(item.dealPrice || item.discountedPrice || item.price || 0).toLocaleString()}</p>
-                                                            {item.originalPrice && (
-                                                                <p className="text-xs text-slate-400 line-through">PKR {Number(item.originalPrice).toLocaleString()}</p>
+                                                            {item.offerBadge ? (
+                                                                <span className="px-2.5 py-1 bg-pink-100 text-pink-700 text-xs font-black rounded-lg whitespace-nowrap">
+                                                                    {item.offerBadge}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-black rounded-lg whitespace-nowrap">
+                                                                    Special Offer
+                                                                </span>
                                                             )}
                                                         </div>
                                                     )}
@@ -586,7 +591,7 @@ export default function AdminEventsDealsPage() {
                                         <p className="text-base font-black text-slate-900 mt-0.5">
                                             {selectedItem._itemType === 'event'
                                                 ? (selectedItem.price ? `PKR ${Number(selectedItem.price).toLocaleString()}` : 'Free Entry')
-                                                : `PKR ${Number(selectedItem.dealPrice || selectedItem.discountedPrice || selectedItem.price || 0).toLocaleString()}`
+                                                : (selectedItem.offerBadge || 'Special Offer')
                                             }
                                         </p>
                                     </div>
