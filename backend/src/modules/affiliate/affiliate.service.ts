@@ -1436,6 +1436,15 @@ export class AffiliateService implements OnModuleInit {
 
         this.logger.log(`[Admin] Approved commission of ${amount} credits for affiliate ${affiliate.id}`);
 
+        if (affiliate.userId) {
+            this.notificationsService.create({
+                userId: affiliate.userId,
+                title: 'Commission Approved! 🎉',
+                message: `Your commission request has been approved. ${amount} credits have been added to your balance.`,
+                type: NotificationType.SYSTEM_UPDATE,
+            }).catch(err => this.logger.error('Failed to send commission approval notification', err));
+        }
+
         return { success: true, message: 'Commission approved and added to affiliate balance' };
     }
 
@@ -1464,6 +1473,15 @@ export class AffiliateService implements OnModuleInit {
         await this.referralRepository.save(referral);
 
         this.logger.log(`[Referral] Commission cancelled by admin ${adminId} for referral ${referralId} (reason: ${reason})`);
+
+        if (affiliate?.userId) {
+            this.notificationsService.create({
+                userId: affiliate.userId,
+                title: 'Commission Rejected',
+                message: `Your commission request was rejected. Reason: ${reason}`,
+                type: NotificationType.SYSTEM_UPDATE,
+            }).catch(err => this.logger.error('Failed to send commission rejection notification', err));
+        }
 
         return { success: true, message: 'Commission cancelled' };
     }
