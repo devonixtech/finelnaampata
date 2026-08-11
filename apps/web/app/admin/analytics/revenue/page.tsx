@@ -50,6 +50,9 @@ export default function AdminRevenuePage() {
     const totalRevenue = stats?.totalRevenue || 0;
     const activeSubscriptions = stats?.activeSubscriptions || 0;
     const monthlyGraph = stats?.monthlyGraphData || [];
+    
+    const totalApproved = revenueMetrics?.totalApproved || 0;
+    const totalPending = revenueMetrics?.totalPending || 0;
 
     return (
         <div className="space-y-8 pb-24 max-w-7xl mx-auto">
