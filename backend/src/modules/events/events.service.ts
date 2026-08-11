@@ -219,7 +219,7 @@ export class EventsService {
         const skip = (Number(page) - 1) * Number(limit);
         const now = new Date();
 
-        const [events, total] = await this.eventRepository.createQueryBuilder('e')
+        const qb = this.eventRepository.createQueryBuilder('e')
             .leftJoinAndSelect('e.business', 'b')
             .leftJoin('promotion_bookings', 'pb',
                 'pb.event_id = e.id AND pb.status = :activeStatus AND pb.start_time <= :now AND pb.end_time > :now',
@@ -230,23 +230,23 @@ export class EventsService {
             .addSelect('pb.id', 'pb_id')
             .addSelect('pb.total_price', 'pb_total_price')
             .where('e.vendorId = :vendorId', { vendorId: vendor.id })
-            .orderBy('e.createdAt', 'DESC')
-            .skip(skip)
-            .take(Number(limit))
-            .getRawAndEntities();
+            .orderBy('e.createdAt', 'DESC');
 
-        const withStatus = events.entities.map(e => this.computeStatus(e));
+        const total = await qb.getCount();
+        const { entities, raw } = await qb.skip(skip).take(Number(limit)).getRawAndEntities();
+
+        const withStatus = entities.map(e => this.computeStatus(e));
 
         const enriched = withStatus.map((event, idx) => {
-            const raw = events.raw[idx];
+            const r = raw[idx];
             return {
                 ...event,
-                booking: raw?.pb_id ? {
-                    id: raw.pb_id,
-                    placements: raw.pb_placements,
-                    startTime: raw.pb_start_time,
-                    endTime: raw.pb_end_time,
-                    totalPrice: raw.pb_total_price,
+                booking: r?.pb_id ? {
+                    id: r.pb_id,
+                    placements: r.pb_placements,
+                    startTime: r.pb_start_time,
+                    endTime: r.pb_end_time,
+                    totalPrice: r.pb_total_price,
                 } : null,
             };
         });

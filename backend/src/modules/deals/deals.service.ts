@@ -222,7 +222,7 @@ export class DealsService {
         const skip = (Number(page) - 1) * Number(limit);
         const now = new Date();
 
-        const [deals, total] = await this.dealRepository.createQueryBuilder('d')
+        const qb = this.dealRepository.createQueryBuilder('d')
             .leftJoinAndSelect('d.business', 'b')
             .leftJoin('promotion_bookings', 'pb',
                 'pb.deal_id = d.id AND pb.status = :activeStatus AND pb.start_time <= :now AND pb.end_time > :now',
@@ -233,23 +233,23 @@ export class DealsService {
             .addSelect('pb.id', 'pb_id')
             .addSelect('pb.total_price', 'pb_total_price')
             .where('d.vendorId = :vendorId', { vendorId: vendor.id })
-            .orderBy('d.createdAt', 'DESC')
-            .skip(skip)
-            .take(Number(limit))
-            .getRawAndEntities();
+            .orderBy('d.createdAt', 'DESC');
 
-        const withStatus = deals.entities.map(d => this.computeStatus(d));
+        const total = await qb.getCount();
+        const { entities, raw } = await qb.skip(skip).take(Number(limit)).getRawAndEntities();
+
+        const withStatus = entities.map(d => this.computeStatus(d));
 
         const enriched = withStatus.map((deal, idx) => {
-            const raw = deals.raw[idx];
+            const r = raw[idx];
             return {
                 ...deal,
-                booking: raw?.pb_id ? {
-                    id: raw.pb_id,
-                    placements: raw.pb_placements,
-                    startTime: raw.pb_start_time,
-                    endTime: raw.pb_end_time,
-                    totalPrice: raw.pb_total_price,
+                booking: r?.pb_id ? {
+                    id: r.pb_id,
+                    placements: r.pb_placements,
+                    startTime: r.pb_start_time,
+                    endTime: r.pb_end_time,
+                    totalPrice: r.pb_total_price,
                 } : null,
             };
         });
