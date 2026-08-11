@@ -115,6 +115,14 @@ export class AffiliateService implements OnModuleInit {
                     ) THEN
                         ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'pending_deferred';
                     END IF;
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON t.oid = e.enumtypid
+                        WHERE t.typname = 'affiliate_referrals_status_enum' AND e.enumlabel = 'pending_approval'
+                    ) THEN
+                        ALTER TYPE affiliate_referrals_status_enum ADD VALUE 'pending_approval';
+                    END IF;
                 END IF;
 
                 IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'affiliate_referrals_type_enum') THEN

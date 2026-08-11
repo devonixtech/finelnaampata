@@ -199,6 +199,14 @@ export class AffiliateController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Admin: Approve pending commission' })
+    async adminApproveCommission(@Param('id') id: string) {
+        return this.affiliateService.adminApproveCommission(id);
+    }
+
+    @Get('admin/commissions/pending')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Get pending commissions' })
     async adminGetPendingCommissions() {
         return this.affiliateService.getPendingCommissions();
     }
