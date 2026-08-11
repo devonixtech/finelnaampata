@@ -699,7 +699,8 @@ export class SubscriptionsService implements OnModuleInit {
                     const vendorId = session.client_reference_id;
                     const { planId, targetId, referralCode } = session.metadata;
                     if (vendorId && planId) {
-                        const activePlan = await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode);
+                        const amountPaid = session.amount_total ? session.amount_total / 100 : undefined;
+                        const activePlan = await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode, amountPaid);
                         // Find the newly created transaction
                         const transaction = await this.transactionRepository.findOne({
                             where: { gatewayTransactionId: session.id }
@@ -1379,7 +1380,8 @@ export class SubscriptionsService implements OnModuleInit {
         gatewayTransactionId: string,
         gateway: string,
         targetId?: string,
-        referralCode?: string
+        referralCode?: string,
+        amountPaidOverride?: number
     ): Promise<ActivePlan> {
         // Idempotency check: Don't process the same transaction twice
         const existingPlan = await this.activePlanRepository.findOne({
@@ -1454,7 +1456,7 @@ export class SubscriptionsService implements OnModuleInit {
             status: ActivePlanStatus.ACTIVE,
             startDate,
             endDate,
-            amountPaid: plan.price,
+            amountPaid: amountPaidOverride !== undefined ? amountPaidOverride : plan.price,
             transactionId: gatewayTransactionId,
         });
 
@@ -1485,7 +1487,7 @@ export class SubscriptionsService implements OnModuleInit {
         try {
             const transaction = this.transactionRepository.create({
                 vendorId,
-                amount: plan.price,
+                amount: amountPaidOverride !== undefined ? amountPaidOverride : plan.price,
                 status: PaymentStatus.COMPLETED,
                 paidAt: now,
                 gatewayTransactionId,
@@ -1796,7 +1798,8 @@ export class SubscriptionsService implements OnModuleInit {
                     const vendorId = session.client_reference_id;
                     const { planId, targetId, referralCode } = session.metadata;
                     this.logger.log(`🚀 Activating new-style plan: ${planId} for vendor: ${vendorId}`);
-                    await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode);
+                    const amountPaid = session.amount_total ? session.amount_total / 100 : undefined;
+                    await this.processActivePlanSuccess(vendorId, planId, session.id, 'Stripe', targetId, referralCode, amountPaid);
                     return { received: true };
                 }
 

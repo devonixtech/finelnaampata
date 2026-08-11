@@ -495,6 +495,13 @@ export class EventsService {
         const event = await this.eventRepository.findOne({ where: { id } });
         if (!event) throw new NotFoundException('Event not found');
         event.isFeatured = isFeatured;
+        if (isFeatured) {
+            const farFuture = new Date();
+            farFuture.setFullYear(farFuture.getFullYear() + 10);
+            event.featuredUntil = farFuture;
+        } else {
+            event.featuredUntil = null;
+        }
         return this.eventRepository.save(event);
     }
 

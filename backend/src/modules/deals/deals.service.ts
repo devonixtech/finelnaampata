@@ -501,6 +501,13 @@ export class DealsService {
         const deal = await this.dealRepository.findOne({ where: { id } });
         if (!deal) throw new NotFoundException('Deal not found');
         deal.isFeatured = isFeatured;
+        if (isFeatured) {
+            const farFuture = new Date();
+            farFuture.setFullYear(farFuture.getFullYear() + 10);
+            deal.featuredUntil = farFuture;
+        } else {
+            deal.featuredUntil = null;
+        }
         return this.dealRepository.save(deal);
     }
 
