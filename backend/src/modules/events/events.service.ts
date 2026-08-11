@@ -301,10 +301,10 @@ export class EventsService {
                 // Show events that have an active booking with this placement OR are manually featured
                 qb.andWhere(new Brackets(inner => {
                     inner.where('pb.id IS NOT NULL AND pb.placements @> :placementArr', { placementArr: JSON.stringify([placement]) })
-                         .orWhere('o.isFeatured = :trueVal', { trueVal: true });
+                         .orWhere('o.is_featured = :trueVal', { trueVal: true });
                 }));
             } else if (isFeatured === true) {
-                qb.andWhere('o.isFeatured = :trueVal', { trueVal: true });
+                qb.andWhere('o.is_featured = :trueVal', { trueVal: true });
             }
 
             if (latitude && longitude) {
@@ -322,6 +322,8 @@ export class EventsService {
                 qb.orderBy('o.isFeatured', 'DESC');
                 qb.addOrderBy('o.createdAt', 'DESC');
             }
+
+            console.log("SQL QUERY:", qb.getSql(), qb.getParameters());
 
             const [events, total] = await qb
                 .skip(skip)

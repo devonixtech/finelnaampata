@@ -933,9 +933,10 @@ export class AffiliateService implements OnModuleInit {
             return { success: false, reason: 'No referral found' };
         }
 
-        if (!referral.affiliate?.adminApproved) {
-            this.logger.debug(`[Referral] Affiliate ${referral.affiliate?.id} is not approved or suspended. Skipping commission.`);
-            return { success: false, reason: 'Affiliate not approved' };
+        // Skip commission if affiliate is suspended (but not if simply unapproved)
+        if (referral.affiliate?.status === 'suspended') {
+            this.logger.debug(`[Referral] Affiliate ${referral.affiliate?.id} is suspended. Skipping commission.`);
+            return { success: false, reason: 'Affiliate suspended' };
         }
 
         const referrerUserId = referral.affiliate.user.id;

@@ -210,16 +210,40 @@ export class AffiliateController {
     @UseGuards(RolesGuard)
     @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Admin: Approve pending commission' })
-    async adminApproveCommission(@Param('id') id: string) {
-        return this.affiliateService.adminApproveCommission(id);
-    }
-
-    @Get('admin/commissions/pending')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-    @ApiOperation({ summary: 'Admin: Get pending commissions' })
     async adminGetPendingCommissions() {
         return this.affiliateService.getPendingCommissions();
+    }
+
+    @Get('admin/payouts')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Get all payout requests' })
+    async adminGetPayouts() {
+        return this.affiliateService.adminGetAllPayouts();
+    }
+
+    @Post('admin/payout/:id/approve')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Approve a payout request' })
+    async adminApprovePayout(@Param('id') id: string, @CurrentUser() user: User) {
+        return this.affiliateService.adminApprovePayout(id, user.id);
+    }
+
+    @Post('admin/payout/:id/reject')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Reject a payout request' })
+    async adminRejectPayout(@Param('id') id: string, @Body() body: { reason: string }) {
+        return this.affiliateService.adminRejectPayout(id, body.reason);
+    }
+
+    @Post('admin/payout/:id/mark-paid')
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Admin: Mark payout as paid' })
+    async adminMarkAsPaid(@Param('id') id: string, @CurrentUser() user: User, @Body() body: { paymentReference?: string }) {
+        return this.affiliateService.adminMarkAsPaid(id, user.id, body.paymentReference || '');
     }
 
     @Get('settings')
