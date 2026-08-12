@@ -297,6 +297,14 @@ export class JobLeadsService {
                 vendorName: vendor.businessName,
                 price: updatedResponse.price,
             });
+            await this.notificationsService.create({
+                userId: lead.userId,
+                title: 'Proposal Updated',
+                message: `${vendor.businessName} updated their proposal for your broadcast request.`,
+                type: NotificationType.BROADCAST_RESPONSE,
+                link: '/saved',
+                data: { leadId: lead.id, responseId: updatedResponse.id }
+            });
 
             return updatedResponse;
         }
@@ -323,6 +331,14 @@ export class JobLeadsService {
             responseId: savedResponse.id,
             vendorName: vendor.businessName,
             price: savedResponse.price,
+        });
+        await this.notificationsService.create({
+            userId: lead.userId,
+            title: 'New Proposal Received',
+            message: `${vendor.businessName} sent a new proposal for your broadcast request.`,
+            type: NotificationType.BROADCAST_RESPONSE,
+            link: '/saved',
+            data: { leadId: lead.id, responseId: savedResponse.id }
         });
 
         return savedResponse;

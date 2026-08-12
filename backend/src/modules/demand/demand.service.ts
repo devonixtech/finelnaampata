@@ -166,7 +166,7 @@ export class DemandService {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         const query = this.searchLogRepository.createQueryBuilder('log')
-            .select('LOWER(log.normalizedKeyword)', 'normalizedKeyword')
+            .select('LOWER(log.normalized_keyword)', 'normalizedKeyword')
             .addSelect('MAX(log.keyword)', 'keyword')
             .addSelect('MAX(log.city)', 'topCity')
             .addSelect('COUNT(log.id)', 'count7d')
@@ -186,7 +186,7 @@ export class DemandService {
         }
 
         const stats = await query
-            .groupBy('LOWER(log.normalizedKeyword)')
+            .groupBy('LOWER(log.normalized_keyword)')
             .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
             .getRawMany();
 
@@ -227,39 +227,52 @@ export class DemandService {
     }
 
     async getOverview(city?: string) {
-        const insights = await this.getInsights(city);
-        const cities = await this.getTopCities();
-        const trends = await this.getSearchTrends(city);
-        const aiSummary = await this.getAIInsightsSummary(city);
+        try {
+            const insights = await this.getInsights(city);
+            const cities = await this.getTopCities();
+            const trends = await this.getSearchTrends(city);
+            const aiSummary = await this.getAIInsightsSummary(city);
 
-        const totalListingsQuery = this.listingRepository.createQueryBuilder('listing')
-            .where('listing.status = :status', { status: 'approved' });
+            const totalListingsQuery = this.listingRepository.createQueryBuilder('listing')
+                .where('listing.status = :status', { status: 'approved' });
 
-        const searches7dQuery = this.searchLogRepository.createQueryBuilder('log')
-            .where('log.searched_at >= NOW() - INTERVAL \'7 days\'');
+            const searches7dQuery = this.searchLogRepository.createQueryBuilder('log')
+                .where('log.searched_at >= NOW() - INTERVAL \'7 days\'');
 
-        if (city && city.trim()) {
-            totalListingsQuery.andWhere('LOWER(listing.city) = LOWER(:city)', { city: city.trim() });
-            searches7dQuery.andWhere('LOWER(log.city) = LOWER(:city)', { city: city.trim() });
-        }
-
-        const totalListings = await totalListingsQuery.getCount();
-        const totalVendors = await this.vendorRepository.count();
-        const totalUsers = await this.userRepository.count();
-        const totalSearches7d = await searches7dQuery.getCount();
-
-        return {
-            insights,
-            topCities: cities,
-            trends,
-            aiSummary,
-            totalSearches7d,
-            stats: {
-                totalListings,
-                totalVendors,
-                totalUsers
+            if (city && city.trim()) {
+                totalListingsQuery.andWhere('LOWER(listing.city) = LOWER(:city)', { city: city.trim() });
+                searches7dQuery.andWhere('LOWER(log.city) = LOWER(:city)', { city: city.trim() });
             }
-        };
+
+            const totalListings = await totalListingsQuery.getCount();
+            const totalVendors = await this.vendorRepository.count();
+            const totalUsers = await this.userRepository.count();
+            const totalSearches7d = await searches7dQuery.getCount();
+
+            return {
+                insights,
+                topCities: cities,
+                trends,
+                aiSummary,
+                totalSearches7d,
+                stats: {
+                    totalListings,
+                    totalVendors,
+                    totalUsers
+                }
+            };
+        } catch (error) {
+            this.logger.error('Error in getOverview:', error);
+            return {
+                error: error.message,
+                insights: [],
+                topCities: [],
+                trends: [],
+                aiSummary: null,
+                totalSearches7d: 0,
+                stats: { totalListings: 0, totalVendors: 0, totalUsers: 0 }
+            };
+        }
     }
 
     async getTopCities() {

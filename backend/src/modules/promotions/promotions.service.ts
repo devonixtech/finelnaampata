@@ -181,19 +181,12 @@ export class PromotionsService implements OnModuleInit {
 
             const placements = dto.placements?.length > 0 ? dto.placements : [];
 
-            // ALWAYS add base visibility
             const kind: 'deal' | 'event' = offerType === 'event' ? 'event' : 'deal';
             const vis = await this.calculateVisibilityPrice(dto.startTime, dto.endTime, kind);
-            totalPrice += vis.totalPrice;
-            breakup.push({
-                placement: vis.placement,
-                label: `${kind === 'event' ? 'Event' : 'Offer'} Visibility`,
-                subtotal: vis.totalPrice,
-                price: vis.totalPrice,
-                dayRate: vis.dayRate,
-                days: vis.days,
-                isBaseFee: true,
-            });
+
+            if (placements.length === 0) {
+                throw new BadRequestException('At least one promotion placement must be selected.');
+            }
 
             // Add extra placements if any
             for (const placement of placements) {
@@ -239,8 +232,7 @@ export class PromotionsService implements OnModuleInit {
         if (!vendor) throw new NotFoundException('Vendor profile not found');
 
         if (!dto.placements?.length) {
-            if (dto.dealId) dto.placements = [PromotionPlacement.OFFER];
-            else if (dto.eventId) dto.placements = [PromotionPlacement.EVENT];
+            throw new BadRequestException('At least one promotion placement must be selected.');
         }
 
         let targetType: OfferType = OfferType.OFFER;

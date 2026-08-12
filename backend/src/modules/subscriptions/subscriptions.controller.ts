@@ -203,6 +203,14 @@ export class SubscriptionsController {
         return this.subService.verifyCheckoutSession(sessionId, user.id);
     }
 
+    @Post('cancel-checkout')
+    @Roles(UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPERADMIN)
+    @ApiOperation({ summary: 'Manually expire a payment session when user cancels' })
+    cancelCheckout(@Body('sessionId') sessionId: string) {
+        if (!sessionId) throw new BadRequestException('sessionId is required');
+        return this.subService.cancelCheckoutSession(sessionId);
+    }
+
     @Get('my-invoices')
     @Roles(UserRole.VENDOR, UserRole.ADMIN, UserRole.SUPERADMIN)
     @ApiOperation({ summary: 'Get all invoices/transactions for the logged-in vendor' })

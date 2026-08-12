@@ -154,7 +154,7 @@ export default function MyJobLeads() {
                                             <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed italic">"{resp.message}"</p>
                                         </div>
 
-                                        <div className="flex gap-4">
+                                        <div className="flex gap-4 flex-wrap">
                                             <button
                                                 onClick={() => {
                                                     const phone = resp.vendor?.businessPhone || resp.vendor?.user?.phone;
@@ -166,10 +166,20 @@ export default function MyJobLeads() {
                                                         toast.error('No contact phone available for this expert.');
                                                     }
                                                 }}
-                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2 min-w-[200px]"
                                             >
                                                 <Phone className="w-4 h-4" /> Contact Business Now
                                             </button>
+                                            
+                                            <a
+                                                href={`/business/${resp.vendor?.slug}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 bg-white hover:bg-blue-50 text-blue-600 font-black py-4 rounded-2xl transition-all shadow-xl border-2 border-blue-100 active:scale-[0.98] flex items-center justify-center gap-2 min-w-[150px]"
+                                            >
+                                                <User className="w-4 h-4" /> View Profile
+                                            </a>
+
                                             <button className="px-6 py-4 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 font-black rounded-2xl transition-all active:scale-[0.95]">
                                                 Decline
                                             </button>

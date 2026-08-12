@@ -47,12 +47,8 @@ export default function AdminEventsDealsPage() {
     // Item Details Modal
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
-    // Price Settings State
-    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
-    const [priceTarget, setPriceTarget] = useState<'offer' | 'event'>('offer');
-    const [offerPrice, setOfferPrice] = useState<number>(500);
-    const [eventPrice, setEventPrice] = useState<number>(1000);
-    const [savingPrices, setSavingPrices] = useState(false);
+    // State
+    const [items, setItems] = useState<any[]>([]);
 
     // Payment history modal
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -64,20 +60,13 @@ export default function AdminEventsDealsPage() {
         try {
             setLoading(true);
             setError(null);
-            const [eventsRes, dealsRes, settingsRes] = await Promise.all([
+            const [eventsRes, dealsRes] = await Promise.all([
                 api.events.adminGetAll(1, 100).catch(() => ({ data: [] })),
-                api.deals.adminGetAll(1, 100).catch(() => ({ data: [] })),
-                api.admin.getSettings().catch(() => ({} as Record<string, string>))
+                api.deals.adminGetAll(1, 100).catch(() => ({ data: [] }))
             ]);
             setEvents(eventsRes?.data || eventsRes || []);
             setDeals(dealsRes?.data || dealsRes || []);
 
-            if (settingsRes?.offer_price_per_day) {
-                setOfferPrice(Number(settingsRes.offer_price_per_day) || 500);
-            }
-            if (settingsRes?.event_price_per_day) {
-                setEventPrice(Number(settingsRes.event_price_per_day) || 1000);
-            }
         } catch (err: any) {
             console.error('Failed to fetch events and offers:', err);
             setError(err.message || 'Failed to fetch items');
@@ -105,24 +94,6 @@ export default function AdminEventsDealsPage() {
     const handleOpenPayments = () => {
         setIsPaymentModalOpen(true);
         fetchPaymentHistory();
-    };
-
-
-    const handleSavePrices = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            setSavingPrices(true);
-            await api.admin.updateSettings({
-                offer_price_per_day: String(offerPrice),
-                event_price_per_day: String(eventPrice)
-            });
-            setIsPriceModalOpen(false);
-            toast.success('Prices updated successfully!');
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to save price settings');
-        } finally {
-            setSavingPrices(false);
-        }
     };
 
     const handleToggleFeatured = async (id: string, isEvent: boolean, currentFeatured: boolean) => {
@@ -183,22 +154,6 @@ export default function AdminEventsDealsPage() {
         return true;
     });
 
-    const filteredPayments = payments.filter(p => {
-        if (!paymentSearch.trim()) return true;
-        const q = paymentSearch.toLowerCase();
-        return (
-            (p.itemName || '').toLowerCase().includes(q) ||
-            (p.vendorName || '').toLowerCase().includes(q) ||
-            (p.vendorEmail || '').toLowerCase().includes(q) ||
-            (p.invoiceNumber || '').toLowerCase().includes(q) ||
-            (p.type || '').toLowerCase().includes(q)
-        );
-    });
-
-    const totalPaymentAmount = payments
-        .filter(p => p.status === 'active' || p.status === 'completed' || p.status === 'succeeded' || p.amount > 0)
-        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
     return (
         <div className="space-y-8 pb-16">
             {/* Page Header */}
@@ -208,26 +163,12 @@ export default function AdminEventsDealsPage() {
                         <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-black uppercase tracking-widest rounded-full flex items-center gap-1.5">
                             <Sparkles className="w-3.5 h-3.5" /> Superadmin Operations
                         </span>
-                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold rounded-full flex items-center gap-1">
-                            <Tag className="w-3.5 h-3.5" /> Offer Price: PKR {offerPrice}/day
-                        </span>
-                        <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs font-bold rounded-full flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" /> Event Price: PKR {eventPrice}/day
-                        </span>
                     </div>
                     <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Events & Offers Management</h1>
-                    <p className="text-slate-500 font-bold mt-1 text-base">Monitor platform-wide promotional offers, event listings, set pricing rates, and payment logs.</p>
+                    <p className="text-slate-500 font-bold mt-1 text-base">Monitor platform-wide promotional offers, event listings, and payment logs.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <button
-                        onClick={() => setIsPriceModalOpen(true)}
-                        className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm"
-                    >
-                        <DollarSign className="w-4 h-4 text-purple-600" />
-                        Set Global Pricing
-                    </button>
-
                     <button
                         onClick={handleOpenPayments}
                         className="flex items-center justify-center gap-2.5 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl font-black text-xs shadow-xl shadow-emerald-500/20 hover:from-emerald-700 hover:to-teal-700 transition-all active:scale-95"
@@ -444,94 +385,6 @@ export default function AdminEventsDealsPage() {
                     </table>
                 </div>
             </div>
-
-            {/* Set Price Modal */}
-            <AnimatePresence>
-                {isPriceModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100"
-                        >
-                            <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-900 to-slate-900 text-white flex items-center justify-between rounded-t-[2rem]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
-                                        <DollarSign className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-black text-white">Set Platform Pricing</h2>
-                                        <p className="text-xs text-purple-200 font-bold">Configure rates for vendors posting on platform</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsPriceModalOpen(false)}
-                                    className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleSavePrices} className="p-6 space-y-5">
-                                <div>
-                                    <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">
-                                        Offer Price per Day (PKR)
-                                    </label>
-                                    <div className="relative">
-                                        <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            required
-                                            value={offerPrice}
-                                            onChange={e => setOfferPrice(Number(e.target.value))}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base focus:outline-none focus:border-purple-600 transition-all"
-                                        />
-                                    </div>
-                                    <p className="text-[11px] text-slate-400 font-bold mt-1.5">This price is charged per active day when a vendor creates an Offer.</p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-black uppercase text-slate-500 tracking-wider mb-2">
-                                        Event Price per Day (PKR)
-                                    </label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            required
-                                            value={eventPrice}
-                                            onChange={e => setEventPrice(Number(e.target.value))}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-black text-base focus:outline-none focus:border-purple-600 transition-all"
-                                        />
-                                    </div>
-                                    <p className="text-[11px] text-slate-400 font-bold mt-1.5">This price is charged per active day when a vendor posts an Event.</p>
-                                </div>
-
-                                <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPriceModalOpen(false)}
-                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-black text-xs transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={savingPrices}
-                                        className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-xs transition-all active:scale-95 shadow-lg shadow-purple-500/20 disabled:opacity-50"
-                                    >
-                                        {savingPrices ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                        Save Price Rates
-                                    </button>
-                                </div>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             {/* View Item Details Modal */}
             <AnimatePresence>

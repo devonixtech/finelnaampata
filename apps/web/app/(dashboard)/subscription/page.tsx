@@ -7,7 +7,7 @@ import {
     AlertTriangle, FileText, Download, X, ChevronRight, Loader2,
     BadgeCheck, RefreshCw, Eye, TicketPercent, Coins
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -561,6 +561,7 @@ function ConsentModal({
 export default function BusinessSubscriptionPage() {
     const { user, loading: authLoading, syncProfile } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [plans, setPlans] = useState<Plan[]>([]);
     const [activeSub, setActiveSub] = useState<Subscription | null>(null);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -582,6 +583,25 @@ export default function BusinessSubscriptionPage() {
     const showAlert = (title: string, message: string, type: 'success' | 'error' = 'error') => {
         setAlertConfig({ title, message, type });
     };
+
+    useEffect(() => {
+        const canceled = searchParams.get('canceled');
+        const sessionId = searchParams.get('session_id');
+
+        if (canceled && sessionId) {
+            api.subscriptions.cancelCheckout(sessionId)
+                .then(() => {
+                    showAlert('Checkout Cancelled', 'Your checkout session has been cancelled and any applied affiliate credits have been refunded.', 'success');
+                    router.replace('/subscription');
+                })
+                .catch((err) => {
+                    console.error('Failed to cancel checkout:', err);
+                });
+        } else if (canceled) {
+            showAlert('Checkout Cancelled', 'Your checkout session was cancelled.', 'error');
+            router.replace('/subscription');
+        }
+    }, [searchParams, router]);
 
     // Safety-net guard: only businesses can access this page
     // Wait for auth to finish loading before checking role to avoid premature redirects

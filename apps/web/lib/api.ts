@@ -291,6 +291,9 @@ export const api = {
             method: 'PATCH',
             body: JSON.stringify(listingData),
         }),
+        delete: (id: string) => fetcher<void>(`/businesses/${id}`, {
+            method: 'DELETE',
+        }),
         getAlbums: (listingId: string) => fetcher<any[]>(`/businesses/${listingId}/albums`),
         createAlbum: (listingId: string, name: string) => fetcher<any[]>(`/businesses/${listingId}/albums`, {
             method: 'POST',
@@ -825,6 +828,7 @@ export const api = {
         mockCheckout: (planId: string) => fetcher<any>(`/subscriptions/mock-success/${planId}`, { method: 'POST' }),
         createCheckout: (planId: string, referralCode?: string, applyCredits?: boolean) => api.post<{ sessionId: string; checkoutUrl: string }>('/subscriptions/checkout', { planId, referralCode, applyCredits }),
         verify: (sessionId: string) => api.post<{ success: boolean; alreadyProcessed: boolean }>('/subscriptions/verify', { sessionId }),
+        cancelCheckout: (sessionId: string) => api.post<{ success: boolean; message: string }>('/subscriptions/cancel-checkout', { sessionId }),
         changePlan: (planId: string) => api.post<any>('/subscriptions/change', { planId }),
 
         // Admin

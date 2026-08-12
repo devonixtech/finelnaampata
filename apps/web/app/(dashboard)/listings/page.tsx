@@ -73,6 +73,21 @@ export default function BusinessListings() {
         setIsModalOpen(true);
     };
 
+    const handleDeleteListing = async (biz: Business) => {
+        if (!window.confirm(`Are you sure you want to delete "${biz.title}"? This action cannot be undone.`)) {
+            return;
+        }
+        try {
+            setLoading(true);
+            await api.listings.delete(biz.id);
+            toast.success("Listing deleted successfully!");
+            await fetchListings();
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to delete listing.");
+            setLoading(false);
+        }
+    };
+
     const updateKeywords = async (id: string, keywords: string[]) => {
         try {
             setActionLoading('keywords');
@@ -468,13 +483,16 @@ export default function BusinessListings() {
                                     </div>
 
                                     <div className="space-y-3 mt-8">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button onClick={() => handleEdit(biz)} className="py-4 px-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10">
-                                                Edit Details
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button onClick={() => handleEdit(biz)} className="py-4 px-2 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-blue-600 transition-all active:scale-95 shadow-lg shadow-slate-900/10 text-center flex items-center justify-center">
+                                                Edit
                                             </button>
-                                            <Link href={`/business/${biz.slug}`} className="py-4 px-4 bg-white text-slate-900 border border-slate-200 rounded-2xl font-black text-xs hover:bg-slate-50 transition-all active:scale-95 text-center">
-                                                View Page
+                                            <Link href={`/business/${biz.slug}`} className="py-4 px-2 bg-white text-slate-900 border border-slate-200 rounded-2xl font-black text-xs hover:bg-slate-50 transition-all active:scale-95 text-center flex items-center justify-center">
+                                                View
                                             </Link>
+                                            <button onClick={() => handleDeleteListing(biz)} className="py-4 px-2 bg-red-50 text-red-600 border border-red-100 rounded-2xl font-black text-xs hover:bg-red-600 hover:text-white transition-all active:scale-95 shadow-sm text-center flex items-center justify-center">
+                                                Delete
+                                            </button>
                                         </div>
                                         <button
                                             onClick={() => {

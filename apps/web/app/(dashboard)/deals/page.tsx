@@ -266,8 +266,7 @@ export default function BusinessDealsPage() {
     calculateVisibilityTotal(form.startDate, form.endDate, 'deal').then((res) => {
       if (!cancelled) {
         setDayRate(res.dayRate);
-        // Add placement costs
-        let total = res.totalPrice;
+        let total = 0;
         for (const p of form.placements) {
           const rate = placementRates[p] || 0;
           const days = visibilityDayCount(form.startDate, form.endDate);
@@ -354,6 +353,13 @@ export default function BusinessDealsPage() {
       setError("You must agree to the Terms & Conditions and Privacy Policy.");
       return;
     }
+    const existingOffer = editingId ? offers.find((o) => o.id === editingId) : null;
+    const isEditingActive = existingOffer && existingOffer.isActive;
+    
+    if (!isEditingActive && form.placements.length === 0) {
+      setError("Please select at least one promotion placement (Homepage, Category, etc.) to continue.");
+      return;
+    }
 
     const isAdmin = user?.role === "admin" || user?.role === "superadmin";
     if (!editingId && offers.length >= getFeatureValue('maxOffers') && !isAdmin) {
@@ -385,9 +391,10 @@ export default function BusinessDealsPage() {
         if (existingOffer && existingOffer.isActive === false && estimatedPrice > 0) {
           const checkout = await checkoutVisibilityPayment({
             dealId: editingId,
+            dealId: editingId,
             startTime: form.startDate,
             endTime: form.endDate,
-            placements: form.placements.length > 0 ? form.placements : ['offer'],
+            placements: form.placements,
           });
           if (checkout.checkoutUrl) {
             window.location.href = checkout.checkoutUrl;
@@ -401,9 +408,10 @@ export default function BusinessDealsPage() {
         if (estimatedPrice > 0 && offerId) {
           const checkout = await checkoutVisibilityPayment({
             dealId: offerId,
+            dealId: offerId,
             startTime: form.startDate,
             endTime: form.endDate,
-            placements: form.placements.length > 0 ? form.placements : ['offer'],
+            placements: form.placements,
           });
           if (checkout.checkoutUrl) {
             window.location.href = checkout.checkoutUrl;
@@ -953,11 +961,6 @@ export default function BusinessDealsPage() {
                                 <p>{days > 0 ? `${days} day${days === 1 ? '' : 's'} selected` : 'Select placements, start time, and end time to see pricing'}</p>
                                 {days > 0 && (
                                   <>
-                                    {/* Base visibility */}
-                                    <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                                      <span className="text-slate-600">Offer Visibility</span>
-                                      <span className="text-slate-900">Rs. {(days * dayRate).toLocaleString()}</span>
-                                    </div>
                                     {/* Selected placements */}
                                     {form.placements.map((pKey) => {
                                       const pConfig = PLACEMENT_CONFIG.find((x) => x.key === pKey);

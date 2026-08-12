@@ -560,7 +560,8 @@ export class SubscriptionsService implements OnModuleInit {
             mode: 'subscription',
             metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
             success_url: `${baseUrl}/subscription/success/?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/subscription/?canceled=true`,
+            cancel_url: `${baseUrl}/subscription/?canceled=true&session_id={CHECKOUT_SESSION_ID}`,
+            expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // Expire in 30 minutes
         });
 
         this.logger.log(`Stripe checkout session created: ${session.id} for vendor ${vendor.id}`);
@@ -1360,7 +1361,8 @@ export class SubscriptionsService implements OnModuleInit {
             line_items: lineItems,
             mode: plan.type === PricingPlanType.SUBSCRIPTION ? 'subscription' : 'payment',
             success_url: `${baseUrl}/subscription/success/?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/subscription?canceled=true`,
+            cancel_url: `${baseUrl}/subscription?canceled=true&session_id={CHECKOUT_SESSION_ID}`,
+            expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // Expire in 30 minutes
         };
 
         const session = await this.stripe.checkout.sessions.create(sessionParams);
@@ -1849,6 +1851,28 @@ export class SubscriptionsService implements OnModuleInit {
                 break;
             }
 
+            case 'checkout.session.expired': {
+                const session = event.data.object as Stripe.Checkout.Session;
+                this.logger.log(`⏳ Checkout session expired: ${session.id}`);
+
+                if (session.metadata?.creditsUsed) {
+                    const creditsToRefund = parseInt(session.metadata.creditsUsed, 10);
+                    const vendorId = session.client_reference_id;
+                    if (vendorId && !isNaN(creditsToRefund) && creditsToRefund > 0) {
+                        const vendor = await this.vendorRepository.findOne({ where: { id: vendorId }, relations: ['user'] });
+                        if (vendor && vendor.user) {
+                            const affiliate = await this.affiliateRepository.findOne({ where: { user: { id: vendor.user.id } } });
+                            if (affiliate) {
+                                affiliate.balance += creditsToRefund;
+                                await this.affiliateRepository.save(affiliate);
+                                this.logger.log(`✅ Refunded ${creditsToRefund} credits to vendor ${vendorId} due to expired checkout session`);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+
             case 'invoice.paid': {
                 const invoice = event.data.object as any;
                 this.logger.log(` Invoice paid: ${invoice.id} for customer: ${invoice.customer} [Reason: ${invoice.billing_reason}]`);
@@ -2008,5 +2032,21 @@ export class SubscriptionsService implements OnModuleInit {
                 this.logger.log(`ℹ️ Unhandled event type: ${event.type}`);
         }
         return { received: true };
+    }
+
+    async cancelCheckoutSession(sessionId: string) {
+        if (!sessionId) return { success: false, message: 'No session ID provided' };
+        try {
+            const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+            if (session.status === 'open') {
+                await this.stripe.checkout.sessions.expire(sessionId);
+                this.logger.log(`Session ${sessionId} expired manually.`);
+                return { success: true, message: 'Session expired successfully' };
+            }
+            return { success: false, message: `Session status is ${session.status}` };
+        } catch (error) {
+            this.logger.error(`Failed to expire session ${sessionId}: ${error.message}`);
+            return { success: false, message: error.message };
+        }
     }
 }
