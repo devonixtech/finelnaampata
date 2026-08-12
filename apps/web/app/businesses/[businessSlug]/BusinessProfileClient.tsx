@@ -27,6 +27,8 @@ interface BusinessProfile {
     businessPhone?: string;
     namedPhoneNumbers?: { label: string; number: string; }[];
     businessAddress?: string;
+    businessHours?: Record<string, { isOpen: boolean, openTime: string, closeTime: string }>;
+    shopPhotos?: string[];
     isVerified: boolean;
     socialLinks: { platform: string; url: string; }[];
     avatarUrl: string | null;
@@ -145,10 +147,11 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
     const memberSince = businessProfile.createdAt ? new Date(businessProfile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently';
     const additionalPhoneNumbers = (businessProfile.namedPhoneNumbers || []).filter((item) => item?.label && item?.number);
 
-    // Extract cover images from top listings
-    const galleryImages = (businessProfile.listings || [])
-        .map(l => l.coverImageUrl || l.images?.[0])
-        .filter(Boolean)
+    // Extract cover images from top listings and shop photos
+    const galleryImages = [
+        ...(businessProfile.shopPhotos || []),
+        ...(businessProfile.listings || []).map(l => l.coverImageUrl || l.images?.[0]).filter(Boolean)
+    ]
         .slice(0, 3)
         .map(url => getImageUrl(url)!);
 
@@ -346,8 +349,8 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
 
                             {/* TABS */}
                             <div className="flex gap-8 border-b border-slate-200 mb-8 overflow-x-auto">
-                                {['Overview', 'Listings', 'Offers & Events', 'About'].map((tab) => {
-                                    const tabId = tab.toLowerCase().split(' ')[0]; // 'overview', 'listings', 'offers', 'about'
+                                {['Overview', 'Offers & Events', 'About', 'Services'].map((tab) => {
+                                    const tabId = tab.toLowerCase().split(' ')[0]; // 'overview', 'offers', 'about', 'services'
                                     return (
                                     <button
                                         key={tab}
@@ -409,6 +412,25 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {businessProfile.socialLinks && businessProfile.socialLinks.length > 0 && (
+                                                <div className="mt-8 pt-6 border-t border-slate-100">
+                                                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Social Media</h4>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {businessProfile.socialLinks.map((link, idx) => (
+                                                            <a 
+                                                                key={idx}
+                                                                href={link.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-4 py-2 bg-slate-50 text-slate-700 rounded-xl text-sm font-bold hover:bg-blue-50 hover:text-blue-600 transition-colors capitalize flex items-center gap-2"
+                                                            >
+                                                                {link.platform}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* About / Highlights Card */}
@@ -425,12 +447,60 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {businessProfile.businessHours && Object.keys(businessProfile.businessHours).length > 0 && (
+                                                <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm">
+                                                    <div className="flex items-center justify-between mb-6">
+                                                        <h3 className="text-lg font-bold text-slate-900">Business Hours</h3>
+                                                        <Clock className="w-5 h-5 text-slate-400" />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {Object.entries(businessProfile.businessHours).map(([day, hours]: [string, any]) => (
+                                                            <div key={day} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                                                                <span className="text-sm font-bold text-slate-700 capitalize w-24">{day}</span>
+                                                                {hours.isOpen ? (
+                                                                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900 bg-slate-50 px-3 py-1 rounded-lg">
+                                                                        <span>{hours.openTime}</span>
+                                                                        <span className="text-slate-400">-</span>
+                                                                        <span>{hours.closeTime}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-sm font-bold text-red-500 bg-red-50 px-3 py-1 rounded-lg">Closed</span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+                                    
+                                    {businessProfile.shopPhotos && businessProfile.shopPhotos.length > 0 && (
+                                        <div className="mt-8 bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                                                <Images className="w-5 h-5 text-slate-400" /> Photo Gallery
+                                            </h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                {businessProfile.shopPhotos.map((photo, idx) => (
+                                                    <div key={idx} className="aspect-square rounded-2xl overflow-hidden bg-slate-100 cursor-pointer group" onClick={() => {
+                                                        const fullGallery = [
+                                                            ...(businessProfile.shopPhotos || []),
+                                                            ...(businessProfile.listings || []).map(l => l.coverImageUrl || l.images?.[0]).filter(Boolean)
+                                                        ].map(url => getImageUrl(url)!);
+                                                        setCurrentImageIndex(idx);
+                                                        setShowLightbox(true);
+                                                    }}>
+                                                        <img src={getImageUrl(photo)!} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    </>
                                 )}
 
-                                {/* LISTINGS TAB */}
-                                {activeTab === 'listings' && (
+                                {/* LISTINGS / SERVICES TAB */}
+                                {activeTab === 'services' && (
                                     <div className="animate-in fade-in duration-500 space-y-6">
                                         <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex flex-col sm:flex-row gap-4">
                                             <div className="relative flex-1">

@@ -768,6 +768,8 @@ export class VendorsService {
             businessEmail: vendor.businessEmail,
             businessPhone: vendor.businessPhone,
             businessAddress: vendor.businessAddress,
+            businessHours: vendor.businessHours,
+            shopPhotos: vendor.shopPhotos,
             isVerified: vendor.isVerified,
             socialLinks: this.sanitizeSocialLinks(vendor.socialLinks, canShowSocialLinks),
             avatarUrl: vendor.user?.avatarUrl || null,
