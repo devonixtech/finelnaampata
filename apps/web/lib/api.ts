@@ -528,6 +528,27 @@ export const api = {
         getByCity: (city: string) => fetcher<any>(`/business-profiles/by-city?city=${encodeURIComponent(city)}`),
         getPublicProfile: (id: string) => fetcher<any>(`/business-profiles/${id}/public`),
         getAllSlugs: () => fetcher<string[]>('/business-profiles/slugs/all'),
+        uploadImage: async (file: File) => {
+            let fileToUpload = file;
+            if (typeof window !== 'undefined' && file.type.startsWith('image/')) {
+                try {
+                    const imageCompression = (await import('browser-image-compression')).default;
+                    const options = {
+                        maxSizeMB: 1.0,
+                        maxWidthOrHeight: 1600,
+                        useWebWorker: true,
+                        fileType: 'image/webp',
+                        initialQuality: 0.8,
+                    };
+                    const compressedBlob = await imageCompression(file, options);
+                    fileToUpload = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' });
+                } catch (error) {
+                    console.warn('[api.ts] Image compression failed, uploading original.', error);
+                }
+            }
+            const result = await api.cloudinary.uploadToCloudinary(fileToUpload, 'vendors');
+            return { url: result.secure_url };
+        },
     },
     /** @deprecated Use api.businessProfiles */
     vendors: {
