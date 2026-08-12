@@ -221,7 +221,7 @@ export class DemandService {
                 topCity: res.topCity || 'N/A',
                 isTrending: growth >= 20 && c1h >= 1,
                 growth,
-                type: res.normalizedKeyword.startsWith('category:') ? 'category' : 'keyword'
+                type: (res.normalizedKeyword || '').startsWith('category:') ? 'category' : 'keyword'
             } as DemandInsight;
         }).sort((a, b) => b.score - a.score).slice(0, 50);
     }
