@@ -792,6 +792,7 @@ export class VendorsService {
                 averageRating: l.averageRating,
                 totalReviews: l.totalReviews,
                 city: l.city,
+                address: l.address,
                 categoryName: l.category?.name,
             })),
             offers: offers.map(o => ({
