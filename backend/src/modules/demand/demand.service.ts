@@ -166,14 +166,14 @@ export class DemandService {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         const query = this.searchLogRepository.createQueryBuilder('log')
-            .select('LOWER(log.normalized_keyword)', 'normalizedKeyword')
+            .select('LOWER(log.normalizedKeyword)', 'normalizedKeyword')
             .addSelect('MAX(log.keyword)', 'keyword')
             .addSelect('MAX(log.city)', 'topCity')
             .addSelect('COUNT(log.id)', 'count7d')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :oneHour THEN 1 END)', 'count1h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :sixHours THEN 1 END)', 'count6h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :twentyFourHours THEN 1 END)', 'count24h')
-            .addSelect('COUNT(CASE WHEN log.searched_at >= :prevStart AND log.searched_at < :oneHour THEN 1 END)', 'countPrevHour')
+            .addSelect('COUNT(CASE WHEN log.searchedAt >= :oneHour THEN 1 END)', 'count1h')
+            .addSelect('COUNT(CASE WHEN log.searchedAt >= :sixHours THEN 1 END)', 'count6h')
+            .addSelect('COUNT(CASE WHEN log.searchedAt >= :twentyFourHours THEN 1 END)', 'count24h')
+            .addSelect('COUNT(CASE WHEN log.searchedAt >= :prevStart AND log.searchedAt < :oneHour THEN 1 END)', 'countPrevHour')
             .setParameters({
                 oneHour: oneHourAgo,
                 sixHours: sixHoursAgo,
@@ -186,8 +186,8 @@ export class DemandService {
         }
 
         const stats = await query
-            .groupBy('LOWER(log.normalized_keyword)')
-            .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
+            .groupBy('LOWER(log.normalizedKeyword)')
+            .having('COUNT(CASE WHEN log.searchedAt >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
             .getRawMany();
 
         if (stats.length === 0) {
@@ -237,7 +237,7 @@ export class DemandService {
                 .where('listing.status = :status', { status: 'approved' });
 
             const searches7dQuery = this.searchLogRepository.createQueryBuilder('log')
-                .where('log.searched_at >= NOW() - INTERVAL \'7 days\'');
+                .where('log.searchedAt >= NOW() - INTERVAL \'7 days\'');
 
             if (city && city.trim()) {
                 totalListingsQuery.andWhere('LOWER(listing.city) = LOWER(:city)', { city: city.trim() });
@@ -424,16 +424,16 @@ ${JSON.stringify(insights.slice(0, 10))}
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         const query = this.searchLogRepository.createQueryBuilder('log')
-            .select("TO_CHAR(log.searched_at, 'YYYY-MM-DD')", 'date')
+            .select("TO_CHAR(log.searchedAt, 'YYYY-MM-DD')", 'date')
             .addSelect('COUNT(*)', 'count')
-            .where('log.searched_at >= :startDate', { startDate: sevenDaysAgo });
+            .where('log.searchedAt >= :startDate', { startDate: sevenDaysAgo });
 
         if (city && city.trim()) {
             query.andWhere('LOWER(log.city) = LOWER(:city)', { city: city.trim() });
         }
 
         return query
-            .groupBy("TO_CHAR(log.searched_at, 'YYYY-MM-DD')")
+            .groupBy("TO_CHAR(log.searchedAt, 'YYYY-MM-DD')")
             .orderBy('date', 'ASC')
             .getRawMany();
     }
@@ -459,10 +459,10 @@ ${JSON.stringify(insights.slice(0, 10))}
                 .addSelect('MAX(log.keyword)', 'keyword')
                 .addSelect('MAX(log.city)', 'topCity')
                 .addSelect('COUNT(log.id)', 'count7d')
-                .addSelect('COUNT(CASE WHEN log.searched_at >= :oneHour THEN 1 END)', 'count1h')
-                .addSelect('COUNT(CASE WHEN log.searched_at >= :sixHours THEN 1 END)', 'count6h')
-                .addSelect('COUNT(CASE WHEN log.searched_at >= :twentyFourHours THEN 1 END)', 'count24h')
-                .addSelect('COUNT(CASE WHEN log.searched_at >= :prevStart AND log.searched_at < :oneHour THEN 1 END)', 'countPrevHour')
+                .addSelect('COUNT(CASE WHEN log.searchedAt >= :oneHour THEN 1 END)', 'count1h')
+                .addSelect('COUNT(CASE WHEN log.searchedAt >= :sixHours THEN 1 END)', 'count6h')
+                .addSelect('COUNT(CASE WHEN log.searchedAt >= :twentyFourHours THEN 1 END)', 'count24h')
+                .addSelect('COUNT(CASE WHEN log.searchedAt >= :prevStart AND log.searchedAt < :oneHour THEN 1 END)', 'countPrevHour')
                 .setParameters({
                     oneHour: oneHourAgo,
                     sixHours: sixHoursAgo,
@@ -474,7 +474,7 @@ ${JSON.stringify(insights.slice(0, 10))}
 
             const stats = await query
                 .groupBy('LOWER(log.normalizedKeyword)')
-                .having('COUNT(CASE WHEN log.searched_at >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
+                .having('COUNT(CASE WHEN log.searchedAt >= :sevenDays THEN 1 END) > 0', { sevenDays: sevenDaysAgo })
                 .getRawMany();
 
             if (!stats || stats.length === 0) {
@@ -532,21 +532,21 @@ ${JSON.stringify(insights.slice(0, 10))}
             .select('log.latitude', 'latitude')
             .addSelect('log.longitude', 'longitude')
             .addSelect('log.keyword', 'keyword')
-            .addSelect('log.category_slug', 'categorySlug')
-            .addSelect('COUNT(*)', 'weight')
+            .addSelect('log.categorySlug', 'categorySlug')
+            .addSelect('COUNT(*)', 'intensity')
             .where('log.latitude IS NOT NULL')
-            .groupBy('log.latitude, log.longitude, log.keyword, log.category_slug');
+            .groupBy('log.latitude, log.longitude, log.keyword, log.categorySlug');
 
         if (startDate) {
-            query.andWhere('log.searched_at >= :startDate', { startDate: new Date(startDate) });
+            query.andWhere('log.searchedAt >= :startDate', { startDate: new Date(startDate) });
         } else {
-            query.andWhere('log.searched_at >= NOW() - INTERVAL \'90 days\'');
+            query.andWhere('log.searchedAt >= NOW() - INTERVAL \'90 days\'');
         }
 
         if (endDate) {
             const end = new Date(endDate);
-            end.setUTCHours(23, 59, 59, 999);
-            query.andWhere('log.searched_at <= :endDate', { endDate: end });
+            end.setHours(23, 59, 59, 999);
+            query.andWhere('log.searchedAt <= :endDate', { endDate: end });
         }
 
         if (keyword) {
