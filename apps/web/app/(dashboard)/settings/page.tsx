@@ -175,8 +175,7 @@ export default function AccountSettings() {
     const cityMatches = useMemo(() => {
         const query = (formData.city || '').trim().toLowerCase();
         let matches = allCities.filter(c => 
-            c.country === formData.country &&
-            (!formData.state || c.state === formData.state)
+            c.country === formData.country
         );
         if (query) {
             matches = matches.filter(c => c.name.toLowerCase().includes(query));
@@ -730,8 +729,7 @@ export default function AccountSettings() {
                                             setFormData(prev => ({ ...prev, city: e.target.value }));
                                             setCityDropdownOpen(true);
                                         }}
-                                        placeholder={formData.state ? "Type or select a city" : "Select state first"}
-                                        disabled={!formData.state}
+                                        placeholder="Type or select a city"
                                         autoComplete="new-password"
                                         className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
@@ -745,7 +743,11 @@ export default function AccountSettings() {
                                                     key={city.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        setFormData(prev => ({ ...prev, city: city.name }));
+                                                        setFormData(prev => ({ 
+                                                            ...prev, 
+                                                            city: city.name,
+                                                            state: city.state || prev.state 
+                                                        }));
                                                         setCityDropdownOpen(false);
                                                     }}
                                                     className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 border-b border-slate-50 last:border-b-0"
