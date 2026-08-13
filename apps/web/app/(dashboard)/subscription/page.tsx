@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CreditCard, CheckCircle2, Clock, Zap, Check,
@@ -557,8 +557,8 @@ function ConsentModal({
     );
 }
 
-/* Main Page */
-export default function BusinessSubscriptionPage() {
+/* Main Page Content */
+function BusinessSubscriptionContent() {
     const { user, loading: authLoading, syncProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -1078,5 +1078,17 @@ export default function BusinessSubscriptionPage() {
                 )}
             </AnimatePresence>
         </div>
+    );
+}
+
+export default function BusinessSubscriptionPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="w-10 h-10 animate-spin text-slate-200" />
+            </div>
+        }>
+            <BusinessSubscriptionContent />
+        </Suspense>
     );
 }
