@@ -371,6 +371,7 @@ export default function BusinessProfileClient({ slugOrId, initialData, initialCa
                                 
                                 {/* OVERVIEW TAB */}
                                 {activeTab === 'overview' && (
+                                    <>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {/* Business Information Card */}
                                         <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-sm relative overflow-hidden">
