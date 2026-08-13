@@ -765,7 +765,7 @@ export class VendorsService {
             businessName: vendor.businessName || vendor.user?.fullName || 'Unnamed Business',
             vendorName: vendor.user?.fullName || 'Vendor',
             contactName: vendor.user?.fullName || 'Business Team',
-            businessEmail: vendor.businessEmail,
+            businessEmail: vendor.businessEmail || vendor.user?.email,
             businessPhone: vendor.businessPhone,
             businessAddress: vendor.businessAddress,
             businessHours: vendor.businessHours,
