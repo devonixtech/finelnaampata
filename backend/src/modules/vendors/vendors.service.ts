@@ -88,7 +88,7 @@ export class VendorsService {
             : legacyLatest;
     }
 
-    private normalizePublicPlanFeatures(features: Record<string, unknown> = {}) {
+    private normalizePublicPlanFeatures(features: Record<string, unknown> = {}, isPaidPlan: boolean = false) {
         const raw = features as Record<string, any>;
 
         return {
@@ -99,7 +99,7 @@ export class VendorsService {
                 raw.showSocialLinks !== undefined
                     ? !!raw.showSocialLinks
                     : !!raw.socialLinks,
-            canCreateAlbums: !!raw.canCreateAlbums,
+            canCreateAlbums: raw.canCreateAlbums !== undefined ? !!raw.canCreateAlbums : isPaidPlan,
         };
     }
 
@@ -109,9 +109,11 @@ export class VendorsService {
             vendor.activePlans || [],
         );
         const activePlan = (activeMembership as any)?.plan;
+        const isPaidPlan = !!activePlan && activePlan.name?.toLowerCase() !== 'free';
 
         return this.normalizePublicPlanFeatures(
             (activePlan?.features || activePlan?.dashboardFeatures || {}) as Record<string, unknown>,
+            isPaidPlan
         );
     }
 
