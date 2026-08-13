@@ -63,7 +63,8 @@ export const Step5Category = ({ formData, setFormData, categories = [], categori
                 const allCats = categories.reduce((acc, cat) => {
                     acc.push(cat);
                     if (cat.subcategories && Array.isArray(cat.subcategories)) {
-                        acc.push(...cat.subcategories);
+                        const subs = cat.subcategories.map((sub: any) => ({ ...sub, parentId: cat.id }));
+                        acc.push(...subs);
                     }
                     return acc;
                 }, [] as any[]);

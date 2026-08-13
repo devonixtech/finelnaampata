@@ -864,7 +864,7 @@ export class CategoriesService {
 
                 if (catNames.length > 0) {
                     const matchedCats = await this.categoryRepository.find({
-                        where: catNames.map((name: string) => ({ name: ILike(`%${name}%`) })),
+                        where: catNames.map((name: string) => ({ name: ILike(`%${name}%`), parentId: IsNull() })),
                         take: 5,
                     });
                     for (const cat of matchedCats) {
@@ -887,6 +887,7 @@ export class CategoriesService {
             const keywordMatches = await this.categoryRepository
                 .createQueryBuilder('category')
                 .where('category.status = :status', { status: CategoryStatus.ACTIVE })
+                .andWhere('category.parentId IS NULL')
                 .andWhere(
                     new Brackets((qb) => {
                         keywords.forEach((k, i) => {
@@ -924,7 +925,7 @@ export class CategoriesService {
         if (!apiKey) return [];
 
         const catalogue = await this.categoryRepository.find({
-            where: { status: CategoryStatus.ACTIVE },
+            where: { status: CategoryStatus.ACTIVE, parentId: IsNull() },
             select: ['id', 'name', 'slug', 'icon'],
         });
         if (catalogue.length === 0) return [];

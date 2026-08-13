@@ -488,6 +488,9 @@ export class AffiliateService implements OnModuleInit {
                 ...affiliate,
                 balanceHeld: pendingCommissions,
                 totalReferrals: affiliate.referrals?.length || 0,
+                _count: {
+                    referrals: affiliate.referrals?.length || 0,
+                }
             };
         });
     }
