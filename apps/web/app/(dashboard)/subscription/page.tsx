@@ -585,14 +585,28 @@ export default function BusinessSubscriptionPage() {
     };
 
     useEffect(() => {
+        const success = searchParams.get('success');
         const canceled = searchParams.get('canceled');
-        const sessionId = searchParams.get('session_id');
+        const sessionIdFromUrl = searchParams.get('session_id');
+        const pendingSession = sessionStorage.getItem('pending_checkout_session');
 
-        if (canceled && sessionId) {
-            api.subscriptions.cancelCheckout(sessionId)
+        const sessionIdToCancel = sessionIdFromUrl || (!success ? pendingSession : null);
+
+        if (success) {
+            sessionStorage.removeItem('pending_checkout_session');
+            showAlert('Success', 'Your subscription was activated successfully!', 'success');
+            router.replace('/subscription');
+        } else if (sessionIdToCancel) {
+            api.subscriptions.cancelCheckout(sessionIdToCancel)
                 .then(() => {
-                    showAlert('Checkout Cancelled', 'Your checkout session has been cancelled and any applied affiliate credits have been refunded.', 'success');
-                    router.replace('/subscription');
+                    sessionStorage.removeItem('pending_checkout_session');
+                    if (canceled || pendingSession) {
+                        showAlert('Checkout Cancelled', 'Your checkout session has been cancelled and any applied credits have been refunded.', 'success');
+                    }
+                    if (canceled) {
+                        router.replace('/subscription');
+                    }
+                    fetchAll(); // Refresh credits and data
                 })
                 .catch((err) => {
                     console.error('Failed to cancel checkout:', err);
@@ -602,6 +616,18 @@ export default function BusinessSubscriptionPage() {
             router.replace('/subscription');
         }
     }, [searchParams, router]);
+
+    // Handle bfcache: if the user clicks the browser back button from Stripe
+    useEffect(() => {
+        const handlePageShow = (e: PageTransitionEvent) => {
+            if (e.persisted) {
+                // If loaded from bfcache (browser back button), force a reload to trigger the checkout cancellation check
+                window.location.reload();
+            }
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
 
     // Safety-net guard: only businesses can access this page
     // Wait for auth to finish loading before checking role to avoid premature redirects
@@ -703,6 +729,9 @@ export default function BusinessSubscriptionPage() {
         try {
             const res = await api.subscriptions.createCheckout(plan.id, undefined, applyCredits);
             if (res.checkoutUrl) {
+                if (res.sessionId) {
+                    sessionStorage.setItem('pending_checkout_session', res.sessionId);
+                }
                 window.location.href = res.checkoutUrl;
                 return; // Stripe checkout — browser navigates away
             }
