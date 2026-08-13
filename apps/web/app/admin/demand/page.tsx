@@ -66,11 +66,11 @@ export default function AdminDemandDashboard() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="relative group min-w-[280px] bg-white border border-black rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-blue-100 transition-all">
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
-                            <MapPin className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-                        </div>
+                    <div className="relative group min-w-[280px] bg-white border border-black rounded-[24px] overflow-hidden focus-within:ring-4 focus-within:ring-blue-100 transition-all px-5 py-4">
                         <SearchableSelect
+                            minimal={true}
+                            className="w-full"
+                            icon={<MapPin className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />}
                             value={selectedCity}
                             onChange={val => setSelectedCity(val)}
                             options={[
