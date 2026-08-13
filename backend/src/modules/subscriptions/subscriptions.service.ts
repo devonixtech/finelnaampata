@@ -2039,9 +2039,31 @@ export class SubscriptionsService implements OnModuleInit {
         try {
             const session = await this.stripe.checkout.sessions.retrieve(sessionId);
             if (session.status === 'open') {
+                if (session.metadata?.creditsUsed) {
+                    const creditsToRefund = parseInt(session.metadata.creditsUsed, 10);
+                    const vendorId = session.client_reference_id;
+                    
+                    // Clear the metadata BEFORE expiring so the webhook doesn't double-refund
+                    await this.stripe.checkout.sessions.update(sessionId, {
+                        metadata: { creditsUsed: "" }
+                    });
+
+                    if (vendorId && !isNaN(creditsToRefund) && creditsToRefund > 0) {
+                        const vendor = await this.vendorRepository.findOne({ where: { id: vendorId }, relations: ['user'] });
+                        if (vendor && vendor.user) {
+                            const affiliate = await this.affiliateRepository.findOne({ where: { user: { id: vendor.user.id } } });
+                            if (affiliate) {
+                                affiliate.balance = Number(affiliate.balance) + creditsToRefund;
+                                await this.affiliateRepository.save(affiliate);
+                                this.logger.log(`✅ Refunded ${creditsToRefund} credits directly in cancelCheckoutSession`);
+                            }
+                        }
+                    }
+                }
+
                 await this.stripe.checkout.sessions.expire(sessionId);
                 this.logger.log(`Session ${sessionId} expired manually.`);
-                return { success: true, message: 'Session expired successfully' };
+                return { success: true, message: 'Session expired successfully and credits refunded' };
             }
             return { success: false, message: `Session status is ${session.status}` };
         } catch (error) {
