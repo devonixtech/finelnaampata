@@ -801,12 +801,10 @@ export default function BusinessDetailClient({
       ...(Array.isArray(business.images) ? business.images : [])
     ].filter(Boolean)
   );
-
-  const actualImages = Array.from(imagePaths)
+  const galleryImagePaths = Array.from(imagePaths).filter(Boolean);
+  const galleryImages = galleryImagePaths
     .map((img) => getImageUrl(img))
     .filter(Boolean) as string[];
-
-  const galleryImages = actualImages;
 
   const openLightbox = (index: number) => {
     setCurrentImageIndex(index);
@@ -2745,6 +2743,13 @@ export default function BusinessDetailClient({
                     alt={`Gallery selection ${currentImageIndex + 1}`}
                     className="w-full h-full max-h-[85vh] object-contain select-none drop-shadow-2xl rounded-xl"
                   />
+                  {(business.imageCaptions as Record<string, string>)?.[galleryImagePaths[currentImageIndex] as string] && (
+                    <div className="absolute bottom-24 max-w-2xl text-center px-6 py-3 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl">
+                      <p className="text-white text-lg font-medium">
+                        {(business.imageCaptions as Record<string, string>)[galleryImagePaths[currentImageIndex] as string]}
+                      </p>
+                    </div>
+                  )}
                   
                   {/* Thumbnails Indicator */}
                   <div className="absolute bottom-4 flex gap-3 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full border border-white/10 shadow-xl">
