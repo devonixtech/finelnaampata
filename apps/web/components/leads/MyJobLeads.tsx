@@ -172,7 +172,7 @@ export default function MyJobLeads() {
                                             </button>
                                             
                                             <a
-                                                href={`/business/${resp.vendor?.slug}`}
+                                                href={`/businesses/${resp.vendor?.slug || resp.vendor?.id}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex-1 bg-white hover:bg-blue-50 text-blue-600 font-black py-4 rounded-2xl transition-all shadow-xl border-2 border-blue-100 active:scale-[0.98] flex items-center justify-center gap-2 min-w-[150px]"
