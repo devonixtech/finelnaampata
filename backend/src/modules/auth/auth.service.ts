@@ -409,14 +409,18 @@ export class AuthService {
                 }
             }
         } else {
-            // Create new user from Google profile
+            // Ensure only allowed roles can be assigned during Google signup
+            const allowedRoles = [UserRole.USER, UserRole.VENDOR];
+            const requestedRole = dto.role as UserRole;
+            const assignedRole = allowedRoles.includes(requestedRole) ? requestedRole : UserRole.USER;
+
             const newUser = this.userRepository.create({
                 email,
                 fullName: name || email.split('@')[0],
                 avatarUrl: picture || null,
                 googleId,
                 provider: AuthProvider.GOOGLE,
-                role: (dto.role as UserRole) || UserRole.USER,
+                role: assignedRole,
                 isEmailVerified: true,
                 isActive: true,
                 lastLoginAt: new Date(),
