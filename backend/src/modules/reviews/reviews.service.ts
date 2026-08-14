@@ -699,10 +699,14 @@ export class ReviewsService {
         await this.reviewRepository.save(review);
         
         // Update business rating if approval status changed
-        await this.updateBusinessRating(review.businessId);
+        if (review.businessId) {
+            await this.updateBusinessRating(review.businessId);
+        }
 
         // Update user trust score (suspicious flags might have changed)
-        await this.trustService.updateTrustScore(review.userId);
+        if (review.userId) {
+            await this.trustService.updateTrustScore(review.userId);
+        }
         
         return review;
     }
