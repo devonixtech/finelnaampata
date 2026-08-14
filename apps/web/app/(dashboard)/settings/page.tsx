@@ -10,6 +10,8 @@ import { City } from '../../../types/api';
 import { COUNTRIES_STATES, CountryData } from '../../../lib/data/countries-states';
 import { cleanAndDedupeStates, getCanonicalCountryName } from '../../../lib/location-detect';
 import { motion, AnimatePresence } from 'framer-motion';
+import { COUNTRY_CODES } from '../../../lib/countries';
+import parsePhoneNumberFromString from 'libphonenumber-js';
 
 export default function AccountSettings() {
     const { user, loading: authLoading, updateUser, logout } = useAuth();
@@ -21,6 +23,7 @@ export default function AccountSettings() {
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewImage, setPreviewImage] = useState<string | null | undefined>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -37,6 +40,7 @@ export default function AccountSettings() {
         // Business fields
         businessName: '',
         businessEmail: '',
+        businessPhoneCode: '+92',
         businessPhone: '',
         businessAddress: '',
         timezone: '',
@@ -119,6 +123,16 @@ export default function AccountSettings() {
 
                 // Update Profile State
                 if (profile) {
+                    let bPhoneCode = '+92';
+                    let bPhone = profile.vendor?.businessPhone || '';
+                    if (bPhone) {
+                        const parsed = parsePhoneNumberFromString(bPhone);
+                        if (parsed) {
+                            bPhoneCode = '+' + parsed.countryCallingCode;
+                            bPhone = parsed.nationalNumber;
+                        }
+                    }
+
                     setFormData(prev => ({
                         ...prev,
                         fullName: profile.fullName || '',
@@ -129,7 +143,8 @@ export default function AccountSettings() {
                         country: profile.country || 'Pakistan',
                         businessName: profile.vendor?.businessName || '',
                         businessEmail: profile.vendor?.businessEmail || '',
-                        businessPhone: profile.vendor?.businessPhone || '',
+                        businessPhoneCode: bPhoneCode,
+                        businessPhone: bPhone,
                         businessAddress: profile.vendor?.businessAddress || '',
                         timezone: profile.vendor?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         businessHours: profile.vendor?.businessHours || {
@@ -292,6 +307,37 @@ export default function AccountSettings() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        const errors: Record<string, string> = {};
+        if (user?.role === 'vendor') {
+            if (!formData.businessName?.trim()) errors.businessName = 'Business Name is required';
+            if (!formData.businessEmail?.trim()) {
+                errors.businessEmail = 'Business Email is required';
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.businessEmail)) {
+                errors.businessEmail = 'Invalid email format';
+            }
+            if (!formData.businessAddress?.trim() || formData.businessAddress.length < 5) {
+                errors.businessAddress = 'Business Address must be at least 5 characters long';
+            }
+            if (!formData.businessPhone?.trim()) {
+                errors.businessPhone = 'Business Phone is required';
+            } else {
+                const fullPhone = `${formData.businessPhoneCode}${formData.businessPhone}`;
+                const phoneNumber = parsePhoneNumberFromString(fullPhone);
+                if (!phoneNumber || !phoneNumber.isValid()) {
+                    errors.businessPhone = 'Invalid phone number for the selected country code';
+                }
+            }
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            setError('Please fix the errors in the form before saving.');
+            return;
+        }
+
+        setFormErrors({});
         setSaving(true);
         setSuccess(false);
         setError(null);
@@ -321,7 +367,7 @@ export default function AccountSettings() {
                 const vendorPayload: any = {
                     businessName: formData.businessName || undefined,
                     businessEmail: formData.businessEmail || undefined,
-                    businessPhone: formData.businessPhone || undefined,
+                    businessPhone: formData.businessPhone ? `${formData.businessPhoneCode}${formData.businessPhone}` : undefined,
                     businessAddress: formData.businessAddress || undefined,
                     timezone: formData.timezone || undefined,
                     businessHours: formData.businessHours,
@@ -801,8 +847,9 @@ export default function AccountSettings() {
                                         name="businessName"
                                         value={formData.businessName}
                                         onChange={handleChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
+                                        className={`w-full px-6 py-4 bg-slate-50 border ${formErrors.businessName ? 'border-red-500/50' : 'border-transparent'} focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none`}
                                     />
+                                    {formErrors.businessName && <p className="text-red-500 text-xs font-semibold ml-1">{formErrors.businessName}</p>}
                                 </div>
                                 <div className="space-y-3">
                                     <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
@@ -813,20 +860,37 @@ export default function AccountSettings() {
                                         name="businessEmail"
                                         value={formData.businessEmail}
                                         onChange={handleChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold text-slate-900 transition-all outline-none"
+                                        className={`w-full px-6 py-4 bg-slate-50 border ${formErrors.businessEmail ? 'border-red-500/50' : 'border-transparent'} focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold text-slate-900 transition-all outline-none`}
                                     />
+                                    {formErrors.businessEmail && <p className="text-red-500 text-xs font-semibold ml-1">{formErrors.businessEmail}</p>}
                                 </div>
                                 <div className="space-y-3">
                                     <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
                                         Business Phone
                                     </label>
-                                    <input
-                                        type="tel"
-                                        name="businessPhone"
-                                        value={formData.businessPhone}
-                                        onChange={handleChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
-                                    />
+                                    <div className="flex gap-2">
+                                        <select
+                                            name="businessPhoneCode"
+                                            value={formData.businessPhoneCode}
+                                            onChange={handleChange}
+                                            className="w-[120px] px-3 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none cursor-pointer"
+                                        >
+                                            {COUNTRY_CODES.map(c => (
+                                                <option key={c.code} value={c.dialCode}>
+                                                    {c.code} ({c.dialCode})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="tel"
+                                            name="businessPhone"
+                                            value={formData.businessPhone}
+                                            onChange={handleChange}
+                                            placeholder="Enter phone number"
+                                            className={`flex-1 px-6 py-4 bg-slate-50 border ${formErrors.businessPhone ? 'border-red-500/50' : 'border-transparent'} focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none`}
+                                        />
+                                    </div>
+                                    {formErrors.businessPhone && <p className="text-red-500 text-xs font-semibold ml-1">{formErrors.businessPhone}</p>}
                                 </div>
                                 <div className="space-y-3 md:col-span-2">
                                     <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
@@ -838,8 +902,9 @@ export default function AccountSettings() {
                                         required
                                         value={formData.businessAddress}
                                         onChange={handleChange}
-                                        className="w-full px-6 py-4 bg-slate-50 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none"
+                                        className={`w-full px-6 py-4 bg-slate-50 border ${formErrors.businessAddress ? 'border-red-500/50' : 'border-transparent'} focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none`}
                                     />
+                                    {formErrors.businessAddress && <p className="text-red-500 text-xs font-semibold ml-1">{formErrors.businessAddress}</p>}
                                 </div>
                                 <div className="space-y-3 md:col-span-2">
                                     <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 ml-1">
