@@ -9,6 +9,7 @@ import { ListingImage } from './ListingImage';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
+import { getBusinessOpenStatus } from '../lib/business-status';
 
 const RatingStars = ({ rating, count }: { rating: number, count?: number }) => {
     return (
@@ -53,8 +54,9 @@ const BusinessCard = React.memo(({ business }: BusinessCardProps) => {
     const locationParts = [categoryName, business.city].filter(Boolean);
     const locationString = locationParts.join(' • ');
     
-    // Fallback logic for open now (replace with actual logic if backend provides it)
-    const isOpen = business.vendor?.isOnline !== false;
+    // Check actual business hours
+    const openStatus = getBusinessOpenStatus(business.businessHours);
+    const isOpen = openStatus.status !== 'CLOSED';
 
     const handleAction = async (e: React.MouseEvent, action: 'like' | 'call' | 'enquiry') => {
         e.preventDefault();
