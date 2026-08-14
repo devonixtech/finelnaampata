@@ -154,6 +154,18 @@ export default function AdminEventsDealsPage() {
         return true;
     });
 
+    const filteredPayments = payments.filter(pay => {
+        if (!paymentSearch.trim()) return true;
+        const q = paymentSearch.toLowerCase();
+        const invoiceMatch = (pay.invoiceNumber || pay.id || '').toLowerCase().includes(q);
+        const vendorMatch = (pay.vendorName || pay.vendorEmail || '').toLowerCase().includes(q);
+        const itemMatch = (pay.itemName || '').toLowerCase().includes(q);
+        const typeMatch = (pay.type || '').toLowerCase().includes(q);
+        return invoiceMatch || vendorMatch || itemMatch || typeMatch;
+    });
+
+    const totalPaymentAmount = filteredPayments.reduce((acc, pay) => acc + (Number(pay.amount) || 0), 0);
+
     return (
         <div className="space-y-8 pb-16">
             {/* Page Header */}
